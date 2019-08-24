@@ -7,8 +7,11 @@ using Rhino.Geometry;
 
 namespace RhinoInterface
 {
-    public class Class1
+    public static class Test
     {
-
+        public static int GetSquare(int n)
+        {
+            return Unsafe.Test_GetSquare(n);
+        }
     }
 }
