@@ -13,6 +13,9 @@ const vec3 vec3::zero = vec3(0, 0, 0);
 vec3::vec3(double a, double b, double c)
 	: x(a), y(b), z(c) {}
 
+vec3::vec3(const vec3& v)
+	: x(v.x), y(v.y), z(v.z) {}
+
 vec3::vec3()
 	:vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue){}
 
@@ -36,12 +39,12 @@ vec3 vec3::operator^(const vec3& v) const
 	return vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
 }
 
-vec3 vec3::operator*(const double& s) const
+vec3 vec3::operator*(double s) const
 {
 	return vec3(x * s, y * s, z * s);
 }
 
-vec3 vec3::operator/(const double& s) const
+vec3 vec3::operator/(double s) const
 {
 	return vec3(x / s, y / s, z / s);
 }
@@ -72,7 +75,7 @@ vec3 vec3::operator-=(const vec3& v)
 	return *this;
 }
 
-vec3 vec3::operator/=(const double& s)
+vec3 vec3::operator/=(double s)
 {
 	x /= s;
 	y /= s;
@@ -80,7 +83,7 @@ vec3 vec3::operator/=(const double& s)
 	return *this;
 }
 
-vec3 vec3::operator*=(const double& s)
+vec3 vec3::operator*=(double s)
 {
 	x /= s;
 	y /= s;
@@ -110,7 +113,7 @@ void vec3::copy(double* dest, size_t& pos) const
 	dest[pos++] = z;
 }
 
-void vec3::copy(double dest[3])
+void vec3::copy(double dest[3]) const
 {
 	dest[0] = x;
 	dest[1] = y;
@@ -132,22 +135,30 @@ vec3 vec3::unit() const
 	return is_zero() ? vec3::zero : vec3(x, y, z) / len();
 }
 
-vec3 vec3::sum(vec3* vecs, size_t nVecs)
+void vec3::reverse()
+{
+	x = -x;
+	y = -y;
+	z = -z;
+}
+
+vec3 vec3::sum(const std::vector<vec3>& vecs)
 {
 	vec3 sum = vec3::zero;
-	for (size_t i = 0; i < nVecs; i++)
+	auto iter = vecs.begin();
+	while (iter != vecs.end())
 	{
-		if (!vecs[i].is_valid()) {
+		if (!iter->is_valid()) {
 			return vec3::unset;
 		}
-		sum += vecs[i];
+		sum += *iter;
 	}
 	return sum;
 }
 
-vec3 vec3::average(vec3* vecs, size_t nVecs)
+vec3 vec3::average(const std::vector<vec3>& vecs)
 {
-	return sum(vecs, nVecs) / nVecs;
+	return sum(vecs) / vecs.size();
 }
 
 bool index_pair::operator==(const index_pair& pair) const
@@ -203,7 +214,7 @@ tri_face::tri_face()
 	: id(-1), a(-1), b(-1), c(-1) {}
 
 tri_face::tri_face(size_t idVal, size_t v1, size_t v2, size_t v3)
-	: id(idVal), a(v1), b(v2), c(v3) {}
+	: id(idVal), a(v1), b(v2), c(v3), normal(vec3::unset) {}
 
 bool tri_face::is_valid()
 {
@@ -212,10 +223,7 @@ bool tri_face::is_valid()
 
 void tri_face::flip()
 {
-	size_t temp;
-	temp = b;
-	b = c;
-	c = temp;
+	std::swap(b, c);
 	normal = -normal;
 }
 
@@ -232,6 +240,11 @@ index_pair tri_face::edge(char edgeIndex)
 	default:
 		throw "Invalid edge index.";
 	}
+}
+
+bool tri_face::contains_vertex(size_t vi) const
+{
+	return vi == -1 && (vi == a || vi == b || vi == c);
 }
 
 PINVOKE void Unsafe_ReleaseInt(int* arr, bool isArray)
