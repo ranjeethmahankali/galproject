@@ -46,7 +46,7 @@ void convex_hull::compute()
 	tri_face curFace, pFace, newFace;
 	tri_face adjFaces[3];
 	index_pair edges[3];
-	vec3 farPt, normal;
+	vec3 farPt;
 	std::queue<size_t> popQ;
 	std::vector<index_pair> horizonEdges;
 	std::vector<tri_face> poppedFaces, newFaces;
@@ -54,12 +54,9 @@ void convex_hull::compute()
 	while (!faceQ.empty()) {
 		fi = faceQ.front();
 		faceQ.pop();
-
 		if (!get_face(fi, curFace) || !get_farthest_pt(curFace, farPt, fpi)) {
 			continue;
 		}
-
-		normal = curFace.normal;
 		popQ.push(fi);
 
 		horizonEdges.clear();
@@ -88,6 +85,8 @@ void convex_hull::compute()
 			}
 		}
 
+		newFaces.clear();
+		newFaces.reserve(horizonEdges.size());
 		for (const index_pair& he : horizonEdges) {
 			newFace = tri_face(curFaceId++, fpi, he.p, he.q);
 			set_face(newFace);
@@ -175,26 +174,21 @@ bool convex_hull::get_farthest_pt(const tri_face& face, vec3& pt, size_t& ptInde
 
 void convex_hull::update_exterior_pts(const std::vector<tri_face>& newFaces, const std::vector<tri_face>& poppedFaces)
 {
-	bool outside, finished;
+	bool outside;
 	vec3 testPt;
 	std::vector<size_t> remove, check;
 	for (const size_t& opi : m_outsidePts) {
 		outside = false;
-		finished = false;
 		testPt = m_pts[opi];
 		for (const tri_face& face : poppedFaces) {
 			if (face.contains_vertex(opi)) {
 				remove.push_back(opi);
-				finished = true;
 				break;
 			}
 			if (face_visible(face, testPt)) {
 				outside = true;
 				break;
 			}
-		}
-		if (finished) {
-			continue;
 		}
 
 		if (outside) {
