@@ -38,7 +38,6 @@ struct vec3 {
 	double len() const;
 
 	void copy(double* dest, size_t& pos) const;
-	void copy(double dest[3]) const;
 	bool is_zero() const;
 	bool is_valid() const;
 	vec3 unit() const;
@@ -73,7 +72,7 @@ struct tri_face {
 
 	bool is_valid();
 	void flip();
-	index_pair edge(char edgeIndex);
+	index_pair edge(char edgeIndex) const;
 	bool contains_vertex(size_t vertIndex) const;
 };
 

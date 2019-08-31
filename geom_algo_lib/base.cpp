@@ -113,13 +113,6 @@ void vec3::copy(double* dest, size_t& pos) const
 	dest[pos++] = z;
 }
 
-void vec3::copy(double dest[3]) const
-{
-	dest[0] = x;
-	dest[1] = y;
-	dest[2] = z;
-}
-
 bool vec3::is_zero() const
 {
 	return x == 0 && y == 0 && z == 0;
@@ -224,10 +217,10 @@ bool tri_face::is_valid()
 void tri_face::flip()
 {
 	std::swap(b, c);
-	normal = -normal;
+	normal.reverse();
 }
 
-index_pair tri_face::edge(char edgeIndex)
+index_pair tri_face::edge(char edgeIndex) const
 {
 	switch (edgeIndex)
 	{
