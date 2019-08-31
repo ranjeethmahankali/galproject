@@ -38,6 +38,7 @@ struct vec3 {
 	double len() const;
 
 	void copy(double* dest, size_t& pos) const;
+	void copy(double dest[3]);
 	bool is_zero() const;
 	bool is_valid() const;
 	vec3 unit() const;
@@ -63,6 +64,8 @@ struct index_pair {
 };
 
 struct tri_face {
+	static const tri_face unset;
+
 	size_t id;
 	size_t a, b, c;
 	vec3 normal;
@@ -76,5 +79,13 @@ struct tri_face {
 	bool contains_vertex(size_t vertIndex) const;
 };
 
-PINVOKE void Unsafe_ReleaseInt(int* arr, bool isArray);
-PINVOKE void Unsafe_ReleaseDouble(double* arr, bool isArray);
+struct index_pair_hash {
+	size_t operator ()(const index_pair&) const noexcept;
+};
+
+struct custom_size_t_hash {
+	size_t operator ()(const size_t&) const noexcept;
+};
+
+PINVOKE void ReleaseInt(int* arr, bool isArray);
+PINVOKE void ReleaseDouble(double* arr, bool isArray);

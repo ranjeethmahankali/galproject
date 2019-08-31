@@ -9,6 +9,7 @@ PINVOKE int Test_GetSquare(int n)
 
 const vec3 vec3::unset = vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue);
 const vec3 vec3::zero = vec3(0, 0, 0);
+const tri_face tri_face::unset = tri_face(-1, -1, -1, -1);
 
 vec3::vec3(double a, double b, double c)
 	: x(a), y(b), z(c) {}
@@ -111,6 +112,13 @@ void vec3::copy(double* dest, size_t& pos) const
 	dest[pos++] = x;
 	dest[pos++] = y;
 	dest[pos++] = z;
+}
+
+void vec3::copy(double dest[3])
+{
+	dest[0] = x;
+	dest[1] = y;
+	dest[2] = z;
 }
 
 bool vec3::is_zero() const
@@ -240,12 +248,22 @@ bool tri_face::contains_vertex(size_t vi) const
 	return vi == -1 && (vi == a || vi == b || vi == c);
 }
 
-PINVOKE void Unsafe_ReleaseInt(int* arr, bool isArray)
+PINVOKE void ReleaseInt(int* arr, bool isArray)
 {
 	deletePtr(arr, isArray);
 }
 
-PINVOKE void Unsafe_ReleaseDouble(double* arr, bool isArray)
+PINVOKE void ReleaseDouble(double* arr, bool isArray)
 {
 	deletePtr(arr, isArray);
+}
+
+size_t index_pair_hash::operator()(const index_pair& ip) const noexcept
+{
+	return ip.hash();
+}
+
+size_t custom_size_t_hash::operator()(const size_t& i) const noexcept
+{
+	return i;
 }
