@@ -20,14 +20,14 @@ private:
 	void compute();
 	void set_face(tri_face& face);
 	tri_face pop_face(size_t index, index_pair edges[3], tri_face adjFaces[3]);
-	bool face_visible(const tri_face&, const vec3&);
-	double face_plane_dist(const tri_face&, const vec3&);
-	bool get_farthest_pt(const tri_face&, vec3& pt, size_t& ptIndex);
+	bool face_visible(const tri_face&, const vec3&) const;
+	double face_plane_dist(const tri_face&, const vec3&) const;
+	bool get_farthest_pt(const tri_face&, vec3& pt, size_t& ptIndex) const;
 	void update_exterior_pts(const std::vector<tri_face>& newFaces, const std::vector<tri_face>& poppedFaces);
 	void create_initial_simplex(size_t& faceIndex);
-	bool get_face(size_t id, tri_face& face);
-	bool get_edge_faces(const index_pair& edge, index_pair& faces);
-	vec3 face_center(const tri_face& face);
+	bool get_face(size_t id, tri_face& face) const;
+	bool get_edge_faces(const index_pair& edge, index_pair& faces) const;
+	vec3 face_center(const tri_face& face) const;
 
 public:
 	convex_hull(double* coords, size_t nPts);

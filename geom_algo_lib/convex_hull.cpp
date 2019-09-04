@@ -142,26 +142,26 @@ tri_face convex_hull::pop_face(size_t id, index_pair edges[3], tri_face adjFaces
 	return face;
 }
 
-bool convex_hull::face_visible(const tri_face& face, const vec3& pt)
+bool convex_hull::face_visible(const tri_face& face, const vec3& pt) const
 {
 	return face.normal.is_valid() ? face_plane_dist(face, pt) > PLANE_DIST_TOL : false;
 }
 
-double convex_hull::face_plane_dist(const tri_face& face, const vec3& pt)
+double convex_hull::face_plane_dist(const tri_face& face, const vec3& pt) const
 {
 	return (pt - m_pts[face.a]) * face.normal;
 }
 
-bool convex_hull::get_farthest_pt(const tri_face& face, vec3& pt, size_t& ptIndex)
+bool convex_hull::get_farthest_pt(const tri_face& face, vec3& pt, size_t& ptIndex) const
 {
 	ptIndex = -1;
 	pt = vec3::unset;
 	double dMax = PLANE_DIST_TOL, dist;
 	for (const size_t& i : m_outsidePts) {
-		dist = face_plane_dist(face, m_pts[i]);
 		if (face.contains_vertex(i)) {
 			continue;
 		}
+		dist = face_plane_dist(face, m_pts[i]);
 		if (dist > dMax) {
 			dMax = dist;
 			ptIndex = i;
@@ -352,7 +352,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 	}
 }
 
-bool convex_hull::get_face(size_t id, tri_face& face)
+bool convex_hull::get_face(size_t id, tri_face& face) const
 {
 	auto match = m_faces.find(id);
 	if (match != m_faces.end()) {
@@ -362,7 +362,7 @@ bool convex_hull::get_face(size_t id, tri_face& face)
 	return false;
 }
 
-bool convex_hull::get_edge_faces(const index_pair& edge, index_pair& faces)
+bool convex_hull::get_edge_faces(const index_pair& edge, index_pair& faces) const
 {
 	auto match = m_edgeFaceMap.find(edge);
 	if (match != m_edgeFaceMap.end()) {
@@ -372,7 +372,7 @@ bool convex_hull::get_edge_faces(const index_pair& edge, index_pair& faces)
 	return false;
 }
 
-vec3 convex_hull::face_center(const tri_face& face)
+vec3 convex_hull::face_center(const tri_face& face) const
 {
 	return (m_pts[face.a] + m_pts[face.b] + m_pts[face.c]) / 3;
 }
