@@ -27,9 +27,9 @@ void convex_hull::copy_faces(int* faceIndices) const
 {
 	int i = 0;
 	for (auto const& pair : m_faces) {
-		faceIndices[i++] = pair.second.a;
-		faceIndices[i++] = pair.second.b;
-		faceIndices[i++] = pair.second.c;
+		faceIndices[i++] = (int)pair.second.a;
+		faceIndices[i++] = (int)pair.second.b;
+		faceIndices[i++] = (int)pair.second.c;
 	}
 }
 
@@ -235,7 +235,11 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 			extremes[ei] = ei % 2 == 0 ? doubleMaxValue : doubleMinValue;
 		}
 
-		size_t bounds[6] = { -1, -1, -1, -1, -1, -1 };
+		size_t bounds[6];
+		for (size_t i = 0; i < 6; i++)
+		{
+			bounds[i] = (size_t)(-1);
+		}
 		double coords[3];
 		for (size_t pi = 0; pi < m_nPts; pi++)
 		{
@@ -380,7 +384,7 @@ vec3 convex_hull::face_center(const tri_face& face) const
 PINVOKE void ConvexHull_Create(double* coords, size_t nPts, int*& faceIndices, int& nFaces)
 {
 	convex_hull hull(coords, nPts);
-	nFaces = hull.num_faces();
+	nFaces = (int)hull.num_faces();
 	faceIndices = new int[hull.num_faces() * 3];
 	hull.copy_faces(faceIndices);
 }

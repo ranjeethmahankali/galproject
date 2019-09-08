@@ -159,7 +159,7 @@ vec3 vec3::sum(const std::vector<vec3>& vecs)
 
 vec3 vec3::average(const std::vector<vec3>& vecs)
 {
-	return sum(vecs) / vecs.size();
+	return sum(vecs) / (double)vecs.size();
 }
 
 bool index_pair::operator==(const index_pair& pair) const
