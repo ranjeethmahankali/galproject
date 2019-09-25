@@ -262,7 +262,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 		for (size_t i = 0; i < 6; i++)
 		{
 			pt = m_pts[bounds[i]];
-			for (size_t j = 0; j < 6; j++)
+			for (size_t j = i + 1; j < 6; j++)
 			{
 				dist = (pt - m_pts[bounds[j]]).len_sq();
 				if (dist > maxD) {
