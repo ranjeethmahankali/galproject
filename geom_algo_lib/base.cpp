@@ -10,6 +10,7 @@ PINVOKE int Test_GetSquare(int n)
 const vec3 vec3::unset = vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue);
 const vec3 vec3::zero = vec3(0, 0, 0);
 const tri_face tri_face::unset = tri_face(-1, -1, -1, -1);
+const box3 box3::empty = box3(vec3::unset, -vec3::unset);
 
 vec3::vec3(double a, double b, double c)
 	: x(a), y(b), z(c) {}
@@ -143,6 +144,18 @@ void vec3::reverse()
 	z = -z;
 }
 
+void vec3::set(double xx, double yy, double zz)
+{
+    x = xx;
+    y = yy;
+    z = zz;
+}
+
+void vec3::set(const vec3& v)
+{
+    set(v.x, v.y, v.z);
+}
+
 vec3 vec3::sum(const std::vector<vec3>& vecs)
 {
 	vec3 sum = vec3::zero;
@@ -160,6 +173,24 @@ vec3 vec3::sum(const std::vector<vec3>& vecs)
 vec3 vec3::average(const std::vector<vec3>& vecs)
 {
 	return sum(vecs) / (double)vecs.size();
+}
+
+vec3 vec3::min_coords(const vec3& a, const vec3& b)
+{
+    return vec3(
+        std::min(a.x, b.x),
+        std::min(a.y, b.y),
+        std::min(a.z, b.z)
+    ); 
+}
+
+vec3 vec3::max_coords(const vec3& a, const vec3& b)
+{
+    return vec3(
+        std::max(a.x, b.x),
+        std::max(a.y, b.y),
+        std::max(a.z, b.z)
+    );
 }
 
 bool index_pair::operator==(const index_pair& pair) const
@@ -266,4 +297,62 @@ size_t index_pair_hash::operator()(const index_pair& ip) const noexcept
 size_t custom_size_t_hash::operator()(const size_t& i) const noexcept
 {
 	return i;
+}
+
+box3::box3() : min(vec3::unset), max(vec3::unset)
+{
+}
+
+box3::box3(const vec3& min, const vec3& max) : box3()
+{
+    inflate(min);
+    inflate(max);
+}
+
+vec3 box3::diagonal() const
+{
+    return max - min;
+}
+
+void box3::inflate(const vec3& pt)
+{
+    min.set(vec3::min_coords(pt, min));
+    max.set(vec3::max_coords(pt, max));
+}
+
+void box3::inflate(double d)
+{
+    vec3 v(d, d, d);
+    min -= v;
+    max += v;
+}
+
+void box3::deflate(double d)
+{
+    inflate(-d);
+}
+
+bool box3::contains(const vec3& pt) const
+{
+    return !(min.x > pt.x || max.x < pt.x || min.y > pt.y || max.y < pt.y || min.z > pt.z || max.z < pt.z);
+}
+
+bool box3::contains(const box3& b) const
+{
+    return contains(b.min) && contains(b.max);
+}
+
+bool box3::intersects(const box3& b) const
+{
+    vec3 m1 = vec3::max_coords(b.min, min);
+    vec3 m2 = vec3::min_coords(b.max, max);
+    vec3 d = m2 - m1;
+    return d.x > 0 && d.y > 0 && d.z > 0;
+}
+
+box3 box3::init(const vec3& m1, const vec3& m2)
+{
+    box3 b;
+    b.min = m1;
+    b.max = m2;
 }

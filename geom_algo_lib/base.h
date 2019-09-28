@@ -1,9 +1,12 @@
 #pragma once
 #include <limits>
 #include <vector>
+#include <algorithm>
 
 #define PINVOKE extern "C" __declspec(dllexport)
+// The number with the largest absolute value that can be represented by the double datatype.
 #define doubleMaxValue std::numeric_limits<double>::max()
+// The number with the smallest absolute value that can be represented by the double datatype.
 #define doubleMinValue std::numeric_limits<double>::min()
 
 struct vec3 {
@@ -43,9 +46,13 @@ struct vec3 {
 	bool is_valid() const;
 	vec3 unit() const;
 	void reverse();
+    void set(double, double, double);
+    void set(const vec3&);
 
 	static vec3 sum(const std::vector<vec3>& vecs);
 	static vec3 average(const std::vector<vec3>& vecs);
+    static vec3 min_coords(const vec3&, const vec3&);
+    static vec3 max_coords(const vec3&, const vec3&);
 };
 
 struct index_pair {
@@ -85,6 +92,25 @@ struct index_pair_hash {
 
 struct custom_size_t_hash {
 	size_t operator ()(const size_t&) const noexcept;
+};
+
+struct box3
+{
+    static const box3 empty;
+    vec3 min, max;
+
+    box3();
+    box3(const vec3& min, const vec3& max);
+
+    vec3 diagonal() const;
+    void inflate(const vec3&);
+    void inflate(double);
+    void deflate(double);
+    bool contains(const vec3&) const;
+    bool contains(const box3&) const;
+    bool intersects(const box3&) const;
+
+    static box3 init(const vec3&, const vec3&);
 };
 
 PINVOKE void ReleaseInt(int* arr, bool isArray);
