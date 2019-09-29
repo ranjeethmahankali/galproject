@@ -63,36 +63,32 @@ bool vec3::operator!=(const vec3& v) const
 	return x != v.x || y != v.y || z != v.z;
 }
 
-vec3 vec3::operator+=(const vec3& v)
+void vec3::operator+=(const vec3& v)
 {
 	x += v.x;
 	y += v.y;
 	z += v.z;
-	return *this;
 }
 
-vec3 vec3::operator-=(const vec3& v)
+void vec3::operator-=(const vec3& v)
 {
 	x -= v.x;
 	y -= v.y;
 	z -= v.z;
-	return *this;
 }
 
-vec3 vec3::operator/=(double s)
+void vec3::operator/=(double s)
 {
 	x /= s;
 	y /= s;
 	z /= s;
-	return *this;
 }
 
-vec3 vec3::operator*=(double s)
+void vec3::operator*=(double s)
 {
 	x /= s;
 	y /= s;
 	z /= s;
-	return *this;
 }
 
 vec3 vec3::operator-() const
@@ -161,14 +157,10 @@ void vec3::set(const vec3& v)
 vec3 vec3::sum(const std::vector<vec3>& vecs)
 {
 	vec3 sum = vec3::zero;
-	auto iter = vecs.begin();
-	while (iter != vecs.end())
-	{
-		if (!iter->is_valid()) {
-			return vec3::unset;
-		}
-		sum += *iter;
-	}
+    for (const vec3& v : vecs)
+    {
+        sum += v;
+    }
 	return sum;
 }
 
@@ -301,7 +293,7 @@ size_t custom_size_t_hash::operator()(const size_t& i) const noexcept
 	return i;
 }
 
-box3::box3() : min(vec3::unset), max(vec3::unset)
+box3::box3() : min(vec3::unset), max(-vec3::unset)
 {
 }
 
