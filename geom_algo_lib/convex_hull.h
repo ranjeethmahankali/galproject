@@ -6,6 +6,23 @@
 
 constexpr double PLANE_DIST_TOL = 1e-10;
 
+struct tri_face
+{
+    static const tri_face unset;
+
+    size_t id;
+    size_t a, b, c;
+    vec3 normal;
+
+    tri_face();
+    tri_face(size_t i, size_t v1, size_t v2, size_t v3);
+
+    bool is_valid();
+    void flip();
+    index_pair edge(char edgeIndex) const;
+    bool contains_vertex(size_t vertIndex) const;
+};
+
 class convex_hull
 {
 private:

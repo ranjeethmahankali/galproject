@@ -1,5 +1,48 @@
 #include "convex_hull.h"
 
+const tri_face tri_face::unset = tri_face(-1, -1, -1, -1);
+
+tri_face::tri_face()
+    : id(-1), a(-1), b(-1), c(-1)
+{
+}
+
+tri_face::tri_face(size_t idVal, size_t v1, size_t v2, size_t v3)
+    : id(idVal), a(v1), b(v2), c(v3), normal(vec3::unset)
+{
+}
+
+bool tri_face::is_valid()
+{
+    return id != -1 && a != -1 && b != -1 && c != -1;
+}
+
+void tri_face::flip()
+{
+    std::swap(b, c);
+    normal.reverse();
+}
+
+index_pair tri_face::edge(char edgeIndex) const
+{
+    switch (edgeIndex)
+    {
+    case 0:
+        return index_pair(a, b);
+    case 1:
+        return index_pair(b, c);
+    case 2:
+        return index_pair(c, a);
+    default:
+        throw "Invalid edge index.";
+    }
+}
+
+bool tri_face::contains_vertex(size_t vi) const
+{
+    return vi == -1 && (vi == a || vi == b || vi == c);
+}
+
 convex_hull::convex_hull(double* coords, size_t nPts)
 {
 	m_pts.reserve(nPts);

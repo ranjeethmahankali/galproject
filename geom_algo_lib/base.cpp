@@ -11,8 +11,8 @@ const vec3 vec3::unset = vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue);
 const vec3 vec3::zero = vec3(0, 0, 0);
 const vec2 vec2::zero = vec2(0, 0);
 const vec2 vec2::unset = vec2(doubleMaxValue, doubleMaxValue);
-const tri_face tri_face::unset = tri_face(-1, -1, -1, -1);
 const box3 box3::empty = box3(vec3::unset, -vec3::unset);
+const box2 box2::empty = box2(vec2::unset, -vec2::unset);
 
 vec3::vec3(double a, double b, double c)
 	: x(a), y(b), z(c) {}
@@ -234,43 +234,6 @@ bool index_pair::add(size_t i)
 bool index_pair::contains(size_t i) const
 {
 	return (i != -1) && (i == p || i == q);
-}
-
-tri_face::tri_face()
-	: id(-1), a(-1), b(-1), c(-1) {}
-
-tri_face::tri_face(size_t idVal, size_t v1, size_t v2, size_t v3)
-	: id(idVal), a(v1), b(v2), c(v3), normal(vec3::unset) {}
-
-bool tri_face::is_valid()
-{
-	return id != -1 && a != -1 && b != -1 && c != -1;
-}
-
-void tri_face::flip()
-{
-	std::swap(b, c);
-	normal.reverse();
-}
-
-index_pair tri_face::edge(char edgeIndex) const
-{
-	switch (edgeIndex)
-	{
-	case 0:
-		return index_pair(a, b);
-	case 1:
-		return index_pair(b, c);
-	case 2:
-		return index_pair(c, a);
-	default:
-		throw "Invalid edge index.";
-	}
-}
-
-bool tri_face::contains_vertex(size_t vi) const
-{
-	return vi == -1 && (vi == a || vi == b || vi == c);
 }
 
 PINVOKE void ReleaseInt(int* arr, bool isArray)
@@ -504,4 +467,62 @@ vec2 vec2::min_coords(const vec2& a, const vec2& b)
 vec2 vec2::max_coords(const vec2& a, const vec2& b)
 {
     return vec2(std::max(a.x, b.x), std::max(a.y, b.y));
+}
+
+box2::box2() : min(vec2::unset), max(-vec2::unset)
+{
+}
+
+box2::box2(const vec2& a, const vec2& b) : box2()
+{
+    inflate(a);
+    inflate(b);
+}
+
+vec2 box2::diagonal() const
+{
+    return max - min;
+}
+
+void box2::inflate(const vec2& pt)
+{
+    min.set(vec2::min_coords(min, pt));
+    max.set(vec2::max_coords(max, pt));
+}
+
+void box2::inflate(double d)
+{
+    vec2 v(d, d);
+    min -= v;
+    max += v;
+}
+
+void box2::deflate(double d)
+{
+    inflate(-d);
+}
+
+bool box2::contains(const vec2& v) const
+{
+    return !(min.x > v.x || max.x < v.x || min.y > v.y || max.y < v.y);
+}
+
+bool box2::contains(const box2& b) const
+{
+    return contains(b.min) && contains(b.max);
+}
+
+bool box2::intersects(const box2& b) const
+{
+    vec2 m1 = vec2::max_coords(min, b.min);
+    vec2 m2 = vec2::min_coords(max, b.max);
+    vec2 d = m2 - m1;
+    return d.x > 0 && d.y > 0;
+}
+
+box2 box2::init(const vec2& m1, const vec2& m2)
+{
+    box2 b;
+    b.min = m1;
+    b.max = m2;
 }

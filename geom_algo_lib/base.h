@@ -101,45 +101,6 @@ struct vec3
     static vec3 max_coords(const vec3&, const vec3&);
 };
 
-struct index_pair {
-	size_t p, q;
-
-	bool operator ==(const index_pair&) const;
-	bool operator !=(const index_pair&) const;
-
-	index_pair(size_t i, size_t j);
-	index_pair();
-
-	size_t hash() const;
-	void unset(size_t);
-	bool add(size_t);
-	bool contains(size_t) const;
-};
-
-struct tri_face {
-	static const tri_face unset;
-
-	size_t id;
-	size_t a, b, c;
-	vec3 normal;
-
-	tri_face();
-	tri_face(size_t i, size_t v1, size_t v2, size_t v3);
-
-	bool is_valid();
-	void flip();
-	index_pair edge(char edgeIndex) const;
-	bool contains_vertex(size_t vertIndex) const;
-};
-
-struct index_pair_hash {
-	size_t operator ()(const index_pair&) const noexcept;
-};
-
-struct custom_size_t_hash {
-	size_t operator ()(const size_t&) const noexcept;
-};
-
 struct box3
 {
     static const box3 empty;
@@ -157,6 +118,48 @@ struct box3
     bool intersects(const box3&) const;
 
     static box3 init(const vec3&, const vec3&);
+};
+
+struct box2
+{
+    static const box2 empty;
+    vec2 min, max;
+
+    box2();
+    box2(const vec2&, const vec2&);
+
+    vec2 diagonal() const;
+    void inflate(const vec2&);
+    void inflate(double);
+    void deflate(double);
+    bool contains(const vec2&) const;
+    bool contains(const box2&) const;
+    bool intersects(const box2&) const;
+
+    static box2 init(const vec2&, const vec2&);
+};
+
+struct index_pair {
+	size_t p, q;
+
+	bool operator ==(const index_pair&) const;
+	bool operator !=(const index_pair&) const;
+
+	index_pair(size_t i, size_t j);
+	index_pair();
+
+	size_t hash() const;
+	void unset(size_t);
+	bool add(size_t);
+	bool contains(size_t) const;
+};
+
+struct index_pair_hash {
+	size_t operator ()(const index_pair&) const noexcept;
+};
+
+struct custom_size_t_hash {
+	size_t operator ()(const size_t&) const noexcept;
 };
 
 PINVOKE void ReleaseInt(int* arr, bool isArray);
