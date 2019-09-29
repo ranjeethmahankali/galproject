@@ -9,6 +9,8 @@ PINVOKE int Test_GetSquare(int n)
 
 const vec3 vec3::unset = vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue);
 const vec3 vec3::zero = vec3(0, 0, 0);
+const vec2 vec2::zero = vec2(0, 0);
+const vec2 vec2::unset = vec2(doubleMaxValue, doubleMaxValue);
 const tri_face tri_face::unset = tri_face(-1, -1, -1, -1);
 const box3 box3::empty = box3(vec3::unset, -vec3::unset);
 
@@ -115,7 +117,7 @@ void vec3::copy(double* dest, size_t& pos) const
 	dest[pos++] = z;
 }
 
-void vec3::copy(double dest[3])
+void vec3::copy(double dest[3]) const
 {
 	dest[0] = x;
 	dest[1] = y;
@@ -355,4 +357,159 @@ box3 box3::init(const vec3& m1, const vec3& m2)
     box3 b;
     b.min = m1;
     b.max = m2;
+}
+
+vec2::vec2(double x, double y) : x(x), y(y)
+{
+}
+
+vec2::vec2(const vec2& v) : vec2(v.x, v.y)
+{
+}
+
+vec2::vec2() : vec2(vec2::unset)
+{
+}
+
+vec2 vec2::operator+(const vec2& v) const
+{
+    return vec2(x + v.x, y + v.y);
+}
+
+vec2 vec2::operator-(const vec2& v) const
+{
+    return vec2(x - v.x, y - v.y);
+}
+
+double vec2::operator*(const vec2& v) const
+{
+    return x * v.x + y * v.y;
+}
+
+vec2 vec2::operator*(double s) const
+{
+    return vec2(x * s, y * s);
+}
+
+vec2 vec2::operator/(double s) const
+{
+    return vec2(x / s, y / s);
+}
+
+bool vec2::operator==(const vec2& v) const
+{
+    return x == v.x && y == v.y;
+}
+
+bool vec2::operator!=(const vec2& v) const
+{
+    return v.x != x || v.y != y;
+}
+
+void vec2::operator+=(const vec2& v)
+{
+    x += v.x;
+    y += v.y;
+}
+
+void vec2::operator-=(const vec2& v)
+{
+    x -= v.x;
+    y -= v.y;
+}
+
+void vec2::operator/=(double s)
+{
+    x /= s;
+    y /= s;
+}
+
+void vec2::operator*=(double s)
+{
+    x *= s;
+    y *= s;
+}
+
+vec2 vec2::operator-() const
+{
+    return vec2(-x, -y);
+}
+
+double vec2::len_sq() const
+{
+    return x * x + y * y;
+}
+
+double vec2::len() const
+{
+    return sqrt(len_sq());
+}
+
+void vec2::copy(double* dest, size_t& pos) const
+{
+    dest[pos++] = x;
+    dest[pos++] = y;
+}
+
+void vec2::copy(double dest[2]) const
+{
+    dest[0] = x;
+    dest[1] = y;
+}
+
+bool vec2::is_zero() const
+{
+    return x == 0.0 && y == 0.0;
+}
+
+bool vec2::is_valid() const
+{
+    return *this != vec2::unset;
+}
+
+vec2 vec2::unit() const
+{
+    return is_zero() ? vec2::zero : vec2(x, y) / len();
+}
+
+void vec2::reverse()
+{
+    x = -x;
+    y = -y;
+}
+
+void vec2::set(double xx, double yy)
+{
+    x = xx;
+    y = yy;
+}
+
+void vec2::set(const vec2& v)
+{
+    set(v.x, v.y);
+}
+
+vec2 vec2::sum(const std::vector<vec2>& vecs)
+{
+    vec2 s = vec2::zero;
+    for (const vec2& v : vecs)
+    {
+        s += v;
+    }
+    return s;
+}
+
+vec2 vec2::average(const std::vector<vec2>& vecs)
+{
+    return sum(vecs) / (double)vecs.size();
+}
+
+vec2 vec2::min_coords(const vec2& a, const vec2& b)
+{
+    return vec2(std::min(a.x, b.x), std::min(a.y, b.y));
+}
+
+vec2 vec2::max_coords(const vec2& a, const vec2& b)
+{
+    return vec2(std::max(a.x, b.x), std::max(a.y, b.y));
 }
