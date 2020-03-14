@@ -113,7 +113,7 @@ void vec3::copy(double* dest, size_t& pos) const
 	dest[pos++] = z;
 }
 
-void vec3::copy(double dest[3]) const
+void vec3::copy(double(&dest)[3]) const
 {
 	dest[0] = x;
 	dest[1] = y;
@@ -154,21 +154,6 @@ void vec3::set(const vec3& v)
     set(v.x, v.y, v.z);
 }
 
-vec3 vec3::sum(const std::vector<vec3>& vecs)
-{
-	vec3 sum = vec3::zero;
-    for (const vec3& v : vecs)
-    {
-        sum += v;
-    }
-	return sum;
-}
-
-vec3 vec3::average(const std::vector<vec3>& vecs)
-{
-	return sum(vecs) / (double)vecs.size();
-}
-
 vec3 vec3::min_coords(const vec3& a, const vec3& b)
 {
     return vec3(
@@ -202,6 +187,12 @@ index_pair::index_pair(size_t i, size_t j)
 
 index_pair::index_pair()
 	: p(-1), q(-1) {}
+
+void index_pair::set(size_t i, size_t j)
+{
+    p = i;
+    q = j;
+}
 
 size_t index_pair::hash() const
 {
@@ -266,6 +257,20 @@ box3::box3(const vec3& min, const vec3& max) : box3()
     inflate(max);
 }
 
+box3::box3(const vec3& pt)
+    :min(pt), max(pt)
+{
+}
+
+box3::box3(const vec3* points, size_t nPoints)
+    :box3()
+{
+    for (size_t i = 0; i < nPoints; i++)
+    {
+        inflate(points[i]);
+    }
+}
+
 vec3 box3::diagonal() const
 {
     return max - min;
@@ -312,6 +317,7 @@ box3 box3::init(const vec3& m1, const vec3& m2)
     box3 b;
     b.min = m1;
     b.max = m2;
+    return b;
 }
 
 vec2::vec2(double x, double y) : x(x), y(y)
@@ -406,7 +412,7 @@ void vec2::copy(double* dest, size_t& pos) const
     dest[pos++] = y;
 }
 
-void vec2::copy(double dest[2]) const
+void vec2::copy(double(&dest)[2]) const
 {
     dest[0] = x;
     dest[1] = y;
@@ -444,21 +450,6 @@ void vec2::set(const vec2& v)
     set(v.x, v.y);
 }
 
-vec2 vec2::sum(const std::vector<vec2>& vecs)
-{
-    vec2 s = vec2::zero;
-    for (const vec2& v : vecs)
-    {
-        s += v;
-    }
-    return s;
-}
-
-vec2 vec2::average(const std::vector<vec2>& vecs)
-{
-    return sum(vecs) / (double)vecs.size();
-}
-
 vec2 vec2::min_coords(const vec2& a, const vec2& b)
 {
     return vec2(std::min(a.x, b.x), std::min(a.y, b.y));
@@ -473,10 +464,24 @@ box2::box2() : min(vec2::unset), max(-vec2::unset)
 {
 }
 
+box2::box2(const vec2& pt)
+    :min(pt), max(pt)
+{
+}
+
 box2::box2(const vec2& a, const vec2& b) : box2()
 {
     inflate(a);
     inflate(b);
+}
+
+box2::box2(const vec2* points, size_t nPoints)
+    :box2()
+{
+    for (size_t i = 0; i < nPoints; i++)
+    {
+        inflate(points[i]);
+    }
 }
 
 vec2 box2::diagonal() const
@@ -525,4 +530,5 @@ box2 box2::init(const vec2& m1, const vec2& m2)
     box2 b;
     b.min = m1;
     b.max = m2;
+    return b;
 }

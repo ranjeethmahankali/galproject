@@ -35,13 +35,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Eto, Version=2.5.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.6.18.19266.14201\lib\net45\Eto.dll</HintPath>
+      <HintPath>..\packages\RhinoCommon.6.23.20055.13111\lib\net45\Eto.dll</HintPath>
     </Reference>
-    <Reference Include="Rhino.UI, Version=6.18.19266.14200, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.6.18.19266.14201\lib\net45\Rhino.UI.dll</HintPath>
+    <Reference Include="Rhino.UI, Version=6.23.20055.13110, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>..\packages\RhinoCommon.6.23.20055.13111\lib\net45\Rhino.UI.dll</HintPath>
     </Reference>
-    <Reference Include="RhinoCommon, Version=6.18.19266.14200, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.6.18.19266.14201\lib\net45\RhinoCommon.dll</HintPath>
+    <Reference Include="RhinoCommon, Version=6.23.20055.13110, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>..\packages\RhinoCommon.6.23.20055.13111\lib\net45\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -53,6 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MeshUtil.cs" />
     <Compile Include="Test.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Unsafe.cs" />
@@ -64,11 +65,11 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy /y "$(SolutionDir)$(PlatformName)\$(ConfigurationName)\*.dll" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
-  <Import Project="..\packages\RhinoCommon.6.18.19266.14201\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.18.19266.14201\build\net45\RhinoCommon.targets')" />
+  <Import Project="..\packages\RhinoCommon.6.23.20055.13111\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.6.23.20055.13111\build\net45\RhinoCommon.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\RhinoCommon.6.18.19266.14201\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.6.18.19266.14201\build\net45\RhinoCommon.targets'))" />
+    <Error Condition="!Exists('..\packages\RhinoCommon.6.23.20055.13111\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.6.23.20055.13111\build\net45\RhinoCommon.targets'))" />
   </Target>
 </Project>

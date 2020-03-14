@@ -40,7 +40,7 @@ struct vec2
     double len() const;
 
     void copy(double* dest, size_t& pos) const;
-    void copy(double dest[2]) const;
+    void copy(double(&dest)[2]) const;
     bool is_zero() const;
     bool is_valid() const;
     vec2 unit() const;
@@ -48,8 +48,30 @@ struct vec2
     void set(double, double);
     void set(const vec2&);
 
-    static vec2 sum(const std::vector<vec2>&);
-    static vec2 average(const std::vector<vec2>&);
+    template <typename vec3_iter>
+    static vec2 sum(vec3_iter first, vec3_iter last)
+    {
+        vec2 s = vec2::zero;
+        for (vec3_iter vi = first; vi != last; vi++)
+        {
+            s += *vi;
+        }
+        return s;
+    };
+
+    template <typename vec3_iter>
+    static vec2 average(vec3_iter first, vec3_iter last)
+    {
+        vec2 a = vec2::zero;
+        double n = 0;
+        for (vec3_iter vi = first; vi != last; vi++)
+        {
+            a += vi;
+            n += 1.0;
+        }
+        return a / n;
+    };
+
     static vec2 min_coords(const vec2&, const vec2&);
     static vec2 max_coords(const vec2&, const vec2&);
 };
@@ -87,7 +109,7 @@ struct vec3
 	double len() const;
 
 	void copy(double* dest, size_t& pos) const;
-	void copy(double dest[3]) const;
+	void copy(double (&dest)[3]) const;
 	bool is_zero() const;
 	bool is_valid() const;
 	vec3 unit() const;
@@ -95,8 +117,30 @@ struct vec3
     void set(double, double, double);
     void set(const vec3&);
 
-	static vec3 sum(const std::vector<vec3>& vecs);
-	static vec3 average(const std::vector<vec3>& vecs);
+    template <typename vec3_iter>
+    static vec3 sum(vec3_iter first, vec3_iter last)
+    {
+        vec3 s = vec3::zero;
+        for (vec3_iter vi = first; vi != last; vi++)
+        {
+            s += *vi;
+        }
+        return s;
+    };
+
+    template <typename vec3_iter>
+    static vec3 average(vec3_iter first, vec3_iter last)
+    {
+        vec3 a = vec3::zero;
+        double n = 0;
+        for (vec3_iter vi = first; vi != last; vi++)
+        {
+            a += *vi;
+            n += 1.0;
+        }
+        return a / n;
+    };
+
     static vec3 min_coords(const vec3&, const vec3&);
     static vec3 max_coords(const vec3&, const vec3&);
 };
@@ -108,6 +152,8 @@ struct box3
 
     box3();
     box3(const vec3& min, const vec3& max);
+    box3(const vec3& pt);
+    box3(const vec3* points, size_t nPoints);
 
     vec3 diagonal() const;
     void inflate(const vec3&);
@@ -126,7 +172,9 @@ struct box2
     vec2 min, max;
 
     box2();
+    box2(const vec2& pt);
     box2(const vec2&, const vec2&);
+    box2(const vec2* points, size_t nPoints);
 
     vec2 diagonal() const;
     void inflate(const vec2&);
@@ -148,6 +196,7 @@ struct index_pair {
 	index_pair(size_t i, size_t j);
 	index_pair();
 
+    void set(size_t, size_t);
 	size_t hash() const;
 	void unset(size_t);
 	bool add(size_t);

@@ -22,5 +22,18 @@ namespace RhinoInterface
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void ReleaseDouble(IntPtr arr, bool isArray);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_GetData(IntPtr meshptr, ref IntPtr vertices, ref int nVertices, ref IntPtr faces, ref int nFaces);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr Mesh_Create(
+            [MarshalAs(UnmanagedType.LPArray)] double[] vertCoords,
+            int numVerts,
+            [MarshalAs(UnmanagedType.LPArray)] int[] faceIndices,
+            int numFaces);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_Delete(IntPtr meshPtr);
     }
 }
