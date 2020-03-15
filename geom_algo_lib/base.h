@@ -138,7 +138,26 @@ struct vec3
             a += *vi;
             n += 1.0;
         }
-        return a / n;
+        return n == 0 ? vec3::unset : (a / n);
+    };
+
+    template <typename vec3_iter, typename double_iter>
+    static vec3 weighted_average(vec3_iter vFirst, vec3_iter vLast, double_iter wFirst, double_iter wLast)
+    {
+        vec3 sum = vec3::zero;
+        double wSum = 0;
+        vec3_iter vIter = vFirst;
+        double_iter wIter = wFirst;
+        while (vIter != vLast && wIter != wLast)
+        {
+            double w = *wIter;
+            vec3 v = *vIter;
+            sum += v * w;
+            wSum += w;
+            vIter++;
+            wIter++;
+        }
+        return wSum == 0 ? vec3::unset : (sum / wSum);
     };
 
     static vec3 min_coords(const vec3&, const vec3&);
