@@ -72,5 +72,15 @@ namespace RhinoInterface
             Unsafe.Mesh_Delete(meshPtr);
             return volume;
         }
+
+        public static Point3d GetCentroid(Mesh mesh, MeshCentroidType type)
+        {
+            mesh.Vertices.CombineIdentical(true, true);
+            IntPtr meshPtr = mesh.ToUnmanagedMesh();
+            double x = 0, y = 0, z = 0;
+            Unsafe.Mesh_Centroid(meshPtr, type, ref x, ref y, ref z);
+            Unsafe.Mesh_Delete(meshPtr);
+            return new Point3d(x, y, z);
+        }
     }
 }
