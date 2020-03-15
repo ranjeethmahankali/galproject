@@ -7,6 +7,13 @@ using System.Runtime.InteropServices;
 
 namespace RhinoInterface
 {
+    public enum MeshCentroidType
+    {
+        VertexBased = 0,
+        AreaBased,
+        VolumeBased
+    };
+
     internal static class Unsafe
     {
         private const string dllName = "geom_algo_lib.dll";
@@ -47,5 +54,8 @@ namespace RhinoInterface
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern double Mesh_Volume(IntPtr meshPtr);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_Centroid(IntPtr meshPtr, MeshCentroidType type, ref double x, ref double y, ref double z);
     }
 }
