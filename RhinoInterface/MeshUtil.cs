@@ -64,7 +64,7 @@ namespace RhinoInterface
             return clone;
         }
 
-        public static double MeshVolume(Mesh mesh)
+        public static double GetVolume(Mesh mesh)
         {
             mesh.Vertices.CombineIdentical(true, true);
             IntPtr meshPtr = mesh.ToUnmanagedMesh();
