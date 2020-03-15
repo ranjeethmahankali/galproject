@@ -276,6 +276,11 @@ box3 mesh::face_bounds(size_t fi) const
     return b;
 }
 
+double mesh::volume() const
+{
+    return 0.0;
+}
+
 face_edges::face_edges(size_t indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
@@ -370,4 +375,9 @@ PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept
 {
     if (meshPtr)
         delete meshPtr;
+}
+
+PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept
+{
+    return meshPtr->volume();
 }

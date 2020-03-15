@@ -44,5 +44,8 @@ namespace RhinoInterface
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void Mesh_Delete(IntPtr meshPtr);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern double Mesh_Volume(IntPtr meshPtr);
     }
 }

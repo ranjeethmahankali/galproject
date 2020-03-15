@@ -63,5 +63,11 @@ namespace RhinoInterface
             Unsafe.Mesh_Delete(meshPtr);
             return clone;
         }
+
+        public static double MeshVolume(IntPtr meshPtr)
+        {
+            double volume = Unsafe.Mesh_Volume(meshPtr);
+            return volume;
+        }
     }
 }
