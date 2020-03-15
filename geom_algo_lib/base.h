@@ -162,6 +162,7 @@ struct box3
     bool contains(const vec3&) const;
     bool contains(const box3&) const;
     bool intersects(const box3&) const;
+    vec3 center() const;
 
     static box3 init(const vec3&, const vec3&);
 };
@@ -183,6 +184,7 @@ struct box2
     bool contains(const vec2&) const;
     bool contains(const box2&) const;
     bool intersects(const box2&) const;
+    vec2 center() const;
 
     static box2 init(const vec2&, const vec2&);
 };

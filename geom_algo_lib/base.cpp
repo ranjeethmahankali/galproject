@@ -312,6 +312,11 @@ bool box3::intersects(const box3& b) const
     return d.x > 0 && d.y > 0 && d.z > 0;
 }
 
+vec3 box3::center() const
+{
+    return (min + max) * 0.5;
+}
+
 box3 box3::init(const vec3& m1, const vec3& m2)
 {
     box3 b;
@@ -523,6 +528,11 @@ bool box2::intersects(const box2& b) const
     vec2 m2 = vec2::min_coords(max, b.max);
     vec2 d = m2 - m1;
     return d.x > 0 && d.y > 0;
+}
+
+vec2 box2::center() const
+{
+    return (min + max) * 0.5;
 }
 
 box2 box2::init(const vec2& m1, const vec2& m2)

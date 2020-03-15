@@ -78,7 +78,9 @@ public:
     mesh(const mesh& other);
     mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFaces);
     mesh(const double* vertCoords, size_t nVerts, const size_t* faceVertIndices, size_t nFaces);
-    template<typename vec3_iter, typename mesh_face_iter> mesh(vec3_iter vbegin, vec3_iter vend, mesh_face_iter fbegin, mesh_face_iter fend)
+    template<typename vec3_iter, typename mesh_face_iter> mesh(
+        vec3_iter vbegin, vec3_iter vend,
+        mesh_face_iter fbegin, mesh_face_iter fend)
         :m_vertices(vbegin, vend), m_faces(fbegin, fend)
     {
         compute_cache();
@@ -99,6 +101,9 @@ public:
     double face_area(size_t fi) const;
     double area() const;
     box3 face_bounds(size_t fi) const;
+
+    double volume() const;
+    bool is_solid() const;
 };
 
 PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
@@ -106,3 +111,5 @@ PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& f
 PINVOKE mesh* Mesh_Create(double* vertices, int nVerts, int* faces, int nFaces) noexcept;
 
 PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept;
+
+PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept;
