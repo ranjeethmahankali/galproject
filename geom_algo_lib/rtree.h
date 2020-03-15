@@ -4,8 +4,6 @@
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/box.hpp>
 
-#define REQUIRE_TEMPLATE_SPECIALIZATION throw "Function needs explicit instantiation."
-
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 namespace bgm = boost::geometry::model;

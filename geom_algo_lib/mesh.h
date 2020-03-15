@@ -47,11 +47,17 @@ private:
     std::vector<vec3> m_vertices;
     std::vector<mesh_face> m_faces;
 
+    /*Maps vertex indices to indices of connected faces.*/
     std::unordered_map<size_t, std::vector<size_t>, custom_size_t_hash> m_vertFaceMap;
+    /*Maps the vertex indices to the indices of connected edges.*/
     std::unordered_map<size_t, std::vector<size_t>, custom_size_t_hash> m_vertEdgeMap;
+    /*Maps the vertex-index-pair to the index of the edge connecting those vertices.*/
     std::unordered_map<edge_type, size_t, edge_type_hash> m_edgeIndexMap;
+    /*Maps the edge index to the pair of connected vertex indices.*/
     std::unordered_map<size_t, edge_type, custom_size_t_hash> m_edgeVertMap;
+    /*Maps the edge index to the indices of the connected faces.*/
     std::unordered_map<size_t, std::vector<size_t>, custom_size_t_hash> m_edgeFaceMap;
+    /*Maps the face index to the indices of the 3 edges connected to that face.*/
     std::unordered_map<size_t, face_edges, custom_size_t_hash> m_faceEdgeMap;
 
     std::vector<vec3> m_vertexNormals;
@@ -93,12 +99,6 @@ public:
     double face_area(size_t fi) const;
     double area() const;
     box3 face_bounds(size_t fi) const;
-
-    // Algorithm for volume.
-    
-    // Algorithm for point inclusion.
-    
-    // Algorithm for ray intersection.
 };
 
 PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
