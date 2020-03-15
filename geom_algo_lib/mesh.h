@@ -103,6 +103,7 @@ public:
     box3 face_bounds(size_t fi) const;
 
     double volume() const;
+    bool is_solid() const;
 };
 
 PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;

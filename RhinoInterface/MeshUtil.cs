@@ -64,9 +64,12 @@ namespace RhinoInterface
             return clone;
         }
 
-        public static double MeshVolume(IntPtr meshPtr)
+        public static double MeshVolume(Mesh mesh)
         {
+            mesh.Vertices.CombineIdentical(true, true);
+            IntPtr meshPtr = mesh.ToUnmanagedMesh();
             double volume = Unsafe.Mesh_Volume(meshPtr);
+            Unsafe.Mesh_Delete(meshPtr);
             return volume;
         }
     }

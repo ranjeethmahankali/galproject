@@ -278,7 +278,45 @@ box3 mesh::face_bounds(size_t fi) const
 
 double mesh::volume() const
 {
-    return 0.0;
+    if (!is_solid())
+        return 0.0;
+
+    box3 box = bounds();
+    vec3 refPt = (box.min + box.max) * 0.5;
+    std::vector<vec3> joinVectors;
+    joinVectors.reserve(num_vertices());
+    std::transform(vertex_cbegin(), vertex_cend(), std::back_inserter(joinVectors),
+        [&refPt](const vec3 vert) {
+            return vert - refPt;
+        });
+
+    double total = 0.0;
+    for (size_t fi = 0; fi < m_faces.size(); fi++)
+    {
+        mesh_face face = m_faces[fi];
+        vec3 a = joinVectors[face.a];
+        vec3 b = joinVectors[face.b];
+        vec3 c = joinVectors[face.c];
+        double tetVolume = std::abs((a ^ b) * c) / 6.0;
+
+        if (a * face_normal(fi) > 0)
+            total += tetVolume;
+        else
+            total -= tetVolume;
+    }
+
+    return total;
+}
+
+bool mesh::is_solid() const
+{
+    for (auto& edge : m_edgeFaceMap)
+    {
+        if (edge.second.size() != 2)
+            return false;
+    }
+
+    return true;
 }
 
 face_edges::face_edges(size_t indices[3])
