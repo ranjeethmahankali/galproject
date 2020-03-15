@@ -73,6 +73,9 @@ private:
     void add_edge(const mesh_face&, size_t fi, uint8_t, size_t&);
     void add_edges(const mesh_face&, size_t fi);
     double face_area(const mesh_face& f) const;
+    void get_face_center(const mesh_face& f, vec3& center) const;
+    vec3 area_centroid() const;
+    vec3 volume_centroid() const;
 
 public:
     mesh(const mesh& other);
@@ -104,6 +107,8 @@ public:
 
     double volume() const;
     bool is_solid() const;
+    vec3 centroid() const;
+    vec3 centroid(mesh_centroid_type type) const;
 };
 
 PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
@@ -113,3 +118,5 @@ PINVOKE mesh* Mesh_Create(double* vertices, int nVerts, int* faces, int nFaces) 
 PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept;
 
 PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept;
+
+PINVOKE void Mesh_Centroid(mesh* meshPtr, mesh_centroid_type type, double& x, double& y, double &z) noexcept;

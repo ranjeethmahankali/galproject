@@ -151,6 +151,66 @@ double mesh::face_area(const mesh_face& f) const
     return (vertex(f.b) - a ^ vertex(f.c) - a).len() * 0.5;
 }
 
+void mesh::get_face_center(const mesh_face& f, vec3& center) const
+{
+    center = (m_vertices[f.a] + m_vertices[f.b] + m_vertices[f.c]) / 3.0;
+}
+
+vec3 mesh::area_centroid() const
+{
+    std::vector<vec3> points;
+    points.reserve(num_faces());
+    std::vector<double> weights;
+    weights.reserve(num_faces());
+
+    for (const_face_iterator fIter = face_cbegin(); fIter != face_cend(); fIter++)
+    {
+        vec3 center;
+        mesh_face f = *fIter;
+        get_face_center(f, center);
+        points.emplace_back(center);
+        weights.push_back(face_area(f));
+    }
+
+    return vec3::weighted_average(points.cbegin(), points.cend(), weights.cbegin(), weights.cend());
+}
+
+vec3 mesh::volume_centroid() const
+{
+    vec3 refPt = bounds().center();
+    std::vector<vec3> joinVectors;
+    joinVectors.reserve(num_vertices());
+    std::transform(vertex_cbegin(), vertex_cend(), std::back_inserter(joinVectors),
+        [&refPt](const vec3 vert) {
+            return vert - refPt;
+        });
+
+    std::vector<vec3> points;
+    points.reserve(num_faces());
+    std::vector<double> weights;
+    weights.reserve(num_faces());
+
+    for (const_face_iterator fIter = face_cbegin(); fIter != face_cend(); fIter++)
+    {
+        vec3 center;
+        mesh_face f = *fIter;
+        vec3
+            a = joinVectors[f.a],
+            b = joinVectors[f.b],
+            c = joinVectors[f.c];
+
+        weights.push_back(((a ^ b) * c) / 6.0);
+
+        a = m_vertices[f.a];
+        b = m_vertices[f.b];
+        c = m_vertices[f.c];
+
+        points.push_back((a + b + c + refPt) * 0.25);
+    }
+
+    return vec3::weighted_average(points.cbegin(), points.cend(), weights.cbegin(), weights.cend());
+}
+
 mesh::mesh(const mesh& other) : mesh(other.vertex_cbegin(), other.vertex_cend(), other.face_cbegin(), other.face_cend())
 {
 }
@@ -318,6 +378,26 @@ bool mesh::is_solid() const
     return true;
 }
 
+vec3 mesh::centroid() const
+{
+    return centroid(mesh_centroid_type::vertex_based);
+}
+
+vec3 mesh::centroid(mesh_centroid_type type) const
+{
+    switch (type)
+    {
+    case mesh_centroid_type::vertex_based:
+        return vec3::average(vertex_cbegin(), vertex_cend());
+    case mesh_centroid_type::area_based:
+        return area_centroid();
+    case mesh_centroid_type::volume_based:
+        return volume_centroid();
+    default:
+        return vec3::unset;
+    }
+}
+
 face_edges::face_edges(size_t indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
@@ -417,4 +497,12 @@ PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept
 PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept
 {
     return meshPtr->volume();
+}
+
+PINVOKE void Mesh_Centroid(mesh* meshPtr, mesh_centroid_type type, double& x, double& y, double& z) noexcept
+{
+    vec3 center = meshPtr->centroid(type);
+    x = center.x;
+    y = center.y;
+    z = center.z;
 }
