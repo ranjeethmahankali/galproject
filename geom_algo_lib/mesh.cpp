@@ -48,6 +48,7 @@ void mesh::compute_cache()
     compute_rtrees();
     compute_topology();
     compute_normals();
+    check_solid();
 }
 
 void mesh::compute_topology()
@@ -211,6 +212,19 @@ vec3 mesh::volume_centroid() const
     return vec3::weighted_average(points.cbegin(), points.cend(), weights.cbegin(), weights.cend());
 }
 
+void mesh::check_solid()
+{
+    for (auto& edge : m_edgeFaceMap)
+    {
+        if (edge.second.size() != 2)
+        {
+            m_isSolid = false;
+            return;
+        }
+    }
+    m_isSolid = true;
+}
+
 mesh::mesh(const mesh& other) : mesh(other.vertex_cbegin(), other.vertex_cend(), other.face_cbegin(), other.face_cend())
 {
 }
@@ -369,13 +383,7 @@ double mesh::volume() const
 
 bool mesh::is_solid() const
 {
-    for (auto& edge : m_edgeFaceMap)
-    {
-        if (edge.second.size() != 2)
-            return false;
-    }
-
-    return true;
+    return m_isSolid;
 }
 
 vec3 mesh::centroid() const
