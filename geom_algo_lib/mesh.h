@@ -62,7 +62,7 @@ private:
 
     std::vector<vec3> m_vertexNormals;
     std::vector<vec3> m_faceNormals;
-
+    bool m_isSolid;
     rtree3d m_faceTree;
     rtree3d m_vertexTree;
 
@@ -76,6 +76,7 @@ private:
     void get_face_center(const mesh_face& f, vec3& center) const;
     vec3 area_centroid() const;
     vec3 volume_centroid() const;
+    void check_solid();
 
 public:
     mesh(const mesh& other);

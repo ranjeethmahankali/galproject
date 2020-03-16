@@ -1,6 +1,7 @@
 ﻿using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -64,12 +65,15 @@ namespace RhinoInterface
             return clone;
         }
 
-        public static double GetVolume(Mesh mesh)
+        public static double GetVolume(Mesh mesh, out string summary)
         {
             mesh.Vertices.CombineIdentical(true, true);
             IntPtr meshPtr = mesh.ToUnmanagedMesh();
+            Stopwatch w = Stopwatch.StartNew();
             double volume = Unsafe.Mesh_Volume(meshPtr);
+            w.Stop();
             Unsafe.Mesh_Delete(meshPtr);
+            summary = $"Volume computation: {w.ElapsedMilliseconds}ms | {w.ElapsedTicks} ticks.";
             return volume;
         }
 
