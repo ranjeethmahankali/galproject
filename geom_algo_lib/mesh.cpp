@@ -7,7 +7,7 @@ mesh_face::mesh_face(size_t v1, size_t v2, size_t v3)
 {
 }
 
-mesh_face::mesh_face(size_t indices[3]) : mesh_face(indices[0], indices[1], indices[2])
+mesh_face::mesh_face(size_t const indices[3]) : mesh_face(indices[0], indices[1], indices[2])
 {
 }
 
@@ -29,7 +29,7 @@ edge_type mesh_face::edge(uint8_t edgeIndex) const
     case 2:
         return index_pair(c, a);
     default:
-        throw "invalid edge index";
+        throw edgeIndex;
     }
 }
 
@@ -53,7 +53,8 @@ void mesh::compute_cache()
 
 void mesh::compute_topology()
 {
-    for (size_t vi = 0; vi < m_vertices.size(); vi++)
+    size_t nVertices = num_vertices();
+    for (size_t vi = 0; vi < nVertices; vi++)
     {
         m_vertFaceMap.insert(std::make_pair(vi, std::vector<size_t>()));
         m_vertEdgeMap.insert(std::make_pair(vi, std::vector<size_t>()));
@@ -157,64 +158,9 @@ void mesh::get_face_center(const mesh_face& f, vec3& center) const
     center = (m_vertices[f.a] + m_vertices[f.b] + m_vertices[f.c]) / 3.0;
 }
 
-vec3 mesh::area_centroid() const
-{
-    std::vector<vec3> points;
-    points.reserve(num_faces());
-    std::vector<double> weights;
-    weights.reserve(num_faces());
-
-    for (const_face_iterator fIter = face_cbegin(); fIter != face_cend(); fIter++)
-    {
-        vec3 center;
-        mesh_face f = *fIter;
-        get_face_center(f, center);
-        points.emplace_back(center);
-        weights.push_back(face_area(f));
-    }
-
-    return vec3::weighted_average(points.cbegin(), points.cend(), weights.cbegin(), weights.cend());
-}
-
-vec3 mesh::volume_centroid() const
-{
-    vec3 refPt = bounds().center();
-    std::vector<vec3> joinVectors;
-    joinVectors.reserve(num_vertices());
-    std::transform(vertex_cbegin(), vertex_cend(), std::back_inserter(joinVectors),
-        [&refPt](const vec3 vert) {
-            return vert - refPt;
-        });
-
-    std::vector<vec3> points;
-    points.reserve(num_faces());
-    std::vector<double> weights;
-    weights.reserve(num_faces());
-
-    for (const_face_iterator fIter = face_cbegin(); fIter != face_cend(); fIter++)
-    {
-        vec3 center;
-        mesh_face f = *fIter;
-        vec3
-            a = joinVectors[f.a],
-            b = joinVectors[f.b],
-            c = joinVectors[f.c];
-
-        weights.push_back(((a ^ b) * c) / 6.0);
-
-        a = m_vertices[f.a];
-        b = m_vertices[f.b];
-        c = m_vertices[f.c];
-
-        points.push_back((a + b + c + refPt) * 0.25);
-    }
-
-    return vec3::weighted_average(points.cbegin(), points.cend(), weights.cbegin(), weights.cend());
-}
-
 void mesh::check_solid()
 {
-    for (auto& edge : m_edgeFaceMap)
+    for (const auto& edge : m_edgeFaceMap)
     {
         if (edge.second.size() != 2)
         {
@@ -223,6 +169,63 @@ void mesh::check_solid()
         }
     }
     m_isSolid = true;
+}
+
+vec3 mesh::area_centroid() const
+{
+    std::vector<vec3> centers;
+    centers.reserve(num_faces());
+    std::vector<double> areas;
+    areas.reserve(num_faces());
+
+    for (const_face_iterator fIter = face_cbegin(); fIter != face_cend(); fIter++)
+    {
+        vec3 center;
+        mesh_face f = *fIter;
+        get_face_center(f, center);
+        centers.push_back(center);
+        areas.push_back(face_area(f));
+    }
+
+    return vec3::weighted_average(centers.cbegin(), centers.cend(), areas.cbegin(), areas.cend());
+}
+
+vec3 mesh::volume_centroid() const
+{
+    vec3 refPt = bounds().center();
+    std::vector<vec3> joinVecs;
+    joinVecs.reserve(num_vertices());
+    std::transform(vertex_cbegin(), vertex_cend(), std::back_inserter(joinVecs),
+        [&refPt](const vec3& vert) {
+            return vert - refPt;
+        });
+
+    std::vector<vec3> centers;
+    centers.reserve(num_faces());
+    std::vector<double> volumes;
+    volumes.reserve(num_faces());
+
+    for (size_t fi = 0; fi < m_faces.size(); fi++)
+    {
+        mesh_face f = m_faces[fi];
+        vec3 a = joinVecs[f.a];
+        vec3 b = joinVecs[f.b];
+        vec3 c = joinVecs[f.c];
+
+        double volume = std::abs((a ^ b) * c) / 6.0;
+        if (a * face_normal(fi) < 0)
+        {
+            volume *= -1;
+        }
+        volumes.push_back(volume);
+
+        a = m_vertices[f.a];
+        b = m_vertices[f.b];
+        c = m_vertices[f.c];
+        centers.push_back((a + b + c + refPt) * 0.25);
+    }
+
+    return vec3::weighted_average(centers.cbegin(), centers.cend(), volumes.cbegin(), volumes.cend());
 }
 
 mesh::mesh(const mesh& other) : mesh(other.vertex_cbegin(), other.vertex_cend(), other.face_cbegin(), other.face_cend())
@@ -391,9 +394,9 @@ vec3 mesh::centroid() const
     return centroid(mesh_centroid_type::vertex_based);
 }
 
-vec3 mesh::centroid(mesh_centroid_type type) const
+vec3 mesh::centroid(const mesh_centroid_type centroid_type) const
 {
-    switch (type)
+    switch (centroid_type)
     {
     case mesh_centroid_type::vertex_based:
         return vec3::average(vertex_cbegin(), vertex_cend());
@@ -402,11 +405,11 @@ vec3 mesh::centroid(mesh_centroid_type type) const
     case mesh_centroid_type::volume_based:
         return volume_centroid();
     default:
-        return vec3::unset;
+        return centroid(mesh_centroid_type::vertex_based);
     }
 }
 
-face_edges::face_edges(size_t indices[3])
+face_edges::face_edges(size_t const indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
 }
@@ -432,10 +435,10 @@ void face_edges::set(size_t i)
     else if (c == -1)
         c = i;
     else
-        throw "only 3 edges allowed per face.";
+        throw i;
 }
 
-PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept
+PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept
 {
     if (vertices || faces)
     {
@@ -464,7 +467,7 @@ PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& f
     nFaces = (int)meshPtr->num_faces();
 }
 
-PINVOKE mesh* Mesh_Create(double* vertices, int numVerts, int* faceIndices, int numFaces) noexcept
+PINVOKE mesh* Mesh_Create(double const* vertices, int numVerts, int const* faceIndices, int numFaces) noexcept
 {
     size_t nVerts = (size_t)numVerts;
     size_t nFaces = (size_t)numFaces;
@@ -496,18 +499,18 @@ PINVOKE mesh* Mesh_Create(double* vertices, int numVerts, int* faceIndices, int 
     return new mesh(verts.cbegin(), verts.cend(), faces.cbegin(), faces.cend());
 }
 
-PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept
+PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept
 {
     if (meshPtr)
         delete meshPtr;
 }
 
-PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept
+PINVOKE double Mesh_Volume(mesh const* meshPtr) noexcept
 {
     return meshPtr->volume();
 }
 
-PINVOKE void Mesh_Centroid(mesh* meshPtr, mesh_centroid_type type, double& x, double& y, double& z) noexcept
+PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double& x, double& y, double& z) noexcept
 {
     vec3 center = meshPtr->centroid(type);
     x = center.x;

@@ -12,7 +12,7 @@ struct mesh_face
     size_t a, b, c;
     
     mesh_face(size_t v1, size_t v2, size_t v3);
-    mesh_face(size_t indices[3]);
+    mesh_face(size_t const indices[3]);
 
     void flip();
     edge_type edge(uint8_t edgeIndex) const;
@@ -24,7 +24,7 @@ struct face_edges
 {
     size_t a, b, c;
     
-    face_edges(size_t indices[3]);
+    face_edges(size_t const indices[3]);
     face_edges(size_t, size_t, size_t);
 
     void set(size_t, size_t, size_t);
@@ -74,9 +74,10 @@ private:
     void add_edges(const mesh_face&, size_t fi);
     double face_area(const mesh_face& f) const;
     void get_face_center(const mesh_face& f, vec3& center) const;
+    void check_solid();
+
     vec3 area_centroid() const;
     vec3 volume_centroid() const;
-    void check_solid();
 
 public:
     mesh(const mesh& other);
@@ -109,15 +110,15 @@ public:
     double volume() const;
     bool is_solid() const;
     vec3 centroid() const;
-    vec3 centroid(mesh_centroid_type type) const;
+    vec3 centroid(const mesh_centroid_type centroid_type) const;
 };
 
-PINVOKE void Mesh_GetData(mesh* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
+PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
 
-PINVOKE mesh* Mesh_Create(double* vertices, int nVerts, int* faces, int nFaces) noexcept;
+PINVOKE mesh* Mesh_Create(double const * vertices, int nVerts, int const* faces, int nFaces) noexcept;
 
-PINVOKE void Mesh_Delete(mesh* meshPtr) noexcept;
+PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept;
 
-PINVOKE double Mesh_Volume(mesh* meshPtr) noexcept;
+PINVOKE double Mesh_Volume(mesh const* meshPtr) noexcept;
 
-PINVOKE void Mesh_Centroid(mesh* meshPtr, mesh_centroid_type type, double& x, double& y, double &z) noexcept;
+PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double& x, double& y, double &z) noexcept;
