@@ -51,8 +51,10 @@ private:
         }
     }
 
+    // Because we created the specializations of these templates, we don't need definitions here.
     static boost_point_t to_boost(const vec_t&);
     static vec_t from_boost(const boost_point_t&);
+
     static box_type to_boost(const box_t& b)
     {
         return box_type(to_boost(b.min), to_boost(b.max));
