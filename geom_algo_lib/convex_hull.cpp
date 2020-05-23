@@ -275,7 +275,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 		double extremes[6];
 		for (size_t ei = 0; ei < 6; ei++)
 		{
-			extremes[ei] = ei % 2 == 0 ? doubleMaxValue : -doubleMaxValue;
+			extremes[ei] = ei % 2 == 0 ? DBL_MAX_VAL : -DBL_MAX_VAL;
 		}
 
 		size_t bounds[6];
@@ -301,7 +301,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 		}
 
 		vec3 pt;
-		double maxD = -doubleMaxValue, dist;
+		double maxD = -DBL_MAX_VAL, dist;
 		for (size_t i = 0; i < 6; i++)
 		{
 			pt = m_pts[bounds[i]];
@@ -320,7 +320,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 			throw "Failed to create the initial simplex";
 		}
 
-		maxD = -doubleMaxValue;
+		maxD = -DBL_MAX_VAL;
 		vec3 ref = m_pts[best[0]];
 		vec3 uDir = (m_pts[best[1]] - ref).unit();
 		for (size_t pi = 0; pi < m_nPts; pi++)
@@ -336,7 +336,7 @@ void convex_hull::create_initial_simplex(size_t& faceIndex)
 			throw "Failed to create the initial simplex";
 		}
 
-		maxD = -doubleMaxValue;
+		maxD = -DBL_MAX_VAL;
 		uDir = ((m_pts[best[1]] - ref) ^ (m_pts[best[2]] - ref)).unit();
 		for (size_t pi = 0; pi < m_nPts; pi++)
 		{

@@ -7,10 +7,10 @@ PINVOKE int Test_GetSquare(int n)
 	return n * n;
 }
 
-const vec3 vec3::unset = vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue);
+const vec3 vec3::unset = vec3(DBL_MAX_VAL, DBL_MAX_VAL, DBL_MAX_VAL);
 const vec3 vec3::zero = vec3(0, 0, 0);
 const vec2 vec2::zero = vec2(0, 0);
-const vec2 vec2::unset = vec2(doubleMaxValue, doubleMaxValue);
+const vec2 vec2::unset = vec2(DBL_MAX_VAL, DBL_MAX_VAL);
 const box3 box3::empty = box3(vec3::unset, -vec3::unset);
 const box2 box2::empty = box2(vec2::unset, -vec2::unset);
 
@@ -21,7 +21,7 @@ vec3::vec3(const vec3& v)
 	: x(v.x), y(v.y), z(v.z) {}
 
 vec3::vec3()
-	:vec3(doubleMaxValue, doubleMaxValue, doubleMaxValue){}
+	:vec3(DBL_MAX_VAL, DBL_MAX_VAL, DBL_MAX_VAL){}
 
 vec3 vec3::operator+(const vec3& v) const
 {

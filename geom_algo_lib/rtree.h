@@ -13,7 +13,6 @@ template <class boost_point_t, typename vec_t, typename box_t>
 class rtree
 {
 public:
-    class iterator;
     typedef boost_point_t point_type;
     typedef bgm::box<boost_point_t> box_type;
     typedef std::pair<box_type, size_t> item_type;
@@ -38,15 +37,6 @@ public:
             bgi::satisfies([=](const item_type& item) {
                 return bg::distance(center, item.first) < distance;
             }));
-    };
-
-    iterator& begin() const
-    {
-        return iterator(m_tree.begin());
-    };
-    iterator& end() const
-    {
-        return iterator(m_tree.end());
     };
 
 private:
@@ -91,50 +81,3 @@ rtree3d::point_type rtree3d::to_boost(const vec3&);
 
 template <>
 vec3 rtree3d::from_boost(const point_type&);
-
-// The iterator class declaration.
-template <class boost_point_t, typename vec_t, typename box_t>
-class rtree<boost_point_t, vec_t, box_t>::iterator
-{
-private:
-    typedef rtree<boost_point_t, vec_t, box_t>::point_type point_type;
-    typedef rtree<boost_point_t, vec_t, box_t>::box_type box_type;
-    typedef rtree<boost_point_t, vec_t, box_t>::item_type item_type;
-    typedef rtree<boost_point_t, vec_t, box_t>::boost_tree_type boost_tree_type;
-    typedef bgi::detail::rtree::iterators::iterator <
-        item_type,
-        bgi::quadratic<RTREE_NUM_ELEMENTS_PER_NODE>,
-        bgi::indexable<item_type>,
-        box_type,
-        boost::container::new_allocator<item_type>
-    > boost_iterator_type;
-    typedef rtree<boost_point_t, vec_t, box_t> rtree_type;
-
-    boost_iterator_type m_iter;
-
-public:
-    iterator(const boost_iterator_type& iter)
-        :m_iter(iter)
-    {
-    };
-    iterator& operator++()
-    {
-        m_iter++;
-    };
-    iterator& operator++(int)
-    {
-        ++m_iter;
-    };
-    std::pair<box_t, size_t>& operator*()
-    {
-        return std::make_pair<box_t, size_t>(rtree_type::from_boost(m_iter->first), m_iter->second);
-    };
-    bool operator==(const iterator& other)
-    {
-        return m_iter == other.m_iter;
-    }
-    bool operator!=(const iterator& other)
-    {
-        return m_iter != other.m_iter;
-    }
-};
