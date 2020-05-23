@@ -5,9 +5,9 @@
 
 #define PINVOKE extern "C" __declspec(dllexport)
 // The number with the largest absolute value that can be represented by the double datatype.
-#define doubleMaxValue std::numeric_limits<double>::max()
+constexpr double DBL_MAX_VAL = std::numeric_limits<double>::max();
 // The number with the smallest absolute value that can be represented by the double datatype.
-#define doubleMinValue std::numeric_limits<double>::min()
+constexpr double DBL_MIN_VAL = std::numeric_limits<double>::min();
 
 struct vec2
 {
@@ -231,6 +231,24 @@ struct index_pair_hash {
 struct custom_size_t_hash {
 	size_t operator ()(const size_t&) const noexcept;
 };
+
+namespace utils
+{
+    template <typename vtype> void barycentric_coords(vtype const (&tri)[3], const vtype& pt, double(&coords)[3])
+    {
+        vtype v0 = tri[1] - tri[0], v1 = tri[2] - tri[0], v2 = pt - tri[0];
+        double
+            d00 = v0 * v0,
+            d01 = v0 * v1,
+            d11 = v1 * v1,
+            d20 = v2 * v0,
+            d21 = v2 * v1;
+        double denom = d00 * d11 - d01 * d01;
+        coords[1] = denom == 0 ? DBL_MAX_VAL : (d11 * d20 - d01 * d21) / denom;
+        coords[2] = denom == 0 ? DBL_MAX_VAL : (d00 * d21 - d01 * d20) / denom;
+        coords[0] = denom == 0 ? DBL_MAX_VAL : 1.0 - coords[1] - coords[2];
+    };
+}
 
 PINVOKE void ReleaseInt(int* arr, bool isArray);
 PINVOKE void ReleaseDouble(double* arr, bool isArray);
