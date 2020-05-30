@@ -85,6 +85,7 @@ struct vec3
 
 	vec3(double, double, double);
 	vec3(const vec3& v);
+    vec3(const double* const coords);
 	vec3();
 
 	vec3 operator +(const vec3&) const;
@@ -182,6 +183,7 @@ struct box3
     bool contains(const box3&) const;
     bool intersects(const box3&) const;
     vec3 center() const;
+    double volume() const;
 
     static box3 init(const vec3&, const vec3&);
 };

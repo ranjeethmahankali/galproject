@@ -20,6 +20,11 @@ vec3::vec3(double a, double b, double c)
 vec3::vec3(const vec3& v)
 	: x(v.x), y(v.y), z(v.z) {}
 
+vec3::vec3(const double* const coords)
+    :vec3(coords[0], coords[1], coords[2])
+{
+}
+
 vec3::vec3()
 	:vec3(DBL_MAX_VAL, DBL_MAX_VAL, DBL_MAX_VAL){}
 
@@ -315,6 +320,12 @@ bool box3::intersects(const box3& b) const
 vec3 box3::center() const
 {
     return (min + max) * 0.5;
+}
+
+double box3::volume() const
+{
+    vec3 d = diagonal();
+    return d.x * d.y * d.z;
 }
 
 box3 box3::init(const vec3& m1, const vec3& m2)

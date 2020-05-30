@@ -1,4 +1,6 @@
 #include "mesh.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 const mesh_face mesh_face::unset = mesh_face(-1, -1, -1);
 
@@ -226,6 +228,16 @@ vec3 mesh::volume_centroid() const
     }
 
     return vec3::weighted_average(centers.cbegin(), centers.cend(), volumes.cbegin(), volumes.cend());
+}
+
+const rtree3d& mesh::element_tree(mesh_element element) const
+{
+    switch (element)
+    {
+    case mesh_element::face: return m_faceTree;
+    case mesh_element::vertex: return m_vertexTree;
+    default: throw "Invalid element type";
+    }
 }
 
 mesh::mesh(const mesh& other) : mesh(other.vertex_cbegin(), other.vertex_cend(), other.face_cbegin(), other.face_cend())
@@ -516,4 +528,36 @@ PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double&
     x = center.x;
     y = center.y;
     z = center.z;
+}
+
+PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept
+{
+    box3 box(vec3(bounds), vec3(bounds + 3));
+    box3 mbox = meshptr->bounds();
+    size_t nIndices = meshptr->num_faces();
+    size_t estimate = (size_t)std::ceil(std::min(1., (box.volume() / mbox.volume()))) * nIndices;
+    std::vector<size_t> indices;
+    indices.reserve(estimate);
+    auto inserter = std::back_inserter(indices);
+    meshptr->query_box(box, inserter, element);
+
+    retIndices = new int32_t[indices.size()];
+    numIndices = (int32_t)indices.size();
+    std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
+}
+
+void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept
+{
+    vec3 center(cx, cy, cz);
+    box3 mbox = meshptr->bounds();
+    size_t nIndices = meshptr->num_faces();
+    size_t estimate = (size_t)std::ceil(std::min(1., ((4.0 * M_PI * std::pow(radius, 3) / 3.0) / mbox.volume()))) * nIndices;
+    std::vector<size_t> indices;
+    indices.reserve(estimate);
+    auto inserter = std::back_inserter(indices);
+    meshptr->query_sphere(center, radius, inserter, element);
+
+    retIndices = new int32_t[indices.size()];
+    numIndices = (int32_t)indices.size();
+    std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
 }
