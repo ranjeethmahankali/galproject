@@ -84,5 +84,55 @@ namespace RhinoInterface
             Unsafe.Mesh_Delete(meshPtr);
             return new Point3d(x, y, z);
         }
+
+        private static int[] QueryMesh(Mesh mesh, BoundingBox box, MeshElementType element)
+        {
+            IntPtr meshPtr = mesh.ToUnmanagedMesh();
+            IntPtr retIndicesPtr = IntPtr.Zero;
+            int nIndices = 0;
+            Unsafe.Mesh_QueryBox(meshPtr, box.ToArray(), ref retIndicesPtr, ref nIndices, element);
+
+            int[] retIndices = new int[nIndices];
+            Marshal.Copy(retIndicesPtr, retIndices, 0, nIndices);
+            Unsafe.ReleaseInt(retIndicesPtr, true);
+
+            return retIndices;
+        }
+
+        private static int[] QueryMesh(Mesh mesh, Point3d center, double radius, MeshElementType element)
+        {
+            IntPtr meshptr = mesh.ToUnmanagedMesh();
+            IntPtr retIndicesPtr = IntPtr.Zero;
+            int nIndices = 0;
+            Unsafe.Mesh_QuerySphere(meshptr, center.X, center.Y, center.Z, radius, ref retIndicesPtr, ref nIndices, element);
+            
+            int[] retIndices = new int[nIndices];
+            Marshal.Copy(retIndicesPtr, retIndices, 0, nIndices);
+            Unsafe.ReleaseInt(retIndicesPtr, true);
+
+            return retIndices;
+        }
+
+        public static Mesh QueryMeshFaces(Mesh mesh, BoundingBox box)
+        {
+            int[] faceIndices = QueryMesh(mesh, box, MeshElementType.Face);
+            return faceIndices.Any() ? mesh.Faces.ExtractFaces(faceIndices) : null;
+        }
+
+        public static Mesh QueryMeshFaces(Mesh mesh, Point3d center, double radius)
+        {
+            int[] faceIndices = QueryMesh(mesh, center, radius, MeshElementType.Face);
+            return faceIndices.Any() ? mesh.Faces.ExtractFaces(faceIndices) : null;
+        }
+
+        public static Point3d[] QueryMeshVertices(Mesh mesh, BoundingBox box)
+        {
+            return QueryMesh(mesh, box, MeshElementType.Vertex).Select(i => (Point3d)mesh.Vertices[i]).ToArray();
+        }
+
+        public static Point3d[] QueryMeshVertices(Mesh mesh, Point3d center, double radius)
+        {
+            return QueryMesh(mesh, center, radius, MeshElementType.Vertex).Select(i => (Point3d)mesh.Vertices[i]).ToArray();
+        }
     }
 }

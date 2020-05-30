@@ -38,6 +38,12 @@ enum class mesh_centroid_type
     volume_based
 };
 
+enum class mesh_element
+{
+    vertex,
+    face
+};
+
 class mesh
 {
     typedef std::vector<vec3>::const_iterator const_vertex_iterator;
@@ -78,6 +84,7 @@ private:
 
     vec3 area_centroid() const;
     vec3 volume_centroid() const;
+    const rtree3d& element_tree(mesh_element element) const;
 
 public:
     mesh(const mesh& other);
@@ -111,6 +118,16 @@ public:
     bool is_solid() const;
     vec3 centroid() const;
     vec3 centroid(const mesh_centroid_type centroid_type) const;
+
+    template <typename size_t_inserter> void query_box(const box3& box, size_t_inserter inserter, mesh_element element) const
+    {
+        element_tree(element).query_box_intersects(box, inserter);
+    };
+
+    template <typename size_t_inserter> void query_sphere(const vec3& center, double radius, size_t_inserter inserter, mesh_element element) const
+    {
+        element_tree(element).query_by_distance(center, radius, inserter);
+    };
 };
 
 PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
@@ -122,3 +139,7 @@ PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept;
 PINVOKE double Mesh_Volume(mesh const* meshPtr) noexcept;
 
 PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double& x, double& y, double &z) noexcept;
+
+PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
+
+PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace RhinoInterface
 {
@@ -7,7 +8,13 @@ namespace RhinoInterface
     {
         VertexBased = 0,
         AreaBased,
-        VolumeBased
+        VolumeBased,
+    };
+
+    public enum MeshElementType
+    {
+        Vertex,
+        Face,
     };
 
     internal static class Unsafe
@@ -53,5 +60,24 @@ namespace RhinoInterface
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void Mesh_Centroid(IntPtr meshPtr, MeshCentroidType type, ref double x, ref double y, ref double z);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_QueryBox(
+            IntPtr meshPtr,
+            [MarshalAs(UnmanagedType.LPArray)] double[] bounds,
+            ref IntPtr retIndices,
+            ref int numIndices,
+            MeshElementType element);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_QuerySphere(
+            IntPtr meshPtr,
+            double cx,
+            double cy,
+            double cz,
+            double radius,
+            ref IntPtr retIndices,
+            ref int numIndices,
+            MeshElementType element);
     }
 }

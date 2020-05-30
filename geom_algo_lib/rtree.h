@@ -24,30 +24,30 @@ public:
     };
 
     template <typename size_t_iter>
-    void query_box_intersects(const box_t& b, size_t_iter inserter)
+    void query_box_intersects(const box_t& b, size_t_iter inserter) const
     {
-        query(bgi::intersects(to_boost(b), inserter));
+        query(bgi::intersects(to_boost(b)), inserter);
     };
 
     template <typename size_t_iter>
-    void query_by_distance(const vec_t& pt, double distance)
+    void query_by_distance(const vec_t& pt, double distance, size_t_iter inserter) const
     {
         point_type center = to_boost(pt);
         query(
             bgi::satisfies([=](const item_type& item) {
                 return bg::distance(center, item.first) < distance;
-            }));
+            }), inserter);
     };
 
 private:
     boost_tree_type m_tree;
 
     template <typename predicate_type, typename size_t_iter>
-    void query(predicate_type pred, size_t_iter inserter)
+    void query(predicate_type pred, size_t_iter inserter) const
     {
-        for (auto i = m_tree.qbegin(pred); i = m_tree.qend(); i++)
+        for (auto i = m_tree.qbegin(pred); i != m_tree.qend(); i++)
         {
-            *(++inserter) = i->second;
+            *(inserter++) = i->second;
         }
     }
 
