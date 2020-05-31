@@ -79,5 +79,8 @@ namespace RhinoInterface
             ref IntPtr retIndices,
             ref int numIndices,
             MeshElementType element);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern bool Mesh_ContainsPoint(IntPtr meshPtr, double x, double y, double z);
     }
 }

@@ -9,6 +9,7 @@ constexpr double DBL_MAX_VAL = std::numeric_limits<double>::max();
 // The number with the smallest absolute value that can be represented by the double datatype.
 constexpr double DBL_MIN_VAL = std::numeric_limits<double>::min();
 
+struct vec3;
 struct vec2
 {
     double x = 0, y = 0;
@@ -18,6 +19,7 @@ struct vec2
 
     vec2(double, double);
     vec2(const vec2& v);
+    vec2(const vec3& v);
     vec2();
 
     vec2 operator +(const vec2&) const;
@@ -250,6 +252,10 @@ namespace utils
         coords[2] = denom == 0 ? DBL_MAX_VAL : (d00 * d21 - d01 * d20) / denom;
         coords[0] = denom == 0 ? DBL_MAX_VAL : 1.0 - coords[1] - coords[2];
     };
+
+    bool barycentric_within_bounds(double const (&coords)[3]);
+
+    vec3 barycentric_evaluate(double const (&coords)[3], vec3 const (&pts)[3]);
 }
 
 PINVOKE void ReleaseInt(int* arr, bool isArray);

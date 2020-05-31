@@ -336,6 +336,10 @@ box3 box3::init(const vec3& m1, const vec3& m2)
     return b;
 }
 
+vec2::vec2(const vec3& v) : x(v.x), y(v.y)
+{
+}
+
 vec2::vec2(double x, double y) : x(x), y(y)
 {
 }
@@ -552,4 +556,20 @@ box2 box2::init(const vec2& m1, const vec2& m2)
     b.min = m1;
     b.max = m2;
     return b;
+}
+
+bool utils::barycentric_within_bounds(double const(&coords)[3])
+{
+    return
+        0 <= coords[0] && coords[0] <= 1 &&
+        0 <= coords[1] && coords[1] <= 1 &&
+        0 <= coords[2] && coords[2] <= 1;
+}
+
+vec3 utils::barycentric_evaluate(double const(&coords)[3], vec3 const(&pts)[3])
+{
+    return
+        pts[0] * coords[0] +
+        pts[1] * coords[1] +
+        pts[2] * coords[2];
 }

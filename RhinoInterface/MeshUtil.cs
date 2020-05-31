@@ -95,7 +95,7 @@ namespace RhinoInterface
             int[] retIndices = new int[nIndices];
             Marshal.Copy(retIndicesPtr, retIndices, 0, nIndices);
             Unsafe.ReleaseInt(retIndicesPtr, true);
-
+            Unsafe.Mesh_Delete(meshPtr);
             return retIndices;
         }
 
@@ -109,7 +109,7 @@ namespace RhinoInterface
             int[] retIndices = new int[nIndices];
             Marshal.Copy(retIndicesPtr, retIndices, 0, nIndices);
             Unsafe.ReleaseInt(retIndicesPtr, true);
-
+            Unsafe.Mesh_Delete(meshptr);
             return retIndices;
         }
 
@@ -133,6 +133,14 @@ namespace RhinoInterface
         public static Point3d[] QueryMeshVertices(Mesh mesh, Point3d center, double radius)
         {
             return QueryMesh(mesh, center, radius, MeshElementType.Vertex).Select(i => (Point3d)mesh.Vertices[i]).ToArray();
+        }
+
+        public static bool MeshContainsPoint(Mesh mesh, Point3d point)
+        {
+            IntPtr meshPtr = mesh.ToUnmanagedMesh();
+            bool result = Unsafe.Mesh_ContainsPoint(meshPtr, point.X, point.Y, point.Z);
+            Unsafe.Mesh_Delete(meshPtr);
+            return result;
         }
     }
 }
