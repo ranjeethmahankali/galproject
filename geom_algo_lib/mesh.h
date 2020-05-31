@@ -119,6 +119,8 @@ public:
     vec3 centroid() const;
     vec3 centroid(const mesh_centroid_type centroid_type) const;
 
+    bool contains(const vec3& pt) const;
+
     template <typename size_t_inserter> void query_box(const box3& box, size_t_inserter inserter, mesh_element element) const
     {
         element_tree(element).query_box_intersects(box, inserter);
@@ -142,4 +144,7 @@ PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double&
 
 PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
 
-PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
+PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius,
+    int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
+
+PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z);

@@ -421,6 +421,49 @@ vec3 mesh::centroid(const mesh_centroid_type centroid_type) const
     }
 }
 
+bool mesh::contains(const vec3& pt) const
+{
+    static const auto comparer = [](const std::pair<double, double>& a, const std::pair<double, double>& b) {
+        return a.first < b.first;
+    };
+
+    box3 b(pt, { pt.x, pt.y, DBL_MAX });
+    std::vector<size_t> faces;
+    faces.reserve(10);
+    m_faceTree.query_box_intersects(b, std::back_inserter(faces));
+    vec3 triangles[3];
+    vec2 p2(pt);
+
+    std::vector<std::pair<double, double>> hits;
+    hits.reserve(faces.size());
+
+    for (size_t fi : faces)
+    {
+        mesh_face f = m_faces[fi];
+        vec3 pts3[3] = { m_vertices[f.a], m_vertices[f.b], m_vertices[f.c] };
+        vec2 pts2[3] = { {pts3[0]}, {pts3[1]}, {pts3[2]} };
+        double bary[3];
+        utils::barycentric_coords(pts2, p2, bary);
+        if (!utils::barycentric_within_bounds(bary))
+            continue;
+        hits.emplace_back(face_normal(fi).z, utils::barycentric_evaluate(bary, pts3).z);
+    }
+
+    std::sort(hits.begin(), hits.end(), comparer);
+    bool first = true;
+    double last = 0;
+    size_t count = 0;
+    for (const std::pair<double, double>& hit : hits)
+    {
+        if (first || last * hit.second < 0)
+            count++;
+        last = hit.second;
+        first = false;
+    }
+
+    return count % 2;
+}
+
 face_edges::face_edges(size_t const indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
@@ -560,4 +603,9 @@ void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, doub
     retIndices = new int32_t[indices.size()];
     numIndices = (int32_t)indices.size();
     std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
+}
+
+bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z)
+{
+    return meshptr->contains({ x, y, z });
 }
