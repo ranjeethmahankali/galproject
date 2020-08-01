@@ -1,6 +1,22 @@
 #include "mesh.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <array>
+#include <numeric>
+
+static constexpr uint8_t X = UINT8_MAX;
+static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable{{
+    {X, X, X, X, X, X},
+    {0, 3, 5, X, X, X},
+    {3, 1, 4, X, X, X},
+    {0, 1, 5, 1, 4, 5},
+    {4, 2, 5, X, X, X},
+    {0, 3, 4, 0, 4, 2},
+    {1, 5, 3, 1, 2, 5},
+    {0, 1, 2, X, X, X},
+}};
+
+static constexpr std::array<uint8_t, 8> s_clipVertCountTable{ 0, 3, 3, 6, 3, 6, 6, 3 };
 
 const mesh_face mesh_face::unset = mesh_face(-1, -1, -1);
 
@@ -56,19 +72,13 @@ void mesh::compute_cache()
 void mesh::compute_topology()
 {
     size_t nVertices = num_vertices();
-    for (size_t vi = 0; vi < nVertices; vi++)
-    {
-        m_vertFaceMap.insert(std::make_pair(vi, std::vector<size_t>()));
-        m_vertEdgeMap.insert(std::make_pair(vi, std::vector<size_t>()));
-    }
-
     size_t curEi = 0;
     for (size_t fi = 0; fi < m_faces.size(); fi++)
     {
         mesh_face f = m_faces[fi];
-        m_vertFaceMap[f.a].push_back(fi);
-        m_vertFaceMap[f.b].push_back(fi);
-        m_vertFaceMap[f.c].push_back(fi);
+        m_vertFaces[f.a].push_back(fi);
+        m_vertFaces[f.b].push_back(fi);
+        m_vertFaces[f.c].push_back(fi);
 
         add_edges(f, fi);
     }
@@ -104,39 +114,37 @@ void mesh::compute_normals()
     m_vertexNormals.clear();
     m_vertexNormals.resize(m_vertices.size());
     std::vector<vec3> faceNormals;
-    for (auto const& pair : m_vertFaceMap)
+    for (size_t vi = 0; vi < m_vertices.size(); vi++)
     {
+        const auto& faces = m_vertFaces.at(vi);
         faceNormals.clear();
-        faceNormals.reserve(pair.second.size());
-        std::transform(pair.second.cbegin(), pair.second.cend(), std::back_inserter(faceNormals),
+        faceNormals.reserve(faces.size());
+        std::transform(faces.cbegin(), faces.cend(), std::back_inserter(faceNormals),
             [this](const size_t fi) { return m_faceNormals[fi]; });
-        m_vertexNormals[pair.first].set(vec3::average(faceNormals.cbegin(), faceNormals.cend()).unit());
+        m_vertexNormals[vi].set(vec3::average(faceNormals.cbegin(), faceNormals.cend()).unit());
     }
 }
 
 void mesh::add_edge(const mesh_face& f, size_t fi, uint8_t fei, size_t& newEi)
 {
-    // This should be equal to the number edges, and serve as the index of the next edge being added.
-    static size_t nextEdgeIdx = 0;
-
     edge_type e = f.edge(fei);
     auto eMatch = m_edgeIndexMap.find(e);
     if (eMatch == m_edgeIndexMap.end())
     {
-        newEi = nextEdgeIdx++;
-        m_edgeIndexMap.insert(std::make_pair(e, newEi));
+        newEi = m_edges.size();
+        m_edgeIndexMap.emplace(e, newEi);
+        m_edges.push_back(e);
+        m_edgeFaces.emplace_back();
 
-        m_vertEdgeMap[e.p].push_back(newEi);
-        m_vertEdgeMap[e.q].push_back(newEi);
-        m_edgeVertMap.insert(std::make_pair(newEi, e));
-        m_edgeFaceMap.insert(std::make_pair(newEi, std::vector<size_t>()));
+        m_vertEdges[e.p].push_back(newEi);
+        m_vertEdges[e.q].push_back(newEi);
     }
     else
     {
         newEi = eMatch->second;
     }
 
-    m_edgeFaceMap[newEi].push_back(fi);
+    m_edgeFaces[newEi].push_back(fi);
 }
 
 void mesh::add_edges(const mesh_face& f, size_t fi)
@@ -146,7 +154,7 @@ void mesh::add_edges(const mesh_face& f, size_t fi)
     {
         add_edge(f, fi, fei, indices[fei]);
     }
-    m_faceEdgeMap.insert(std::make_pair(fi, face_edges(indices)));
+    m_faceEdges[fi] = face_edges(indices);
 }
 
 double mesh::face_area(const mesh_face& f) const
@@ -162,9 +170,9 @@ void mesh::get_face_center(const mesh_face& f, vec3& center) const
 
 void mesh::check_solid()
 {
-    for (const auto& edge : m_edgeFaceMap)
+    for (const auto& faces : m_edgeFaces)
     {
-        if (edge.second.size() != 2)
+        if (faces.size() != 2)
         {
             m_isSolid = false;
             return;
@@ -240,11 +248,12 @@ const rtree3d& mesh::element_tree(mesh_element element) const
     }
 }
 
-mesh::mesh(const mesh& other) : mesh(other.vertex_cbegin(), other.vertex_cend(), other.face_cbegin(), other.face_cend())
+mesh::mesh(const mesh& other) : mesh(other.m_vertices.data(), other.num_vertices(), other.m_faces.data(), other.num_faces())
 {
 }
 
 mesh::mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFaces)
+    : m_vertEdges(nVerts), m_vertFaces(nVerts), m_faceEdges(nFaces)
 {
     m_vertices.reserve(nVerts);
     std::copy(verts, verts + nVerts, std::back_inserter(m_vertices));
@@ -254,6 +263,7 @@ mesh::mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFac
 }
 
 mesh::mesh(const double* vertCoords, size_t nVerts, const size_t* faceVertIndices, size_t nFaces)
+    : m_vertEdges(nVerts), m_vertFaces(nVerts), m_faceEdges(nFaces)
 {
     m_vertices.reserve(nVerts);
     size_t nFlat = nVerts * 3;
@@ -464,6 +474,106 @@ bool mesh::contains(const vec3& pt) const
     return count % 2;
 }
 
+mesh* mesh::clipped_with_plane(const vec3& pt, const vec3& normal) const
+{
+    vec3 unorm = normal.unit();
+
+    // Calculate vertex distances.
+    std::vector<double> vdistances(num_vertices());
+    std::transform(vertex_cbegin(), vertex_cend(), vdistances.data(),
+        [&pt, &unorm](const vec3& v) {
+            return (v - pt) * unorm;
+        });
+
+    // Compute edge-plane intersection points.
+    std::vector<vec3> edgepts(m_edges.size());
+    for (size_t ei = 0; ei < m_edges.size(); ei++)
+    {
+        const edge_type& edge = m_edges.at(ei);
+        double d1 = vdistances[edge.p];
+        double d2 = vdistances[edge.q];
+        if (d1 * d2 >= 0)
+            continue;
+
+        double r = d2 / (d2 - d1);
+        edgepts[ei] = (vertex(edge.p) * r) + (vertex(edge.q) * (1.0 - r));
+    }
+
+    // Compute vertex enums for all faces.
+    std::vector<uint8_t> venums(num_faces());
+    std::transform(face_cbegin(), face_cend(), venums.data(),
+        [&vdistances](const mesh_face& face) {
+            uint8_t mask = 0ui8;
+            if (vdistances[face.a] < 0) mask |= 1 << 0;
+            if (vdistances[face.b] < 0) mask |= 1 << 1;
+            if (vdistances[face.c] < 0) mask |= 1 << 2;
+            return mask;
+        });
+
+    // Total number of triangle indices.
+    std::vector<size_t> indices;
+    size_t nIndices = 0;
+    for (const uint8_t venum : venums)
+        nIndices += s_clipVertCountTable[venum];
+    assert(nIndices % 3 == 0);
+
+    // Copy the indices and vertices.
+    std::unordered_map<size_t, size_t, custom_size_t_hash> map;
+    map.reserve(nIndices);
+    std::vector<vec3> verts;
+    verts.reserve(num_vertices());
+
+    indices.reserve(nIndices);
+    auto indexIt = std::back_inserter(indices);
+
+    for (size_t fi = 0; fi < m_faces.size(); fi++)
+    {
+        const mesh_face& face = m_faces.at(fi);
+        uint8_t venum = venums[fi];
+        const uint8_t* const row = s_clipTriTable[venum].data();
+        std::transform(row, row + s_clipVertCountTable[venum], indexIt,
+            [this, &map, &verts, &edgepts, &face](const uint8_t vi) {
+                decltype(m_edgeIndexMap)::const_iterator match2;
+                if (vi > 2)
+                {
+                    match2 = m_edgeIndexMap.find(face.edge(vi - 3));
+                    if (match2 == m_edgeIndexMap.end())
+                        throw 1;
+                }
+                size_t key;
+                switch (vi)
+                {
+                case 0: key = face.a; break;
+                case 1: key = face.b; break;
+                case 2: key = face.c; break;
+                case 3: case 4: case 5:
+                    key = match2->second + num_vertices(); break;
+                }
+                auto match = map.find(key);
+                if (match == map.end())
+                {
+                    size_t vi2 = verts.size();
+                    map.emplace(key, vi2);
+
+                    switch (vi)
+                    {
+                    case 0: verts.push_back(vertex(face.a)); break;
+                    case 1: verts.push_back(vertex(face.b)); break;
+                    case 2: verts.push_back(vertex(face.c)); break;
+                    case 3: case 4: case 5:
+                        verts.push_back(edgepts[match2->second]); break;
+                    }
+                    return vi2;
+                }
+                return match->second;
+            });
+    }
+
+    assert(indices.size() == nIndices);
+    // Create new mesh with the copied data.
+    return new mesh((const double*)verts.data(), verts.size(), indices.data(), nIndices / 3);
+}
+
 face_edges::face_edges(size_t const indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
@@ -551,7 +661,7 @@ PINVOKE mesh* Mesh_Create(double const* vertices, int numVerts, int const* faceI
         faces.emplace_back(a, b, c);
     }
 
-    return new mesh(verts.cbegin(), verts.cend(), faces.cbegin(), faces.cend());
+    return new mesh(verts.data(), verts.size(), faces.data(), faces.size());
 }
 
 PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept
@@ -589,7 +699,8 @@ PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& 
     std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
 }
 
-void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept
+PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices,
+    int32_t& numIndices, mesh_element element) noexcept
 {
     vec3 center(cx, cy, cz);
     box3 mbox = meshptr->bounds();
@@ -605,7 +716,14 @@ void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, doub
     std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
 }
 
-bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z)
+PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z)
 {
     return meshptr->contains({ x, y, z });
+}
+
+PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm)
+{
+    vec3 p(pt);
+    vec3 n(norm);
+    return meshptr->clipped_with_plane(p, n);
 }

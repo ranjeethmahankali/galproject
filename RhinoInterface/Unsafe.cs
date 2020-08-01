@@ -82,5 +82,11 @@ namespace RhinoInterface
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern bool Mesh_ContainsPoint(IntPtr meshPtr, double x, double y, double z);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr Mesh_ClipWithPlane(
+            IntPtr umesh,
+            [MarshalAs(UnmanagedType.LPArray)] double[] pt,
+            [MarshalAs(UnmanagedType.LPArray)] double[] norm);
     }
 }
