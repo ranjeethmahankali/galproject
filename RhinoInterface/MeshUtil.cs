@@ -142,5 +142,27 @@ namespace RhinoInterface
             Unsafe.Mesh_Delete(meshPtr);
             return result;
         }
+
+        public static Mesh ClipMeshWithPlane(Mesh mesh, Plane plane)
+        {
+            var umesh = mesh.ToUnmanagedMesh();
+            double[] pt = {
+                plane.Origin.X,
+                plane.Origin.Y,
+                plane.Origin.Z,
+            };
+            Vector3d normal = plane.Normal;
+            normal.Unitize();
+            double[] norm = {
+                normal.X,
+                normal.Y,
+                normal.Z,
+            };
+            IntPtr clipped = Unsafe.Mesh_ClipWithPlane(umesh, pt, norm);
+            Unsafe.Mesh_Delete(umesh);
+            Mesh result = clipped.ToRhinoMesh();
+            Unsafe.Mesh_Delete(clipped);
+            return result;
+        }
     }
 }
