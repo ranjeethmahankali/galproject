@@ -152,3 +152,5 @@ PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double 
 PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z);
 
 PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm);
+
+PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double*& closePt, double searchDistance);

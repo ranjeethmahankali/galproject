@@ -88,5 +88,12 @@ namespace RhinoInterface
             IntPtr umesh,
             [MarshalAs(UnmanagedType.LPArray)] double[] pt,
             [MarshalAs(UnmanagedType.LPArray)] double[] norm);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_ClosestPoint(
+            IntPtr meshPtr,
+            [MarshalAs(UnmanagedType.LPArray)] double[] point,
+            [MarshalAs(UnmanagedType.LPArray)] double[] closePoint,
+            double searchDistance);
     }
 }

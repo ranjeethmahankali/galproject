@@ -791,3 +791,9 @@ PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm)
     vec3 n(norm);
     return meshptr->clipped_with_plane(p, n);
 }
+
+PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double* closePt, double searchDistance)
+{
+    size_t pos = 0;
+    meshptr->closest_point(vec3(pt), searchDistance).copy(closePt, pos);
+}
