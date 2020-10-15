@@ -248,6 +248,47 @@ const rtree3d& mesh::element_tree(mesh_element element) const
     }
 }
 
+void mesh::face_closest_pt(size_t faceIndex, const vec3& pt, vec3& closePt, double& bestSqDist) const
+{
+    const mesh_face& face = m_faces.at(faceIndex);
+    const vec3& va = m_vertices.at(face.a);
+    vec3 fnorm = face_normal(faceIndex);
+    vec3 projected = pt + (fnorm * ((va - pt) * fnorm));
+
+    double planeDistSq = (pt - projected).len_sq();
+    if (planeDistSq > bestSqDist) return;
+
+    size_t nOutside = 0;
+    for (size_t i = 0; i < 3; i++)
+    {
+        size_t j = (i + 1) % 3;
+        const vec3& v1 = m_vertices.at(i);
+        const vec3& v2 = m_vertices.at(j);
+        bool outside = ((projected - v1) ^ (projected - v2)) * fnorm < 0;
+        if (outside)
+        {
+            nOutside++;
+            vec3 ln = v2 - v1;
+            double param = std::clamp((ln * (projected - v1)) / ln.len_sq(), 0.0, 1.0);
+            vec3 cpt = v2 * param + v1 * (1.0 - param);
+            double distSq = (cpt - pt).len_sq();
+            if (distSq < bestSqDist)
+            {
+                closePt = cpt;
+                bestSqDist = bestSqDist;
+            }
+        }
+
+        if (nOutside > 1) break;
+    }
+
+    if (nOutside == 0 && planeDistSq < bestSqDist)
+    {
+        closePt = projected;
+        bestSqDist = planeDistSq;
+    }
+}
+
 mesh::mesh(const mesh& other) : mesh(other.m_vertices.data(), other.num_vertices(), other.m_faces.data(), other.num_faces())
 {
 }
@@ -572,6 +613,29 @@ mesh* mesh::clipped_with_plane(const vec3& pt, const vec3& normal) const
     assert(indices.size() == nIndices);
     // Create new mesh with the copied data.
     return new mesh((const double*)verts.data(), verts.size(), indices.data(), nIndices / 3);
+}
+
+vec3 mesh::closest_point(const vec3& pt, double searchDist) const
+{
+    size_t nearestVertIndex = SIZE_MAX;
+    m_vertexTree.query_nearest_n(pt, 1, &nearestVertIndex);
+    if (nearestVertIndex == SIZE_MAX)
+        return vec3::unset;
+    double vDist = (pt - m_vertices.at(nearestVertIndex)).len();
+    if (vDist > searchDist)
+        return vec3::unset;
+
+    vec3 halfDiag(vDist, vDist, vDist);
+    std::vector<size_t> candidates;
+    candidates.reserve(32);
+    m_faceTree.query_box_intersects(box3(pt - halfDiag, pt + halfDiag), std::back_inserter(candidates));
+
+    vec3 closePt = vec3::unset;
+    double bestDist = DBL_MAX;
+    for (size_t fi : candidates)
+    {
+        face_closest_pt(fi, pt, closePt, bestDist);
+    }
 }
 
 face_edges::face_edges(size_t const indices[3])

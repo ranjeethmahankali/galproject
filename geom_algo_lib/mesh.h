@@ -89,6 +89,8 @@ private:
     vec3 volume_centroid() const;
     const rtree3d& element_tree(mesh_element element) const;
 
+    void face_closest_pt(size_t faceIndex, const vec3& pt, vec3& closePt, double& bestSqDist) const;
+
 public:
     mesh(const mesh& other);
     mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFaces);
@@ -128,6 +130,8 @@ public:
     {
         element_tree(element).query_by_distance(center, radius, inserter);
     };
+
+    vec3 closest_point(const vec3& pt, double searchDist) const;
 };
 
 PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
