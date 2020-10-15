@@ -39,6 +39,12 @@ public:
             }), inserter);
     };
 
+    template <typename size_t_iter>
+    void query_nearest_n(const vec_t& pt, size_t numResults)
+    {
+        query(bgi::nearest(to_boost(pt), numResults));
+    };
+
 private:
     boost_tree_type m_tree;
 
