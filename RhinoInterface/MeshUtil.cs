@@ -165,7 +165,7 @@ namespace RhinoInterface
             return result;
         }
 
-        public static Point3d MeshClosstPoint(Mesh mesh, Point3d point, double searchDistance)
+        public static Point3d MeshClosestPoint(Mesh mesh, Point3d point, double searchDistance)
         {
             IntPtr meshptr = mesh.ToUnmanagedMesh();
             double[] pt = { point.X, point.Y, point.Z };

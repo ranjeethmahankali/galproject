@@ -10,9 +10,17 @@ typedef index_pair_hash edge_type_hash;
 struct mesh_face
 {
     static const mesh_face unset;
-    size_t a = SIZE_MAX, b = SIZE_MAX, c = SIZE_MAX;
+    union
+    {
+        struct
+        {
+            size_t a, b, c;
+        };
+        size_t indices[3];
+    };
+    
 
-    mesh_face() = default;
+    mesh_face();
     mesh_face(size_t v1, size_t v2, size_t v3);
     mesh_face(size_t const indices[3]);
 
@@ -96,12 +104,12 @@ public:
     mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFaces);
     mesh(const double* vertCoords, size_t nVerts, const size_t* faceVertIndices, size_t nFaces);
     
-    size_t num_vertices() const;
-    size_t num_faces() const;
+    size_t num_vertices() const noexcept;
+    size_t num_faces() const noexcept;
     vec3 vertex(size_t vi) const;
     mesh_face face(size_t fi) const;
     vec3 vertex_normal(size_t vi) const;
-    vec3 face_normal(size_t fi) const;
+    const vec3& face_normal(size_t fi) const;
     mesh::const_vertex_iterator vertex_cbegin() const;
     mesh::const_vertex_iterator vertex_cend() const;
     mesh::const_face_iterator face_cbegin() const;
@@ -153,4 +161,4 @@ PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double 
 
 PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm);
 
-PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double*& closePt, double searchDistance);
+PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double* closePt, double searchDistance);
