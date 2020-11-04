@@ -22,9 +22,6 @@ namespace RhinoInterface
         private const string dllName = "geom_algo_lib.dll";
 
         [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int Test_GetSquare(int n);
-
-        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int ConvexHull_Create(
             [MarshalAs(UnmanagedType.LPArray)] double[] coordinates,
             ulong numPoints,
@@ -88,5 +85,12 @@ namespace RhinoInterface
             IntPtr umesh,
             [MarshalAs(UnmanagedType.LPArray)] double[] pt,
             [MarshalAs(UnmanagedType.LPArray)] double[] norm);
+
+        [DllImport(dllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void Mesh_ClosestPoint(
+            IntPtr meshPtr,
+            [MarshalAs(UnmanagedType.LPArray)] double[] point,
+            [MarshalAs(UnmanagedType.LPArray)] double[] closePoint,
+            double searchDistance);
     }
 }

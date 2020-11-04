@@ -2,11 +2,6 @@
 
 #define deletePtr(ptr, isArray) if (isArray) {delete[] arr;} else {delete arr;}
 
-PINVOKE int Test_GetSquare(int n)
-{
-	return n * n;
-}
-
 const vec3 vec3::unset = vec3(DBL_MAX_VAL, DBL_MAX_VAL, DBL_MAX_VAL);
 const vec3 vec3::zero = vec3(0, 0, 0);
 const vec2 vec2::zero = vec2(0, 0);

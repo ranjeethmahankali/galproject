@@ -164,5 +164,18 @@ namespace RhinoInterface
             Unsafe.Mesh_Delete(clipped);
             return result;
         }
+
+        public static Point3d MeshClosestPoint(
+            Mesh mesh,
+            Point3d point,
+            double searchDistance)
+        {
+            IntPtr meshptr = mesh.ToUnmanagedMesh();
+            double[] pt = { point.X, point.Y, point.Z };
+            double[] closePt = new double[3];
+            Unsafe.Mesh_ClosestPoint(meshptr, pt, closePt, searchDistance);
+            Unsafe.Mesh_Delete(meshptr);
+            return new Point3d(closePt[0], closePt[1], closePt[2]);
+        }
     }
 }
