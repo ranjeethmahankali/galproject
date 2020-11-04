@@ -20,6 +20,11 @@ static constexpr std::array<uint8_t, 8> s_clipVertCountTable{ 0, 3, 3, 6, 3, 6, 
 
 const mesh_face mesh_face::unset = mesh_face(-1, -1, -1);
 
+mesh_face::mesh_face() :
+    a(SIZE_MAX), b(SIZE_MAX), c(SIZE_MAX)
+{
+}
+
 mesh_face::mesh_face(size_t v1, size_t v2, size_t v3)
     :a(v1), b(v2), c(v3)
 {
@@ -248,6 +253,48 @@ const rtree3d& mesh::element_tree(mesh_element element) const
     }
 }
 
+void mesh::face_closest_pt(size_t faceIndex, const vec3& pt, vec3& closePt, double& bestSqDist) const
+{
+    const mesh_face& face = m_faces.at(faceIndex);
+    const vec3& va = m_vertices.at(face.a);
+    const vec3& fnorm = face_normal(faceIndex);
+    vec3 projection = fnorm * ((va - pt) * fnorm);
+
+    double planeDistSq = projection.len_sq();
+    if (planeDistSq > bestSqDist) return;
+
+    vec3 projected = pt + projection;
+
+    uint8_t nOutside = 0;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        const vec3& v1 = m_vertices.at(face.indices[i]);
+        const vec3& v2 = m_vertices.at(face.indices[(i + 1) % 3]);
+        bool outside = ((v1 - projected) ^ (v2 - projected)) * fnorm < 0.0;
+        if (outside)
+        {
+            nOutside++;
+            vec3 ln = v2 - v1;
+            double param = std::clamp((ln * (projected - v1)) / ln.len_sq(), 0.0, 1.0);
+            vec3 cpt = v2 * param + v1 * (1.0 - param);
+            double distSq = (cpt - pt).len_sq();
+            if (distSq < bestSqDist)
+            {
+                closePt = cpt;
+                bestSqDist = distSq;
+            }
+        }
+
+        if (nOutside > 1) break;
+    }
+
+    if (nOutside == 0)
+    {
+        closePt = projected;
+        bestSqDist = planeDistSq;
+    }
+}
+
 mesh::mesh(const mesh& other) : mesh(other.m_vertices.data(), other.num_vertices(), other.m_faces.data(), other.num_faces())
 {
 }
@@ -290,12 +337,12 @@ mesh::mesh(const double* vertCoords, size_t nVerts, const size_t* faceVertIndice
     compute_cache();
 }
 
-size_t mesh::num_vertices() const
+size_t mesh::num_vertices() const noexcept
 {
     return m_vertices.size();
 }
 
-size_t mesh::num_faces() const
+size_t mesh::num_faces() const noexcept
 {
     return m_faces.size();
 }
@@ -315,9 +362,10 @@ vec3 mesh::vertex_normal(size_t vi) const
     return vi < num_vertices() ? m_vertexNormals[vi] : vec3::unset;
 }
 
-vec3 mesh::face_normal(size_t fi) const
+const vec3& mesh::face_normal(size_t fi) const
 {
-    return fi < num_faces() ? m_faceNormals[fi] : vec3::unset;
+    static const vec3 s_unset = vec3::unset;
+    return fi < num_faces() ? m_faceNormals.at(fi) : s_unset;
 }
 
 mesh::const_vertex_iterator mesh::vertex_cbegin() const
@@ -574,6 +622,32 @@ mesh* mesh::clipped_with_plane(const vec3& pt, const vec3& normal) const
     return new mesh((const double*)verts.data(), verts.size(), indices.data(), nIndices / 3);
 }
 
+vec3 mesh::closest_point(const vec3& pt, double searchDist) const
+{
+    size_t nearestVertIndex = SIZE_MAX;
+    m_vertexTree.query_nearest_n(pt, 1, &nearestVertIndex);
+    if (nearestVertIndex == SIZE_MAX) // Didn't find the nearest vertex.
+        return vec3::unset;
+
+    vec3 closePt = m_vertices[nearestVertIndex];
+    double bestDistSq = (pt - closePt).len_sq();
+
+    double vDist = std::sqrt(bestDistSq);
+    if (vDist > searchDist) // Closest point not found within search distance.
+        return vec3::unset;
+
+    vec3 halfDiag(vDist, vDist, vDist);
+    std::vector<size_t> candidates;
+    candidates.reserve(32);
+    m_faceTree.query_box_intersects(box3(pt - halfDiag, pt + halfDiag), std::back_inserter(candidates));
+
+    for (size_t fi : candidates)
+    {
+        face_closest_pt(fi, pt, closePt, bestDistSq);
+    }
+    return closePt;
+}
+
 face_edges::face_edges(size_t const indices[3])
     :a(indices[0]), b(indices[1]), c(indices[2])
 {
@@ -726,4 +800,15 @@ PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm)
     vec3 p(pt);
     vec3 n(norm);
     return meshptr->clipped_with_plane(p, n);
+}
+
+PINVOKE void Mesh_ClosestPoint(
+    mesh const* meshptr,
+    double* pt,
+    double* closePt,
+    double searchDistance)
+{
+    vec3 cpt = meshptr->closest_point(vec3(pt), searchDistance);
+    size_t pos = 0;
+    cpt.copy(closePt, pos);
 }

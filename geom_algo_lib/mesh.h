@@ -10,9 +10,17 @@ typedef index_pair_hash edge_type_hash;
 struct mesh_face
 {
     static const mesh_face unset;
-    size_t a = SIZE_MAX, b = SIZE_MAX, c = SIZE_MAX;
+    union
+    {
+        struct
+        {
+            size_t a, b, c;
+        };
+        size_t indices[3];
+    };
+    
 
-    mesh_face() = default;
+    mesh_face();
     mesh_face(size_t v1, size_t v2, size_t v3);
     mesh_face(size_t const indices[3]);
 
@@ -89,17 +97,19 @@ private:
     vec3 volume_centroid() const;
     const rtree3d& element_tree(mesh_element element) const;
 
+    void face_closest_pt(size_t faceIndex, const vec3& pt, vec3& closePt, double& bestSqDist) const;
+
 public:
     mesh(const mesh& other);
     mesh(const vec3* verts, size_t nVerts, const mesh_face* faces, size_t nFaces);
     mesh(const double* vertCoords, size_t nVerts, const size_t* faceVertIndices, size_t nFaces);
     
-    size_t num_vertices() const;
-    size_t num_faces() const;
+    size_t num_vertices() const noexcept;
+    size_t num_faces() const noexcept;
     vec3 vertex(size_t vi) const;
     mesh_face face(size_t fi) const;
     vec3 vertex_normal(size_t vi) const;
-    vec3 face_normal(size_t fi) const;
+    const vec3& face_normal(size_t fi) const;
     mesh::const_vertex_iterator vertex_cbegin() const;
     mesh::const_vertex_iterator vertex_cend() const;
     mesh::const_face_iterator face_cbegin() const;
@@ -128,6 +138,8 @@ public:
     {
         element_tree(element).query_by_distance(center, radius, inserter);
     };
+
+    vec3 closest_point(const vec3& pt, double searchDist) const;
 };
 
 PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
@@ -148,3 +160,5 @@ PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double 
 PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z);
 
 PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm);
+
+PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double* closePt, double searchDistance);
