@@ -626,13 +626,14 @@ vec3 mesh::closest_point(const vec3& pt, double searchDist) const
 {
     size_t nearestVertIndex = SIZE_MAX;
     m_vertexTree.query_nearest_n(pt, 1, &nearestVertIndex);
-    if (nearestVertIndex == SIZE_MAX)
+    if (nearestVertIndex == SIZE_MAX) // Didn't find the nearest vertex.
         return vec3::unset;
 
-    const vec3& nearestVert = m_vertices.at(nearestVertIndex);
-    double bestDistSq = (pt - nearestVert).len_sq();
+    vec3 closePt = m_vertices[nearestVertIndex];
+    double bestDistSq = (pt - closePt).len_sq();
+
     double vDist = std::sqrt(bestDistSq);
-    if (vDist > searchDist)
+    if (vDist > searchDist) // Closest point not found within search distance.
         return vec3::unset;
 
     vec3 halfDiag(vDist, vDist, vDist);
@@ -640,7 +641,6 @@ vec3 mesh::closest_point(const vec3& pt, double searchDist) const
     candidates.reserve(32);
     m_faceTree.query_box_intersects(box3(pt - halfDiag, pt + halfDiag), std::back_inserter(candidates));
 
-    vec3 closePt = nearestVert;
     for (size_t fi : candidates)
     {
         face_closest_pt(fi, pt, closePt, bestDistSq);
@@ -802,7 +802,11 @@ PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm)
     return meshptr->clipped_with_plane(p, n);
 }
 
-PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double* closePt, double searchDistance)
+PINVOKE void Mesh_ClosestPoint(
+    mesh const* meshptr,
+    double* pt,
+    double* closePt,
+    double searchDistance)
 {
     vec3 cpt = meshptr->closest_point(vec3(pt), searchDistance);
     size_t pos = 0;

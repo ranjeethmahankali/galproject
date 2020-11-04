@@ -10,11 +10,6 @@ namespace RhinoInterface
 {
     public static class Test
     {
-        public static int GetSquare(int n)
-        {
-            return Unsafe.Test_GetSquare(n);
-        }
-
         public static Mesh CreateConvexHull(IEnumerable<Point3d> points, out long elapsedMs, out long elapsedTicks)
         {
             Point3d[] ptArr = points.ToArray();
