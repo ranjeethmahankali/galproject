@@ -3,8 +3,8 @@
 #include <vector>
 #include <algorithm>
 
-#define PINVOKE extern "C" __declspec(dllexport)
-// The number with the largest absolute value that can be represented by the double datatype.
+// The number with the largest absolute value that
+// can be represented by the double datatype.
 constexpr double DBL_MAX_VAL = std::numeric_limits<double>::max();
 // The number with the smallest absolute value that can be represented by the double datatype.
 constexpr double DBL_MIN_VAL = std::numeric_limits<double>::min();
@@ -257,6 +257,3 @@ namespace utils
 
     vec3 barycentric_evaluate(double const (&coords)[3], vec3 const (&pts)[3]);
 }
-
-PINVOKE void ReleaseInt(int* arr, bool isArray);
-PINVOKE void ReleaseDouble(double* arr, bool isArray);

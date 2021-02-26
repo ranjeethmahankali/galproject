@@ -1,4 +1,4 @@
-#include "mesh.h"
+#include "galcore/mesh.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <array>
@@ -551,7 +551,7 @@ mesh* mesh::clipped_with_plane(const vec3& pt, const vec3& normal) const
     std::vector<uint8_t> venums(num_faces());
     std::transform(face_cbegin(), face_cend(), venums.data(),
         [&vdistances](const mesh_face& face) {
-            uint8_t mask = 0ui8;
+            uint8_t mask = 0u;
             if (vdistances[face.a] < 0) mask |= 1 << 0;
             if (vdistances[face.b] < 0) mask |= 1 << 1;
             if (vdistances[face.c] < 0) mask |= 1 << 2;
@@ -675,140 +675,4 @@ void face_edges::set(size_t i)
         c = i;
     else
         throw i;
-}
-
-PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept
-{
-    if (vertices || faces)
-    {
-        return;
-    }
-
-    vertices = new double[meshPtr->num_vertices() * 3];
-    faces = new int[meshPtr->num_faces() * 3];
-    size_t i = 0;
-    for (auto vi = meshPtr->vertex_cbegin(); vi != meshPtr->vertex_cend(); vi++)
-    {
-        vec3 v = *vi;
-        v.copy(vertices, i);
-    }
-
-    i = 0;
-    for (auto fi = meshPtr->face_cbegin(); fi != meshPtr->face_cend(); fi++)
-    {
-        mesh_face f = *fi;
-        faces[i++] = (int)f.a;
-        faces[i++] = (int)f.b;
-        faces[i++] = (int)f.c;
-    }
-
-    nVerts = (int)meshPtr->num_vertices();
-    nFaces = (int)meshPtr->num_faces();
-}
-
-PINVOKE mesh* Mesh_Create(double const* vertices, int numVerts, int const* faceIndices, int numFaces) noexcept
-{
-    size_t nVerts = (size_t)numVerts;
-    size_t nFaces = (size_t)numFaces;
-
-    std::vector<vec3> verts;
-    verts.reserve(nVerts);
-    size_t nCoords = nVerts * 3;
-    size_t ci = 0;
-    while (ci < nCoords)
-    {
-        double x = vertices[ci++];
-        double y = vertices[ci++];
-        double z = vertices[ci++];
-        verts.emplace_back(x, y, z);
-    }
-
-    std::vector<mesh_face> faces;
-    faces.reserve(nFaces); 
-    size_t nIndices = nFaces * 3;
-    size_t ii = 0;
-    while (ii < nIndices)
-    {
-        size_t a = (size_t)faceIndices[ii++];
-        size_t b = (size_t)faceIndices[ii++];
-        size_t c = (size_t)faceIndices[ii++];
-        faces.emplace_back(a, b, c);
-    }
-
-    return new mesh(verts.data(), verts.size(), faces.data(), faces.size());
-}
-
-PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept
-{
-    if (meshPtr)
-        delete meshPtr;
-}
-
-PINVOKE double Mesh_Volume(mesh const* meshPtr) noexcept
-{
-    return meshPtr->volume();
-}
-
-PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double& x, double& y, double& z) noexcept
-{
-    vec3 center = meshPtr->centroid(type);
-    x = center.x;
-    y = center.y;
-    z = center.z;
-}
-
-PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept
-{
-    box3 box(vec3(bounds), vec3(bounds + 3));
-    box3 mbox = meshptr->bounds();
-    size_t nIndices = meshptr->num_faces();
-    size_t estimate = (size_t)std::ceil(std::min(1., (box.volume() / mbox.volume()))) * nIndices;
-    std::vector<size_t> indices;
-    indices.reserve(estimate);
-    auto inserter = std::back_inserter(indices);
-    meshptr->query_box(box, inserter, element);
-
-    retIndices = new int32_t[indices.size()];
-    numIndices = (int32_t)indices.size();
-    std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
-}
-
-PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius, int32_t*& retIndices,
-    int32_t& numIndices, mesh_element element) noexcept
-{
-    vec3 center(cx, cy, cz);
-    box3 mbox = meshptr->bounds();
-    size_t nIndices = meshptr->num_faces();
-    size_t estimate = (size_t)std::ceil(std::min(1., ((4.0 * M_PI * std::pow(radius, 3) / 3.0) / mbox.volume()))) * nIndices;
-    std::vector<size_t> indices;
-    indices.reserve(estimate);
-    auto inserter = std::back_inserter(indices);
-    meshptr->query_sphere(center, radius, inserter, element);
-
-    retIndices = new int32_t[indices.size()];
-    numIndices = (int32_t)indices.size();
-    std::transform(indices.cbegin(), indices.cend(), retIndices, [](const size_t fi) { return (int32_t)fi; });
-}
-
-PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z)
-{
-    return meshptr->contains({ x, y, z });
-}
-
-PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm)
-{
-    vec3 p(pt);
-    vec3 n(norm);
-    return meshptr->clipped_with_plane(p, n);
-}
-
-PINVOKE void Mesh_ClosestPoint(
-    mesh const* meshptr,
-    double* pt,
-    double* closePt,
-    double searchDistance)
-{
-    vec3 cpt = meshptr->closest_point(vec3(pt), searchDistance);
-    size_t pos = 0;
-    cpt.copy(closePt, pos);
 }

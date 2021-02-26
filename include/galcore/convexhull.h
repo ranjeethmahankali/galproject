@@ -53,5 +53,3 @@ public:
 	size_t num_faces() const;
 	void copy_faces(int* faceIndices) const;
 };
-
-PINVOKE void ConvexHull_Create(double* coords, size_t nPts, int* &faceIndices, int& nFaces);

@@ -1,4 +1,4 @@
-#include "convex_hull.h"
+#include "galcore/convexhull.h"
 
 const hull_face hull_face::unset = hull_face(-1, -1, -1, -1);
 
@@ -422,12 +422,4 @@ bool convex_hull::get_edge_faces(const index_pair& edge, index_pair& faces) cons
 vec3 convex_hull::face_center(const hull_face& face) const
 {
 	return (m_pts[face.a] + m_pts[face.b] + m_pts[face.c]) / 3;
-}
-
-PINVOKE void ConvexHull_Create(double* coords, size_t nPts, int*& faceIndices, int& nFaces)
-{
-	convex_hull hull(coords, nPts);
-	nFaces = (int)hull.num_faces();
-	faceIndices = new int[hull.num_faces() * 3];
-	hull.copy_faces(faceIndices);
 }

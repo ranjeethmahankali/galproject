@@ -1,4 +1,4 @@
-#include "rtree.h"
+#include "galcore/rtree.h"
 
 template <>
 rtree2d::point_type rtree2d::to_boost(const vec2& v)

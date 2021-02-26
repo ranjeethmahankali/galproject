@@ -141,24 +141,3 @@ public:
 
     vec3 closest_point(const vec3& pt, double searchDist) const;
 };
-
-PINVOKE void Mesh_GetData(mesh const* meshPtr, double*& vertices, int& nVerts, int*& faces, int& nFaces) noexcept;
-
-PINVOKE mesh* Mesh_Create(double const * vertices, int nVerts, int const* faces, int nFaces) noexcept;
-
-PINVOKE void Mesh_Delete(mesh const* meshPtr) noexcept;
-
-PINVOKE double Mesh_Volume(mesh const* meshPtr) noexcept;
-
-PINVOKE void Mesh_Centroid(mesh const* meshPtr, mesh_centroid_type type, double& x, double& y, double &z) noexcept;
-
-PINVOKE void Mesh_QueryBox(mesh const* meshptr, double const* bounds, int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
-
-PINVOKE void Mesh_QuerySphere(mesh const* meshptr, double cx, double cy, double cz, double radius,
-    int32_t*& retIndices, int32_t& numIndices, mesh_element element) noexcept;
-
-PINVOKE bool Mesh_ContainsPoint(mesh const* meshptr, double x, double y, double z);
-
-PINVOKE mesh* Mesh_ClipWithPlane(mesh const* meshptr, double* pt, double* norm);
-
-PINVOKE void Mesh_ClosestPoint(mesh const* meshptr, double* pt, double* closePt, double searchDistance);

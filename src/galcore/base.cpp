@@ -1,4 +1,5 @@
-#include "base.h"
+#include "galcore/base.h"
+#include <cmath>
 
 #define deletePtr(ptr, isArray) if (isArray) {delete[] arr;} else {delete arr;}
 
@@ -103,7 +104,7 @@ double vec3::len_sq() const
 
 double vec3::len() const
 {
-	return sqrt(len_sq());
+	return std::sqrt(len_sq());
 }
 
 void vec3::copy(double* dest, size_t& pos) const
@@ -225,16 +226,6 @@ bool index_pair::add(size_t i)
 bool index_pair::contains(size_t i) const
 {
 	return (i != -1) && (i == p || i == q);
-}
-
-PINVOKE void ReleaseInt(int* arr, bool isArray)
-{
-	deletePtr(arr, isArray);
-}
-
-PINVOKE void ReleaseDouble(double* arr, bool isArray)
-{
-	deletePtr(arr, isArray);
 }
 
 size_t index_pair_hash::operator()(const index_pair& ip) const noexcept
