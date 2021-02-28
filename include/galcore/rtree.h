@@ -1,8 +1,8 @@
 #pragma once
 #include "base.h"
 #include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/geometries/point.hpp>
 
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
@@ -18,29 +18,30 @@ public:
     typedef std::pair<box_type, size_t> item_type;
     typedef bgi::rtree<item_type, bgi::quadratic<RTREE_NUM_ELEMENTS_PER_NODE>> boost_tree_type;
 
-    void insert(const box_t& b, size_t i)
+    void insert(const box_t &b, size_t i)
     {
         m_tree.insert(std::make_pair(to_boost(b), i));
     };
 
     template <typename size_t_iter>
-    void query_box_intersects(const box_t& b, size_t_iter inserter) const
+    void query_box_intersects(const box_t &b, size_t_iter inserter) const
     {
         query(bgi::intersects(to_boost(b)), inserter);
     };
 
     template <typename size_t_iter>
-    void query_by_distance(const vec_t& pt, double distance, size_t_iter inserter) const
+    void query_by_distance(const vec_t &pt, double distance, size_t_iter inserter) const
     {
         point_type center = to_boost(pt);
         query(
-            bgi::satisfies([=](const item_type& item) {
+            bgi::satisfies([=](const item_type &item) {
                 return bg::distance(center, item.first) < distance;
-            }), inserter);
+            }),
+            inserter);
     };
 
     template <typename size_t_iter>
-    void query_nearest_n(const vec_t& pt, size_t numResults, size_t_iter inserter) const
+    void query_nearest_n(const vec_t &pt, size_t numResults, size_t_iter inserter) const
     {
         query(bgi::nearest(to_boost(pt), (unsigned int)numResults), inserter);
     };
@@ -58,14 +59,14 @@ private:
     }
 
     // Because we created the specializations of these templates, we don't need definitions here.
-    static boost_point_t to_boost(const vec_t&);
-    static vec_t from_boost(const boost_point_t&);
+    static boost_point_t to_boost(const vec_t &);
+    static vec_t from_boost(const boost_point_t &);
 
-    static box_type to_boost(const box_t& b)
+    static box_type to_boost(const box_t &b)
     {
         return box_type(to_boost(b.min), to_boost(b.max));
     };
-    static box_t from_boost(const box_type& b)
+    static box_t from_boost(const box_type &b)
     {
         return box_t(from_boost(b.min_corner()), from_boost(b.max_corner()));
     };
@@ -77,13 +78,13 @@ template class rtree<bgm::point<double, 3, bg::cs::cartesian>, vec3, box3>;
 typedef rtree<bgm::point<double, 3, bg::cs::cartesian>, vec3, box3> rtree3d;
 
 template <>
-rtree2d::point_type rtree2d::to_boost(const vec2&);
+rtree2d::point_type rtree2d::to_boost(const vec2 &);
 
 template <>
-vec2 rtree2d::from_boost(const point_type&);
+vec2 rtree2d::from_boost(const point_type &);
 
 template <>
-rtree3d::point_type rtree3d::to_boost(const vec3&);
+rtree3d::point_type rtree3d::to_boost(const vec3 &);
 
 template <>
-vec3 rtree3d::from_boost(const point_type&);
+vec3 rtree3d::from_boost(const point_type &);
