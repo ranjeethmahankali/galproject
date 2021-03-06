@@ -27,7 +27,7 @@ public:
   };
 
   template <typename SizeTIter>
-  void queryByDistance(const VecT &pt, double distance,
+  void queryByDistance(const VecT &pt, float distance,
                          SizeTIter inserter) const {
     PointType center = toBoost(pt);
     query(bgi::satisfies([=](const ItemType &item) {
@@ -65,15 +65,15 @@ private:
   };
 };
 
-template class RTree<bgm::point<double, 2, bg::cs::cartesian>, vec2, box2>;
-typedef RTree<bgm::point<double, 2, bg::cs::cartesian>, vec2, box2> RTree2d;
-template class RTree<bgm::point<double, 3, bg::cs::cartesian>, vec3, box3>;
-typedef RTree<bgm::point<double, 3, bg::cs::cartesian>, vec3, box3> RTree3d;
+template class RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, box2>;
+typedef RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, box2> RTree2d;
+template class RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, box3>;
+typedef RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, box3> RTree3d;
 
-template <> RTree2d::PointType RTree2d::toBoost(const vec2 &);
+template <> RTree2d::PointType RTree2d::toBoost(const glm::vec2 &);
 
-template <> vec2 RTree2d::fromBoost(const PointType &);
+template <> glm::vec2 RTree2d::fromBoost(const PointType &);
 
-template <> RTree3d::PointType RTree3d::toBoost(const vec3 &);
+template <> RTree3d::PointType RTree3d::toBoost(const glm::vec3 &);
 
-template <> vec3 RTree3d::fromBoost(const PointType &);
+template <> glm::vec3 RTree3d::fromBoost(const PointType &);
