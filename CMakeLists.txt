@@ -4,6 +4,7 @@ set(VCPKG_TARGET_TRIPLET x64-linux)
 set(CMAKE_PREFIX_PATH $ENV{VCPKG_PATH}/installed/${VCPKG_TARGET_TRIPLET})
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
 
+# GALCORE
 project(galcore)
 
 find_package(Boost REQUIRED)
@@ -12,7 +13,21 @@ if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
+find_package(glm CONFIG REQUIRED)
+
 include_directories(include)
 
 file(GLOB GALCORE_SRC "src/galcore/*.cpp")
 add_library(galcore STATIC ${GALCORE_SRC})
+
+target_link_libraries(galcore PUBLIC glm)
+
+# GALVIEW
+project(galview)
+
+find_package(imgui CONFIG REQUIRED)
+
+file(GLOB GALVIEW_SRC "src/galview/*.cpp")
+add_executable(galview ${GALVIEW_SRC})
+
+target_link_libraries(galview PRIVATE imgui::imgui)
