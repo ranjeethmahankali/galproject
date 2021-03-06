@@ -200,14 +200,14 @@ struct box2 {
   static box2 init(const vec2 &, const vec2 &);
 };
 
-struct indexPair {
+struct IndexPair {
   size_t p, q;
 
-  bool operator==(const indexPair &) const;
-  bool operator!=(const indexPair &) const;
+  bool operator==(const IndexPair &) const;
+  bool operator!=(const IndexPair &) const;
 
-  indexPair(size_t i, size_t j);
-  indexPair();
+  IndexPair(size_t i, size_t j);
+  IndexPair();
 
   void set(size_t, size_t);
   size_t hash() const;
@@ -216,11 +216,11 @@ struct indexPair {
   bool contains(size_t) const;
 };
 
-struct indexPairHash {
-  size_t operator()(const indexPair &) const noexcept;
+struct IndexPairHash {
+  size_t operator()(const IndexPair &) const noexcept;
 };
 
-struct customSizeTHash {
+struct CustomSizeTHash {
   size_t operator()(const size_t &) const noexcept;
 };
 

@@ -126,26 +126,26 @@ vec3 vec3::max_coords(const vec3 &a, const vec3 &b) {
   return vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
 }
 
-bool indexPair::operator==(const indexPair &pair) const {
+bool IndexPair::operator==(const IndexPair &pair) const {
   return (p == pair.p && q == pair.q) || (p == pair.q && q == pair.p);
 }
 
-bool indexPair::operator!=(const indexPair &pair) const {
+bool IndexPair::operator!=(const IndexPair &pair) const {
   return (p != pair.q && p != pair.p) || (q != pair.p && q != pair.q);
 }
 
-indexPair::indexPair(size_t i, size_t j) : p(i), q(j) {}
+IndexPair::IndexPair(size_t i, size_t j) : p(i), q(j) {}
 
-indexPair::indexPair() : p(-1), q(-1) {}
+IndexPair::IndexPair() : p(-1), q(-1) {}
 
-void indexPair::set(size_t i, size_t j) {
+void IndexPair::set(size_t i, size_t j) {
   p = i;
   q = j;
 }
 
-size_t indexPair::hash() const { return p + q + p * q; }
+size_t IndexPair::hash() const { return p + q + p * q; }
 
-void indexPair::unset(size_t i) {
+void IndexPair::unset(size_t i) {
   if (p == i) {
     p = -1;
   } else if (q == i) {
@@ -153,7 +153,7 @@ void indexPair::unset(size_t i) {
   }
 }
 
-bool indexPair::add(size_t i) {
+bool IndexPair::add(size_t i) {
   if (p == -1) {
     p = i;
     return true;
@@ -164,15 +164,15 @@ bool indexPair::add(size_t i) {
   return false;
 }
 
-bool indexPair::contains(size_t i) const {
+bool IndexPair::contains(size_t i) const {
   return (i != -1) && (i == p || i == q);
 }
 
-size_t indexPairHash::operator()(const indexPair &ip) const noexcept {
+size_t IndexPairHash::operator()(const IndexPair &ip) const noexcept {
   return ip.hash();
 }
 
-size_t customSizeTHash::operator()(const size_t &i) const noexcept { return i; }
+size_t CustomSizeTHash::operator()(const size_t &i) const noexcept { return i; }
 
 box3::box3() : min(vec3::unset), max(-vec3::unset) {}
 
