@@ -28,15 +28,15 @@ void ConvexHull::Face::flip()
   normal = -normal;
 }
 
-IndexPair ConvexHull::Face::edge(char edgeIndex) const
+gal::IndexPair ConvexHull::Face::edge(char edgeIndex) const
 {
   switch (edgeIndex) {
   case 0:
-    return IndexPair(a, b);
+    return gal::IndexPair(a, b);
   case 1:
-    return IndexPair(b, c);
+    return gal::IndexPair(b, c);
   case 2:
-    return IndexPair(c, a);
+    return gal::IndexPair(c, a);
   default:
     throw "Invalid edge index.";
   }
@@ -88,14 +88,14 @@ void ConvexHull::compute()
     faceQ.push(f.first);
   }
 
-  size_t                 fi, fpi;
-  Face                   curFace, pFace, newFace;
-  Face                   adjFaces[3];
-  IndexPair              edges[3];
-  glm::vec3              farPt;
-  std::queue<size_t>     popQ;
-  std::vector<IndexPair> horizonEdges;
-  std::vector<Face>      poppedFaces, newFaces;
+  size_t                      fi, fpi;
+  Face                        curFace, pFace, newFace;
+  Face                        adjFaces[3];
+  gal::IndexPair              edges[3];
+  glm::vec3                   farPt;
+  std::queue<size_t>          popQ;
+  std::vector<gal::IndexPair> horizonEdges;
+  std::vector<Face>           poppedFaces, newFaces;
 
   while (!faceQ.empty()) {
     fi = faceQ.front();
@@ -132,7 +132,7 @@ void ConvexHull::compute()
 
     newFaces.clear();
     newFaces.reserve(horizonEdges.size());
-    for (const IndexPair& he : horizonEdges) {
+    for (const gal::IndexPair& he : horizonEdges) {
       newFace = Face(curFaceId++, fpi, he.p, he.q);
       setFace(newFace);
       faceQ.push(newFace.id);
@@ -160,13 +160,13 @@ void ConvexHull::setFace(Face& face)
   }
 }
 
-ConvexHull::Face ConvexHull::popFace(size_t id, IndexPair edges[3], Face adjFaces[3])
+ConvexHull::Face ConvexHull::popFace(size_t id, gal::IndexPair edges[3], Face adjFaces[3])
 {
   Face face;
   if (getFace(id, face)) {
     mFaces.erase(id);
-    IndexPair edge, fPair;
-    size_t    adjFid;
+    gal::IndexPair edge, fPair;
+    size_t         adjFid;
     for (char ei = 0; ei < 3; ei++) {
       edge      = face.edge(ei);
       edges[ei] = edge;
@@ -188,8 +188,8 @@ ConvexHull::Face ConvexHull::popFace(size_t id, IndexPair edges[3], Face adjFace
 
 bool ConvexHull::faceVisible(const Face& face, const glm::vec3& pt) const
 {
-  return utils::isValid(face.normal) ? facePlaneDistance(face, pt) > PLANE_DIST_TOL
-                                     : false;
+  return gal::utils::isValid(face.normal) ? facePlaneDistance(face, pt) > PLANE_DIST_TOL
+                                          : false;
 }
 
 float ConvexHull::facePlaneDistance(const Face& face, const glm::vec3& pt) const
@@ -400,7 +400,7 @@ bool ConvexHull::getFace(size_t id, Face& face) const
   return false;
 }
 
-bool ConvexHull::getEdgeFaces(const IndexPair& edge, IndexPair& faces) const
+bool ConvexHull::getEdgeFaces(const gal::IndexPair& edge, gal::IndexPair& faces) const
 {
   auto match = mEdgeFaceMap.find(edge);
   if (match != mEdgeFaceMap.end()) {

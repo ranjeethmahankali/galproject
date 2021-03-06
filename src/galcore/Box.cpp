@@ -1,85 +1,8 @@
-#include "galcore/base.h"
-#include <cmath>
+#include <galcore/Box.h>
 
-#define deletePtr(ptr, isArray) \
-  if (isArray) {                \
-    delete[] arr;               \
-  }                             \
-  else {                        \
-    delete arr;                 \
-  }
-
+using namespace gal;
 const box3 box3::empty = box3(vec3_unset, -vec3_unset);
 const box2 box2::empty = box2(vec2_unset, -vec2_unset);
-
-bool IndexPair::operator==(const IndexPair& pair) const
-{
-  return (p == pair.p && q == pair.q) || (p == pair.q && q == pair.p);
-}
-
-bool IndexPair::operator!=(const IndexPair& pair) const
-{
-  return (p != pair.q && p != pair.p) || (q != pair.p && q != pair.q);
-}
-
-IndexPair::IndexPair(size_t i, size_t j)
-    : p(i)
-    , q(j)
-{}
-
-IndexPair::IndexPair()
-    : p(-1)
-    , q(-1)
-{}
-
-void IndexPair::set(size_t i, size_t j)
-{
-  p = i;
-  q = j;
-}
-
-size_t IndexPair::hash() const
-{
-  return p + q + p * q;
-}
-
-void IndexPair::unset(size_t i)
-{
-  if (p == i) {
-    p = -1;
-  }
-  else if (q == i) {
-    q = -1;
-  }
-}
-
-bool IndexPair::add(size_t i)
-{
-  if (p == -1) {
-    p = i;
-    return true;
-  }
-  else if (q == -1) {
-    q = i;
-    return true;
-  }
-  return false;
-}
-
-bool IndexPair::contains(size_t i) const
-{
-  return (i != -1) && (i == p || i == q);
-}
-
-size_t IndexPairHash::operator()(const IndexPair& ip) const noexcept
-{
-  return ip.hash();
-}
-
-size_t CustomSizeTHash::operator()(const size_t& i) const noexcept
-{
-  return i;
-}
 
 box3::box3()
     : min(vec3_unset)
@@ -264,15 +187,4 @@ box2 box2::init(const glm::vec2& m1, const glm::vec2& m2)
   b.min = m1;
   b.max = m2;
   return b;
-}
-
-bool utils::barycentricWithinBounds(float const (&coords)[3])
-{
-  return 0 <= coords[0] && coords[0] <= 1 && 0 <= coords[1] && coords[1] <= 1 &&
-         0 <= coords[2] && coords[2] <= 1;
-}
-
-glm::vec3 utils::barycentricEvaluate(float const (&coords)[3], glm::vec3 const (&pts)[3])
-{
-  return pts[0] * coords[0] + pts[1] * coords[1] + pts[2] * coords[2];
 }

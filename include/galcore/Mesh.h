@@ -1,11 +1,12 @@
 #pragma once
+#include <galcore/Box.h>
+#include <galcore/RTree.h>
+#include <galcore/Util.h>
 #include <limits>
 #include <unordered_map>
-#include "RTree.h"
-#include "base.h"
 
-using EdgeType     = IndexPair;
-using EdgeTypeHash = IndexPairHash;
+using EdgeType     = gal::IndexPair;
+using EdgeTypeHash = gal::IndexPairHash;
 
 enum class eMeshCentroidType
 {
@@ -71,6 +72,7 @@ private:
   /*Maps the vertex-index-pair to the index of the edge connecting those
    * vertices.*/
   std::unordered_map<EdgeType, size_t, EdgeTypeHash> mEdgeIndexMap;
+
   /*Maps the edge index to the pair of connected vertex indices.*/
   std::vector<EdgeType> mEdges;
   /*Maps the edge index to the indices of the connected faces.*/
@@ -84,15 +86,15 @@ private:
   RTree3d                mFaceTree;
   RTree3d                mVertexTree;
 
-  void   computeCache();
-  void   computeTopology();
-  void   computeRTrees();
-  void   computeNormals();
-  void   addEdge(const Face&, size_t fi, uint8_t, size_t&);
-  void   addEdges(const Face&, size_t fi);
+  void  computeCache();
+  void  computeTopology();
+  void  computeRTrees();
+  void  computeNormals();
+  void  addEdge(const Face&, size_t fi, uint8_t, size_t&);
+  void  addEdges(const Face&, size_t fi);
   float faceArea(const Face& f) const;
-  void   getFaceCenter(const Face& f, glm::vec3& center) const;
-  void   checkSolid();
+  void  getFaceCenter(const Face& f, glm::vec3& center) const;
+  void  checkSolid();
 
   glm::vec3      areaCentroid() const;
   glm::vec3      volumeCentroid() const;
@@ -101,12 +103,15 @@ private:
   void faceClosestPt(size_t           faceIndex,
                      const glm::vec3& pt,
                      glm::vec3&       closePt,
-                     float&          bestSqDist) const;
+                     float&           bestSqDist) const;
 
 public:
   Mesh(const Mesh& other);
   Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces);
-  Mesh(const float* vertCoords, size_t nVerts, const size_t* faceVertIndices, size_t nFaces);
+  Mesh(const float*  vertCoords,
+       size_t        nVerts,
+       const size_t* faceVertIndices,
+       size_t        nFaces);
 
   size_t              numVertices() const noexcept;
   size_t              numFaces() const noexcept;
@@ -119,12 +124,12 @@ public:
   Mesh::ConstFaceIter faceCBegin() const;
   Mesh::ConstFaceIter faceCEnd() const;
 
-  box3   bounds() const;
-  float faceArea(size_t fi) const;
-  float area() const;
-  box3   faceBounds(size_t fi) const;
+  gal::box3 bounds() const;
+  float     faceArea(size_t fi) const;
+  float     area() const;
+  gal::box3 faceBounds(size_t fi) const;
 
-  float    volume() const;
+  float     volume() const;
   bool      isSolid() const;
   glm::vec3 centroid() const;
   glm::vec3 centroid(const eMeshCentroidType centroid_type) const;
@@ -134,14 +139,16 @@ public:
   Mesh* clippedWithPlane(const glm::vec3& pt, const glm::vec3& norm) const;
 
   template<typename size_t_inserter>
-  void queryBox(const box3& box, size_t_inserter inserter, eMeshElement element) const
+  void queryBox(const gal::box3& box,
+                size_t_inserter  inserter,
+                eMeshElement     element) const
   {
     elementTree(element).queryBoxIntersects(box, inserter);
   };
 
   template<typename size_t_inserter>
   void querySphere(const glm::vec3& center,
-                   float           radius,
+                   float            radius,
                    size_t_inserter  inserter,
                    eMeshElement     element) const
   {

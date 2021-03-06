@@ -4,6 +4,8 @@
 #include <array>
 #include <numeric>
 
+using namespace gal;
+
 static constexpr uint8_t                               X = UINT8_MAX;
 static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable {{
   {X, X, X, X, X, X},
@@ -47,11 +49,11 @@ EdgeType Mesh::Face::edge(uint8_t edgeIndex) const
 {
   switch (edgeIndex) {
   case 0:
-    return IndexPair(a, b);
+    return gal::IndexPair(a, b);
   case 1:
-    return IndexPair(b, c);
+    return gal::IndexPair(b, c);
   case 2:
-    return IndexPair(c, a);
+    return gal::IndexPair(c, a);
   default:
     throw edgeIndex;
   }

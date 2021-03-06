@@ -6,21 +6,22 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-static void glfw_error_cb(int error, const char *desc) {
+static void glfw_error_cb(int error, const char* desc)
+{
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   glfwSetErrorCallback(glfw_error_cb);
   if (!glfwInit())
     return 1;
 
-  constexpr char glsl_version[] = "#version 130";
+  constexpr char glsl_version[] = "#version 430";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-  GLFWwindow *window =
-      glfwCreateWindow(1280, 720, "First Attempt", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1280, 720, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -35,8 +36,8 @@ int main(int argc, char **argv) {
   // Setup IMGUI
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO &io = ImGui::GetIO();
-  ImGui::StyleColorsDark(); // Dark Mode
+  ImGuiIO& io = ImGui::GetIO();
+  ImGui::StyleColorsDark();  // Dark Mode
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
@@ -51,13 +52,13 @@ int main(int argc, char **argv) {
     bool demoWindow = true;
     ImGui::ShowDemoWindow(&demoWindow);
 
-    { // Populate the ImGui window.
-      static float f = 0.0f;
-      static int counter = 0;
+    {  // Populate the ImGui window.
+      static float f       = 0.0f;
+      static int   counter = 0;
       ImGui::Begin("Hello, world!");
-      
+
       ImGui::Text("This is some useful text.");
-      float pt[3];
+      float                  pt[3];
       static constexpr float min = 0.0f;
       static constexpr float max = 1.0f;
       ImGui::SliderFloat3("Test coords", pt, min, max);
