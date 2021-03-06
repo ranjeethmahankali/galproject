@@ -74,11 +74,32 @@ bool barycentricWithinBounds(float const (&coords)[3]);
 
 glm::vec3 barycentricEvaluate(float const (&coords)[3], glm::vec3 const (&pts)[3]);
 
-template<typename T, typename TIter>
-T average(TIter begin, TIter end);
+template<typename TIter>
+glm::vec3 average(TIter begin, TIter end)
+{
+  glm::vec3 sum = vec3_zero;
+  size_t    n   = 0;
+  while (begin != end) {
+    const glm::vec3& v = *(begin++);
+    sum += v;
+    n++;
+  }
+  return sum / float(n);
+}
 
-template<typename T, typename WT, typename TIter, typename WIter>
-T weightedAverage(TIter begin, TIter end, WIter wbegin);
+template<typename TIter, typename WIter>
+glm::vec3 weightedAverage(TIter begin, TIter end, WIter wbegin)
+{
+  glm::vec3 sum   = vec3_zero;
+  float     denom = 0.0f;
+  while (begin != end) {
+    float            w = *(wbegin++);
+    const glm::vec3& v = *(begin++);
+    sum += v * w;
+    denom += w;
+  }
+  return sum / denom;
+}
 
 constexpr bool isValid(const glm::vec3& v)
 {

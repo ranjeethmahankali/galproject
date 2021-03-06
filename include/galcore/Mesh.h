@@ -8,6 +8,8 @@
 using EdgeType     = gal::IndexPair;
 using EdgeTypeHash = gal::IndexPairHash;
 
+namespace gal {
+
 enum class eMeshCentroidType
 {
   vertexBased = 0,
@@ -157,3 +159,5 @@ public:
 
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
 };
+
+}  // namespace gal

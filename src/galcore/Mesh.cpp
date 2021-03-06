@@ -127,7 +127,7 @@ void Mesh::computeNormals()
                    std::back_inserter(faceNormals),
                    [this](const size_t fi) { return mFaceNormals[fi]; });
     mVertexNormals[vi] =
-      glm::normalize(utils::average<glm::vec3>(faceNormals.cbegin(), faceNormals.cend()));
+      glm::normalize(utils::average(faceNormals.cbegin(), faceNormals.cend()));
   }
 }
 
@@ -197,8 +197,7 @@ glm::vec3 Mesh::areaCentroid() const
     areas.push_back(faceArea(f));
   }
 
-  return utils::weightedAverage<glm::vec3, float>(
-    centers.cbegin(), centers.cend(), areas.cbegin());
+  return utils::weightedAverage(centers.cbegin(), centers.cend(), areas.cbegin());
 }
 
 glm::vec3 Mesh::volumeCentroid() const
@@ -234,8 +233,7 @@ glm::vec3 Mesh::volumeCentroid() const
     centers.push_back((a + b + c + refPt) * 0.25f);
   }
 
-  return utils::weightedAverage<glm::vec3, float>(
-    centers.cbegin(), centers.cend(), volumes.cbegin());
+  return utils::weightedAverage(centers.cbegin(), centers.cend(), volumes.cbegin());
 }
 
 const RTree3d& Mesh::elementTree(eMeshElement element) const
@@ -471,7 +469,7 @@ glm::vec3 Mesh::centroid(const eMeshCentroidType centroid_type) const
 {
   switch (centroid_type) {
   case eMeshCentroidType::vertexBased:
-    return utils::average<glm::vec3>(vertexCBegin(), vertexCEnd());
+    return utils::average(vertexCBegin(), vertexCEnd());
   case eMeshCentroidType::areaBased:
     return areaCentroid();
   case eMeshCentroidType::volumeBased:

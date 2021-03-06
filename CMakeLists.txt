@@ -33,4 +33,6 @@ find_package(imgui CONFIG REQUIRED)
 file(GLOB GALVIEW_SRC "src/galview/*.cpp")
 add_executable(galview ${GALVIEW_SRC})
 
-target_link_libraries(galview PRIVATE imgui::imgui)
+target_link_libraries(galview PRIVATE
+  galcore
+  imgui::imgui)

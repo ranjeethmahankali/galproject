@@ -3,8 +3,20 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <galview/GLUtil.h>
+#include <galview/MeshView.h>
+
+using namespace gal;
+
+static MeshView create_triangle()
+{
+  static constexpr std::array<float, 12> sCoords = {
+    -0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f};
+  static constexpr std::array<size_t, 6> sIndices = {0, 1, 2, 0, 2, 3};
+
+  return MeshView::create(
+    Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3));
+}
 
 static void glfw_error_cb(int error, const char* desc)
 {
@@ -17,7 +29,7 @@ int main(int argc, char** argv)
   if (!glfwInit())
     return 1;
 
-  constexpr char glsl_version[] = "#version 430";
+  constexpr char glsl_version[] = "#version 330 core";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
@@ -42,6 +54,8 @@ int main(int argc, char** argv)
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
+  auto view = create_triangle();
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
@@ -49,8 +63,9 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    bool demoWindow = true;
-    ImGui::ShowDemoWindow(&demoWindow);
+    view.draw();
+
+    // ImGui::ShowDemoWindow(&demoWindow);
 
     {  // Populate the ImGui window.
       static float f       = 0.0f;
