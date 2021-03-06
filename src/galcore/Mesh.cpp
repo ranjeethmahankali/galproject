@@ -256,7 +256,7 @@ void Mesh::faceClosestPt(size_t           faceIndex,
   const Face&      face       = mFaces.at(faceIndex);
   const glm::vec3& va         = mVertices.at(face.a);
   const glm::vec3& fnorm      = faceNormal(faceIndex);
-  glm::vec3        projection = fnorm * ((va - pt) * fnorm);
+  glm::vec3        projection = fnorm * glm::dot((va - pt), fnorm);
 
   float planeDistSq = glm::length2(projection);
   if (planeDistSq > bestSqDist)

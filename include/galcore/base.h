@@ -32,7 +32,9 @@ struct box3
   glm::vec3 center() const;
   float     volume() const;
 
-  static box3 init(const glm::vec3&, const glm::vec3&);
+  static box3      init(const glm::vec3&, const glm::vec3&);
+  static glm::vec3 max_coords(const glm::vec3& a, const glm::vec3& b);
+  static glm::vec3 min_coords(const glm::vec3& a, const glm::vec3& b);
 };
 
 struct box2
@@ -54,7 +56,9 @@ struct box2
   bool      intersects(const box2&) const;
   glm::vec2 center() const;
 
-  static box2 init(const glm::vec2&, const glm::vec2&);
+  static box2      init(const glm::vec2&, const glm::vec2&);
+  static glm::vec2 max_coords(const glm::vec2& a, const glm::vec2& b);
+  static glm::vec2 min_coords(const glm::vec2& a, const glm::vec2& b);
 };
 
 struct IndexPair
@@ -85,6 +89,7 @@ struct CustomSizeTHash
 };
 
 namespace utils {
+
 template<typename vtype>
 void barycentricCoords(vtype const (&tri)[3], const vtype& pt, float (&coords)[3])
 {
@@ -109,5 +114,15 @@ T average(TIter begin, TIter end);
 
 template<typename T, typename WT, typename TIter, typename WIter>
 T weightedAverage(TIter begin, TIter end, WIter wbegin);
+
+constexpr bool isValid(const glm::vec3& v)
+{
+  return v != vec3_unset;
+}
+
+constexpr bool isValid(const glm::vec2& v)
+{
+  return v != vec2_unset;
+}
 
 }  // namespace utils
