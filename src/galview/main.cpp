@@ -12,16 +12,24 @@ using namespace gal;
 static view::MeshView create_triangle()
 {
   // clang-format off
-  static constexpr std::array<float, 12> sCoords = {
-    -0.5f,  0.0f,  0.0f,
-     0.0f,  0.5f,  0.0f,
-     0.5f,  0.0f,  0.0f,
-     0.0f, -0.5f,  0.0f
+  static constexpr std::array<float, 24> sCoords = {
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
   };
 
-  static constexpr std::array<size_t, 6> sIndices = {
-    0, 2, 1,
-    0, 3, 2
+  static constexpr std::array<size_t, 36> sIndices = {
+    0, 3, 2, 0, 2, 1, // bottom
+    0, 4, 7, 0, 7, 3, // left
+    3, 7, 6, 3, 6, 2, // front
+    5, 6, 7, 5, 7, 4, // top
+    1, 2, 6, 1, 6, 5, // right
+    0, 1, 5, 0, 5, 4, // back
   };
   // clang-format on
 
@@ -78,6 +86,7 @@ int main(int argc, char** argv)
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
   glViewport(0, 0, W, H);
+  glEnable(GL_DEPTH_TEST);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -87,13 +96,12 @@ int main(int argc, char** argv)
     ImGui::NewFrame();
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // ImGui::ShowDemoWindow(&demoWindow);
+    bool demoWindow = true;
+    ImGui::ShowDemoWindow(&demoWindow);
 
     {  // Populate the ImGui window.
-      static float f       = 0.0f;
-      static int   counter = 0;
       ImGui::Begin("Hello, world!");
 
       ImGui::Text("This is some useful text.");
