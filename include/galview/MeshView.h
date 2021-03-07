@@ -5,6 +5,7 @@
 #include <array>
 
 namespace gal {
+namespace view {
 
 class MeshView
 {
@@ -29,4 +30,5 @@ private:
   uint mISize = 0;  // index buffer size.
 };
 
+}  // namespace view
 }  // namespace gal

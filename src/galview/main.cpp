@@ -5,16 +5,27 @@
 
 #include <galview/GLUtil.h>
 #include <galview/MeshView.h>
+#include <galview/Shader.h>
 
 using namespace gal;
 
-static MeshView create_triangle()
+static view::MeshView create_triangle()
 {
+  // clang-format off
   static constexpr std::array<float, 12> sCoords = {
-    -0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, -0.5f, 0.0f};
-  static constexpr std::array<size_t, 6> sIndices = {0, 1, 2, 0, 2, 3};
+    -0.5f,  0.0f,  0.0f,
+     0.0f,  0.5f,  0.0f,
+     0.5f,  0.0f,  0.0f,
+     0.0f, -0.5f,  0.0f
+  };
 
-  return MeshView::create(
+  static constexpr std::array<size_t, 6> sIndices = {
+    0, 1, 2,
+    0, 2, 3
+  };
+  // clang-format on
+
+  return view::MeshView::create(
     Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3));
 }
 
@@ -32,6 +43,7 @@ int main(int argc, char** argv)
   constexpr char glsl_version[] = "#version 330 core";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   GLFWwindow* window = glfwCreateWindow(1280, 720, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
@@ -45,6 +57,12 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  auto view = create_triangle();
+
+  // Init shader.
+  auto shader = view::Shader::loadFromName("simple");
+  shader.use();
+
   // Setup IMGUI
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -54,7 +72,9 @@ int main(int argc, char** argv)
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  auto view = create_triangle();
+  int W, H;
+  glfwGetFramebufferSize(window, &W, &H);
+  glViewport(0, 0, W, H);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -62,8 +82,6 @@ int main(int argc, char** argv)
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    view.draw();
 
     // ImGui::ShowDemoWindow(&demoWindow);
 
@@ -82,12 +100,12 @@ int main(int argc, char** argv)
     }
 
     ImGui::Render();
-    int W, H;
-    glfwGetFramebufferSize(window, &W, &H);
-    glViewport(0, 0, W, H);
+
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    view.draw();
 
     glfwSwapBuffers(window);
   }

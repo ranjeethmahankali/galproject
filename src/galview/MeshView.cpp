@@ -2,13 +2,14 @@
 #include <stdint.h>
 
 using namespace gal;
+using namespace gal::view;
 
 MeshView MeshView::create(const Mesh& mesh)
 {
   MeshView view;
 
   // 3 Coords per vertex and nothing else.
-  view.mVSize = sizeof(float) * 3 * mesh.numVertices();
+  view.mVSize = 3 * mesh.numVertices();
   std::vector<float> vBuf(3 * mesh.numVertices(), FLT_MAX);
   float*             dstf   = vBuf.data();
   auto               vbegin = mesh.vertexCBegin();
@@ -21,7 +22,7 @@ MeshView MeshView::create(const Mesh& mesh)
   }
 
   // 3 indices per face and nothing else.
-  view.mISize = sizeof(uint32_t) * 3 * mesh.numFaces();
+  view.mISize = 3 * mesh.numFaces();
   std::vector<uint32_t> iBuf(3 * mesh.numFaces());
   uint32_t*             dsti   = iBuf.data();
   auto                  fbegin = mesh.faceCBegin();
@@ -40,11 +41,14 @@ MeshView MeshView::create(const Mesh& mesh)
 
   GL_CALL(glBindVertexArray(view.mVao));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, view.mVBO));
-  GL_CALL(glBufferData(GL_ARRAY_BUFFER, view.mVSize, vBuf.data(), GL_STATIC_DRAW));
+  GL_CALL(glBufferData(
+    GL_ARRAY_BUFFER, sizeof(float) * view.mVSize, vBuf.data(), GL_STATIC_DRAW));
 
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, view.mIBO));
-  GL_CALL(
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, view.mISize, iBuf.data(), GL_STATIC_DRAW));
+  GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                       sizeof(uint32_t) * view.mISize,
+                       iBuf.data(),
+                       GL_STATIC_DRAW));
 
   // Unbind stuff.
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
