@@ -28,6 +28,8 @@ target_link_libraries(galcore PUBLIC glm)
 # GALVIEW
 project(galview)
 
+find_package(glfw3 CONFIG REQUIRED)
+find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 
 file(GLOB GALVIEW_SRC "src/galview/*.cpp")
@@ -35,7 +37,9 @@ add_executable(galview ${GALVIEW_SRC})
 
 target_link_libraries(galview PRIVATE
   galcore
-  imgui::imgui)
+  imgui::imgui
+  GLEW::GLEW
+  glfw)
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview

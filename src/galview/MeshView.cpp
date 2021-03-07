@@ -50,6 +50,10 @@ MeshView MeshView::create(const Mesh& mesh)
                        iBuf.data(),
                        GL_STATIC_DRAW));
 
+  // Vertex position attribute.
+  GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr));
+  GL_CALL(glEnableVertexAttribArray(0));
+
   // Unbind stuff.
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
   GL_CALL(glBindVertexArray(0));
