@@ -1,6 +1,6 @@
 #pragma once
-#include <galview/Camera.h>
 #include <stdint.h>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -17,19 +17,42 @@ public:
   static Shader loadFromName(const std::string& name);
 
   void use() const;
-  void useCamera(const Camera& cam);
+  void useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
 
   ~Shader();
 
+  void setPerspective(float fovy   = 0.9f,
+                      float aspect = 1.8f,
+                      float near   = 0.01f,
+                      float far    = 100.0f);
+
+  void setOrthographic(float left   = -2.0f,
+                       float right  = 2.0f,
+                       float top    = 1.1f,
+                       float bottom = -1.1f,
+                       float near   = 0.01f,
+                       float far    = 100.0f);
+
+  static void registerCallbacks(GLFWwindow* window);
+
 private:
-  uint32_t mVertId;
-  uint32_t mFragId;
-  uint32_t mId;
+  glm::mat4 mProj;
+  glm::mat4 mView;
+  uint32_t  mVertId;
+  uint32_t  mFragId;
+  uint32_t  mId;
 
   Shader(const std::string& vertSrc, const std::string& fragSrc);
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
+
+  static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
+  static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
+  static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
+
+  static void cameraMoved();
+  static void projectionChanged();
 
 public:
   template<typename T>
