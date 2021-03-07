@@ -1,3 +1,4 @@
+#include <galview/Camera.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -34,6 +35,15 @@ static void glfw_error_cb(int error, const char* desc)
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
+static view::Camera default_camera()
+{
+  auto camera  = view::Camera(glm::vec3(0.0f, -0.5f, 0.5f),
+                             glm::vec3(0.0f, 0.0f, 0.0f),
+                             glm::vec3(0.0f, 0.0f, 1.0f));
+  camera.mType = view::Camera::Type::orthographic;
+  return camera;
+}
+
 int main(int argc, char** argv)
 {
   glfwSetErrorCallback(glfw_error_cb);
@@ -62,6 +72,9 @@ int main(int argc, char** argv)
   // Init shader.
   auto shader = view::Shader::loadFromName("simple");
   shader.use();
+
+  auto camera = default_camera();
+  shader.useCamera(camera);
 
   // Setup IMGUI
   IMGUI_CHECKVERSION();

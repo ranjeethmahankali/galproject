@@ -1,6 +1,8 @@
 #include <galview/GLUtil.h>
 #include <galview/Shader.h>
 #include <fstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <sstream>
 
 namespace gal {
@@ -111,16 +113,28 @@ void Shader::use() const
   GL_CALL(glUseProgram(mId));
 }
 
+void Shader::useCamera(const Camera& cam)
+{
+  setUniform("mView", glm::lookAt(cam.mEyePos, cam.mTarget, cam.mUp));
+  setUniform("mProj", cam.projMatrix());
+}
+
 Shader::~Shader()
 {
   GL_CALL(glDeleteProgram(mId));
 }
 
 template<>
-void Shader::setUniformInternal<float>(int location, float val)
+void Shader::setUniformInternal<float>(int location, const float& val)
 {
   GL_CALL(glUniform1f(location, val));
 };
+
+template<>
+void Shader::setUniformInternal<glm::mat4>(int location, const glm::mat4& mat)
+{
+  GL_CALL(glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]));
+}
 
 }  // namespace view
 

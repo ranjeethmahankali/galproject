@@ -1,4 +1,5 @@
 #pragma once
+#include <galview/Camera.h>
 #include <stdint.h>
 #include <iostream>
 #include <string>
@@ -16,6 +17,7 @@ public:
   static Shader loadFromName(const std::string& name);
 
   void use() const;
+  void useCamera(const Camera& cam);
 
   ~Shader();
 
@@ -27,11 +29,11 @@ private:
   Shader(const std::string& vertSrc, const std::string& fragSrc);
 
   template<typename T>
-  void setUniformInternal(int location, T val);
+  void setUniformInternal(int location, const T& val);
 
 public:
   template<typename T>
-  void setUniform(const std::string& name, T val)
+  void setUniform(const std::string& name, const T& val)
   {
     int loc = glGetUniformLocation(mId, name.c_str());
     if (loc == -1) {
