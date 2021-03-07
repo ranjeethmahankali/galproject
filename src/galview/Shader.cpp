@@ -2,7 +2,6 @@
 #include <galview/Shader.h>
 #include <fstream>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <sstream>
 
 namespace gal {
@@ -115,7 +114,7 @@ void Shader::use() const
 
 void Shader::useCamera(const Camera& cam)
 {
-  setUniform("mView", glm::lookAt(cam.mEyePos, cam.mTarget, cam.mUp));
+  setUniform("mView", cam.viewMatrix());
   setUniform("mProj", cam.projMatrix());
 }
 

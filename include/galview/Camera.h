@@ -30,7 +30,7 @@ public:
   float mAspect = 1.8f;   // Aspect ratio of the view.
 
   // Common params
-  float mNear = 0.1f;    // Near clipping plane.
+  float mNear = 0.01f;   // Near clipping plane.
   float mFar  = 100.0f;  // Far clipping plane
 
   Type mType = Type::perspective;
@@ -38,6 +38,7 @@ public:
   Camera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
 
   glm::mat4 projMatrix() const;
+  glm::mat4 viewMatrix() const;
 };
 
 }  // namespace view

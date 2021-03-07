@@ -21,8 +21,8 @@ static view::MeshView create_triangle()
   };
 
   static constexpr std::array<size_t, 6> sIndices = {
-    0, 1, 2,
-    0, 2, 3
+    0, 2, 1,
+    0, 3, 2
   };
   // clang-format on
 
@@ -37,12 +37,12 @@ static void glfw_error_cb(int error, const char* desc)
 
 static view::Camera default_camera()
 {
-  auto camera  = view::Camera(glm::vec3(0.0f, -0.5f, 0.5f),
+  auto camera = view::Camera(glm::vec3(0.0f, -0.5f, 0.5f),
                              glm::vec3(0.0f, 0.0f, 0.0f),
                              glm::vec3(0.0f, 0.0f, 1.0f));
-  camera.mType = view::Camera::Type::orthographic;
+  // camera.mType = view::Camera::Type::orthographic;
   return camera;
-}
+};
 
 int main(int argc, char** argv)
 {

@@ -21,5 +21,10 @@ glm::mat4 Camera::projMatrix() const
   return glm::identity<glm::mat4>();
 }
 
+glm::mat4 Camera::viewMatrix() const
+{
+  return glm::lookAt(mEyePos, mTarget, mUp);
+}
+
 }  // namespace view
 }  // namespace gal
