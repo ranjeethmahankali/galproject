@@ -9,7 +9,7 @@
 
 using namespace gal;
 
-static view::MeshView create_triangle()
+static Mesh createMesh()
 {
   // clang-format off
   static constexpr std::array<float, 24> sCoords = {
@@ -33,8 +33,7 @@ static view::MeshView create_triangle()
   };
   // clang-format on
 
-  return view::MeshView::create(
-    Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3));
+  return Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3);
 }
 
 static void glfw_error_cb(int error, const char* desc)
@@ -65,7 +64,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  auto view = create_triangle();
+  auto view = view::MeshView::create(createMesh());
 
   // Init shader.
   auto shader = view::Shader::loadFromName("facet");
@@ -87,6 +86,8 @@ int main(int argc, char** argv)
   glfwGetFramebufferSize(window, &W, &H);
   glViewport(0, 0, W, H);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
