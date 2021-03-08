@@ -68,7 +68,7 @@ int main(int argc, char** argv)
   auto view = create_triangle();
 
   // Init shader.
-  auto shader = view::Shader::loadFromName("simple");
+  auto shader = view::Shader::loadFromName("facet");
   shader.use();
 
   view::Shader::registerCallbacks(window);

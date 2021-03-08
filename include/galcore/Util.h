@@ -111,5 +111,13 @@ constexpr bool isValid(const glm::vec2& v)
   return v != vec2_unset;
 }
 
+template<typename T>
+void copy_coords(const glm::tvec3<T>& v, T*& dst)
+{
+  *(dst++) = v.x;
+  *(dst++) = v.y;
+  *(dst++) = v.z;
+};
+
 }  // namespace utils
 }  // namespace gal
