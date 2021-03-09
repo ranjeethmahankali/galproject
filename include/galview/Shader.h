@@ -52,6 +52,7 @@ private:
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
+  static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
   static void cameraChanged();
   static void updateViewMatrix();

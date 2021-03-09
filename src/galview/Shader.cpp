@@ -12,6 +12,7 @@ namespace view {
 
 static Shader*    sCurrent   = nullptr;
 static bool       sRightDown = false;
+static bool       sShiftDown = false;
 static bool       sLeftDown  = false;
 static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 
@@ -162,11 +163,14 @@ void Shader::registerCallbacks(GLFWwindow* window)
   glfwSetCursorPosCallback(window, Shader::onMouseMove);
   glfwSetMouseButtonCallback(window, Shader::onMouseButton);
   glfwSetScrollCallback(window, Shader::onMouseScroll);
+  glfwSetKeyCallback(window, Shader::onKeyEvent);
 };
 
 void Shader::onMouseMove(GLFWwindow* window, double xpos, double ypos)
 {
   if (!sCurrent)
+    return;
+  if (!sShiftDown)
     return;
   static constexpr float     sRotSpeed = 0.002f;
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
@@ -213,6 +217,16 @@ void Shader::onMouseButton(GLFWwindow* window, int button, int action, int mods)
   }
 
   GL_CALL(glfwGetCursorPos(window, &sMousePos.x, &sMousePos.y));
+}
+
+void Shader::onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
+    if (action == GLFW_PRESS)
+      sShiftDown = true;
+    if (action == GLFW_RELEASE)
+      sShiftDown = false;
+  }
 }
 
 void Shader::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
