@@ -119,5 +119,7 @@ void copy_coords(const glm::tvec3<T>& v, T*& dst)
   *(dst++) = v.z;
 };
 
+std::string absPath(const std::string& relPath);
+
 }  // namespace utils
 }  // namespace gal

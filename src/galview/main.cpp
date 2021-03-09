@@ -40,7 +40,7 @@ static Mesh createMesh()
 
 static Mesh loadBunny()
 {
-  return io::ObjMeshData("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj", true).toMesh();
+  return io::ObjMeshData("../assets/bunny.obj", true).toMesh();
 }
 
 static void glfw_error_cb(int error, const char* desc)

@@ -1,4 +1,5 @@
 #include <galcore/ObjLoader.h>
+#include <galcore/Util.h>
 #include <algorithm>
 #include <fstream>
 #include <glm/gtx/transform.hpp>
@@ -111,11 +112,16 @@ static ObjMeshData::Face readFace(const std::string& line, size_t from)
           {vals[2], vals[5], vals[8]}};
 };
 
-ObjMeshData::ObjMeshData(const std::filesystem::path& path, bool flipYZ)
-    : mPath(path)
+static std::filesystem::path makeAbsolute(const std::filesystem::path& path)
+{
+  return path.is_absolute() ? path : std::filesystem::path(utils::absPath(path));
+}
+
+ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
+    : mPath(makeAbsolute(pathIn))
 {
   std::ifstream file;
-  file.open(path);
+  file.open(mPath);
   if (!file) {
     std::cerr << "Unable to open the obj file\n";
   }
