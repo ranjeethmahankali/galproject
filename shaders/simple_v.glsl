@@ -16,6 +16,6 @@ void main()
   float fdot =
     clamp(dot(normalize(mvp * vec4(normal, 0.0)), vec4(0.0, 0.0, -1.0, 0.0)), 0.0, 1.0);
 
-  fdot        = 0.2 * (1.0 - fdot) + 0.8 * fdot;
+  fdot        = 0.1 * (1.0 - fdot) + 1.0 * fdot;
   vertexColor = vec3(1.0, 1.0, 1.0) * fdot;
 }

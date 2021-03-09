@@ -40,7 +40,8 @@ static Mesh createBoxMesh()
 
 static Mesh loadBunny()
 {
-  return io::ObjMeshData("../assets/bunny.obj", true).toMesh();
+  return io::ObjMeshData("../assets/bunny_large.obj", true).toMesh();
+  // return io::ObjMeshData("../assets/bunny.obj", true).toMesh();
 }
 
 static void glfw_error_cb(int error, const char* desc)
@@ -71,8 +72,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  auto view = view::MeshView::create(createBoxMesh());
-  // auto view = view::MeshView::create(loadBunny());
+  // auto view = view::MeshView::create(createBoxMesh());
+  auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
   auto shader = view::Shader::loadFromName("facet");
