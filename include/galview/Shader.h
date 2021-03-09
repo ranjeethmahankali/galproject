@@ -19,6 +19,8 @@ public:
   void use() const;
   void useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
 
+  glm::mat4 mvpMatrix() const;
+
   ~Shader();
 
   void setPerspective(float fovy   = 0.9f,
@@ -51,8 +53,8 @@ private:
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
 
-  static void cameraMoved();
-  static void projectionChanged();
+  static void cameraChanged();
+  static void updateViewMatrix();
 
 public:
   template<typename T>

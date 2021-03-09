@@ -71,8 +71,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  // auto view = view::MeshView::create(createBoxMesh());
-  auto view = view::MeshView::create(loadBunny());
+  auto view = view::MeshView::create(createBoxMesh());
+  // auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
   auto shader = view::Shader::loadFromName("facet");

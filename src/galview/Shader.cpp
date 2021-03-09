@@ -14,24 +14,20 @@ static bool       sRightDown = false;
 static bool       sLeftDown  = false;
 static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 
+static glm::mat4 sTrans = glm::identity<glm::mat4>();
+static glm::mat4 sRot   = glm::identity<glm::mat4>();
+
 static void captureMousePos(double x, double y)
 {
   sMousePos.x = x;
   sMousePos.y = y;
 };
 
-void Shader::cameraMoved()
+void Shader::cameraChanged()
 {
   if (!sCurrent)
     return;
-  sCurrent->setUniform("mView", sCurrent->mView);
-}
-
-void Shader::projectionChanged()
-{
-  if (!sCurrent)
-    return;
-  sCurrent->setUniform("mProj", sCurrent->mProj);
+  sCurrent->setUniform("mvpMat", sCurrent->mvpMatrix());
 }
 
 static void checkCompilation(uint32_t id, uint32_t type)
@@ -135,8 +131,7 @@ Shader::Shader(const std::string& vertSrc, const std::string& fragSrc)
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, 1.0f));
-  cameraMoved();
-  projectionChanged();
+  cameraChanged();
 };
 
 void Shader::use() const
@@ -148,9 +143,13 @@ void Shader::use() const
 void Shader::useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up)
 {
   mView = glm::lookAt(eye, target, up);
-  cameraMoved();
-  projectionChanged();
+  cameraChanged();
 };
+
+glm::mat4 Shader::mvpMatrix() const
+{
+  return mProj * mView;
+}
 
 Shader::~Shader()
 {
@@ -177,6 +176,8 @@ void Shader::onMouseMove(GLFWwindow* window, double xpos, double ypos)
       glm::rotate(sCurrent->mView, float((xpos - sMousePos[0]) * sRotSpeed), sZAxis),
       float(ypos - sMousePos[1]) * sRotSpeed,
       yRotAxis);
+
+    cameraChanged();
   }
 
   static constexpr float sTransScale = 500.0f;
@@ -188,8 +189,8 @@ void Shader::onMouseMove(GLFWwindow* window, double xpos, double ypos)
                                           float(sMousePos[1] - ypos) / sTransScale,
                                           0.0f,
                                           0.0f}));
+    cameraChanged();
   }
-  cameraMoved();
   captureMousePos(xpos, ypos);
 }
 
@@ -227,7 +228,7 @@ void Shader::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
   else
     sCurrent->mView = glm::scale(sCurrent->mView, zDn);
 
-  cameraMoved();
+  cameraChanged();
 }
 
 template<>
@@ -245,7 +246,7 @@ void Shader::setUniformInternal<glm::mat4>(int location, const glm::mat4& mat)
 void Shader::setPerspective(float fovy, float aspect, float near, float far)
 {
   sCurrent->mProj = glm::perspective(fovy, aspect, near, far);
-  projectionChanged();
+  cameraChanged();
 };
 
 void Shader::setOrthographic(float left,
@@ -256,7 +257,7 @@ void Shader::setOrthographic(float left,
                              float far)
 {
   sCurrent->mProj = glm::ortho(left, right, bottom, top, near, far);
-  projectionChanged();
+  cameraChanged();
 }
 
 }  // namespace view

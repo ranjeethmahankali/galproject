@@ -12,7 +12,7 @@ void main()
 {
   // FragColor = vec4(color * vertexColor, 1.0);
   if (vBary.x < baryLimit || vBary.y < baryLimit || vBary.z < baryLimit) {
-    FragColor = vec4(0.6, 0.0, 0.0, 1.0);
+    FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   }
   else {
     FragColor = vec4(vertexColor, 1.0);

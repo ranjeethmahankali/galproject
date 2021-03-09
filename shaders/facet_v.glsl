@@ -8,16 +8,14 @@ layout(location = 2) in vec3 bary;
 out vec3 vertexColor;
 out vec3 vBary;
 
-uniform mat4 mView;
-uniform mat4 mProj;
+uniform mat4 mvpMat;
 
 void main()
 {
-  mat4 mvp    = mProj * mView;
-  gl_Position = mvp * vec4(position, 1.0);
+  gl_Position = mvpMat * vec4(position, 1.0);
 
-  float fdot =
-    clamp(dot(normalize(mvp * vec4(normal, 0.0)), vec4(0.0, 0.0, -1.0, 0.0)), 0.0, 1.0);
+  float fdot = clamp(
+    dot(normalize(mvpMat * vec4(normal, 0.0)), vec4(0.0, 0.0, -1.0, 0.0)), 0.0, 1.0);
 
   fdot        = 0.25 * (1.0 - fdot) + 1.0 * fdot;
   vertexColor = vec3(1.0, 1.0, 1.0) * fdot;
