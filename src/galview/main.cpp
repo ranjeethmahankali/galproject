@@ -11,7 +11,7 @@
 
 using namespace gal;
 
-static Mesh createMesh()
+static Mesh createBoxMesh()
 {
   // clang-format off
   static constexpr std::array<float, 24> sCoords = {
@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  // auto view = view::MeshView::create(createMesh());
+  // auto view = view::MeshView::create(createBoxMesh());
   auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     bool demoWindow = true;
