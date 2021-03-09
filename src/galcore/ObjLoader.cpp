@@ -1,6 +1,7 @@
 #include <galcore/ObjLoader.h>
 #include <algorithm>
 #include <fstream>
+#include <glm/gtx/transform.hpp>
 #include <iostream>
 
 namespace gal {
@@ -110,7 +111,7 @@ static ObjMeshData::Face readFace(const std::string& line, size_t from)
           {vals[2], vals[5], vals[8]}};
 };
 
-ObjMeshData::ObjMeshData(const std::filesystem::path& path)
+ObjMeshData::ObjMeshData(const std::filesystem::path& path, bool flipYZ)
     : mPath(path)
 {
   std::ifstream file;
@@ -125,8 +126,9 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& path)
   static const std::string sf  = "f";
 
   std::string line;
-  size_t      from = 0;
-  size_t      to   = 0;
+  size_t      from  = 0;
+  size_t      to    = 0;
+  glm::mat4   xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
   while (std::getline(file, line)) {
     findWord(line, ' ', from, to);
     if (from == std::string::npos)
@@ -138,13 +140,19 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& path)
       continue;
 
     if (checkWord(line, from, to, sv)) {
-      mVertices.push_back(std::move(readVector3(line, to + 1)));
+      glm::vec3 v = readVector3(line, to + 1);
+      if (flipYZ)
+        v = glm::vec3(xform * glm::vec4 {v.x, v.y, v.z, 1.0f});
+      mVertices.push_back(v);
     }
     else if (checkWord(line, from, to, svt)) {
       mTexCoords.push_back(std::move(readVector2(line, to + 1)));
     }
     else if (checkWord(line, from, to, svn)) {
-      mNormals.push_back(std::move(readVector3(line, to + 1)));
+      glm::vec3 v = readVector3(line, to + 1);
+      if (flipYZ)
+        v = glm::vec3(xform * glm::vec4 {v.x, v.y, v.z, 1.0f});
+      mNormals.push_back(v);
     }
     else if (checkWord(line, from, to, sf)) {
       mFaces.push_back(std::move(readFace(line, to + 1)));
