@@ -3,6 +3,7 @@
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <sstream>
 
 namespace gal {
@@ -14,8 +15,8 @@ static bool       sRightDown = false;
 static bool       sLeftDown  = false;
 static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 
-static glm::mat4 sTrans = glm::identity<glm::mat4>();
-static glm::mat4 sRot   = glm::identity<glm::mat4>();
+static glm::mat4 sTrans    = glm::identity<glm::mat4>();
+static glm::mat4 sInvTrans = glm::identity<glm::mat4>();
 
 static void captureMousePos(double x, double y)
 {
@@ -171,24 +172,26 @@ void Shader::onMouseMove(GLFWwindow* window, double xpos, double ypos)
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
   static constexpr glm::vec4 sXAxis    = {1.0f, 0.0f, 0.0f, 0.0};
   if (sRightDown) {
-    auto yRotAxis   = glm::vec3(glm::inverse(sCurrent->mView) * sXAxis);
-    sCurrent->mView = glm::rotate(
-      glm::rotate(sCurrent->mView, float((xpos - sMousePos[0]) * sRotSpeed), sZAxis),
-      float(ypos - sMousePos[1]) * sRotSpeed,
-      yRotAxis);
+    sCurrent->mView *=
+      sInvTrans *
+      glm::rotate(glm::rotate(float((xpos - sMousePos[0]) * sRotSpeed), sZAxis),
+                  float(ypos - sMousePos[1]) * sRotSpeed,
+                  glm::vec3(glm::inverse(sCurrent->mView) * sXAxis)) *
+      sTrans;
 
     cameraChanged();
   }
 
   static constexpr float sTransScale = 500.0f;
   if (sLeftDown) {
-    sCurrent->mView =
-      glm::translate(sCurrent->mView,
-                     glm::vec3(glm::inverse(sCurrent->mView) *
-                               glm::vec4 {float(xpos - sMousePos[0]) / sTransScale,
-                                          float(sMousePos[1] - ypos) / sTransScale,
-                                          0.0f,
-                                          0.0f}));
+    auto trans = glm::translate(glm::vec3(
+      glm::inverse(sCurrent->mView) * glm::vec4 {float(xpos - sMousePos[0]) / sTransScale,
+                                                 float(sMousePos[1] - ypos) / sTransScale,
+                                                 0.0f,
+                                                 0.0f}));
+    sTrans *= trans;
+    sInvTrans = glm::inverse(sTrans);
+    sCurrent->mView *= trans;
     cameraChanged();
   }
   captureMousePos(xpos, ypos);
@@ -224,9 +227,9 @@ void Shader::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
   static constexpr glm::vec3 zDn = {zoomDown, zoomDown, zoomDown};
 
   if (yOffset > 0.0)
-    sCurrent->mView = glm::scale(sCurrent->mView, zUp);
+    sCurrent->mView *= sInvTrans * glm::scale(zUp) * sTrans;
   else
-    sCurrent->mView = glm::scale(sCurrent->mView, zDn);
+    sCurrent->mView *= sInvTrans * glm::scale(zDn) * sTrans;
 
   cameraChanged();
 }
