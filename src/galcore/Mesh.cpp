@@ -1,10 +1,9 @@
 #include "galcore/Mesh.h"
 #define _USE_MATH_DEFINES
+#include <galcore/ObjLoader.h>
 #include <math.h>
 #include <array>
 #include <numeric>
-
-using namespace gal;
 
 static constexpr uint8_t                               X = UINT8_MAX;
 static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable {{
@@ -19,6 +18,8 @@ static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable {{
 }};
 
 static constexpr std::array<uint8_t, 8> s_clipVertCountTable {0, 3, 3, 6, 3, 6, 6, 3};
+
+namespace gal {
 
 const Mesh::Face Mesh::Face::unset = Face(-1, -1, -1);
 
@@ -694,3 +695,7 @@ void Mesh::EdgeTriplet::set(size_t i)
   else
     throw i;
 }
+
+namespace fs = std::filesystem;
+
+}  // namespace gal

@@ -46,3 +46,5 @@ add_custom_command(TARGET galview
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/shaders/*.glsl ${PROJECT_BINARY_DIR}
 )
+
+# Tests

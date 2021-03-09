@@ -2,6 +2,7 @@
 #include <galcore/Box.h>
 #include <galcore/RTree.h>
 #include <galcore/Util.h>
+#include <filesystem>
 #include <limits>
 #include <unordered_map>
 

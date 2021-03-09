@@ -7,6 +7,8 @@
 #include <galview/MeshView.h>
 #include <galview/Shader.h>
 
+#include <galcore/ObjLoader.h>
+
 using namespace gal;
 
 static Mesh createMesh()
@@ -34,6 +36,11 @@ static Mesh createMesh()
   // clang-format on
 
   return Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3);
+}
+
+static Mesh loadBunny()
+{
+  return io::ObjMeshData("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj").toMesh();
 }
 
 static void glfw_error_cb(int error, const char* desc)
@@ -64,7 +71,8 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  auto view = view::MeshView::create(createMesh());
+  // auto view = view::MeshView::create(createMesh());
+  auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
   auto shader = view::Shader::loadFromName("facet");
