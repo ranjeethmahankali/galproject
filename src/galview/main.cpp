@@ -73,10 +73,11 @@ int main(int argc, char** argv)
   }
 
   // auto view = view::MeshView::create(createBoxMesh());
+  // auto view = view::MeshView::create(loadBunny());
   auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
-  auto shader = view::Shader::loadFromName("facet");
+  auto shader = view::Shader::loadFromName("simple");
   shader.use();
 
   view::Shader::registerCallbacks(window);
@@ -97,6 +98,9 @@ int main(int argc, char** argv)
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_LINE_SMOOTH);
+  // view::Shader::setWireframeMode(true);
+  glLineWidth(1.5f);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -105,7 +109,7 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     bool demoWindow = true;

@@ -19,6 +19,8 @@ static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 static glm::mat4 sTrans    = glm::identity<glm::mat4>();
 static glm::mat4 sInvTrans = glm::identity<glm::mat4>();
 
+static bool sEdgeMode = false;
+
 static void captureMousePos(double x, double y)
 {
   sMousePos.x = x;
@@ -140,6 +142,7 @@ void Shader::use() const
 {
   GL_CALL(glUseProgram(mId));
   sCurrent = const_cast<Shader*>(this);
+  setWireframeMode(sEdgeMode);
 }
 
 void Shader::useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up)
@@ -260,6 +263,12 @@ void Shader::setUniformInternal<glm::mat4>(int location, const glm::mat4& mat)
   GL_CALL(glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]));
 }
 
+template<>
+void Shader::setUniformInternal<bool>(int location, const bool& flag)
+{
+  GL_CALL(glUniform1i(location, flag));
+}
+
 void Shader::setPerspective(float fovy, float aspect, float near, float far)
 {
   sCurrent->mProj = glm::perspective(fovy, aspect, near, far);
@@ -275,6 +284,21 @@ void Shader::setOrthographic(float left,
 {
   sCurrent->mProj = glm::ortho(left, right, bottom, top, near, far);
   cameraChanged();
+}
+
+void Shader::setWireframeMode(bool flag)
+{
+  sEdgeMode = flag;
+}
+
+void Shader::setWireframeUniform(bool flag) {
+  if (!sCurrent)
+    return;
+  sCurrent->setUniform<bool>("edgeMode", flag && sEdgeMode);
+}
+
+bool Shader::wireframeMode() {
+  return sEdgeMode;
 }
 
 }  // namespace view

@@ -37,6 +37,10 @@ public:
 
   static void registerCallbacks(GLFWwindow* window);
 
+  static void setWireframeMode(bool flag);
+  static void setWireframeUniform(bool flag);
+  static bool wireframeMode();
+
 private:
   glm::mat4 mProj;
   glm::mat4 mView;
