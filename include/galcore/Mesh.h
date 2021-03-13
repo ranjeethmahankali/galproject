@@ -1,6 +1,7 @@
 #pragma once
 #include <galcore/Box.h>
 #include <galcore/RTree.h>
+#include <galcore/Sphere.h>
 #include <galcore/Util.h>
 #include <filesystem>
 #include <limits>
@@ -156,13 +157,14 @@ public:
   };
 
   template<typename size_t_inserter>
-  void querySphere(const glm::vec3& center,
-                   float            radius,
-                   size_t_inserter  inserter,
-                   eMeshElement     element) const
+  void querySphere(const gal::Sphere& sphere,
+                   size_t_inserter    inserter,
+                   eMeshElement       element) const
   {
-    elementTree(element).queryByDistance(center, radius, inserter);
+    elementTree(element).queryByDistance(sphere.center, sphere.radius, inserter);
   };
+
+  Mesh extractFaces(const std::vector<size_t>& faces);
 
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
 };

@@ -727,6 +727,32 @@ void Mesh::EdgeTriplet::set(size_t i)
     throw i;
 }
 
-namespace fs = std::filesystem;
+Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices) {
+  std::vector<glm::vec3> vertices;
+  std::vector<Face> faces;
+  faces.reserve(faceIndices.size());
+  vertices.reserve(faceIndices.size() / 2);
+
+  std::unordered_map<size_t, size_t, CustomSizeTHash> map;
+
+  for (const auto& fi : faceIndices) {
+    const Face& f = mFaces.at(fi);
+    Face face;
+    for (uint8_t i = 0; i < 3; i++) {
+      size_t fvi = f.indices[i];
+      auto match = map.find(fvi);
+      if (match == map.end()) {
+        map.insert(std::make_pair(fvi, vertices.size()));
+        face.indices[i] = vertices.size();
+        vertices.push_back(mVertices[fvi]);
+      } else {
+        face.indices[i] = match->second;
+      }
+    }
+    faces.push_back(face);
+  }
+  
+  return Mesh(std::move(vertices), std::move(faces));
+};
 
 }  // namespace gal

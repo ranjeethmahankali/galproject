@@ -5,13 +5,13 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
-#include <galview/AllViews.h>
 
+#include <galcore/ConvexHull.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
-#include <galcore/ConvexHull.h>
 
 using namespace gal;
 
@@ -47,7 +47,8 @@ static Mesh loadBunnyLarge()
   return io::ObjMeshData("../assets/bunny_large.obj", true).toMesh();
 }
 
-static Mesh loadBunnySmall() {
+static Mesh loadBunnySmall()
+{
   auto mesh = io::ObjMeshData("../assets/bunny.obj", true).toMesh();
   mesh.transform(glm::scale(glm::vec3(10.0f, 10.0f, 10.0f)));
   return mesh;
@@ -82,11 +83,11 @@ int main(int argc, char** argv)
   }
 
   // auto mesh = loadBunnyLarge();
-  auto mesh = loadBunnySmall();
+  auto       mesh = loadBunnySmall();
   ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
 
   // auto mesh = createBoxMesh();
-  view::Context::get().addDrawable(mesh);
+  // view::Context::get().addDrawable(mesh);
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
   // view::Context::get().addDrawable(plane);
 
@@ -95,7 +96,13 @@ int main(int argc, char** argv)
   auto box = mesh.bounds();
   view::Context::get().addDrawable(box);
 
-  auto ball = gal::Sphere{box.min, 0.5f};
+  auto ball = gal::Sphere {box.min, 0.8f};
+
+  std::vector<size_t> queryFaces;
+  mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
+  auto querymesh = mesh.extractFaces(queryFaces);
+  view::Context::get().addDrawable(querymesh);
+
   view::Context::get().addDrawable(ball);
 
   // Init shader.
