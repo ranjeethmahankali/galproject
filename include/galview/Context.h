@@ -1,6 +1,9 @@
 #pragma once
-#include <galview/Shader.h>
 #include <memory>
+#include <galview/GLUtil.h>
+#include <glm/glm.hpp>
+#include <stdint.h>
+#include <iostream>
 #include <vector>
 
 namespace gal {

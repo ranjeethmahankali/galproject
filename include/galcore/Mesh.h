@@ -131,10 +131,10 @@ public:
   Mesh::ConstFaceIter faceCBegin() const;
   Mesh::ConstFaceIter faceCEnd() const;
 
-  gal::box3 bounds() const;
+  gal::Box3 bounds() const;
   float     faceArea(size_t fi) const;
   float     area() const;
-  gal::box3 faceBounds(size_t fi) const;
+  gal::Box3 faceBounds(size_t fi) const;
 
   float     volume() const;
   bool      isSolid() const;
@@ -148,7 +148,7 @@ public:
   void transform(const glm::mat4& mat);
 
   template<typename size_t_inserter>
-  void queryBox(const gal::box3& box,
+  void queryBox(const gal::Box3& box,
                 size_t_inserter  inserter,
                 eMeshElement     element) const
   {

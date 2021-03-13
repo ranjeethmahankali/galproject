@@ -69,10 +69,10 @@ private:
   };
 };
 
-template class RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::box2>;
-typedef RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::box2> RTree2d;
-template class RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::box3>;
-typedef RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::box3> RTree3d;
+template class RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::Box2>;
+typedef RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::Box2> RTree2d;
+template class RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::Box3>;
+typedef RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::Box3> RTree3d;
 
 template<>
 RTree2d::PointType RTree2d::toBoost(const glm::vec2&);

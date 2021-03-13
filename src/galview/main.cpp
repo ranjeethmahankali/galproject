@@ -7,8 +7,7 @@
 
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
-#include <galview/MeshView.h>
-#include <galview/PlaneView.h>
+#include <galview/AllViews.h>
 
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
@@ -91,8 +90,9 @@ int main(int argc, char** argv)
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
   // view::Context::get().addDrawable(plane);
 
-  mesh.clipWithPlane(plane);
+  // mesh.clipWithPlane(plane);
   view::Context::get().addDrawable(hull.toMesh());
+  view::Context::get().addDrawable(mesh.bounds());
 
   // Init shader.
   view::Context& ctx      = view::Context::get();

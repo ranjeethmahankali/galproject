@@ -18,7 +18,6 @@ public:
 
   void draw() const;
 
-
 private:
   MeshView(const MeshView&) = delete;
   const MeshView& operator=(const MeshView&) = delete;
@@ -64,7 +63,7 @@ struct MakeDrawable<gal::Mesh>
       *(dsti++)              = (uint32_t)face.b;
       *(dsti++)              = (uint32_t)face.c;
     }
-    view->mISize = sizeof(uint32_t) * iBuf.size();
+    view->mISize = (uint32_t)iBuf.size();
 
     // Now write the data to the device.
     GL_CALL(glGenVertexArrays(1, &view->mVAO));
@@ -76,8 +75,10 @@ struct MakeDrawable<gal::Mesh>
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, view->mVSize, vBuf.data(), GL_STATIC_DRAW));
 
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, view->mIBO));
-    GL_CALL(
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, view->mISize, iBuf.data(), GL_STATIC_DRAW));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         sizeof(uint32_t) * iBuf.size(),
+                         iBuf.data(),
+                         GL_STATIC_DRAW));
 
     // Vertex position attribute.
     GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));

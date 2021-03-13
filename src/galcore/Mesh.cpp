@@ -107,7 +107,7 @@ void Mesh::computeRTrees()
 
   size_t vi = 0;
   for (const glm::vec3& v : mVertices) {
-    mVertexTree.insert(box3(v), vi++);
+    mVertexTree.insert(Box3(v), vi++);
   }
 }
 
@@ -403,9 +403,9 @@ Mesh::ConstFaceIter Mesh::faceCEnd() const
   return mFaces.cend();
 }
 
-box3 Mesh::bounds() const
+Box3 Mesh::bounds() const
 {
-  box3 b;
+  Box3 b;
   for (const glm::vec3& v : mVertices) {
     b.inflate(v);
   }
@@ -426,9 +426,9 @@ float Mesh::area() const
   return sum;
 }
 
-box3 Mesh::faceBounds(size_t fi) const
+Box3 Mesh::faceBounds(size_t fi) const
 {
-  box3 b;
+  Box3 b;
   Face f = mFaces[fi];
   b.inflate(mVertices[f.a]);
   b.inflate(mVertices[f.b]);
@@ -497,7 +497,7 @@ bool Mesh::contains(const glm::vec3& pt) const
     return a.first < b.first;
   };
 
-  box3                b(pt, {pt.x, pt.y, DBL_MAX});
+  Box3                b(pt, {pt.x, pt.y, DBL_MAX});
   std::vector<size_t> faces;
   faces.reserve(10);
   mFaceTree.queryBoxIntersects(b, std::back_inserter(faces));
@@ -687,7 +687,7 @@ glm::vec3 Mesh::closestPoint(const glm::vec3& pt, float searchDist) const
   glm::vec3           halfDiag(vDist, vDist, vDist);
   std::vector<size_t> candidates;
   candidates.reserve(32);
-  mFaceTree.queryBoxIntersects(box3(pt - halfDiag, pt + halfDiag),
+  mFaceTree.queryBoxIntersects(Box3(pt - halfDiag, pt + halfDiag),
                                std::back_inserter(candidates));
 
   for (size_t fi : candidates) {

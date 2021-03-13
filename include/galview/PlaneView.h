@@ -1,6 +1,7 @@
 #pragma Once
 #include <galcore/Plane.h>
 #include <galview/Context.h>
+#include <galview/GLUtil.h>
 
 namespace gal {
 namespace view {

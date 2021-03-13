@@ -68,7 +68,6 @@ Context& Context::get()
 Context::Context()
     : mShaders(1)
 {
-  mShaders.reserve(16);
   mShaders[0].loadFromName("simple");
   useShader(0);
 
