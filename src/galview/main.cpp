@@ -12,6 +12,7 @@
 
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
+#include <galcore/ConvexHull.h>
 
 using namespace gal;
 
@@ -83,13 +84,15 @@ int main(int argc, char** argv)
 
   // auto mesh = loadBunnyLarge();
   auto mesh = loadBunnySmall();
+  ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
+
   // auto mesh = createBoxMesh();
   // view::Context::get().addDrawable(mesh);
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
-  view::Context::get().addDrawable(plane);
+  // view::Context::get().addDrawable(plane);
 
   mesh.clipWithPlane(plane);
-  view::Context::get().addDrawable(mesh);
+  view::Context::get().addDrawable(hull.toMesh());
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
@@ -115,7 +118,7 @@ int main(int argc, char** argv)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_LINE_SMOOTH);
-  // view::Context::setWireframeMode(true);
+  view::Context::setWireframeMode(true);
   glLineWidth(1.5f);
 
   while (!glfwWindowShouldClose(window)) {

@@ -86,7 +86,7 @@ void Mesh::computeTopology()
   mVertEdges.resize(numVertices());
   mVertFaces.resize(numVertices());
   mFaceEdges.resize(numFaces());
-  
+
   size_t nVertices = numVertices();
   size_t curEi     = 0;
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
@@ -305,6 +305,16 @@ Mesh::Mesh(const Mesh& other)
            other.mFaces.data(),
            other.numFaces())
 {}
+
+Mesh::Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces)
+    : Mesh(verts.data(), verts.size(), faces.data(), faces.size()) {};
+
+Mesh::Mesh(std::vector<glm::vec3>&& verts, std::vector<Face>&& faces)
+    : mVertices(std::move(verts))
+    , mFaces(std::move(faces))
+{
+  computeCache();
+}
 
 Mesh::Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces)
 {
@@ -647,11 +657,12 @@ void Mesh::clipWithPlane(const Plane& plane)
   assert(faces.size() * 3 == nIndices);
   // Create new mesh with the copied data.
   mVertices = std::move(verts);
-  mFaces = std::move(faces);
+  mFaces    = std::move(faces);
   computeCache();
 }
 
-void Mesh::transform(const glm::mat4& mat) {
+void Mesh::transform(const glm::mat4& mat)
+{
   for (auto& v : mVertices) {
     v = glm::vec3(mat * glm::vec4(v.x, v.y, v.z, 1.0f));
   }

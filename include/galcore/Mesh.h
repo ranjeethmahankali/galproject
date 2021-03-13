@@ -113,6 +113,8 @@ private:
 public:
   Mesh(const Mesh& other);
   Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces);
+  Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces);
+  Mesh(std::vector<glm::vec3>&& verts, std::vector<Face>&& faces);
   Mesh(const float*  vertCoords,
        size_t        nVerts,
        const size_t* faceVertIndices,

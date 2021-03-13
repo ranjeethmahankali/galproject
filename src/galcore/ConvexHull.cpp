@@ -1,5 +1,7 @@
 #include "galcore/ConvexHull.h"
 
+namespace gal {
+
 const ConvexHull::Face ConvexHull::Face::unset = Face(-1, -1, -1, -1);
 
 ConvexHull::Face::Face()
@@ -16,6 +18,29 @@ ConvexHull::Face::Face(size_t idVal, size_t v1, size_t v2, size_t v3)
     , c(v3)
     , normal(vec3_unset)
 {}
+
+ConvexHull::ConvexHull(std::vector<glm::vec3>&& points)
+    : mPts(std::move(points))
+{
+  initOutside();
+  compute();
+}
+
+ConvexHull::ConvexHull(const std::vector<glm::vec3>& points)
+    : mPts(points)
+{
+  initOutside();
+  compute();
+}
+
+void ConvexHull::initOutside()
+{
+  size_t nPts = mPts.size();
+  mOutsidePts.reserve(nPts);
+  for (size_t i = 0; i < nPts; i++) {
+    mOutsidePts.insert(i);
+  }
+}
 
 bool ConvexHull::Face::is_valid()
 {
@@ -47,21 +72,9 @@ bool ConvexHull::Face::containsVertex(size_t vi) const
   return vi == -1 && (vi == a || vi == b || vi == c);
 }
 
-ConvexHull::ConvexHull(float* coords, size_t nPts)
-{
-  mPts.reserve(nPts);
-  for (size_t i = 0; i < nPts; i++) {
-    mPts.push_back(glm::vec3(coords[3 * i], coords[3 * i + 1], coords[3 * i + 2]));
-    mOutsidePts.insert(i);
-  }
-
-  mNumPts = nPts;
-  compute();
-}
-
 glm::vec3 ConvexHull::getPt(size_t index) const
 {
-  return index < 0 || index > mNumPts - 1 ? vec3_unset : mPts[index];
+  return index < 0 || index > mPts.size() - 1 ? vec3_unset : mPts[index];
 }
 
 size_t ConvexHull::numFaces() const
@@ -147,7 +160,7 @@ void ConvexHull::setFace(Face& face)
 {
   face.normal =
     glm::normalize(glm::cross(mPts[face.b] - mPts[face.a], mPts[face.c] - mPts[face.a]));
-  if (faceVisible(face, m_center)) {
+  if (faceVisible(face, mCenter)) {
     face.flip();
   }
 
@@ -265,10 +278,10 @@ void ConvexHull::updateExteriorPt(const std::vector<Face>& newFaces,
 void ConvexHull::createInitialSimplex(size_t& faceIndex)
 {
   size_t best[4];
-  if (mNumPts < 4) {
+  if (mPts.size() < 4) {
     throw "Failed to create the initial simplex";
   }
-  else if (mNumPts == 4) {
+  else if (mPts.size() == 4) {
     for (size_t i = 0; i < 4; i++) {
       best[i] = i;
     }
@@ -284,7 +297,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
       bounds[i] = (size_t)(-1);
     }
     float coords[3];
-    for (size_t pi = 0; pi < mNumPts; pi++) {
+    for (size_t pi = 0; pi < mPts.size(); pi++) {
       std::copy_n(&mPts[pi].x, 3, coords);
       for (size_t ei = 0; ei < 6; ei++) {
         if (ei % 2 == 0 && extremes[ei] > coords[ei / 2]) {
@@ -319,7 +332,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
     maxD           = -FLT_MAX;
     glm::vec3 ref  = mPts[best[0]];
     glm::vec3 uDir = glm::normalize(mPts[best[1]] - ref);
-    for (size_t pi = 0; pi < mNumPts; pi++) {
+    for (size_t pi = 0; pi < mPts.size(); pi++) {
       dist = glm::length2((mPts[pi] - ref) - uDir * glm::dot(uDir, (mPts[pi] - ref)));
       if (dist > maxD) {
         best[2] = pi;
@@ -333,7 +346,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
 
     maxD = -FLT_MAX;
     uDir = glm::normalize(glm::cross(mPts[best[1]] - ref, mPts[best[2]] - ref));
-    for (size_t pi = 0; pi < mNumPts; pi++) {
+    for (size_t pi = 0; pi < mPts.size(); pi++) {
       dist = std::abs(glm::dot(uDir, (mPts[pi] - ref)));
       if (dist > maxD) {
         best[3] = pi;
@@ -352,11 +365,11 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
   simplex[2] = Face(faceIndex++, best[1], best[2], best[3]);
   simplex[3] = Face(faceIndex++, best[0], best[1], best[3]);
 
-  m_center = vec3_zero;
+  mCenter = vec3_zero;
   for (size_t i = 0; i < 4; i++) {
-    m_center += mPts[best[i]];
+    mCenter += mPts[best[i]];
   }
-  m_center /= 4;
+  mCenter /= 4;
 
   for (size_t i = 0; i < 4; i++) {
     if (!simplex[i].is_valid()) {
@@ -414,3 +427,35 @@ glm::vec3 ConvexHull::faceCenter(const Face& face) const
 {
   return (mPts[face.a] + mPts[face.b] + mPts[face.c]) / 3.0f;
 }
+
+Mesh ConvexHull::toMesh() const
+{
+  std::unordered_map<size_t, size_t, CustomSizeTHash> map;
+  std::vector<glm::vec3>                              vertices;
+  std::vector<Mesh::Face>                             faces;
+  faces.reserve(numFaces());
+  vertices.reserve(mPts.size());
+
+  std::transform(mFaces.cbegin(),
+                 mFaces.cend(),
+                 std::back_inserter(faces),
+                 [&map, &vertices, this](const auto& pair) {
+                   const auto& face = pair.second;
+                   size_t indices[3];
+                   for (uint8_t i = 0; i < 3; i++) {
+                     auto match = map.find(face.indices[i]);
+                     if (match == map.end()) {
+                       indices[i] = vertices.size();
+                       vertices.push_back(mPts[face.indices[i]]);
+                     }
+                     else {
+                       indices[i] = match->second;
+                     }
+                   }
+                   return Mesh::Face(indices);
+                 });
+
+  return Mesh(std::move(vertices), std::move(faces));
+}
+
+}  // namespace gal
