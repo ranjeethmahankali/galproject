@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 
   // auto view = view::MeshView::create(createBoxMesh());
   // auto view = view::MeshView::create(loadBunny());
-  auto view = view::MeshView::create(loadBunny());
+  view::Context::get().addDrawable(loadBunny());
 
   // Init shader.
   view::Context& ctx = view::Context::get();
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 
     ImGui::Render();
 
-    view.draw();
+    view::Context::get().render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
   }

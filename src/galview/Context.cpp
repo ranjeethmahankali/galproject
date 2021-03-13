@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <galcore/Mesh.h>
 #include <sstream>
 
 namespace gal {
@@ -331,6 +332,12 @@ void Context::Shader::use() const
 Context::Shader::~Shader()
 {
   GL_CALL(glDeleteProgram(mId));
+};
+
+void Context::render() const {
+  for (const auto& d : mDrawables) {
+    d->draw();
+  }
 }
 
 }  // namespace view

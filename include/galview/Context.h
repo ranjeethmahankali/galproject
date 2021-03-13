@@ -1,9 +1,23 @@
 #pragma once
 #include <galview/Shader.h>
+#include <memory>
 #include <vector>
 
 namespace gal {
 namespace view {
+
+class Drawable
+{
+public:
+  virtual void draw() const = 0;
+};
+
+// Template specialization needed.
+template<typename T>
+struct MakeDrawable
+{
+  static std::shared_ptr<Drawable> get(const T& geom);
+};
 
 class Context
 {
@@ -12,8 +26,7 @@ class Context
   public:
     void loadFromName(const std::string& name);
     void loadFromSources(const std::string& vertSrc, const std::string& fragSrc);
-    void loadFromFiles(const std::string& vertFilePath,
-                                const std::string& fragFilePath);
+    void loadFromFiles(const std::string& vertFilePath, const std::string& fragFilePath);
 
     Shader() = default;
 
@@ -47,7 +60,8 @@ public:
     setUniformInternal<T>(loc, val);
   };
 
-  void      useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
+  void useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
+
   glm::mat4 mvpMatrix() const;
 
   void setPerspective(float fovy   = 0.9f,
@@ -66,24 +80,34 @@ public:
 
   void useShader(size_t shaderId);
 
+  void render() const;
+
 private:
   Context();
 
-  std::vector<Shader> mShaders;
-  glm::mat4           mProj;
-  glm::mat4           mView;
-  int32_t             mShaderIndex = -1;
+  std::vector<Shader>                    mShaders;
+  std::vector<std::shared_ptr<Drawable>> mDrawables;
+  glm::mat4                              mProj;
+  glm::mat4                              mView;
+  int32_t                                mShaderIndex = -1;
 
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-  void cameraChanged();
+  void        cameraChanged();
   static void updateViewMatrix();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
+
+public:
+  template<typename T>
+  void addDrawable(const T& val)
+  {
+    mDrawables.push_back(MakeDrawable<T>::get(val));
+  };
 };
 
 }  // namespace view
