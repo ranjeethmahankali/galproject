@@ -13,11 +13,12 @@ public:
   virtual ~Drawable() = default;
 
   virtual void draw() const = 0;
+  virtual bool opaque() const;
 
 private:
   Drawable(const Drawable&) = delete;
   const Drawable& operator=(const Drawable&) = delete;
-  Drawable(Drawable&&) = default;
+  Drawable(Drawable&&)                       = default;
 };
 
 // Template specialization needed.
@@ -94,7 +95,8 @@ private:
   Context();
 
   std::vector<Shader>                    mShaders;
-  std::vector<std::shared_ptr<Drawable>> mDrawables;
+  std::vector<std::shared_ptr<Drawable>> mOpaqueDrawables;
+  std::vector<std::shared_ptr<Drawable>> mTransclucentDrawables;
   glm::mat4                              mProj;
   glm::mat4                              mView;
   int32_t                                mShaderIndex = -1;
@@ -114,7 +116,13 @@ public:
   template<typename T>
   void addDrawable(const T& val)
   {
-    mDrawables.push_back(MakeDrawable<T>::get(val));
+    auto drawable = MakeDrawable<T>::get(val);
+    if (drawable->opaque()) {
+      mOpaqueDrawables.push_back(drawable);
+    }
+    else {
+      mTransclucentDrawables.push_back(drawable);
+    }
   };
 };
 

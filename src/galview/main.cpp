@@ -79,7 +79,7 @@ int main(int argc, char** argv)
   auto mesh = loadBunny();
   // view::Context::get().addDrawable(mesh);
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
-  // view::Context::get().addDrawable(plane);
+  view::Context::get().addDrawable(plane);
 
   auto clipped =
     std::shared_ptr<gal::Mesh>(mesh.clippedWithPlane(plane.origin, plane.normal));
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_LINE_SMOOTH);
-  // view::Shader::setWireframeMode(true);
+  // view::Context::setWireframeMode(true);
   glLineWidth(1.5f);
 
   while (!glfwWindowShouldClose(window)) {

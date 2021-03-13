@@ -1,13 +1,18 @@
+#include <galcore/Mesh.h>
 #include <galview/Context.h>
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-#include <galcore/Mesh.h>
 #include <sstream>
 
 namespace gal {
 namespace view {
+
+bool Drawable::opaque() const
+{
+  return true;  // Everything is assumed to be opaque by default, unless overriden.
+}
 
 static bool       sRightDown = false;
 static bool       sShiftDown = false;
@@ -60,7 +65,8 @@ Context& Context::get()
   return sInstance;
 };
 
-Context::Context() : mShaders(1)
+Context::Context()
+    : mShaders(1)
 {
   mShaders.reserve(16);
   mShaders[0].loadFromName("simple");
@@ -285,8 +291,7 @@ static std::string readfile(const std::string& filepath)
   return file_stream.str();
 };
 
-void Context::Shader::loadFromSources(const std::string& vsrc,
-                                                 const std::string& fsrc)
+void Context::Shader::loadFromSources(const std::string& vsrc, const std::string& fsrc)
 {
   // Compile vertex shader.
   mVertId          = glCreateShader(GL_VERTEX_SHADER);
@@ -312,8 +317,7 @@ void Context::Shader::loadFromSources(const std::string& vsrc,
   GL_CALL(glDeleteShader(mFragId));
 };
 
-void Context::Shader::loadFromFiles(const std::string& vpath,
-                                               const std::string& fpath)
+void Context::Shader::loadFromFiles(const std::string& vpath, const std::string& fpath)
 {
   loadFromSources(readfile(vpath), readfile(fpath));
 };
@@ -334,8 +338,13 @@ Context::Shader::~Shader()
   GL_CALL(glDeleteProgram(mId));
 };
 
-void Context::render() const {
-  for (const auto& d : mDrawables) {
+void Context::render() const
+{
+  for (const auto& d : mOpaqueDrawables) {
+    d->draw();
+  }
+
+  for (const auto& d : mTransclucentDrawables) {
     d->draw();
   }
 }

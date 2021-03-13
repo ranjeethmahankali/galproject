@@ -15,6 +15,8 @@ public:
 
   void draw() const;
 
+  bool opaque() const override;
+
 private:
   PlaneView(const PlaneView&) = delete;
   const PlaneView& operator=(const PlaneView&) = delete;
@@ -32,55 +34,46 @@ struct MakeDrawable<gal::Plane>
     auto view = std::make_shared<gal::view::PlaneView>();
 
     static constexpr size_t    sNumVerts = 6;
-    static constexpr float     sHalfSize = 5.0f;
+    static constexpr float     sHalfSize = 3.0f;
     static constexpr glm::vec3 sXAxis    = {1.0f, 0.0f, 0.0f};
     static constexpr glm::vec3 sYAxis    = {0.0f, 1.0f, 0.0f};
     static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
 
     glm::vec3 x, y;
     if (sZAxis == plane.normal) {
-      x = sXAxis;
-      y = sYAxis;
+      x = glm::normalize(sXAxis);
+      y = glm::normalize(sYAxis);
     }
     else if (sZAxis == -plane.normal) {
-      x = -sXAxis;
-      y = -sYAxis;
+      x = glm::normalize(-sXAxis);
+      y = glm::normalize(-sYAxis);
     }
     else {
-      x = glm::cross(plane.normal, sZAxis);
-      y = glm::cross(plane.normal, x);
+      x = glm::normalize(glm::cross(plane.normal, sZAxis));
+      y = glm::normalize(glm::cross(plane.normal, x));
     }
 
-    std::array<glm::vec3, 4> verts = {{
+    std::array<glm::vec3, 8> vBuf = {{
       plane.origin - (x * sHalfSize) - (y * sHalfSize),
+      plane.normal,
       plane.origin + (x * sHalfSize) - (y * sHalfSize),
-      plane.origin + (x * sHalfSize) + (y * sHalfSize),
+      plane.normal,
       plane.origin - (x * sHalfSize) + (y * sHalfSize),
-    }};
-
-    std::array<glm::vec3, sNumVerts* 2> vBuf = {{
-      verts[0],
       plane.normal,
-      verts[1],
-      plane.normal,
-      verts[2],
-      plane.normal,
-      verts[0],
-      plane.normal,
-      verts[2],
-      plane.normal,
-      verts[3],
+      plane.origin + (x * sHalfSize) + (y * sHalfSize),
       plane.normal,
     }};
 
-    view->mVSize = sizeof(vBuf);
+    size_t nvBytes = sizeof(vBuf);
+
+    view->mVSize = 4;
 
     GL_CALL(glGenVertexArrays(1, &view->mVAO));
     GL_CALL(glGenBuffers(1, &view->mVBO));
 
     GL_CALL(glBindVertexArray(view->mVAO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, view->mVBO));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, view->mVSize, vBuf.data(), GL_STATIC_DRAW));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, nvBytes, vBuf.data(), GL_STATIC_DRAW));
 
     // Vertex position attribute.
     GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));
