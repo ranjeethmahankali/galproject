@@ -25,6 +25,7 @@ void MeshView::draw() const
   static constexpr glm::vec4 sEdgeColor = {0.0, 0.0, 0.0, 1.0};
   Context::get().setUniform<glm::vec4>("faceColor", sFaceColor);
   Context::get().setUniform<glm::vec4>("edgeColor", sEdgeColor);
+  Context::get().setUniform<bool>("edgeMode", false);
   Context::get().setUniform<float>("shadingFactor", 1.0f);
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   drawInternal();
@@ -32,7 +33,6 @@ void MeshView::draw() const
     Context::get(). setUniform<bool>("edgeMode", true);
     GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     drawInternal();
-    Context::get().setUniform<bool>("edgeMode", false);
   }
 };
 

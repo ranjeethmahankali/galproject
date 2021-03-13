@@ -86,13 +86,17 @@ int main(int argc, char** argv)
   ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
 
   // auto mesh = createBoxMesh();
-  // view::Context::get().addDrawable(mesh);
+  view::Context::get().addDrawable(mesh);
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
   // view::Context::get().addDrawable(plane);
 
   // mesh.clipWithPlane(plane);
-  view::Context::get().addDrawable(hull.toMesh());
-  view::Context::get().addDrawable(mesh.bounds());
+  // view::Context::get().addDrawable(hull.toMesh());
+  auto box = mesh.bounds();
+  view::Context::get().addDrawable(box);
+
+  auto ball = gal::Sphere{box.min, 0.5f};
+  view::Context::get().addDrawable(ball);
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
@@ -118,7 +122,7 @@ int main(int argc, char** argv)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_LINE_SMOOTH);
-  view::Context::get().setWireframeMode(true);
+  // view::Context::get().setWireframeMode(true);
   glLineWidth(1.5f);
 
   while (!glfwWindowShouldClose(window)) {
