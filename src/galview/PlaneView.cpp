@@ -9,7 +9,7 @@ PlaneView::~PlaneView() {
 };
 
 void PlaneView::draw() const {
-  static constexpr glm::vec4 sFaceColor = {0.3, 0.3, 0.9, 0.3};
+  static constexpr glm::vec4 sFaceColor = {0.5, 0.5, 0.9, 0.3};
   Context::get().setUniform<glm::vec4>("faceColor", sFaceColor);
   Context::get().setUniform<bool>("edgeMode", false);
   Context::get().setUniform<float>("shadingFactor", 0.0f);

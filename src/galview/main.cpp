@@ -76,8 +76,14 @@ int main(int argc, char** argv)
 
   // auto view = view::MeshView::create(createBoxMesh());
   // auto view = view::MeshView::create(loadBunny());
-  view::Context::get().addDrawable(loadBunny());
-  view::Context::get().addDrawable(gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}});
+  auto mesh = loadBunny();
+  // view::Context::get().addDrawable(mesh);
+  auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
+  // view::Context::get().addDrawable(plane);
+
+  auto clipped =
+    std::shared_ptr<gal::Mesh>(mesh.clippedWithPlane(plane.origin, plane.normal));
+  view::Context::get().addDrawable(*clipped);
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
