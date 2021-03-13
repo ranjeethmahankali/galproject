@@ -118,7 +118,7 @@ int main(int argc, char** argv)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_LINE_SMOOTH);
-  view::Context::setWireframeMode(true);
+  view::Context::get().setWireframeMode(true);
   glLineWidth(1.5f);
 
   while (!glfwWindowShouldClose(window)) {

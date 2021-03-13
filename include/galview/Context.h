@@ -54,9 +54,8 @@ public:
 
   static void registerCallbacks(GLFWwindow* window);
 
-  static void setWireframeMode(bool flag);
-  static void setWireframeUniform(bool flag);
-  static bool wireframeMode();
+  void setWireframeMode(bool flag);
+  bool wireframeMode();
 
   template<typename T>
   void setUniform(const std::string& name, const T& val)
@@ -107,7 +106,6 @@ private:
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
   void        cameraChanged();
-  static void updateViewMatrix();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);

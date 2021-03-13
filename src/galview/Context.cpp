@@ -206,11 +206,6 @@ void Context::setWireframeMode(bool flag)
   sEdgeMode = flag;
 }
 
-void Context::setWireframeUniform(bool flag)
-{
-  get().setUniform<bool>("edgeMode", flag && sEdgeMode);
-}
-
 bool Context::wireframeMode()
 {
   return sEdgeMode;
