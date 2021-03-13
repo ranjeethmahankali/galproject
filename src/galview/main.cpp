@@ -3,6 +3,8 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
+#include <glm/gtx/transform.hpp>
+
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <galview/MeshView.h>
@@ -40,10 +42,15 @@ static Mesh createBoxMesh()
   return Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3);
 }
 
-static Mesh loadBunny()
+static Mesh loadBunnyLarge()
 {
   return io::ObjMeshData("../assets/bunny_large.obj", true).toMesh();
-  // return io::ObjMeshData("../assets/bunny.obj", true).toMesh();
+}
+
+static Mesh loadBunnySmall() {
+  auto mesh = io::ObjMeshData("../assets/bunny.obj", true).toMesh();
+  mesh.transform(glm::scale(glm::vec3(10.0f, 10.0f, 10.0f)));
+  return mesh;
 }
 
 static void glfw_error_cb(int error, const char* desc)
@@ -74,16 +81,15 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  // auto view = view::MeshView::create(createBoxMesh());
-  // auto view = view::MeshView::create(loadBunny());
-  auto mesh = loadBunny();
+  // auto mesh = loadBunnyLarge();
+  auto mesh = loadBunnySmall();
+  // auto mesh = createBoxMesh();
   // view::Context::get().addDrawable(mesh);
   auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
   view::Context::get().addDrawable(plane);
 
-  auto clipped =
-    std::shared_ptr<gal::Mesh>(mesh.clippedWithPlane(plane.origin, plane.normal));
-  view::Context::get().addDrawable(*clipped);
+  mesh.clipWithPlane(plane);
+  view::Context::get().addDrawable(mesh);
 
   // Init shader.
   view::Context& ctx      = view::Context::get();

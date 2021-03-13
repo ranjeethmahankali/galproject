@@ -80,6 +80,13 @@ void Mesh::computeCache()
 
 void Mesh::computeTopology()
 {
+  mVertEdges.clear();
+  mVertFaces.clear();
+  mFaceEdges.clear();
+  mVertEdges.resize(numVertices());
+  mVertFaces.resize(numVertices());
+  mFaceEdges.resize(numFaces());
+  
   size_t nVertices = numVertices();
   size_t curEi     = 0;
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
@@ -109,10 +116,9 @@ void Mesh::computeNormals()
   mFaceNormals.clear();
   mFaceNormals.reserve(mFaces.size());
   for (ConstFaceIter fi = faceCBegin(); fi != faceCEnd(); fi++) {
-    Face      f = *fi;
-    glm::vec3 a = mVertices[f.a];
-    glm::vec3 b = mVertices[f.b];
-    glm::vec3 c = mVertices[f.c];
+    const glm::vec3& a = mVertices.at(fi->a);
+    const glm::vec3& b = mVertices.at(fi->b);
+    const glm::vec3& c = mVertices.at(fi->c);
     mFaceNormals.push_back(glm::normalize(glm::cross(b - a, c - a)));
   }
 
@@ -301,9 +307,6 @@ Mesh::Mesh(const Mesh& other)
 {}
 
 Mesh::Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces)
-    : mVertEdges(nVerts)
-    , mVertFaces(nVerts)
-    , mFaceEdges(nFaces)
 {
   mVertices.reserve(nVerts);
   std::copy(verts, verts + nVerts, std::back_inserter(mVertices));
@@ -316,9 +319,6 @@ Mesh::Mesh(const float*  vertCoords,
            size_t        nVerts,
            const size_t* faceVertIndices,
            size_t        nFaces)
-    : mVertEdges(nVerts)
-    , mVertFaces(nVerts)
-    , mFaceEdges(nFaces)
 {
   mVertices.reserve(nVerts);
   size_t nFlat = nVerts * 3;
@@ -522,9 +522,11 @@ bool Mesh::contains(const glm::vec3& pt) const
   return count % 2;
 }
 
-Mesh* Mesh::clippedWithPlane(const glm::vec3& pt, const glm::vec3& normal) const
+void Mesh::clipWithPlane(const Plane& plane)
 {
-  glm::vec3 unorm = glm::normalize(normal);
+  const glm::vec3& pt     = plane.origin;
+  const glm::vec3& normal = plane.normal;
+  glm::vec3        unorm  = glm::normalize(normal);
 
   // Calculate vertex distances.
   std::vector<float> vdistances(numVertices());
@@ -561,11 +563,13 @@ Mesh* Mesh::clippedWithPlane(const glm::vec3& pt, const glm::vec3& normal) const
     });
 
   // Total number of triangle indices.
-  std::vector<size_t> indices;
-  size_t              nIndices = 0;
+  std::vector<Face> faces;
+  size_t            nIndices = 0;
   for (const uint8_t venum : venums)
     nIndices += s_clipVertCountTable[venum];
   assert(nIndices % 3 == 0);
+
+  size_t nFaces = nIndices / 3;
 
   // Copy the indices and vertices.
   std::unordered_map<size_t, size_t, CustomSizeTHash> map;
@@ -573,16 +577,18 @@ Mesh* Mesh::clippedWithPlane(const glm::vec3& pt, const glm::vec3& normal) const
   std::vector<glm::vec3> verts;
   verts.reserve(numVertices());
 
-  indices.reserve(nIndices);
-  auto indexIt = std::back_inserter(indices);
+  faces.reserve(nFaces);
 
+  std::vector<size_t> tempIndices;
+  tempIndices.reserve(6);
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
     const Face&          face  = mFaces.at(fi);
     uint8_t              venum = venums[fi];
     const uint8_t* const row   = s_clipTriTable[venum].data();
+    tempIndices.clear();
     std::transform(row,
                    row + s_clipVertCountTable[venum],
-                   indexIt,
+                   std::back_inserter(tempIndices),
                    [this, &map, &verts, &edgepts, &face](const uint8_t vi) {
                      decltype(mEdgeIndexMap)::const_iterator match2;
                      if (vi > 2) {
@@ -632,11 +638,25 @@ Mesh* Mesh::clippedWithPlane(const glm::vec3& pt, const glm::vec3& normal) const
                      }
                      return match->second;
                    });
+
+    for (size_t fvi = 0; fvi < tempIndices.size(); fvi += 3) {
+      faces.emplace_back(tempIndices.data() + fvi);
+    }
   }
 
-  assert(indices.size() == nIndices);
+  assert(faces.size() * 3 == nIndices);
   // Create new mesh with the copied data.
-  return new Mesh((const float*)verts.data(), verts.size(), indices.data(), nIndices / 3);
+  mVertices = std::move(verts);
+  mFaces = std::move(faces);
+  computeCache();
+}
+
+void Mesh::transform(const glm::mat4& mat) {
+  for (auto& v : mVertices) {
+    v = glm::vec3(mat * glm::vec4(v.x, v.y, v.z, 1.0f));
+  }
+  computeRTrees();
+  computeNormals();
 }
 
 glm::vec3 Mesh::closestPoint(const glm::vec3& pt, float searchDist) const

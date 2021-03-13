@@ -6,6 +6,8 @@
 #include <limits>
 #include <unordered_map>
 
+#include <galcore/Plane.h>
+
 using EdgeType     = gal::IndexPair;
 using EdgeTypeHash = gal::IndexPairHash;
 
@@ -139,7 +141,9 @@ public:
 
   bool contains(const glm::vec3& pt) const;
 
-  Mesh* clippedWithPlane(const glm::vec3& pt, const glm::vec3& norm) const;
+  void clipWithPlane(const Plane& plane);
+
+  void transform(const glm::mat4& mat);
 
   template<typename size_t_inserter>
   void queryBox(const gal::box3& box,
