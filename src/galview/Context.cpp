@@ -183,6 +183,12 @@ void Context::setUniformInternal<glm::mat4>(int location, const glm::mat4& mat)
 };
 
 template<>
+void Context::setUniformInternal<glm::vec4>(int location, const glm::vec4& v)
+{
+  GL_CALL(glUniform4fv(location, 1, &v[0]));
+};
+
+template<>
 void Context::setUniformInternal<bool>(int location, const bool& flag)
 {
   GL_CALL(glUniform1i(location, flag));

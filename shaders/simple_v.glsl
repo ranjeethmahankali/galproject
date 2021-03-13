@@ -8,8 +8,8 @@ out vec4 vertexColor;
 uniform mat4 mvpMat;
 uniform bool edgeMode;
 
-const vec4 faceColor = vec4(1.0, 1.0, 1.0, 1.0);  // make this a uniform later.
-const vec4 edgeColor = vec4(0.0, 0.0, 0.0, 1.0);  // make this a uniform later.
+uniform vec4 faceColor;
+uniform vec4 edgeColor;
 
 void main()
 {
