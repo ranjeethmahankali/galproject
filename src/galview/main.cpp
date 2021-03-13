@@ -3,11 +3,13 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
+#include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <galview/MeshView.h>
-#include <galview/Context.h>
+#include <galview/PlaneView.h>
 
 #include <galcore/ObjLoader.h>
+#include <galcore/Plane.h>
 
 using namespace gal;
 
@@ -75,10 +77,11 @@ int main(int argc, char** argv)
   // auto view = view::MeshView::create(createBoxMesh());
   // auto view = view::MeshView::create(loadBunny());
   view::Context::get().addDrawable(loadBunny());
+  view::Context::get().addDrawable(gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}});
 
   // Init shader.
-  view::Context& ctx = view::Context::get();
-  size_t shaderId = ctx.shaderId("simple");
+  view::Context& ctx      = view::Context::get();
+  size_t         shaderId = ctx.shaderId("simple");
   ctx.useShader(shaderId);
 
   view::Context::registerCallbacks(window);

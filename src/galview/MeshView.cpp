@@ -25,6 +25,7 @@ void MeshView::draw() const
   static constexpr glm::vec4 sEdgeColor = {0.0, 0.0, 0.0, 1.0};
   Context::get().setUniform<glm::vec4>("faceColor", sFaceColor);
   Context::get().setUniform<glm::vec4>("edgeColor", sEdgeColor);
+  Context::get().setUniform<float>("shadingFactor", 1.0f);
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   drawInternal();
   if (Context::wireframeMode()) {

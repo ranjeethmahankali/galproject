@@ -13,18 +13,17 @@ class MeshView : public Drawable
   friend struct MakeDrawable<gal::Mesh>;
 
 public:
-  static std::shared_ptr<Drawable> create(const Mesh& mesh);
+  MeshView() = default;
   ~MeshView();
 
   void draw() const;
 
-  MeshView() = default;
 
 private:
   MeshView(const MeshView&) = delete;
   const MeshView& operator=(const MeshView&) = delete;
 
-  MeshView(MeshView&& other) = default;
+  MeshView(MeshView&&) = default;
 
   void drawInternal() const;
 

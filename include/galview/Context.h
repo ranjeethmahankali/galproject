@@ -9,7 +9,15 @@ namespace view {
 class Drawable
 {
 public:
+  Drawable()          = default;
+  virtual ~Drawable() = default;
+
   virtual void draw() const = 0;
+
+private:
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+  Drawable(Drawable&&) = default;
 };
 
 // Template specialization needed.
