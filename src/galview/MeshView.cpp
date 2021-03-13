@@ -1,5 +1,5 @@
 #include <galview/MeshView.h>
-#include <galview/Shader.h>
+#include <galview/Context.h>
 #include <stdint.h>
 
 using namespace gal;
@@ -78,10 +78,10 @@ void MeshView::draw() const
 {
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   drawInternal();
-  if (Shader::wireframeMode()) {
-    Shader::setWireframeUniform(true);
+  if (Context::wireframeMode()) {
+    Context::setWireframeUniform(true);
     GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     drawInternal();
-    Shader::setWireframeUniform(false);
+    Context::setWireframeUniform(false);
   }
 }

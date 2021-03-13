@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
-out vec3 vertexColor;
+out vec4 vertexColor;
 
 uniform mat4 mvpMat;
 uniform bool edgeMode;
@@ -23,5 +23,6 @@ void main()
 
     fdot        = 0.1 * (1.0 - fdot) + 1.0 * fdot;
     vertexColor = faceColor * fdot;
+    vertexColor.a = 1.0;
   }
 }

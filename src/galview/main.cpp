@@ -5,7 +5,7 @@
 
 #include <galview/GLUtil.h>
 #include <galview/MeshView.h>
-#include <galview/Shader.h>
+#include <galview/Context.h>
 
 #include <galcore/ObjLoader.h>
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow* window = glfwCreateWindow(1280, 720, "First Attempt", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1600, 900, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -77,11 +77,12 @@ int main(int argc, char** argv)
   auto view = view::MeshView::create(loadBunny());
 
   // Init shader.
-  auto shader = view::Shader::loadFromName("simple");
-  shader.use();
+  view::Context& ctx = view::Context::get();
+  size_t shaderId = ctx.shaderId("simple");
+  ctx.useShader(shaderId);
 
-  view::Shader::registerCallbacks(window);
-  shader.setPerspective();
+  view::Context::registerCallbacks(window);
+  view::Context::get().setPerspective();
 
   // Setup IMGUI
   IMGUI_CHECKVERSION();
