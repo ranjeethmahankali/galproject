@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
-  size_t         shaderId = ctx.shaderId("simple");
+  size_t         shaderId = ctx.shaderId("default");
   ctx.useShader(shaderId);
 
   std::cout << "Setting up mouse event callbacks...\n";
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
   glLineWidth(1.5f);
 
   std::cout << "Starting render loop...\n";
-  
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 

@@ -69,7 +69,7 @@ Context& Context::get()
 Context::Context()
     : mShaders(1)
 {
-  mShaders[0].loadFromName("simple");
+  mShaders[0].loadFromName("default");
   useShader(0);
 
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
