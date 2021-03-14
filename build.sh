@@ -1,3 +1,7 @@
+
+CONFIG=${1-Release}
+mkdir -p build
 cd build
-cmake -DCMAKE_BUILD_TYPE=$1 ..
-cmake --config Release --build .
+echo "Building with configuration ${CONFIG}"
+cmake -DCMAKE_BUILD_TYPE=$CONFIG ..
+cmake --build . --config $CONFIG
