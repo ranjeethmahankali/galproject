@@ -62,6 +62,7 @@ static void glfw_error_cb(int error, const char* desc)
 int main(int argc, char** argv)
 {
   glfwSetErrorCallback(glfw_error_cb);
+  std::cout << "Initializign GLFW...\n";
   if (!glfwInit())
     return 1;
 
@@ -70,6 +71,7 @@ int main(int argc, char** argv)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+  std::cout << "...Opening the Window...\n";
   GLFWwindow* window = glfwCreateWindow(1600, 900, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
@@ -77,6 +79,7 @@ int main(int argc, char** argv)
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
 
+  std::cout << "...OpenGL bindings...\n";
   if (glewInit() != GLEW_OK) {
     std::cerr << "Failed to initialize OpenGLL loader!";
     return 1;
@@ -110,10 +113,12 @@ int main(int argc, char** argv)
   size_t         shaderId = ctx.shaderId("simple");
   ctx.useShader(shaderId);
 
+  std::cout << "Setting up mouse event callbacks...\n";
   view::Context::registerCallbacks(window);
   view::Context::get().setPerspective();
 
   // Setup IMGUI
+  std::cout << "Setting up ImGui...\n";
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
@@ -132,6 +137,8 @@ int main(int argc, char** argv)
   // view::Context::get().setWireframeMode(true);
   glLineWidth(1.5f);
 
+  std::cout << "Starting render loop...\n";
+  
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 

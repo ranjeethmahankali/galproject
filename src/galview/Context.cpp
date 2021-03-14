@@ -1,4 +1,5 @@
 #include <galcore/Mesh.h>
+#include <galcore/Util.h>
 #include <galview/Context.h>
 #include <fstream>
 #include <glm/glm.hpp>
@@ -271,6 +272,7 @@ static void checkLinking(uint32_t progId)
 
 static std::string readfile(const std::string& filepath)
 {
+  std::cout << "Reading shader source: " << filepath << std::endl;
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   std::stringstream file_stream;
@@ -318,7 +320,7 @@ void Context::Shader::loadFromFiles(const std::string& vpath, const std::string&
 
 void Context::Shader::loadFromName(const std::string& name)
 {
-  loadFromFiles(name + "_v.glsl", name + "_f.glsl");
+  loadFromFiles(utils::absPath(name + "_v.glsl"), utils::absPath(name + "_f.glsl"));
   mName = name;
 };
 
