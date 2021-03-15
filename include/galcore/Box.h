@@ -23,6 +23,20 @@ struct Box3
   glm::vec3 center() const;
   float     volume() const;
 
+  glm::vec3 eval(float u, float v, float w) const;
+
+  template <typename DstIter>
+  void randomPoints(size_t n, DstIter dst) const {
+      std::vector<float> x(n), y(n), z(n);
+      utils::random(min.x, max.x, n, x.data());
+      utils::random(min.y, max.y, n, y.data());
+      utils::random(min.z, max.z, n, z.data());
+      for (size_t i = 0; i < n; i++)
+      {
+        *(dst++) = glm::vec3(x[i], y[i], z[i]);
+      };
+  };
+
   static Box3      init(const glm::vec3&, const glm::vec3&);
   static glm::vec3 max_coords(const glm::vec3& a, const glm::vec3& b);
   static glm::vec3 min_coords(const glm::vec3& a, const glm::vec3& b);

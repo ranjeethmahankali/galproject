@@ -108,7 +108,14 @@ glm::vec3 Box3::min_coords(const glm::vec3& a, const glm::vec3& b)
 glm::vec3 Box3::max_coords(const glm::vec3& a, const glm::vec3& b)
 {
   return glm::vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
-}
+};
+
+glm::vec3 Box3::eval(float u, float v, float w) const
+{
+  return glm::vec3((1.0f - u) * min.x + u * max.x,
+                   (1.0f - v) * min.y + v * max.y,
+                   (1.0f - w) * min.z + w * max.z);
+};
 
 Box2::Box2()
     : min(vec2_unset)

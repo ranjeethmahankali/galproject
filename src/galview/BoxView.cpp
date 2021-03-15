@@ -15,6 +15,7 @@ void BoxView::draw() const {
   Context::get().setUniform<glm::vec4>("edgeColor", sLineColor);
   Context::get().setUniform<float>("shadingFactor", 0.0f);
   Context::get().setUniform<bool>("edgeMode", false);
+  Context::get().setUniform<bool>("pointMode", false);
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
   GL_CALL(glDrawElements(GL_LINES, mISize, GL_UNSIGNED_INT, nullptr));

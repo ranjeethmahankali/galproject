@@ -2,9 +2,12 @@
 #include <float.h>
 #include <stdint.h>
 #include <algorithm>
+#include <cstdlib>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
+#include <iostream>
 #include <limits>
+#include <type_traits>
 #include <vector>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
@@ -120,6 +123,26 @@ void copy_coords(const glm::tvec3<T>& v, T*& dst)
 };
 
 std::string absPath(const std::string& relPath);
+
+template<typename T, typename DstIter>
+void random(T min, T max, size_t count, DstIter dst)
+{
+  for (size_t i = 0; i < count; i++) {
+    if constexpr (std::is_integral_v<T>) {
+      T span   = max - min;
+      *(dst++) = min + (static_cast<T>(rand()) % span);
+    }
+    else if constexpr (std::is_floating_point_v<T>) {
+      static constexpr T TMax = static_cast<T>(RAND_MAX);
+      T                  span = max - min;
+      T val = static_cast<T>(rand());
+      *(dst++)                = min + span * (val / TMax);
+    }
+    else {
+      std::cerr << "Cannot generate random numbers of given type!\n";
+    }
+  }
+};
 
 }  // namespace utils
 }  // namespace gal

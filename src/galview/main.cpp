@@ -12,6 +12,7 @@
 #include <galcore/ConvexHull.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
+#include <galcore/PointCloud.h>
 
 using namespace gal;
 
@@ -98,15 +99,18 @@ int main(int argc, char** argv)
   // view::Context::get().addDrawable(hull.toMesh());
   auto box = mesh.bounds();
   view::Context::get().addDrawable(box);
+  gal::PointCloud cloud;
+  cloud.reserve(1000);
+  box.randomPoints(1000, std::back_inserter(cloud));
+  view::Context::get().addDrawable(cloud);
 
   auto ball = gal::Sphere {box.min, 0.8f};
 
   std::vector<size_t> queryFaces;
   mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
   auto querymesh = mesh.extractFaces(queryFaces);
-  view::Context::get().addDrawable(querymesh);
-
-  view::Context::get().addDrawable(ball);
+  //   view::Context::get().addDrawable(querymesh);
+  //   view::Context::get().addDrawable(ball);
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
@@ -134,6 +138,9 @@ int main(int argc, char** argv)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_POINT_SMOOTH);
+  glPointSize(3.0f);
   // view::Context::get().setWireframeMode(true);
   glLineWidth(1.5f);
 
