@@ -60,6 +60,61 @@ static void glfw_error_cb(int error, const char* desc)
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
+static void meshPlaneClippingDemo()
+{
+  auto mesh  = loadBunnySmall();
+  auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
+  mesh.clipWithPlane(plane);
+  view::Context::get().addDrawable(mesh);
+  view::Context::get().addDrawable(plane);
+}
+
+static void convexHullDemo()
+{
+  auto       mesh = loadBunnySmall();
+  ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
+  view::Context::get().addDrawable(hull.toMesh());
+}
+
+static void boxPointsDemo()
+{
+  Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+  view::Context::get().addDrawable(box);
+  gal::PointCloud cloud;
+  cloud.reserve(1000);
+  box.randomPoints(1000, std::back_inserter(cloud));
+  view::Context::get().addDrawable(cloud);
+}
+
+static void sphereQueryDemo()
+{
+  auto                mesh = loadBunnySmall();
+  auto                box  = mesh.bounds();
+  auto                ball = gal::Sphere {box.min, 0.8f};
+  std::vector<size_t> queryFaces;
+  mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
+  auto querymesh = mesh.extractFaces(queryFaces);
+  view::Context::get().addDrawable(querymesh);
+  view::Context::get().addDrawable(ball);
+}
+
+static void closestPointDemo()
+{
+  auto mesh = loadBunnySmall();
+  Box3 box  = mesh.bounds();
+  view::Context::get().addDrawable(box);
+  gal::PointCloud cloud, cloud2;
+  cloud.reserve(1000);
+  box.randomPoints(1000, std::back_inserter(cloud));
+  cloud2.reserve(cloud.size());
+  for (const auto& pt : cloud) {
+    cloud2.push_back(mesh.closestPoint(pt, FLT_MAX));
+  }
+  view::Context::get().addDrawable(mesh);
+  view::Context::get().addDrawable(cloud2);
+  //   view::Context::get().addDrawable(cloud);
+}
+
 int main(int argc, char** argv)
 {
   glfwSetErrorCallback(glfw_error_cb);
@@ -86,31 +141,11 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  // auto mesh = loadBunnyLarge();
-  auto       mesh = loadBunnySmall();
-  ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
-
-  // auto mesh = createBoxMesh();
-  // view::Context::get().addDrawable(mesh);
-  auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
-  // view::Context::get().addDrawable(plane);
-
-  // mesh.clipWithPlane(plane);
-  // view::Context::get().addDrawable(hull.toMesh());
-  auto box = mesh.bounds();
-  view::Context::get().addDrawable(box);
-  gal::PointCloud cloud;
-  cloud.reserve(1000);
-  box.randomPoints(1000, std::back_inserter(cloud));
-  view::Context::get().addDrawable(cloud);
-
-  auto ball = gal::Sphere {box.min, 0.8f};
-
-  std::vector<size_t> queryFaces;
-  mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
-  auto querymesh = mesh.extractFaces(queryFaces);
-  //   view::Context::get().addDrawable(querymesh);
-  //   view::Context::get().addDrawable(ball);
+  //   meshPlaneClippingDemo();
+  //   boxPointsDemo();
+  //   convexHullDemo();
+  //   sphereQueryDemo();
+  closestPointDemo();
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
