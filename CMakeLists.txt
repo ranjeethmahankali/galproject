@@ -10,7 +10,8 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
 # GALCORE
 project(galcore)
 
-find_package(Boost REQUIRED)
+find_package(PythonLibs 3.9 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python39)
 if (Boost_FOUND)
     add_compile_definitions(BOOST_UUID_FORCE_AUTO_LINK)
     include_directories(${Boost_INCLUDE_DIRS})
