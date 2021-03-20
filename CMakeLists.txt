@@ -7,13 +7,16 @@ set(VCPKG_TARGET_TRIPLET x64-linux)
 set(CMAKE_PREFIX_PATH $ENV{VCPKG_PATH}/installed/${VCPKG_TARGET_TRIPLET})
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Dependencies and Includes - begin
 project(gal)
+find_package(PythonInterp 3.9 REQUIRED)
 find_package(PythonLibs 3.9 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python39)
 if (Boost_FOUND)
     add_compile_definitions(BOOST_UUID_FORCE_AUTO_LINK)
-    include_directories(${Boost_INCLUDE_DIRS})
+    include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 endif()
 
 find_package(glm CONFIG REQUIRED)
@@ -38,8 +41,21 @@ target_link_libraries(galcore PUBLIC glm::glm)
 #GALFUNC - begin
 file(GLOB GALFUNC_SRC "src/galfunc/*.cpp")
 add_library(galfunc STATIC ${GALFUNC_SRC})
-target_link_libraries(galfunc ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(galfunc PUBLIC
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+    Boost::python39)
 target_include_directories(galfunc PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+add_library(pygalfunc SHARED ${GALFUNC_SRC})
+set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
+set_target_properties(pygalfunc PROPERTIES PREFIX "")
+target_link_libraries(pygalfunc PRIVATE
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+    galcore
+    Boost::python39)
+target_include_directories(pygalfunc PRIVATE ${PYTHON_INCLUDE_DIRS})
 #GALFUNC - end
 
 # GALVIEW - begin
