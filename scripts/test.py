@@ -5,6 +5,6 @@ import pygalfunc as pg
 
 mesh = pg.loadObjFile("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj")
 
-center = pg.meshCentroid(mesh)
+x, y, z = pg.meshCentroid(mesh)
 
-print("(%.3f, %.3f, %.3f)" % (center.x, center.y, center.z))
+print("(%.3f, %.3f, %.3f)" % (x, y, z))

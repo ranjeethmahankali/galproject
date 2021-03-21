@@ -1,13 +1,16 @@
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
+// #include <galcore/Mesh.h>
 
 namespace gal {
 namespace func {
 
-glm::vec3 meshCentroid(std::shared_ptr<gal::Mesh> mesh)
+boost::python::tuple meshCentroid(std::shared_ptr<gal::Mesh> mesh)
 {
-  return mesh->centroid(gal::eMeshCentroidType::volumeBased);
+  auto pt = mesh->centroid(gal::eMeshCentroidType::volumeBased);
+  return boost::python::make_tuple(pt.x, pt.y, pt.z);
 };
 
 std::shared_ptr<gal::Mesh> loadObjFile(const std::string& filepath)
@@ -19,11 +22,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
 {
   using namespace boost::python;
   class_<std::shared_ptr<gal::Mesh>>("Mesh");
-  class_<glm::vec3>("vec3")
-    .def_readwrite("x", &glm::vec3::x)
-    .def_readwrite("y", &glm::vec3::y)
-    .def_readwrite("z", &glm::vec3::z);
-
   def("meshCentroid", meshCentroid);
   def("loadObjFile", loadObjFile);
 };
