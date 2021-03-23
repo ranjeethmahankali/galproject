@@ -1,12 +1,9 @@
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <iostream>
 
 #include <glm/gtx/transform.hpp>
 
-#include <galview/AllViews.h>
 #include <galview/Context.h>
+#include <galview/AllViews.h>
 #include <galview/GLUtil.h>
 
 #include <galcore/ConvexHull.h>
