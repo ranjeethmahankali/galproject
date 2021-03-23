@@ -16,7 +16,6 @@ bool Drawable::opaque() const
 }
 
 static bool       sRightDown = false;
-static bool       sShiftDown = false;
 static bool       sLeftDown  = false;
 static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 
@@ -102,7 +101,8 @@ void Context::registerCallbacks(GLFWwindow* window)
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
 {
-  if (!sShiftDown)
+  ImGuiIO& io = ImGui::GetIO();
+  if (io.WantCaptureMouse)
     return;
   static constexpr float     sRotSpeed = 0.002f;
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
@@ -153,12 +153,7 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
 
 void Context::onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-  if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
-    if (action == GLFW_PRESS)
-      sShiftDown = true;
-    if (action == GLFW_RELEASE)
-      sShiftDown = false;
-  }
+  // No key events at the moment. But keeping this handler around just in case.
 }
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
