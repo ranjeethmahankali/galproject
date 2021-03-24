@@ -69,8 +69,15 @@ static void meshPlaneClippingDemo()
 
 static void convexHullDemo()
 {
-  auto       mesh = loadBunnySmall();
-  ConvexHull hull(mesh.vertexCBegin(), mesh.vertexCEnd());
+  static const Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+
+  std::vector<glm::vec3> points;
+//   points.reserve(n);
+//   box.randomPoints()
+  auto              mesh = loadBunnySmall();
+  ConvexHull        hull(mesh.vertexCBegin(), mesh.vertexCEnd());
   view::Context::get().addDrawable(hull.toMesh());
 }
 
@@ -100,17 +107,16 @@ void stupidImGuiDemo()
 {
   auto& panel = view::newPanel("window title");
   panel.newWidget<view::Text>("This is some useful text at the start.");
-  auto slider3 = panel.newWidget<view::Slider3>(std::string("Coords"), 0.0f, 1.0f);
+  auto slider3 = panel.newWidget<view::SliderF3>(std::string("Coords"), 0.0f, 1.0f);
 
   // Add handler to check the handlers are working.
   slider3->addHandler([](const float(&value)[3]) {
     std::cout << "Coords: (" << value[0] << ", " << value[1] << ", " << value[2] << ")\n";
   });
 
-  auto slider = panel.newWidget<view::Slider>(std::string("Slider"), 0.0f, 1.0f);
-  slider->addHandler([](const float& value) {
-      std::cout << "Slider: " << value << std::endl;
-  });
+  auto slider = panel.newWidget<view::SliderF>(std::string("Slider"), 0.0f, 1.0f);
+  slider->addHandler(
+    [](const float& value) { std::cout << "Slider: " << value << std::endl; });
 
   panel.newWidget<view::Text>("This is some other stupid text at the end.");
 };
