@@ -1,14 +1,11 @@
 #pragma once
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-
-#include <memory>
 #include <galview/GLUtil.h>
-#include <glm/glm.hpp>
 #include <stdint.h>
+#include <algorithm>
+#include <glm/glm.hpp>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 namespace gal {
@@ -113,7 +110,7 @@ private:
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-  void        cameraChanged();
+  void cameraChanged();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
