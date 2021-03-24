@@ -34,7 +34,7 @@ public:
     Face();
     Face(size_t i, size_t v1, size_t v2, size_t v3);
 
-    bool           is_valid();
+    bool           isValid();
     void           flip();
     gal::IndexPair edge(char edgeIndex) const;
     bool           containsVertex(size_t vertIndex) const;
