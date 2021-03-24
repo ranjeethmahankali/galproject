@@ -2,9 +2,10 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <galview/Context.h>
 #include <galview/AllViews.h>
+#include <galview/Context.h>
 #include <galview/GLUtil.h>
+#include <galview/Widget.h>
 
 #include <galcore/ConvexHull.h>
 #include <galcore/ObjLoader.h>
@@ -93,7 +94,26 @@ static void sphereQueryDemo()
   auto querymesh = mesh.extractFaces(queryFaces);
   view::Context::get().addDrawable(querymesh);
   view::Context::get().addDrawable(ball);
-}
+};
+
+void stupidImGuiDemo()
+{
+  auto& panel = view::newPanel("window title");
+  panel.newWidget<view::Text>("This is some useful text at the start.");
+  auto slider3 = panel.newWidget<view::Slider3>(std::string("Coords"), 0.0f, 1.0f);
+
+  // Add handler to check the handlers are working.
+  slider3->addHandler([](const float(&value)[3]) {
+    std::cout << "Coords: (" << value[0] << ", " << value[1] << ", " << value[2] << ")\n";
+  });
+
+  auto slider = panel.newWidget<view::Slider>(std::string("Slider"), 0.0f, 1.0f);
+  slider->addHandler([](const float& value) {
+      std::cout << "Slider: " << value << std::endl;
+  });
+
+  panel.newWidget<view::Text>("This is some other stupid text at the end.");
+};
 
 static void closestPointDemo()
 {
@@ -119,7 +139,7 @@ int main(int argc, char** argv)
   if (!glfwInit())
     return 1;
 
-  constexpr char glsl_version[] = "#version 330 core";
+  constexpr char glslVersion[] = "#version 330 core";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -154,14 +174,9 @@ int main(int argc, char** argv)
   view::Context::get().setPerspective();
 
   // Setup IMGUI
-  std::cout << "Setting up ImGui...\n";
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  ImGui::StyleColorsDark();  // Dark Mode
+  view::initializeImGui(window, glslVersion);
 
-  ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init(glsl_version);
+  stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
@@ -188,19 +203,8 @@ int main(int argc, char** argv)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    bool demoWindow = true;
-    ImGui::ShowDemoWindow(&demoWindow);
-
-    {  // Populate the ImGui window.
-      ImGui::Begin("Hello, world!");
-
-      ImGui::Text("This is some useful text.");
-      float                  pt[3];
-      static constexpr float min = 0.0f;
-      static constexpr float max = 1.0f;
-      ImGui::SliderFloat3("Test coords", pt, min, max);
-      ImGui::Text("This is just some text");
-      ImGui::End();
+    {
+      view::drawAllPanels();
     }
 
     ImGui::Render();
