@@ -80,7 +80,7 @@ protected:
 protected:
   void handleChanges()
   {
-    if (!ImGui::IsItemActive()) {
+    if (!ImGui::IsItemEdited()) {
       return;
     }
     for (auto handler : mHandlers) {
