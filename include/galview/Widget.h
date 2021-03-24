@@ -87,6 +87,9 @@ protected:
       handler(mValue);
     }
   };
+
+public:
+  const T& value() const { return mValue; };
 };
 
 template<typename T>

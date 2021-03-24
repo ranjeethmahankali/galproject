@@ -82,8 +82,7 @@ static void convexHullDemo()
     points.reserve(n);
     box.randomPoints(size_t(n), std::back_inserter(points));
     ConvexHull hull(points.begin(), points.end());
-    id = view::Context::get().replaceDrawable(
-      id, hull.toMesh());
+    id = view::Context::get().replaceDrawable(id, hull.toMesh());
   };
 
   // For the first time.
@@ -94,12 +93,25 @@ static void convexHullDemo()
 
 static void boxPointsDemo()
 {
-  Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+  using namespace std::string_literals;
+  auto& panel  = view::newPanel("Random Points Demo"s);
+  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 1000, 10);
+
+  static Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
   view::Context::get().addDrawable(box);
-  gal::PointCloud cloud;
-  cloud.reserve(1000);
-  box.randomPoints(1000, std::back_inserter(cloud));
-  view::Context::get().addDrawable(cloud);
+  static gal::PointCloud cloud;
+  static size_t          id = 0;
+
+  auto numUpdater = [](const int& n) {
+    cloud.clear();
+    cloud.reserve(n);
+    box.randomPoints(size_t(n), std::back_inserter(cloud));
+    id = view::Context::get().replaceDrawable(id, cloud);
+  };
+
+  // For the first time;
+  numUpdater(1000);
+  slider->addHandler(numUpdater);
 }
 
 static void sphereQueryDemo()
@@ -190,10 +202,9 @@ int main(int argc, char** argv)
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
   //   convexHullDemo();
-  //   sphereQueryDemo();
+  sphereQueryDemo();
   //   closestPointDemo();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
-  convexHullDemo();
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
