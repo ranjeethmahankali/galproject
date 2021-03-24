@@ -5,12 +5,16 @@
 namespace gal {
 namespace view {
 
+static ImFont* sFont = nullptr;
+
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
   std::cout << "Setting up ImGui...\n";
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
+  if (!sFont)
+    sFont = io.Fonts->AddFontFromFileTTF("CascadiaMono.ttf", 17.0f);
   ImGui::StyleColorsDark();  // Dark Mode
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -23,9 +27,13 @@ Panel::Panel(const std::string& title)
 void Panel::draw()
 {
   ImGui::Begin(mTitle.c_str());
+  if (sFont)
+    ImGui::PushFont(sFont);
   for (auto& w : mWidgets) {
     w->draw();
   }
+  if (sFont)
+    ImGui::PopFont();
   ImGui::End();
 };
 
