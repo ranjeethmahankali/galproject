@@ -71,7 +71,7 @@ static void convexHullDemo()
 {
   using namespace std::string_literals;
   auto& panel  = view::newPanel("Convex Hull Demo"s);
-  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 10000, 10);
+  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 1000, 10);
 
   static const Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
   static std::vector<glm::vec3> points;
