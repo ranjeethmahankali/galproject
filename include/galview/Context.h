@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -98,12 +99,11 @@ public:
 private:
   Context();
 
-  std::vector<Shader>                    mShaders;
-  std::vector<std::shared_ptr<Drawable>> mOpaqueDrawables;
-  std::vector<std::shared_ptr<Drawable>> mTransclucentDrawables;
-  glm::mat4                              mProj;
-  glm::mat4                              mView;
-  int32_t                                mShaderIndex = -1;
+  std::vector<Shader>                         mShaders;
+  std::map<size_t, std::shared_ptr<Drawable>> mDrawables;
+  glm::mat4                                   mProj;
+  glm::mat4                                   mView;
+  int32_t                                     mShaderIndex = -1;
 
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
@@ -116,16 +116,39 @@ private:
   void setUniformInternal(int location, const T& val);
 
 public:
+  /**
+   * @brief Adds a drawable object to the scene.
+   * The render data (tessellations) are generated for the object and added to the scene.
+   * MakeDrawable template is used to generate the render data so the object must
+   * specialize that template.
+   * @tparam T The type of the object.
+   * @param val The object.
+   * @return size_t The id of the render data added. This can be used later to
+   * replace the object, or to delete the object from the scene.
+   */
   template<typename T>
-  void addDrawable(const T& val)
+  size_t addDrawable(const T& val)
   {
-    auto drawable = MakeDrawable<T>::get(val);
-    if (drawable->opaque()) {
-      mOpaqueDrawables.push_back(drawable);
-    }
-    else {
-      mTransclucentDrawables.push_back(drawable);
-    }
+    auto   drawable = MakeDrawable<T>::get(val);
+    size_t id       = size_t(drawable.get());
+    mDrawables.emplace(id, drawable);
+    return id;
+  };
+
+  void removeDrawable(size_t id);
+
+  /**
+   * @brief Replaces the render data with the given id with the new data.
+   * @tparam T The type of the new object.
+   * @param id The old id.
+   * @param val The new object.
+   * @return size_t The id of the new render data.
+   */
+  template<typename T>
+  size_t replaceDrawable(size_t id, const T& val)
+  {
+    removeDrawable(id);
+    return addDrawable<T>(val);
   };
 };
 

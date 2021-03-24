@@ -334,13 +334,19 @@ Context::Shader::~Shader()
 
 void Context::render() const
 {
-  for (const auto& d : mOpaqueDrawables) {
-    d->draw();
+  for (const auto& pair : mDrawables) {
+    if (pair.second->opaque())
+      pair.second->draw();
   }
 
-  for (const auto& d : mTransclucentDrawables) {
-    d->draw();
+  for (const auto& pair : mDrawables) {
+    if (!pair.second->opaque())
+      pair.second->draw();
   }
+};
+
+void Context::removeDrawable(size_t id) {
+    mDrawables.erase(id);
 }
 
 }  // namespace view
