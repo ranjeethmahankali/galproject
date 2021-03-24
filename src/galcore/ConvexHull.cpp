@@ -42,9 +42,9 @@ void ConvexHull::initOutside()
   }
 }
 
-bool ConvexHull::Face::is_valid()
+bool ConvexHull::Face::isValid()
 {
-  return id != -1 && a != -1 && b != -1 && c != -1;
+  return (id != -1 && a != -1 && b != -1 && c != -1) && (a != b && b != c && c != a);
 }
 
 void ConvexHull::Face::flip()
@@ -124,14 +124,14 @@ void ConvexHull::compute()
       pFace = popFace(popQ.front(), edges, adjFaces);
       popQ.pop();
 
-      if (!pFace.is_valid()) {
+      if (!pFace.isValid()) {
         continue;
       }
 
       poppedFaces.push_back(pFace);
 
       for (size_t i = 0; i < 3; i++) {
-        if (!adjFaces[i].is_valid()) {
+        if (!adjFaces[i].isValid()) {
           continue;
         }
         if (faceVisible(adjFaces[i], farPt)) {
@@ -158,6 +158,8 @@ void ConvexHull::compute()
 
 void ConvexHull::setFace(Face& face)
 {
+  if (!face.isValid())
+    return;
   face.normal =
     glm::normalize(glm::cross(mPts[face.b] - mPts[face.a], mPts[face.c] - mPts[face.a]));
   if (faceVisible(face, mCenter)) {
@@ -372,7 +374,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
   mCenter /= 4;
 
   for (size_t i = 0; i < 4; i++) {
-    if (!simplex[i].is_valid()) {
+    if (!simplex[i].isValid()) {
       continue;
     }
     setFace(simplex[i]);
@@ -441,7 +443,7 @@ Mesh ConvexHull::toMesh() const
                  std::back_inserter(faces),
                  [&map, &vertices, this](const auto& pair) {
                    const auto& face = pair.second;
-                   size_t indices[3];
+                   size_t      indices[3];
                    for (uint8_t i = 0; i < 3; i++) {
                      auto match = map.find(face.indices[i]);
                      if (match == map.end()) {
