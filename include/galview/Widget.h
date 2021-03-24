@@ -90,6 +90,21 @@ protected:
 };
 
 template<typename T>
+inline void drawSlider(const char* label, T* value, T min, T max);
+
+template<>
+inline void drawSlider<float>(const char* label, float* value, float min, float max)
+{
+  ImGui::SliderFloat(label, value, min, max);
+};
+
+template<>
+inline void drawSlider<int>(const char* label, int* value, int min, int max)
+{
+  ImGui::SliderInt(label, value, min, max);
+};
+
+template<typename T>
 class Slider : public InputWidget<T>
 {
   static_assert(std::is_fundamental_v<T>, "Must be a fundamental type");
@@ -105,13 +120,22 @@ public:
 
   void draw()
   {
-    ImGui::SliderFloat(
+    drawSlider<T>(
       this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
     this->handleChanges();
   };
 
 private:
   T mRange[2];
+};
+
+template<typename T>
+inline void drawSlider3(const char* label, T (&value)[3], T min, T max);
+
+template<>
+inline void drawSlider3<float>(const char* label, float (&value)[3], float min, float max)
+{
+  ImGui::SliderFloat3(label, value, min, max);
 };
 
 template<typename T>
@@ -137,8 +161,7 @@ public:
 
   void draw()
   {
-    ImGui::SliderFloat3(
-      this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
+    drawSlider3<T>(this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
     this->handleChanges();
   };
 
@@ -147,6 +170,7 @@ private:
 };
 
 using SliderF  = Slider<float>;
+using SliderI  = Slider<int>;
 using SliderF3 = Slider3<float>;
 
 }  // namespace view

@@ -345,7 +345,9 @@ void Context::render() const
   }
 };
 
-void Context::removeDrawable(size_t id) {
+void Context::removeDrawable(size_t id)
+{
+  if (id != 0)
     mDrawables.erase(id);
 }
 

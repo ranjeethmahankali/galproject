@@ -69,16 +69,27 @@ static void meshPlaneClippingDemo()
 
 static void convexHullDemo()
 {
+  using namespace std::string_literals;
+  auto& panel  = view::newPanel("Convex Hull Demo"s);
+  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 10000, 10);
+
   static const Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+  static std::vector<glm::vec3> points;
+  static size_t                 id = 0;
 
+  auto updater = [](const int& n) {
+    points.clear();
+    points.reserve(n);
+    box.randomPoints(size_t(n), std::back_inserter(points));
+    ConvexHull hull(points.begin(), points.end());
+    id = view::Context::get().replaceDrawable(
+      id, hull.toMesh());
+  };
 
+  // For the first time.
+  updater(10);
 
-  std::vector<glm::vec3> points;
-//   points.reserve(n);
-//   box.randomPoints()
-  auto              mesh = loadBunnySmall();
-  ConvexHull        hull(mesh.vertexCBegin(), mesh.vertexCEnd());
-  view::Context::get().addDrawable(hull.toMesh());
+  slider->addHandler(updater);
 }
 
 static void boxPointsDemo()
@@ -164,12 +175,6 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  //   meshPlaneClippingDemo();
-  //   boxPointsDemo();
-  //   convexHullDemo();
-  //   sphereQueryDemo();
-  closestPointDemo();
-
   // Init shader.
   view::Context& ctx      = view::Context::get();
   size_t         shaderId = ctx.shaderId("default");
@@ -182,7 +187,13 @@ int main(int argc, char** argv)
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
 
-  stupidImGuiDemo();  // Demo using my own imgui integration.
+  //   meshPlaneClippingDemo();
+  //   boxPointsDemo();
+  //   convexHullDemo();
+  //   sphereQueryDemo();
+  //   closestPointDemo();
+  //   stupidImGuiDemo();  // Demo using my own imgui integration.
+  convexHullDemo();
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
