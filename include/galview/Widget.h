@@ -89,29 +89,65 @@ protected:
   };
 };
 
-class Slider : public InputWidget<float>
+template<typename T>
+class Slider : public InputWidget<T>
 {
-public:
-  Slider(const std::string& label, float min, float max);
-  Slider(const std::string& label, float min, float max, float value);
+  static_assert(std::is_fundamental_v<T>, "Must be a fundamental type");
+  static constexpr T ZERO = T(0);
 
-  void draw();
+public:
+  Slider(const std::string& label, T min, T max)
+      : InputWidget<T>(label, std::clamp(ZERO, min, max))
+      , mRange {min, max} {};
+  Slider(const std::string& label, T min, T max, T value)
+      : InputWidget<T>(label, std::clamp(value, min, max))
+      , mRange {min, max} {};
+
+  void draw()
+  {
+    ImGui::SliderFloat(
+      this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
+    this->handleChanges();
+  };
 
 private:
-  float mRange[2];
+  T mRange[2];
 };
 
-class Slider3 : public InputWidget<float[3]>
+template<typename T>
+class Slider3 : public InputWidget<T[3]>
 {
-public:
-  Slider3(const std::string& label, float min, float max);
-  Slider3(const std::string& label, float min, float max, const float (&value)[3]);
+  static_assert(std::is_fundamental_v<T>, "Must be a fundamental type");
+  static constexpr T ZERO = T(0);
 
-  void draw();
+public:
+  Slider3(const std::string& label, T min, T max)
+      : InputWidget<T[3]>(label)
+      , mRange {min, max}
+  {
+    std::fill_n(this->mValue, 3, std::clamp(ZERO, this->mRange[0], this->mRange[1]));
+  };
+
+  Slider3(const std::string& label, T min, T max, const T (&value)[3])
+      : InputWidget<T[3]>(label)
+      , mRange {min, max}
+  {
+    std::copy_n(value, 3, this->mValue);
+  };
+
+  void draw()
+  {
+    ImGui::SliderFloat3(
+      this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
+    this->handleChanges();
+  };
 
 private:
-  float mRange[2];
+  T mRange[2];
 };
+
+using SliderF  = Slider<float>;
+using SliderF3 = Slider3<float>;
 
 }  // namespace view
 }  // namespace gal
