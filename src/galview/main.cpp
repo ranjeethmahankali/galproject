@@ -119,7 +119,7 @@ static void sphereQueryDemo()
   using namespace std::string_literals;
   static auto   mesh   = loadBunnySmall();
   static auto   box    = mesh.bounds();
-  static auto   ball   = gal::Sphere {box.min, 0.8f};
+  static auto   ball   = gal::Sphere {{0.0f, 1.0f, 0.0f}, 0.8f};
   static size_t idMesh = 0;
   static size_t idBall = 0;
 
