@@ -116,14 +116,32 @@ static void boxPointsDemo()
 
 static void sphereQueryDemo()
 {
-  auto                mesh = loadBunnySmall();
-  auto                box  = mesh.bounds();
-  auto                ball = gal::Sphere {box.min, 0.8f};
-  std::vector<size_t> queryFaces;
-  mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
-  auto querymesh = mesh.extractFaces(queryFaces);
-  view::Context::get().addDrawable(querymesh);
-  view::Context::get().addDrawable(ball);
+  using namespace std::string_literals;
+  static auto   mesh   = loadBunnySmall();
+  static auto   box    = mesh.bounds();
+  static auto   ball   = gal::Sphere {box.min, 0.8f};
+  static size_t idMesh = 0;
+  static size_t idBall = 0;
+
+  auto& panel        = view::newPanel("Sphere Query");
+  auto  radiusSlider = panel.newWidget<view::SliderF>("Radius"s, 0.0f, 1.0f, 0.5f);
+
+  static auto meshUpdater = []() {
+    std::vector<size_t> queryFaces;
+    mesh.querySphere(ball, std::back_inserter(queryFaces), gal::eMeshElement::face);
+    auto querymesh = mesh.extractFaces(queryFaces);
+    idMesh         = view::Context::get().replaceDrawable(idMesh, querymesh);
+    idBall         = view::Context::get().replaceDrawable(idBall, ball);
+  };
+
+  auto radiusUpdater = [](const float& radius) {
+      ball.radius = radius;
+      meshUpdater();
+  };
+
+  radiusUpdater(0.5f); // First time.
+
+  radiusSlider->addHandler(radiusUpdater);
 };
 
 void stupidImGuiDemo()
