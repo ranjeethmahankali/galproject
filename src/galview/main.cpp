@@ -60,12 +60,37 @@ static void glfw_error_cb(int error, const char* desc)
 
 static void meshPlaneClippingDemo()
 {
-  auto mesh  = loadBunnySmall();
-  auto plane = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
-  mesh.clipWithPlane(plane);
-  view::Context::get().addDrawable(mesh);
-  view::Context::get().addDrawable(plane);
-}
+  using namespace std::string_literals;
+  auto& panel       = view::newPanel("Mesh-Plane-Clipping"s);
+  auto  ptSlider    = panel.newWidget<view::SliderF3>("Point"s, 0.0f, 1.0f);
+  float initNorm[3] = {0.0f, 0.0f, 1.0f};
+  auto  normSlider  = panel.newWidget<view::SliderF3>("Normal"s, 0.0f, 1.0f, initNorm);
+
+  static auto   plane   = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
+  static size_t meshId  = 0;
+  static size_t planeId = 0;
+
+  static auto meshUpdater = []() {
+    auto mesh = loadBunnySmall();
+    mesh.clipWithPlane(plane);
+    meshId  = view::Context::get().replaceDrawable(meshId, mesh);
+    planeId = view::Context::get().replaceDrawable(planeId, plane);
+  };
+
+  auto ptUpdater = [](const float(&coords)[3]) {
+    plane.origin = {coords[0], coords[1], coords[2]};
+    meshUpdater();
+  };
+
+  auto normUpdater = [](const float(&coords)[3]) {
+    plane.normal = {coords[0], coords[1], coords[2]};
+    meshUpdater();
+  };
+
+  meshUpdater();  // First time.
+  ptSlider->addHandler(ptUpdater);
+  normSlider->addHandler(normUpdater);
+};
 
 static void convexHullDemo()
 {
@@ -153,7 +178,7 @@ static void sphereQueryDemo()
   centerSlider->addHandler(centerUpdater);
 };
 
-void stupidImGuiDemo()
+static void stupidImGuiDemo()
 {
   auto& panel = view::newPanel("window title");
   panel.newWidget<view::Text>("This is some useful text at the start.");
@@ -173,19 +198,32 @@ void stupidImGuiDemo()
 
 static void closestPointDemo()
 {
-  auto mesh = loadBunnySmall();
-  Box3 box  = mesh.bounds();
+  using namespace std::string_literals;
+  auto& panel  = view::newPanel("window title");
+  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 5000, 1000);
+
+  static auto   mesh   = loadBunnySmall();
+  static Box3   box    = mesh.bounds();
+  static size_t ptsId  = 0;
+  static size_t meshId = 0;
   view::Context::get().addDrawable(box);
-  gal::PointCloud cloud, cloud2;
-  cloud.reserve(1000);
-  box.randomPoints(1000, std::back_inserter(cloud));
-  cloud2.reserve(cloud.size());
-  for (const auto& pt : cloud) {
-    cloud2.push_back(mesh.closestPoint(pt, FLT_MAX));
-  }
   view::Context::get().addDrawable(mesh);
-  view::Context::get().addDrawable(cloud2);
-  //   view::Context::get().addDrawable(cloud);
+
+  auto sliderUpdater = [](const int& n) {
+    gal::PointCloud cloud, cloud2;
+    cloud.reserve(n);
+    box.randomPoints(n, std::back_inserter(cloud));
+    cloud2.reserve(cloud.size());
+    for (const auto& pt : cloud) {
+      cloud2.push_back(mesh.closestPoint(pt, FLT_MAX));
+    }
+    ptsId = view::Context::get().replaceDrawable(ptsId, cloud2);
+  };
+
+  // First time.
+  sliderUpdater(1000);
+
+  slider->addHandler(sliderUpdater);
 }
 
 int main(int argc, char** argv)
@@ -229,8 +267,8 @@ int main(int argc, char** argv)
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
   //   convexHullDemo();
-  sphereQueryDemo();
-  //   closestPointDemo();
+  //   sphereQueryDemo();
+  closestPointDemo();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;
