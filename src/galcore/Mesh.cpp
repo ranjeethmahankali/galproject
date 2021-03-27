@@ -101,10 +101,12 @@ void Mesh::computeTopology()
 
 void Mesh::computeRTrees()
 {
+  mFaceTree.clear();
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
     mFaceTree.insert(faceBounds(fi), fi);
   }
 
+  mVertexTree.clear();
   size_t vi = 0;
   for (const glm::vec3& v : mVertices) {
     mVertexTree.insert(Box3(v), vi++);
@@ -727,9 +729,10 @@ void Mesh::EdgeTriplet::set(size_t i)
     throw i;
 }
 
-Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices) {
+Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices)
+{
   std::vector<glm::vec3> vertices;
-  std::vector<Face> faces;
+  std::vector<Face>      faces;
   faces.reserve(faceIndices.size());
   vertices.reserve(faceIndices.size() / 2);
 
@@ -737,21 +740,22 @@ Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices) {
 
   for (const auto& fi : faceIndices) {
     const Face& f = mFaces.at(fi);
-    Face face;
+    Face        face;
     for (uint8_t i = 0; i < 3; i++) {
-      size_t fvi = f.indices[i];
-      auto match = map.find(fvi);
+      size_t fvi   = f.indices[i];
+      auto   match = map.find(fvi);
       if (match == map.end()) {
         map.insert(std::make_pair(fvi, vertices.size()));
         face.indices[i] = vertices.size();
         vertices.push_back(mVertices[fvi]);
-      } else {
+      }
+      else {
         face.indices[i] = match->second;
       }
     }
     faces.push_back(face);
   }
-  
+
   return Mesh(std::move(vertices), std::move(faces));
 };
 

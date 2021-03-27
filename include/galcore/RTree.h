@@ -67,6 +67,9 @@ private:
   {
     return BoxT(fromBoost(b.min_corner()), fromBoost(b.max_corner()));
   };
+
+public:
+  void clear() { mTree.clear(); };
 };
 
 template class RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::Box2>;
