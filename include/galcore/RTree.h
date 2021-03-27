@@ -4,11 +4,77 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/geometries/point.hpp>
+#include <glm/glm.hpp>
 
+constexpr unsigned int RTREE_NUM_ELEMENTS_PER_NODE = 16;
 namespace bg                                       = boost::geometry;
 namespace bgi                                      = boost::geometry::index;
 namespace bgm                                      = boost::geometry::model;
-constexpr unsigned int RTREE_NUM_ELEMENTS_PER_NODE = 16;
+namespace rtree                                    = bgi::detail::rtree;
+
+template<typename Predicate,
+         typename Value,
+         typename Options,
+         typename Box,
+         typename Allocators>
+struct BFSQuery : public rtree::visitor<Value,
+                                        typename Options::parameters_type,
+                                        Box,
+                                        Allocators,
+                                        typename Options::node_tag,
+                                        true>::type
+{
+  typedef typename rtree::internal_node<Value,
+                                        typename Options::parameters_type,
+                                        Box,
+                                        Allocators,
+                                        typename Options::node_tag>::type internal_node;
+  typedef typename rtree::leaf<Value,
+                               typename Options::parameters_type,
+                               Box,
+                               Allocators,
+                               typename Options::node_tag>::type          leaf;
+
+  inline BFSQuery(Predicate const& p)
+      : pr(p)
+  {}
+
+  inline void operator()(internal_node const& n)
+  {
+    for (auto&& [bounds, node] : rtree::elements(n))
+      if (pr(bounds))
+        rtree::apply_visitor(*this, *node);
+  }
+
+  inline void operator()(leaf const& n)
+  {
+    for (auto& item : rtree::elements(n))
+      if (pr(item.first))
+        results.insert(&item);
+  }
+
+  Predicate const& pr;
+
+  std::set<Value const*> results;
+};
+
+template<typename TreeT, typename PredFn, typename Fn>
+void doBfsQuery(const TreeT& tree, PredFn pred, Fn action)
+{
+  using V = rtree::utilities::view<TreeT>;
+  V av(tree);
+
+  BFSQuery<PredFn,
+           typename V::value_type,
+           typename V::options_type,
+           typename V::box_type,
+           typename V::allocators_type>
+    vis(pred);
+
+  av.apply_visitor(vis);
+  for (auto* hit : vis.results)
+    action(*hit);
+};
 
 template<class BoostPointT, typename VecT, typename BoxT>
 class RTree
@@ -30,11 +96,14 @@ public:
   template<typename SizeTIter>
   void queryByDistance(const VecT& pt, float distance, SizeTIter inserter) const
   {
-    PointType center = toBoost(pt);
-    query(bgi::satisfies([=](const ItemType& item) {
-            return bg::distance(center, item.first) < distance;
-          }),
-          inserter);
+    PointType  center = toBoost(pt);
+    const auto pred   = [&center, distance](const BoxType& bounds) {
+      return bg::distance(center, bounds) < distance;
+    };
+    const auto action = [&inserter](const ItemType& item) {
+      *(inserter++) = item.second;
+    };
+    doBfsQuery<BoostTreeType, decltype(pred), decltype(action)>(mTree, pred, action);
   };
 
   template<typename SizeTIter>
