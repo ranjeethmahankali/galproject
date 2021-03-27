@@ -125,6 +125,7 @@ static void sphereQueryDemo()
 
   auto& panel        = view::newPanel("Sphere Query");
   auto  radiusSlider = panel.newWidget<view::SliderF>("Radius"s, 0.0f, 1.0f, 0.5f);
+  auto  centerSlider = panel.newWidget<view::SliderF3>("Center"s, 0.0f, 1.0f);
 
   static auto meshUpdater = []() {
     std::vector<size_t> queryFaces;
@@ -135,13 +136,21 @@ static void sphereQueryDemo()
   };
 
   auto radiusUpdater = [](const float& radius) {
-      ball.radius = radius;
-      meshUpdater();
+    ball.radius = radius;
+    meshUpdater();
   };
 
-  radiusUpdater(0.5f); // First time.
+  auto centerUpdater = [](const float(&coords)[3]) {
+    ball.center = {coords[0], coords[1], coords[2]};
+    meshUpdater();
+  };
+
+  // First time.
+  ball.radius = 0.5f;
+  meshUpdater();
 
   radiusSlider->addHandler(radiusUpdater);
+  centerSlider->addHandler(centerUpdater);
 };
 
 void stupidImGuiDemo()
