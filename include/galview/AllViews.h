@@ -3,3 +3,4 @@
 #include <galview/PlaneView.h>
 #include <galview/SphereView.h>
 #include <galview/PointCloudView.h>
+#include <galview/Circle2dView.h>

@@ -1,13 +1,33 @@
 #pragma once
-#include <memory>
+
 #include <galview/GLUtil.h>
-#include <glm/glm.hpp>
 #include <stdint.h>
+#include <algorithm>
+#include <glm/glm.hpp>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <vector>
 
 namespace gal {
 namespace view {
+
+struct RenderSettings
+{
+  glm::vec4                     faceColor     = {1.f, 1.f, 1.f, 1.f};
+  glm::vec4                     edgeColor     = {1.f, 1.f, 1.f, 1.f};
+  glm::vec4                     pointColor    = {1.f, 0.f, 0.f, 1.f};
+  float                         shadingFactor = 1.0f;
+  bool                          edgeMode      = false;
+  bool                          pointMode     = false;
+  bool                          orthoMode     = false;
+  std::pair<uint32_t, uint32_t> polygonMode   = {uint32_t(GL_FRONT_AND_BACK),
+                                               uint32_t(GL_FILL)};
+
+  void apply() const;
+
+  size_t opacityScore() const;
+};
 
 class Drawable
 {
@@ -28,7 +48,8 @@ private:
 template<typename T>
 struct MakeDrawable
 {
-  static std::shared_ptr<Drawable> get(const T& geom);
+  static std::shared_ptr<Drawable> get(const T&                     geom,
+                                       std::vector<RenderSettings>& renderSettings);
 };
 
 class Context
@@ -53,6 +74,12 @@ class Context
   };
 
 public:
+  struct RenderData
+  {
+    std::shared_ptr<Drawable> drawable;
+    RenderSettings            settings;
+  };
+
   static Context& get();
 
   static void registerCallbacks(GLFWwindow* window);
@@ -84,8 +111,10 @@ public:
                        float right  = 2.0f,
                        float top    = 1.1f,
                        float bottom = -1.1f,
-                       float near   = 0.01f,
+                       float near   = -5.f,
                        float far    = 100.0f);
+
+  void set2dMode(bool flag);
 
   size_t shaderId(const std::string& name) const;
 
@@ -96,34 +125,68 @@ public:
 private:
   Context();
 
-  std::vector<Shader>                    mShaders;
-  std::vector<std::shared_ptr<Drawable>> mOpaqueDrawables;
-  std::vector<std::shared_ptr<Drawable>> mTransclucentDrawables;
-  glm::mat4                              mProj;
-  glm::mat4                              mView;
-  int32_t                                mShaderIndex = -1;
+  std::vector<Shader> mShaders;
+
+  std::vector<RenderData> mDrawables;
+  std::vector<size_t>     mRenderOrder;
+
+  glm::mat4 mProj;
+  glm::mat4 mView;
+  int32_t   mShaderIndex = -1;
 
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-  void        cameraChanged();
+  void cameraChanged();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
 
+  void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable);
+
 public:
+  /**
+   * @brief Adds a drawable object to the scene.
+   * The render data (tessellations) are generated for the object and added to the scene.
+   * MakeDrawable template is used to generate the render data so the object must
+   * specialize that template.
+   * @tparam T The type of the object.
+   * @param val The object.
+   * @return size_t The id of the render data added. This can be used later to
+   * replace the object, or to delete the object from the scene.
+   */
+
   template<typename T>
-  void addDrawable(const T& val)
+  size_t addDrawable(const T& val)
   {
-    auto drawable = MakeDrawable<T>::get(val);
-    if (drawable->opaque()) {
-      mOpaqueDrawables.push_back(drawable);
+    std::vector<RenderSettings> settings;
+    auto                        drawable = MakeDrawable<T>::get(val, settings);
+    for (const auto& s : settings) {
+      mDrawables.push_back({drawable, s});
     }
-    else {
-      mTransclucentDrawables.push_back(drawable);
-    }
+    std::sort(
+      mDrawables.begin(), mDrawables.end(), [](const RenderData& a, const RenderData& b) {
+        return a.settings.opacityScore() > b.settings.opacityScore();
+      });
+    return size_t(drawable.get());
+  };
+
+  void removeDrawable(size_t id);
+
+  /**
+   * @brief Replaces the render data with the given id with the new data.
+   * @tparam T The type of the new object.
+   * @param id The old id.
+   * @param val The new object.
+   * @return size_t The id of the new render data.
+   */
+  template<typename T>
+  size_t replaceDrawable(size_t id, const T& val)
+  {
+    removeDrawable(id);
+    return addDrawable<T>(val);
   };
 };
 

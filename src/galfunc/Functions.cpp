@@ -2,7 +2,7 @@
 #include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
-// #include <galcore/Mesh.h>
+#include <boost/python.hpp>
 
 namespace gal {
 namespace func {
