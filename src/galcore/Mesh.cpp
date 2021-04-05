@@ -536,8 +536,8 @@ bool Mesh::contains(const glm::vec3& pt) const
 
 void Mesh::clipWithPlane(const Plane& plane)
 {
-  const glm::vec3& pt     = plane.origin;
-  const glm::vec3& normal = plane.normal;
+  const glm::vec3& pt     = plane.origin();
+  const glm::vec3& normal = plane.normal();
   glm::vec3        unorm  = glm::normalize(normal);
 
   // Calculate vertex distances.

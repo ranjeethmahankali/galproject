@@ -14,6 +14,28 @@
 namespace gal {
 namespace view {
 
+void RenderSettings::apply() const
+{
+  Context& ctx = Context::get();
+  ctx.setUniform<glm::vec4>("faceColor", faceColor);
+  ctx.setUniform<glm::vec4>("edgeColor", edgeColor);
+  ctx.setUniform<glm::vec4>("pointColor", pointColor);
+  ctx.setUniform<float>("shadingFactor", shadingFactor);
+  ctx.setUniform<bool>("edgeMode", edgeMode);
+  ctx.setUniform<bool>("pointMode", pointMode);
+  ctx.setUniform<bool>("orthoMode", orthoMode);
+
+  GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
+};
+
+size_t RenderSettings::opacityScore() const
+{
+  size_t score = 100 * size_t(float(UINT8_MAX) * std::clamp(faceColor.a, 0.f, 1.f));
+  score += 10 * size_t(float(UINT8_MAX) * std::clamp(edgeColor.a, 0.f, 1.f));
+  score += size_t(float(UINT8_MAX) * std::clamp(pointColor.a, 0.f, 1.f));
+  return score;
+};
+
 bool Drawable::opaque() const
 {
   return true;  // Everything is assumed to be opaque by default, unless overriden.
@@ -26,6 +48,7 @@ static glm::dvec2 sMousePos  = {0.0f, 0.0f};
 static glm::mat4 sTrans    = glm::identity<glm::mat4>();
 static glm::mat4 sInvTrans = glm::identity<glm::mat4>();
 
+static bool s2dMode   = false;
 static bool sEdgeMode = false;
 
 static void captureMousePos(double x, double y)
@@ -37,6 +60,10 @@ static void captureMousePos(double x, double y)
 void Context::cameraChanged()
 {
   setUniform("mvpMat", mvpMatrix());
+};
+
+void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable) {
+  // Incomplete
 };
 
 size_t Context::shaderId(const std::string& name) const
@@ -67,6 +94,19 @@ Context& Context::get()
   // Singleton instance.
   static Context sInstance;
   return sInstance;
+};
+
+void Context::set2dMode(bool flag)
+{
+  s2dMode = flag;
+  if (s2dMode) {
+    useCamera({0.0f, 0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
+    setOrthographic();
+  }
+  else {
+    useCamera({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+    setPerspective();
+  }
 };
 
 Context::Context()
@@ -111,6 +151,9 @@ void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
   static constexpr glm::vec4 sXAxis    = {1.0f, 0.0f, 0.0f, 0.0};
   if (sRightDown) {
+    if (s2dMode) {
+      return;  // cannot orbit in 2d mode.
+    }
     get().mView *=
       sInvTrans *
       glm::rotate(glm::rotate(float((xpos - sMousePos[0]) * sRotSpeed), sZAxis),
@@ -213,6 +256,7 @@ void Context::setPerspective(float fovy, float aspect, float near, float far)
 {
   get().mProj = glm::perspective(fovy, aspect, near, far);
   cameraChanged();
+  get().setUniform<bool>("orthoMode", false);
 };
 
 void Context::setOrthographic(float left,
@@ -224,6 +268,7 @@ void Context::setOrthographic(float left,
 {
   get().mProj = glm::ortho(left, right, bottom, top, near, far);
   cameraChanged();
+  get().setUniform<bool>("orthoMode", true);
 };
 
 static void checkCompilation(uint32_t id, uint32_t type)
@@ -334,21 +379,45 @@ Context::Shader::~Shader()
 
 void Context::render() const
 {
-  for (const auto& pair : mDrawables) {
-    if (pair.second->opaque())
-      pair.second->draw();
+  for (const auto& data : mDrawables) {
+    data.settings.apply();
+    data.drawable->draw();
   }
+//   for (const auto& pair : mDrawables) {
+//     if (pair.second->opaque()) {
+//       auto& settings = pair.second->renderSettings();
+//       for (const auto& s : settings) {
+//         s.apply();
+//         pair.second->draw();
+//       }
+//     }
+//   }
 
-  for (const auto& pair : mDrawables) {
-    if (!pair.second->opaque())
-      pair.second->draw();
-  }
+//   for (const auto& pair : mDrawables) {
+//     if (!pair.second->opaque()) {
+//       auto& settings = pair.second->renderSettings();
+//       for (const auto& s : settings) {
+//         s.apply();
+//         pair.second->draw();
+//       }
+//     }
+//   }
 };
 
 void Context::removeDrawable(size_t id)
 {
-  if (id != 0)
-    mDrawables.erase(id);
+  for (size_t i = 0; i < mDrawables.size(); i++) {
+    auto& data = mDrawables.at(i);
+    if (size_t(data.drawable.get()) == id) {
+      data.drawable = nullptr;
+    }
+  }
+
+  mDrawables.erase(
+    std::remove_if(mDrawables.begin(),
+                   mDrawables.end(),
+                   [](const RenderData& data) { return data.drawable.get() == nullptr; }),
+    mDrawables.end());
 }
 
 }  // namespace view

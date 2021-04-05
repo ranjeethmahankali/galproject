@@ -25,16 +25,16 @@ struct Box3
 
   glm::vec3 eval(float u, float v, float w) const;
 
-  template <typename DstIter>
-  void randomPoints(size_t n, DstIter dst) const {
-      std::vector<float> x(n), y(n), z(n);
-      utils::random(min.x, max.x, n, x.data());
-      utils::random(min.y, max.y, n, y.data());
-      utils::random(min.z, max.z, n, z.data());
-      for (size_t i = 0; i < n; i++)
-      {
-        *(dst++) = glm::vec3(x[i], y[i], z[i]);
-      };
+  template<typename DstIter>
+  void randomPoints(size_t n, DstIter dst) const
+  {
+    std::vector<float> x(n), y(n), z(n);
+    utils::random(min.x, max.x, n, x.data());
+    utils::random(min.y, max.y, n, y.data());
+    utils::random(min.z, max.z, n, z.data());
+    for (size_t i = 0; i < n; i++) {
+      *(dst++) = glm::vec3(x[i], y[i], z[i]);
+    };
   };
 
   static Box3      init(const glm::vec3&, const glm::vec3&);
@@ -60,6 +60,17 @@ struct Box2
   bool      contains(const Box2&) const;
   bool      intersects(const Box2&) const;
   glm::vec2 center() const;
+
+  template<typename DstIter>
+  void randomPoints(size_t n, DstIter dst) const
+  {
+    std::vector<float> x(n), y(n);
+    utils::random(min.x, max.x, n, x.data());
+    utils::random(min.y, max.y, n, y.data());
+    for (size_t i = 0; i < n; i++) {
+      *(dst++) = glm::vec2(x[i], y[i]);
+    };
+  };
 
   static Box2      init(const glm::vec2&, const glm::vec2&);
   static glm::vec2 max_coords(const glm::vec2& a, const glm::vec2& b);

@@ -7,6 +7,7 @@
 #include <galview/GLUtil.h>
 #include <galview/Widget.h>
 
+#include <galcore/Circle2d.h>
 #include <galcore/ConvexHull.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
@@ -14,7 +15,7 @@
 
 using namespace gal;
 
-static Mesh createBoxMesh()
+static void createBoxMeshDemo()
 {
   // clang-format off
   static constexpr std::array<float, 24> sCoords = {
@@ -38,7 +39,10 @@ static Mesh createBoxMesh()
   };
   // clang-format on
 
-  return Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3);
+  auto mesh =
+    Mesh(sCoords.data(), sCoords.size() / 3, sIndices.data(), sIndices.size() / 3);
+
+  view::Context::get().addDrawable(mesh);
 }
 
 static Mesh loadBunnyLarge()
@@ -78,12 +82,12 @@ static void meshPlaneClippingDemo()
   };
 
   auto ptUpdater = [](const float(&coords)[3]) {
-    plane.origin = {coords[0], coords[1], coords[2]};
+    plane.setOrigin({coords[0], coords[1], coords[2]});
     meshUpdater();
   };
 
   auto normUpdater = [](const float(&coords)[3]) {
-    plane.normal = {coords[0], coords[1], coords[2]};
+    plane.setNormal({coords[0], coords[1], coords[2]});
     meshUpdater();
   };
 
@@ -226,6 +230,40 @@ static void closestPointDemo()
   slider->addHandler(sliderUpdater);
 }
 
+static void circumCircleDemo()
+{
+  view::Context::get().set2dMode(true);
+  //   view::Context::get().addDrawable(gal::Circle2d(glm::vec3 {0.f, 0.f, 0.f}, 0.5f));
+  //   view::Context::get().addDrawable(gal::Circle2d(glm::vec3 {0.5f, 0.f, 0.f}, 0.5f));
+  glm::vec2 verts[3] = {
+    glm::vec2 {0.0f, 0.2f}, glm::vec2 {1.0f, 0.3f}, glm::vec2 {0.4f, 1.f}};
+
+  gal::PointCloud cloud;
+  cloud.reserve(3);
+  for (const auto& pt : verts) {
+    cloud.emplace_back(pt.x, pt.y, 0.f);
+  }
+  view::Context::get().addDrawable(cloud);
+  view::Context::get().addDrawable(
+    gal::Circle2d::createCircumcircle(verts[0], verts[1], verts[2]));
+};
+
+static void boundingCircleDemo()
+{
+  view::Context::get().set2dMode(true);
+
+  static size_t nPts = 20;
+  static Box2   b(glm::vec2 {-1.f, -1.f}, glm::vec2 {1.f, 1.f});
+
+  std::vector<glm::vec2> pts;
+  pts.reserve(nPts);
+  b.randomPoints(nPts, std::back_inserter(pts));
+
+  view::Context::get().addDrawable(gal::PointCloud(pts));
+  view::Context::get().addDrawable(
+    gal::Circle2d::minBoundingCircle(pts.data(), pts.size()));
+}
+
 int main(int argc, char** argv)
 {
   glfwSetErrorCallback(glfw_error_cb);
@@ -244,7 +282,7 @@ int main(int argc, char** argv)
     return 1;
 
   glfwMakeContextCurrent(window);
-  glfwSwapInterval(1);
+  glfwSwapInterval(0);
 
   std::cout << "...OpenGL bindings...\n";
   if (glewInit() != GLEW_OK) {
@@ -264,11 +302,16 @@ int main(int argc, char** argv)
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
 
+  view::Context::get().setWireframeMode(true);
+
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
   //   convexHullDemo();
   //   sphereQueryDemo();
-  closestPointDemo();
+  //   createBoxMeshDemo();
+  // closestPointDemo();
+  //   circumCircleDemo();
+  boundingCircleDemo();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;
@@ -277,11 +320,10 @@ int main(int argc, char** argv)
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_LINE_SMOOTH);
+  //   glEnable(GL_LINE_SMOOTH);
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_POINT_SMOOTH);
   glPointSize(3.0f);
-  // view::Context::get().setWireframeMode(true);
   glLineWidth(1.5f);
 
   std::cout << "Starting render loop...\n";
@@ -289,9 +331,7 @@ int main(int argc, char** argv)
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    view::imGuiNewFrame();
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -300,7 +340,7 @@ int main(int argc, char** argv)
       view::drawAllPanels();
     }
 
-    ImGui::Render();
+    view::imGuiRender();
 
     view::Context::get().render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
