@@ -28,10 +28,11 @@ private:
 template<>
 struct MakeDrawable<gal::Box3>
 {
-  static std::shared_ptr<Drawable> get(const gal::Box3& box)
+  static std::shared_ptr<Drawable> get(const gal::Box3&             box,
+                                       std::vector<RenderSettings>& renderSettings)
   {
-    glm::vec3 min = box.min;
-    glm::vec3 max = box.max;
+    glm::vec3                  min   = box.min;
+    glm::vec3                  max   = box.max;
     static constexpr glm::vec3 sZero = {0.0f, 0.0f, 0.0f};
 
     std::array<glm::vec3, 16> vBuf = {{
@@ -72,10 +73,8 @@ struct MakeDrawable<gal::Box3>
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, view->mVSize, vBuf.data(), GL_STATIC_DRAW));
 
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, view->mIBO));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                         sizeof(iBuf),
-                         iBuf.data(),
-                         GL_STATIC_DRAW));
+    GL_CALL(
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iBuf), iBuf.data(), GL_STATIC_DRAW));
 
     // Vertex position attribute.
     GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));
@@ -84,6 +83,14 @@ struct MakeDrawable<gal::Box3>
     // Unbind stuff.
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GL_CALL(glBindVertexArray(0));
+
+    // Render settings.
+    static constexpr glm::vec4 sLineColor = {1.0, 1.0, 1.0, 1.0};
+    RenderSettings             settings;
+    settings.faceColor     = sLineColor;
+    settings.edgeColor     = sLineColor;
+    settings.shadingFactor = 0.0f;
+    renderSettings.push_back(settings);
     return view;
   }
 };

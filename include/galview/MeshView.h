@@ -37,7 +37,8 @@ private:
 template<>
 struct MakeDrawable<gal::Mesh>
 {
-  static std::shared_ptr<Drawable> get(const gal::Mesh& mesh)
+  static std::shared_ptr<Drawable> get(const gal::Mesh&             mesh,
+                                       std::vector<RenderSettings>& renderSettings)
   {
     std::shared_ptr<MeshView> view = std::make_shared<MeshView>();
 
@@ -90,6 +91,21 @@ struct MakeDrawable<gal::Mesh>
     // Unbind stuff.
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GL_CALL(glBindVertexArray(0));
+
+    // Render settings
+    static constexpr glm::vec4 sFaceColor = {1.0, 1.0, 1.0, 1.0};
+    static constexpr glm::vec4 sEdgeColor = {0.0, 0.0, 0.0, 1.0};
+    RenderSettings             settings;
+    settings.faceColor   = sFaceColor;
+    settings.edgeColor   = sEdgeColor;
+    settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
+    renderSettings.push_back(settings);
+    if (Context::get().wireframeMode()) {
+      settings.edgeColor   = {0.f, 0.f, 0.f, 1.f};
+      settings.faceColor   = {0.f, 0.f, 0.f, 1.f};
+      settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_LINE);
+      renderSettings.push_back(settings);
+    }
     return view;
   };
 };
