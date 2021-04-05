@@ -30,39 +30,28 @@ private:
 template<>
 struct MakeDrawable<gal::Plane>
 {
-  static std::shared_ptr<Drawable> get(const gal::Plane& plane)
+  static std::shared_ptr<Drawable> get(const gal::Plane&            plane,
+                                       std::vector<RenderSettings>& renderSettings)
   {
     auto view = std::make_shared<gal::view::PlaneView>();
 
     static constexpr size_t    sNumVerts = 6;
-    static constexpr float     sHalfSize = 3.0f;
+    static constexpr float     sHalfSize = 2.0f;
     static constexpr glm::vec3 sXAxis    = {1.0f, 0.0f, 0.0f};
     static constexpr glm::vec3 sYAxis    = {0.0f, 1.0f, 0.0f};
     static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
 
-    glm::vec3 x, y;
-    if (sZAxis == plane.normal) {
-      x = glm::normalize(sXAxis);
-      y = glm::normalize(sYAxis);
-    }
-    else if (sZAxis == -plane.normal) {
-      x = glm::normalize(-sXAxis);
-      y = glm::normalize(-sYAxis);
-    }
-    else {
-      x = glm::normalize(glm::cross(plane.normal, sZAxis));
-      y = glm::normalize(glm::cross(plane.normal, x));
-    }
+    glm::vec3 x = plane.xaxis(), y = plane.yaxis();
 
     std::array<glm::vec3, 8> vBuf = {{
-      plane.origin - (x * sHalfSize) - (y * sHalfSize),
-      plane.normal,
-      plane.origin + (x * sHalfSize) - (y * sHalfSize),
-      plane.normal,
-      plane.origin - (x * sHalfSize) + (y * sHalfSize),
-      plane.normal,
-      plane.origin + (x * sHalfSize) + (y * sHalfSize),
-      plane.normal,
+      plane.origin() - (x * sHalfSize) - (y * sHalfSize),
+      plane.normal(),
+      plane.origin() + (x * sHalfSize) - (y * sHalfSize),
+      plane.normal(),
+      plane.origin() - (x * sHalfSize) + (y * sHalfSize),
+      plane.normal(),
+      plane.origin() + (x * sHalfSize) + (y * sHalfSize),
+      plane.normal(),
     }};
 
     size_t nvBytes = sizeof(vBuf);
@@ -86,6 +75,14 @@ struct MakeDrawable<gal::Plane>
     // Unbind stuff.
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GL_CALL(glBindVertexArray(0));
+
+    // Render settings.
+    static constexpr glm::vec4 sFaceColor = {0.7, 0.0, 0.0, 0.2};
+    RenderSettings             settings;
+    settings.faceColor     = sFaceColor;
+    settings.shadingFactor = 0.0f;
+    settings.polygonMode   = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
+    renderSettings.push_back(settings);
     return view;
   };
 };

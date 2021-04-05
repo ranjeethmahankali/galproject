@@ -3697,7 +3697,8 @@ private:
 template<>
 struct MakeDrawable<gal::Sphere>
 {
-  static std::shared_ptr<Drawable> get(const gal::Sphere& sphere)
+  static std::shared_ptr<Drawable> get(const gal::Sphere&           sphere,
+                                       std::vector<RenderSettings>& renderSettings)
   {
     auto view = std::make_shared<SphereView>();
 
@@ -3737,6 +3738,15 @@ struct MakeDrawable<gal::Sphere>
     // Unbind stuff.
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     GL_CALL(glBindVertexArray(0));
+
+    // Render settings.
+    static constexpr glm::vec4 sFaceColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    static constexpr glm::vec4 sEdgeColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    RenderSettings             settings;
+    settings.faceColor     = sFaceColor;
+    settings.edgeColor     = sEdgeColor;
+    settings.shadingFactor = 0.9f;
+    renderSettings.push_back(settings);
     return view;
   };
 };

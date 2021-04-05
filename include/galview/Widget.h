@@ -15,6 +15,10 @@ namespace view {
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion);
 
+void imGuiNewFrame();
+
+void imGuiRender();
+
 class Widget
 {
 public:

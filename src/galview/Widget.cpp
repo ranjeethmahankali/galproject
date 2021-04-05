@@ -1,4 +1,5 @@
 
+#include <galcore/Util.h>
 #include <galview/Widget.h>
 #include <iostream>
 
@@ -13,13 +14,25 @@ void initializeImGui(GLFWwindow* window, const char* glslVersion)
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
-  if (!sFont)
-    sFont = io.Fonts->AddFontFromFileTTF("CascadiaMono.ttf", 17.0f);
+  if (!sFont) {
+    std::string absPath = utils::absPath("CascadiaMono.ttf");
+    sFont               = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.0f);
+  }
   ImGui::StyleColorsDark();  // Dark Mode
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glslVersion);
 };
+
+void imGuiNewFrame() {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+};
+
+void imGuiRender() {
+    ImGui::Render();
+}
 
 Panel::Panel(const std::string& title)
     : mTitle(title) {};
