@@ -7,6 +7,21 @@
 namespace gal {
 namespace func {
 
+namespace types {
+
+// clang-format off
+template<> struct TypeInfo<bool         > { static constexpr uint32_t id = 0x9566a7b1; };
+template<> struct TypeInfo<int32_t      > { static constexpr uint32_t id = 0x9234a3b1; };
+template<> struct TypeInfo<float        > { static constexpr uint32_t id = 0x32542672; };
+template<> struct TypeInfo<gal::Mesh    > { static constexpr uint32_t id = 0x45342367; };
+// clang-format on
+
+}  // namespace types
+
+namespace store {
+
+}
+
 boost::python::tuple meshCentroid(std::shared_ptr<gal::Mesh> mesh)
 {
   auto pt = mesh->centroid(gal::eMeshCentroidType::volumeBased);
