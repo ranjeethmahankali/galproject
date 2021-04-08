@@ -1,8 +1,11 @@
 #pragma once
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
+#include <galfunc/MapMacro.h>
 #include <string.h>
-#include <functional>
 #include <boost/python.hpp>
+#include <functional>
+#include <iostream>
 
 namespace gal {
 namespace func {
@@ -31,7 +34,6 @@ struct TypeInfo : public std::false_type
 template<> struct TypeInfo<bool         > { static constexpr uint32_t id = 0x9566a7b1; };
 template<> struct TypeInfo<int32_t      > { static constexpr uint32_t id = 0x9234a3b1; };
 template<> struct TypeInfo<float        > { static constexpr uint32_t id = 0x32542672; };
-template<> struct TypeInfo<gal::Mesh    > { static constexpr uint32_t id = 0x45342367; };
 // clang-format on
 
 template<size_t N, typename T>
@@ -232,6 +234,27 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 };
 
 }  // namespace types
+
+template<size_t N, typename CppTupleType, typename... TArgs>
+boost::python::tuple pythonTupleInternal(const CppTupleType cppTup, TArgs... args)
+{
+  static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
+  static_assert(N <= tupleSize, "Invalid tuple accecssor");
+
+  if constexpr (N < tupleSize) {
+    return pythonTupleInternal<N + 1>(
+      cppTup, store::getRegister(std::get<N>(cppTup)), args...);
+  }
+  else if constexpr (N == tupleSize) {
+    return boost::python::make_tuple(args...);
+  }
+};
+
+template<typename... Ts>
+boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
+{
+  return pythonTupleInternal<0>(cppTup);
+};
 
 }  // namespace func
 }  // namespace gal
