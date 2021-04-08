@@ -236,13 +236,13 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 }  // namespace types
 
 template<size_t N, typename CppTupleType, typename... TArgs>
-boost::python::tuple pythonTupleInternal(const CppTupleType cppTup, TArgs... args)
+boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
 {
   static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
   static_assert(N <= tupleSize, "Invalid tuple accecssor");
 
   if constexpr (N < tupleSize) {
-    return pythonTupleInternal<N + 1>(
+    return pythonRegisterTupleInternal<N + 1>(
       cppTup, store::getRegister(std::get<N>(cppTup)), args...);
   }
   else if constexpr (N == tupleSize) {
@@ -253,7 +253,7 @@ boost::python::tuple pythonTupleInternal(const CppTupleType cppTup, TArgs... arg
 template<typename... Ts>
 boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
 {
-  return pythonTupleInternal<0>(cppTup);
+  return pythonRegisterTupleInternal<0>(cppTup);
 };
 
 }  // namespace func
