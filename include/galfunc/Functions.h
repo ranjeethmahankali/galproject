@@ -10,6 +10,13 @@
 namespace gal {
 namespace func {
 
+// Interface.
+struct Function
+{
+  virtual void     run()                              = 0;
+  virtual uint64_t outputRegister(size_t index) const = 0;
+};
+
 namespace types {
 
 // Can be used to check at compile time if a type is a template instantiation.
@@ -61,19 +68,39 @@ struct Register
 {
   std::shared_ptr<void> ptr;
   std::string           typeName;
+  uint64_t              id;
+  const Function*       owner;
   uint32_t              typeId;
   bool                  mDirty = true;
-
-  uint64_t getId() const;
 };
 
-uint64_t allocate();  // Incomplete: Someone should own this allocated register.
+uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName);
 void     free(uint64_t id);
 
-void                  set(uint64_t id, const std::shared_ptr<void>& data);
-std::shared_ptr<void> get(uint64_t id);
-
 Register& getRegister(uint64_t id);
+
+template<typename T>
+void set(uint64_t id, const std::shared_ptr<T>& data)
+{
+  auto& reg = getRegister(id);
+  if (types::TypeInfo<T>::id == reg.typeId) {
+    reg.ptr = data;
+    return;
+  }
+  std::cerr << "Type mismatch error.\n";
+  throw std::bad_alloc();
+};
+
+template<typename T>
+std::shared_ptr<T> get(uint64_t id)
+{
+  auto& reg = getRegister(id);
+  if (types::TypeInfo<T>::id == reg.typeId) {
+    return std::static_pointer_cast<T>(reg.ptr);
+  }
+  std::cerr << "Type mismatch error.\n";
+  throw std::bad_alloc();
+};
 
 };  // namespace store
 
@@ -130,13 +157,15 @@ public:
       RegisterAccessor<TDataList, N + 1>::writeToRegisters(ids, src);
     }
   };
-};
 
-// Interface.
-struct Function
-{
-  virtual void     run()                              = 0;
-  virtual uint64_t outputRegister(size_t index) const = 0;
+  static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
+  {
+    regIds[N] =
+      store::allocate(fn, types::TypeInfo<DType>::id, std::string(typeid(DType).name()));
+    if constexpr (N < NumData - 1) {
+      RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
+    }
+  };
 };
 
 template<typename TInputs, typename TOutputs>
@@ -164,10 +193,7 @@ public:
       : mFunc(std::move(fn))
       , mInputs(inputs)
   {
-    // Allocate output registers.
-    for (size_t i = 0; i < NumOutputs; i++) {
-      mOutputs[i] = store::allocate();
-    }
+    RegisterAccessor<TOutputs>::initRegisters(this, mOutputs);
   };
 
   ~TFunction()
@@ -194,6 +220,31 @@ public:
   };
 };
 
+template<typename T>
+struct TConstant : public Function
+{
+private:
+  uint64_t mRegisterId;
+
+public:
+  TConstant(const T& value)
+  {
+    mRegisterId = store::allocate(this, types::TypeInfo<T>::id, typeid(T).name());
+  };
+
+  ~TConstant() { store::free(mRegisterId); }
+
+  uint64_t outputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mRegisterId;
+    }
+    throw std::out_of_range("Index out of range");
+  };
+
+  void run() override {/*Do nothing.*/};
+};
+
 namespace store {
 
 void addFunction(const std::shared_ptr<Function>& fn);
@@ -206,6 +257,14 @@ std::shared_ptr<Function> makeFunction(TArgs... args)
                 "Not a valid function type");
 
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
+  addFunction(fn);
+  return fn;
+};
+
+template<typename T>
+std::shared_ptr<Function> makeConstant(const T& value)
+{
+  auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TConstant<T>>(value));
   addFunction(fn);
   return fn;
 };
@@ -254,6 +313,13 @@ template<typename... Ts>
 boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
 {
   return pythonRegisterTupleInternal<0>(cppTup);
+};
+
+template<typename T>
+store::Register py_constant(const T& value)
+{
+  auto fn = store::makeConstant<T>(value);
+  return store::getRegister(fn->outputRegister(0));
 };
 
 }  // namespace func
