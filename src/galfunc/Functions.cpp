@@ -5,7 +5,7 @@
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
 {
-  ostr << "[" << reg.typeName << " in reg " << reg.typeId << "]\n";
+  ostr << "[" << reg.typeName << " in reg " << reg.id << "]\n";
   return ostr;
 };
 }  // namespace std

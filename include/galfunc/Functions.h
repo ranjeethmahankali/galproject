@@ -289,7 +289,7 @@ void setOutputTuple(OutputTuple<NMax>& tup, const Function& fn)
   if constexpr (N < NMax) {
     std::get<N>(tup) = store::getRegister(fn.outputRegister(N));
   }
-  else if constexpr (N < NMax - 1) {
+  if constexpr (N < NMax - 1) {
     setOutputTuple<NMax, N + 1>(tup, fn);
   }
 };
