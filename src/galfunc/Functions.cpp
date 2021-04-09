@@ -39,6 +39,9 @@ uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeNa
 
 void free(uint64_t id)
 {
+  if (sRegisterMap.empty()) {
+    return;
+  }
   sRegisterMap.erase(id);
 };
 
@@ -58,19 +61,6 @@ void addFunction(const std::shared_ptr<Function>& fn)
 };
 
 }  // namespace store
-
-BOOST_PYTHON_MODULE(pygalfunc)
-{
-  using namespace boost::python;
-
-  class_<store::Register>("Register").def(self_ns::str(self_ns::self));
-
-  class_<std::shared_ptr<gal::Mesh>>("Mesh");
-
-  def("string", py_constant<std::string>);
-  def("loadObjFile", py_loadObjFile);
-  def("meshCentroid", py_meshCentroid);
-};
 
 }  // namespace func
 }  // namespace gal

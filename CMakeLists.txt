@@ -42,20 +42,19 @@ target_link_libraries(galcore PUBLIC glm::glm)
 file(GLOB GALFUNC_SRC "src/galfunc/*.cpp")
 add_library(galfunc STATIC ${GALFUNC_SRC})
 target_link_libraries(galfunc PUBLIC
-    ${Boost_LIBRARIES}
-    ${PYTHON_LIBRARIES}
-    Boost::python39)
-target_include_directories(galfunc PRIVATE ${PYTHON_INCLUDE_DIRS})
+    galcore)
 
-add_library(pygalfunc SHARED ${GALFUNC_SRC})
+file(GLOB PYGALFUNC_SRC "src/pygalfunc/*.cpp")
+add_library(pygalfunc SHARED ${PYGALFUNC_SRC})
 set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
 set_target_properties(pygalfunc PROPERTIES PREFIX "")
+target_include_directories(pygalfunc PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(pygalfunc PRIVATE
+    galfunc
+    galcore
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
-    galcore
     Boost::python39)
-target_include_directories(pygalfunc PRIVATE ${PYTHON_INCLUDE_DIRS})
 #GALFUNC - end
 
 # GALVIEW - begin
@@ -81,8 +80,12 @@ add_custom_command(TARGET galview
 enable_testing() 
 file (GLOB TEST_SRC "src/galtest/*.cpp")
 add_executable(galtest ${TEST_SRC})
-add_dependencies(galtest
-    galcore)
+# add_dependencies(galtest
+#     galcore
+#     galfunc)
+
+target_include_directories(galtest PRIVATE
+    ${PYTHON_INCLUDE_DIRS})
 
 target_link_libraries(galtest PRIVATE
     galcore

@@ -4,5 +4,6 @@
 TEST(Function, StringConstant) {
     using namespace gal::func;
     using namespace std::string_literals;
-    auto path = py_constant<std::string>("test value for string"s);
+    auto path = store::makeConstant<std::string>("test value for string"s);
+    ASSERT_TRUE(path->outputRegister(0) != 0);
 };

@@ -1,11 +1,10 @@
 #pragma once
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 #include <galfunc/MapMacro.h>
 #include <string.h>
-#include <boost/python.hpp>
 #include <functional>
 #include <iostream>
+#include <memory>
 
 namespace gal {
 namespace func {
@@ -14,6 +13,7 @@ namespace func {
 struct Function
 {
   virtual void     run()                              = 0;
+  virtual void     initOutputRegisters()              = 0;
   virtual uint64_t outputRegister(size_t index) const = 0;
 };
 
@@ -56,9 +56,6 @@ struct TupleN<0, T>
   template<typename... Args>
   using type = std::tuple<Args...>;
 };
-
-template<size_t N>
-using OutputTuple = typename TupleN<N, uint64_t>::template type<>;
 
 };  // namespace types
 
@@ -103,6 +100,11 @@ std::shared_ptr<T> get(uint64_t id)
 };
 
 };  // namespace store
+
+namespace types {
+template<size_t N>
+using OutputTuple = typename TupleN<N, store::Register>::template type<>;
+}
 
 template<typename... Ts>
 struct TypeList
@@ -191,10 +193,7 @@ private:
 public:
   TFunction(FuncType fn, const std::array<uint64_t, NumInputs>& inputs)
       : mFunc(std::move(fn))
-      , mInputs(inputs)
-  {
-    RegisterAccessor<TOutputs>::initRegisters(this, mOutputs);
-  };
+      , mInputs(inputs) {};
 
   ~TFunction()
   {
@@ -211,6 +210,11 @@ public:
     throw std::out_of_range("Index out of range");
   };
 
+  void initOutputRegisters() override
+  {
+    RegisterAccessor<TOutputs>::initRegisters(this, mOutputs);
+  };
+
   void run() override
   {
     InputsType inputs;
@@ -224,15 +228,19 @@ template<typename T>
 struct TConstant : public Function
 {
 private:
-  uint64_t mRegisterId;
+  uint64_t           mRegisterId;
+  std::shared_ptr<T> mValue;
 
 public:
   TConstant(const T& value)
+      : mValue(std::make_shared<T>(value)) {};
+
+  ~TConstant() { store::free(mRegisterId); }
+
+  void initOutputRegisters() override
   {
     mRegisterId = store::allocate(this, types::TypeInfo<T>::id, typeid(T).name());
   };
-
-  ~TConstant() { store::free(mRegisterId); }
 
   uint64_t outputRegister(size_t index) const override
   {
@@ -242,7 +250,7 @@ public:
     throw std::out_of_range("Index out of range");
   };
 
-  void run() override {/*Do nothing.*/};
+  void run() override { store::set<T>(mRegisterId, mValue); };
 };
 
 namespace store {
@@ -258,6 +266,7 @@ std::shared_ptr<Function> makeFunction(TArgs... args)
 
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
   addFunction(fn);
+  fn->initOutputRegisters();
   return fn;
 };
 
@@ -266,6 +275,7 @@ std::shared_ptr<Function> makeConstant(const T& value)
 {
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TConstant<T>>(value));
   addFunction(fn);
+  fn->initOutputRegisters();
   return fn;
 };
 
@@ -277,7 +287,7 @@ template<size_t NMax, size_t N = 0>
 void setOutputTuple(OutputTuple<NMax>& tup, const Function& fn)
 {
   if constexpr (N < NMax) {
-    std::get<N>(tup) = fn.outputRegister(N);
+    std::get<N>(tup) = store::getRegister(fn.outputRegister(N));
   }
   else if constexpr (N < NMax - 1) {
     setOutputTuple<NMax, N + 1>(tup, fn);
@@ -294,33 +304,16 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 
 }  // namespace types
 
-template<size_t N, typename CppTupleType, typename... TArgs>
-boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
-{
-  static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
-  static_assert(N <= tupleSize, "Invalid tuple accecssor");
-
-  if constexpr (N < tupleSize) {
-    return pythonRegisterTupleInternal<N + 1>(
-      cppTup, store::getRegister(std::get<N>(cppTup)), args...);
-  }
-  else if constexpr (N == tupleSize) {
-    return boost::python::make_tuple(args...);
-  }
-};
-
-template<typename... Ts>
-boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
-{
-  return pythonRegisterTupleInternal<0>(cppTup);
-};
-
 template<typename T>
-store::Register py_constant(const T& value)
+types::OutputTuple<1> constant(const T& value)
 {
   auto fn = store::makeConstant<T>(value);
-  return store::getRegister(fn->outputRegister(0));
+  return types::makeOutputTuple<1>(*fn);
 };
 
 }  // namespace func
 }  // namespace gal
+
+namespace std {
+std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg);
+}

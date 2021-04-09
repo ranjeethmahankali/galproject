@@ -3,11 +3,6 @@
 namespace gal {
 namespace func {
 
-boost::python::tuple py_meshCentroid(store::Register meshReg)
-{
-  return pythonRegisterTuple(meshCentroid(meshReg));
-};
-
 types::OutputTuple<3> meshCentroid(const store::Register& meshReg)
 {
   using FunctorType = TFunction<TypeList<gal::Mesh>, TypeList<float, float, float>>;
@@ -24,11 +19,6 @@ TypeList<float, float, float>::SharedTupleType meshCentroid_impl(
   return std::make_tuple(std::make_shared<float>(pt.x),
                          std::make_shared<float>(pt.y),
                          std::make_shared<float>(pt.z));
-};
-
-boost::python::tuple py_loadObjFile(store::Register filepathReg)
-{
-  return pythonRegisterTuple(loadObjFile(filepathReg));
 };
 
 types::OutputTuple<1> loadObjFile(const store::Register& filePathReg)

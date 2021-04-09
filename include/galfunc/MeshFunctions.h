@@ -15,13 +15,11 @@ template<> struct TypeInfo<gal::Mesh    > { static constexpr uint32_t id = 0x453
 TypeList<float, float, float>::SharedTupleType meshCentroid_impl(
   std::shared_ptr<gal::Mesh> mesh);
 types::OutputTuple<3> meshCentroid(const store::Register& meshReg);
-boost::python::tuple  py_meshCentroid(store::Register meshReg);
 
 TypeList<gal::Mesh>::SharedTupleType loadObjFile_impl(
   std::shared_ptr<std::string> filepath);
   
 types::OutputTuple<1> loadObjFile(const store::Register& filePathReg);
-boost::python::tuple py_loadObjFile(store::Register meshReg);
 
 }  // namespace func
 }  // namespace gal
