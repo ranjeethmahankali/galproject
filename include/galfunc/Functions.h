@@ -34,14 +34,9 @@ struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 template<typename T>
 struct TypeInfo : public std::false_type
 {
-  static constexpr uint32_t id = 0U;
+  static constexpr uint32_t id     = 0U;
+  static constexpr char     name[] = "UnknownType";
 };
-
-// clang-format off
-template<> struct TypeInfo<bool         > { static constexpr uint32_t id = 0x9566a7b1; };
-template<> struct TypeInfo<int32_t      > { static constexpr uint32_t id = 0x9234a3b1; };
-template<> struct TypeInfo<float        > { static constexpr uint32_t id = 0x32542672; };
-// clang-format on
 
 template<size_t N, typename T>
 struct TupleN
@@ -83,6 +78,7 @@ Register& getRegister(uint64_t id);
 template<typename T>
 void set(uint64_t id, const std::shared_ptr<T>& data)
 {
+  static_assert(types::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
   if (types::TypeInfo<T>::id == reg.typeId) {
     reg.ptr = data;
@@ -95,6 +91,7 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
 template<typename T>
 std::shared_ptr<T> get(uint64_t id)
 {
+  static_assert(types::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
   if (types::TypeInfo<T>::id == reg.typeId) {
     if (reg.isDirty) {
@@ -140,6 +137,7 @@ struct RegisterAccessor
 private:
   static void typeCheck(const store::Register& reg)
   {
+    static_assert(types::TypeInfo<DType>::value, "Unknown type");
     if (reg.typeId != types::TypeInfo<DType>::id) {
       std::cerr << "Type mismatch error\n";
       throw std::bad_cast();
@@ -178,8 +176,9 @@ public:
 
   static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
   {
-    regIds[N] =
-      store::allocate(fn, types::TypeInfo<DType>::id, std::string(typeid(DType).name()));
+    static_assert(types::TypeInfo<DType>::value, "Unknown type");
+    regIds[N] = store::allocate(
+      fn, types::TypeInfo<DType>::id, std::string(types::TypeInfo<DType>::name));
     if constexpr (N < NumData - 1) {
       RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
     }
@@ -255,7 +254,8 @@ public:
 
   void initOutputRegisters() override
   {
-    mRegisterId = store::allocate(this, types::TypeInfo<T>::id, typeid(T).name());
+    static_assert(types::TypeInfo<T>::value, "Unknown type");
+    mRegisterId = store::allocate(this, types::TypeInfo<T>::id, types::TypeInfo<T>::name);
   };
 
   uint64_t outputRegister(size_t index) const override
@@ -331,3 +331,16 @@ types::OutputTuple<1> constant(const T& value)
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg);
 }
+
+#define TYPE_INFO(type, idInt)                                    \
+  template<>                                                      \
+  struct gal::func::types::TypeInfo<type> : public std::true_type \
+  {                                                               \
+    static constexpr uint32_t id     = idInt;                     \
+    static constexpr char     name[] = #type;                     \
+  };
+
+TYPE_INFO(bool, 0x9566a7b1);
+TYPE_INFO(int32_t, 0x9234a3b1);
+TYPE_INFO(float, 0x32542672);
+TYPE_INFO(std::string, 0x12340989);

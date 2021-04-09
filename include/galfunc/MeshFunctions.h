@@ -3,14 +3,10 @@
 #include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 
+TYPE_INFO(gal::Mesh, 0x45342367);
+
 namespace gal {
 namespace func {
-
-namespace types {
-// clang-format off
-template<> struct TypeInfo<gal::Mesh    > { static constexpr uint32_t id = 0x45342367; };
-// clang-format on
-}  // namespace types
 
 TypeList<float, float, float>::SharedTupleType meshCentroid_impl(
   std::shared_ptr<gal::Mesh> mesh);
