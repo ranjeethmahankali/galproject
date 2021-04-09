@@ -59,6 +59,8 @@ struct TupleN<0, T>
 
 };  // namespace types
 
+struct Function;
+
 namespace store {
 
 struct Register
@@ -68,7 +70,9 @@ struct Register
   uint64_t              id;
   const Function*       owner;
   uint32_t              typeId;
-  bool                  mDirty = true;
+  bool                  isDirty = true;
+
+  std::shared_ptr<Function> ownerFunc() const;
 };
 
 uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName);
@@ -93,11 +97,18 @@ std::shared_ptr<T> get(uint64_t id)
 {
   auto& reg = getRegister(id);
   if (types::TypeInfo<T>::id == reg.typeId) {
+    if (reg.isDirty) {
+      auto fn = reg.ownerFunc();
+      fn->run();
+      reg.isDirty = false;
+    }
     return std::static_pointer_cast<T>(reg.ptr);
   }
   std::cerr << "Type mismatch error.\n";
   throw std::bad_alloc();
 };
+
+void addFunction(const std::shared_ptr<Function>& fn);
 
 };  // namespace store
 
@@ -139,8 +150,13 @@ public:
   static void readRegisters(const std::array<uint64_t, NumData>& ids,
                             SharedTupleType&                     dst)
   {
-    const store::Register& reg = store::getRegister(ids[N]);
+    store::Register& reg = store::getRegister(ids[N]);
     typeCheck(reg);
+    if (reg.isDirty) {
+      auto fn = reg.ownerFunc();
+      fn->run();
+      reg.isDirty = false;
+    }
     std::get<N>(dst) = std::static_pointer_cast<DType>(reg.ptr);
     if constexpr (N < TDataList::NumTypes - 1) {
       // Recurse to the next indices.
@@ -254,8 +270,6 @@ public:
 };
 
 namespace store {
-
-void addFunction(const std::shared_ptr<Function>& fn);
 
 template<typename TFunc, typename... TArgs>
 std::shared_ptr<Function> makeFunction(TArgs... args)

@@ -10,4 +10,8 @@ TEST(MeshFunction, Centroid)
   auto [mesh] = loadObjFile(path);
   auto [x, y, z] = meshCentroid(mesh);
   std::cout << x << std::endl << y << std::endl << z << std::endl;
+
+  std::cout << *store::get<float>(x.id) << std::endl;
+  std::cout << *store::get<float>(y.id) << std::endl;
+  std::cout << *store::get<float>(z.id) << std::endl;
 };

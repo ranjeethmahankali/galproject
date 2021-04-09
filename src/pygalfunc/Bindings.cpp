@@ -23,4 +23,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("string", py_constant<std::string>);
   def("loadObjFile", py_loadObjFile);
   def("meshCentroid", py_meshCentroid);
+
+  def("readFloat", py_readRegister<float>);
 };
