@@ -25,24 +25,25 @@ static void initPythonBindings()
   Py_Initialize();
 };
 
+static std::string readTextFromFile(const std::string& path)
+{
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  std::stringstream filestream;
+  try {
+    file.open(path);
+    filestream << file.rdbuf();
+    file.close();
+  }
+  catch (std::ifstream::failure e) {
+    std::cout << "Error reading shader source file!" << std::endl;
+  }
+  return filestream.str();
+}
+
 static void testPython()
 {
-  std::string path = "/home/rnjth94/dev/GeomAlgoLib/scripts/test.py";
-  std::string text;
-  {
-    std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    std::stringstream filestream;
-    try {
-      file.open(path);
-      filestream << file.rdbuf();
-      file.close();
-    }
-    catch (std::ifstream::failure e) {
-      std::cout << "Error reading shader source file!" << std::endl;
-    }
-    text = filestream.str();
-  }
+  std::string text = readTextFromFile("/home/rnjth94/dev/GeomAlgoLib/scripts/test.py");
   boost::python::exec(text.c_str());
 }
 
