@@ -41,16 +41,18 @@ target_link_libraries(galcore PUBLIC glm::glm)
 #GALFUNC - begin
 file(GLOB GALFUNC_SRC "src/galfunc/*.cpp")
 add_library(galfunc STATIC ${GALFUNC_SRC})
+target_include_directories(galfunc PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(galfunc PUBLIC
-    galcore)
+    galcore
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+    Boost::python39)
 
-file(GLOB PYGALFUNC_SRC "src/pygalfunc/*.cpp")
-add_library(pygalfunc SHARED ${PYGALFUNC_SRC})
+add_library(pygalfunc SHARED ${GALFUNC_SRC})
 set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
 set_target_properties(pygalfunc PROPERTIES PREFIX "")
 target_include_directories(pygalfunc PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(pygalfunc PRIVATE
-    galfunc
     galcore
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}

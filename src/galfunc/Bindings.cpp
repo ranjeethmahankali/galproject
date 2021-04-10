@@ -1,4 +1,4 @@
-#include <pygalfunc/Bindings.h>
+#include <galfunc/Bindings.h>
 
 using namespace gal::func;
 
