@@ -46,6 +46,7 @@ uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeNa
   reg.typeId   = typeId;
   reg.typeName = typeName;
   sRegisterMap.emplace(reg.id, reg);
+  sRegisterUserMap.emplace(reg.id, std::vector<const Function*>());
   return reg.id;
 };
 
@@ -72,6 +73,33 @@ Register& getRegister(uint64_t id)
 void addFunction(const std::shared_ptr<Function>& fn)
 {
   sFunctionMap.emplace(uint64_t(fn.get()), fn);
+};
+
+void useRegister(const Function* fn, uint64_t id)
+{
+  auto match = sRegisterUserMap.find(id);
+  if (match != sRegisterUserMap.end()) {
+    match->second.push_back(fn);
+  }
+};
+
+void markDirty(uint64_t id)
+{
+  std::vector<uint64_t> ids;
+  ids.reserve(sRegisterMap.size());
+  ids.push_back(id);
+
+  while (!ids.empty()) {
+    uint64_t current             = ids.back();
+    getRegister(current).isDirty = true;
+    ids.pop_back();
+    auto fn = getRegister(current).ownerFunc();
+    size_t nOuts = fn->numOutputs();
+    for (size_t i = 0; i < nOuts; i++)
+    {
+        ids.push_back(fn->outputRegister(i));
+    }
+  }
 };
 
 }  // namespace store

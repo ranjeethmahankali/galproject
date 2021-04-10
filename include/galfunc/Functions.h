@@ -14,6 +14,7 @@ struct Function
 {
   virtual void     run()                              = 0;
   virtual void     initOutputRegisters()              = 0;
+  virtual size_t   numOutputs() const                 = 0;
   virtual uint64_t outputRegister(size_t index) const = 0;
 };
 
@@ -54,8 +55,6 @@ struct TupleN<0, T>
 
 };  // namespace types
 
-struct Function;
-
 namespace store {
 
 struct Register
@@ -74,6 +73,10 @@ uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeNa
 void     free(uint64_t id);
 
 Register& getRegister(uint64_t id);
+
+void markDirty(uint64_t id);
+
+void useRegister(const Function* fn, uint64_t id);
 
 template<typename T>
 void set(uint64_t id, const std::shared_ptr<T>& data)
@@ -217,6 +220,8 @@ public:
     }
   };
 
+  size_t numOutputs() const override { return NumOutputs; };
+
   uint64_t outputRegister(size_t index) const override
   {
     if (index < NumOutputs) {
@@ -242,7 +247,7 @@ public:
 template<typename T>
 struct TConstant : public Function
 {
-private:
+protected:
   uint64_t           mRegisterId;
   std::shared_ptr<T> mValue;
 
@@ -258,6 +263,8 @@ public:
     mRegisterId = store::allocate(this, types::TypeInfo<T>::id, types::TypeInfo<T>::name);
   };
 
+  size_t numOutputs() const override { return 1; };
+
   uint64_t outputRegister(size_t index) const override
   {
     if (index == 0) {
@@ -267,6 +274,16 @@ public:
   };
 
   void run() override { store::set<T>(mRegisterId, mValue); };
+};
+
+template<typename T>
+struct TVariable : public TConstant<T>
+{
+  void set(const T& value)
+  {
+    *(this->mValue) = value;
+    store::markDirty(this->mRegisterId);
+  };
 };
 
 namespace store {
