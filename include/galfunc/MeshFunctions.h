@@ -22,7 +22,7 @@ GAL_FUNC_DECL(((gal::Mesh, mesh, "Loaded mesh")),
               true,
               1,
               "Loads a mesh from an obj file",
-              (std::string, filepath, "The path to the obj file"))
+              (std::string, filepath, "The path to the obj file"));
 
 }  // namespace func
 }  // namespace gal

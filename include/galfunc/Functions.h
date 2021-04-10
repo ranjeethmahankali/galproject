@@ -380,12 +380,27 @@ std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& r
 
 #define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
 
-// clang-format off
-// clang-format on
+#define GAL_REGISTER_ID(argTuple) GAL_ARG_NAME(argTuple).id
+#define GAL_EXPAND_REGISTER_IDS(...) MAP_LIST(GAL_REGISTER_ID, __VA_ARGS__)
+
 #define GAL_FUNC_DECL(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                                  \
   gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType                               \
                                        GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__)); \
   gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__));
+
+#define GAL_FUNC_DEFN(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                  \
+  gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__))  \
+  {                                                                                   \
+    using FunctorType =                                                               \
+      gal::func::TFunction<gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE((__VA_ARGS__))>, \
+                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>>;     \
+    auto fn = store::makeFunction<FunctorType>(                                       \
+      GAL_FN_IMPL_NAME(fnName),                                                       \
+      std::array<uint64_t, 1> {GAL_EXPAND_REGISTER_IDS(__VA_ARGS__)});                \
+    return types::makeOutputTuple<nArgs>(*fn);                                        \
+  };                                                                                  \
+  gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType               \
+    GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__))
 
 TYPE_INFO(bool, 0x9566a7b1);
 TYPE_INFO(int32_t, 0x9234a3b1);
