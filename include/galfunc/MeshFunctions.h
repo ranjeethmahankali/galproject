@@ -8,14 +8,21 @@ TYPE_INFO(gal::Mesh, 0x45342367);
 namespace gal {
 namespace func {
 
-TypeList<float, float, float>::SharedTupleType meshCentroid_impl(
-  std::shared_ptr<gal::Mesh> mesh);
-types::OutputTuple<3> meshCentroid(const store::Register& meshReg);
+GAL_FUNC_DECL(((float, x, "x coordinate"),
+               (float, y, "y coordinate"),
+               (float, z, "z coordinate")),
+              meshCentroid,
+              true,
+              3,
+              "Gets the centroid of a mesh",
+              (gal::Mesh, mesh, "The mesh"));
 
-TypeList<gal::Mesh>::SharedTupleType loadObjFile_impl(
-  std::shared_ptr<std::string> filepath);
-  
-types::OutputTuple<1> loadObjFile(const store::Register& filePathReg);
+GAL_FUNC_DECL(((gal::Mesh, mesh, "Loaded mesh")),
+              loadObjFile,
+              true,
+              1,
+              "Loads a mesh from an obj file",
+              (std::string, filepath, "The path to the obj file"))
 
 }  // namespace func
 }  // namespace gal

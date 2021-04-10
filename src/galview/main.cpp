@@ -43,7 +43,6 @@ static void testPython()
     }
     text = filestream.str();
   }
-  initPythonBindings();
   boost::python::exec(text.c_str());
 }
 
@@ -336,6 +335,9 @@ int main(int argc, char** argv)
 
   view::Context::get().setWireframeMode(true);
 
+  // Initialize Embedded Python
+  initPythonBindings();
+
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
   //   convexHullDemo();
@@ -344,7 +346,7 @@ int main(int argc, char** argv)
   //   closestPointDemo();
   //   circumCircleDemo();
   //   boundingCircleDemo();
-  testPython();
+  //   testPython();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;

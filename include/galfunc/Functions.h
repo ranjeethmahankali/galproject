@@ -357,6 +357,36 @@ std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& r
     static constexpr char     name[] = #type;                     \
   };
 
+#define GAL_CONCAT(x, y) x##y
+
+#define _GAL_ARG_TYPE(type, name, desc) type
+#define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
+
+#define _GAL_ARG_NAME(type, name, desc) name
+#define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple
+
+#define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
+#define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
+
+#define GAL_EXPAND_SHARED_ARG(argTuple) \
+  std::shared_ptr<GAL_ARG_TYPE(argTuple)> GAL_ARG_NAME(argTuple)
+
+#define GAL_EXPAND_SHARED_ARGS(...) MAP_LIST(GAL_EXPAND_SHARED_ARG, __VA_ARGS__)
+
+#define GAL_REGISTER_ARG(typeTuple) \
+  const gal::func::store::Register& GAL_ARG_NAME(typeTuple)
+
+#define GAL_EXPAND_REGISTER_ARGS(...) MAP_LIST(GAL_REGISTER_ARG, __VA_ARGS__)
+
+#define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
+
+// clang-format off
+// clang-format on
+#define GAL_FUNC_DECL(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                                  \
+  gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType                               \
+                                       GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__)); \
+  gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__));
+
 TYPE_INFO(bool, 0x9566a7b1);
 TYPE_INFO(int32_t, 0x9234a3b1);
 TYPE_INFO(float, 0x32542672);
