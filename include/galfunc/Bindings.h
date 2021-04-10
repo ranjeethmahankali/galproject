@@ -38,3 +38,7 @@ T py_readRegister(gal::func::store::Register reg)
 
 boost::python::tuple py_loadObjFile(gal::func::store::Register filepathReg);
 boost::python::tuple py_meshCentroid(gal::func::store::Register meshReg);
+
+// Forward declaration of the module initializer for embedded scripts.
+// This will be defined by boost later.
+extern "C" PyObject* PyInit_pygalfunc();

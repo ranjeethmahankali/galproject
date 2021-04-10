@@ -1,7 +1,6 @@
 import sys
-sys.path.append("/home/rnjth94/dev/GeomAlgoLib/build/")
+# sys.path.append("/home/rnjth94/dev/GeomAlgoLib/build/")
 import pygalfunc as pg
-
 
 path, = pg.string("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj")
 mesh, = pg.loadObjFile(path)

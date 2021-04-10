@@ -12,8 +12,40 @@
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
+#include <galfunc/Bindings.h>
+
+#include <fstream>
+#include <sstream>
 
 using namespace gal;
+
+static void initPythonBindings()
+{
+  PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
+  Py_Initialize();
+};
+
+static void testPython()
+{
+  std::string path = "/home/rnjth94/dev/GeomAlgoLib/scripts/test.py";
+  std::string text;
+  {
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    std::stringstream filestream;
+    try {
+      file.open(path);
+      filestream << file.rdbuf();
+      file.close();
+    }
+    catch (std::ifstream::failure e) {
+      std::cout << "Error reading shader source file!" << std::endl;
+    }
+    text = filestream.str();
+  }
+  initPythonBindings();
+  boost::python::exec(text.c_str());
+}
 
 static void createBoxMeshDemo()
 {
@@ -309,9 +341,10 @@ int main(int argc, char** argv)
   //   convexHullDemo();
   //   sphereQueryDemo();
   //   createBoxMeshDemo();
-  // closestPointDemo();
+  //   closestPointDemo();
   //   circumCircleDemo();
-  boundingCircleDemo();
+  //   boundingCircleDemo();
+  testPython();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;

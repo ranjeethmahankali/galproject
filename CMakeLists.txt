@@ -46,7 +46,8 @@ target_link_libraries(galfunc PUBLIC
     galcore
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
-    Boost::python39)
+    Boost::python39
+    util)
 
 add_library(pygalfunc SHARED ${GALFUNC_SRC})
 set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
