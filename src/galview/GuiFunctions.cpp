@@ -1,5 +1,7 @@
-#include <galcore/Sphere.h>
 #include <galfunc/GeomFunctions.h>
+#include <galfunc/MeshFunctions.h>
+#include <galview/AllViews.h>
+#include <galview/Context.h>
 #include <galview/GuiFunctions.h>
 
 namespace gal {
@@ -37,6 +39,7 @@ struct DrawableManager
 {
   static size_t draw(uint64_t typeId, const std::shared_ptr<void>& ptr, size_t oldDrawId)
   {
+    static_assert(gal::func::types::TypeInfo<T>::value, "Unknown type");
     if (typeId == gal::func::types::TypeInfo<T>::id) {
       auto castsp = std::static_pointer_cast<T>(ptr);
       return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp);
@@ -51,7 +54,12 @@ struct DrawableManager
     }
   };
 };
-using dmanager = DrawableManager<gal::Sphere>;
+using dmanager = DrawableManager<gal::Box3,
+                                 gal::PointCloud,
+                                 gal::Sphere,
+                                 gal::Circle2d,
+                                 gal::Mesh,
+                                 gal::Plane>;
 
 ShowFunc::ShowFunc(uint64_t regId)
     : mObjRegId(regId)

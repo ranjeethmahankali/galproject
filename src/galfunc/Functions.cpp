@@ -2,6 +2,7 @@
 #include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
+#include <galfunc/UtilFunctions.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
@@ -102,7 +103,7 @@ void markDirty(uint64_t id)
       const auto& users = sRegisterUserMap[fn->outputRegister(i)];
       for (const auto& user : users) {
         for (size_t j = 0; j < user->numOutputs(); j++) {
-            ids.push_back(user->outputRegister(j));
+          ids.push_back(user->outputRegister(j));
         }
       }
     }
@@ -128,10 +129,18 @@ BOOST_PYTHON_MODULE(pygalfunc)
   class_<std::shared_ptr<gal::Sphere>>("Sphere");
 
   def("string", py_constant<std::string>);
-  GAL_DEF_PY_FN(loadObjFile);
-  GAL_DEF_PY_FN(meshCentroid);
+  def("numberf32", py_constant<float>);
+
+  GAL_DEF_PY_FN(absPath);
+
   GAL_DEF_PY_FN(vec3);
   GAL_DEF_PY_FN(sphere);
+  GAL_DEF_PY_FN(plane);
+
+  GAL_DEF_PY_FN(loadObjFile);
+  GAL_DEF_PY_FN(meshCentroid);
+  GAL_DEF_PY_FN(scaleMesh);
+  GAL_DEF_PY_FN(clipMesh);
 
   def("readFloat", gal::func::py_readRegister<float>);
 };

@@ -45,9 +45,9 @@ static std::string readTextFromFile(const std::string& path)
   return filestream.str();
 }
 
-static void testPython()
+static void runDemo(const std::string& path)
 {
-  std::string text = readTextFromFile("/home/rnjth94/dev/GeomAlgoLib/scripts/test.py");
+  std::string text = readTextFromFile(path);
   try {
     boost::python::exec(text.c_str());
   }
@@ -102,40 +102,6 @@ static void glfw_error_cb(int error, const char* desc)
 {
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
-
-static void meshPlaneClippingDemo()
-{
-  using namespace std::string_literals;
-  auto& panel       = view::newPanel("Mesh-Plane-Clipping"s);
-  auto  ptSlider    = panel.newWidget<view::SliderF3>("Point"s, 0.0f, 1.0f);
-  float initNorm[3] = {0.0f, 0.0f, 1.0f};
-  auto  normSlider  = panel.newWidget<view::SliderF3>("Normal"s, 0.0f, 1.0f, initNorm);
-
-  static auto   plane   = gal::Plane {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}};
-  static size_t meshId  = 0;
-  static size_t planeId = 0;
-
-  static auto meshUpdater = []() {
-    auto mesh = loadBunnySmall();
-    mesh.clipWithPlane(plane);
-    meshId  = view::Context::get().replaceDrawable(meshId, mesh);
-    planeId = view::Context::get().replaceDrawable(planeId, plane);
-  };
-
-  auto ptUpdater = [](const float(&coords)[3]) {
-    plane.setOrigin({coords[0], coords[1], coords[2]});
-    meshUpdater();
-  };
-
-  auto normUpdater = [](const float(&coords)[3]) {
-    plane.setNormal({coords[0], coords[1], coords[2]});
-    meshUpdater();
-  };
-
-  meshUpdater();  // First time.
-  ptSlider->addHandler(ptUpdater);
-  normSlider->addHandler(normUpdater);
-};
 
 static void convexHullDemo()
 {
@@ -343,11 +309,12 @@ int main(int argc, char** argv)
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
 
-  view::Context::get().setWireframeMode(true);
+  //   view::Context::get().setWireframeMode(true);
 
   // Initialize Embedded Python
   initPythonEnvironment();
 
+  runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py");
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
   //   convexHullDemo();
@@ -356,7 +323,7 @@ int main(int argc, char** argv)
   //   closestPointDemo();
   //   circumCircleDemo();
   //   boundingCircleDemo();
-  testPython();
+  //   testPython();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;
