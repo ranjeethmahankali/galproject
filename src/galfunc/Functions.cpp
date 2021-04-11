@@ -93,11 +93,10 @@ void markDirty(uint64_t id)
     uint64_t current             = ids.back();
     getRegister(current).isDirty = true;
     ids.pop_back();
-    auto fn = getRegister(current).ownerFunc();
+    auto   fn    = getRegister(current).ownerFunc();
     size_t nOuts = fn->numOutputs();
-    for (size_t i = 0; i < nOuts; i++)
-    {
-        ids.push_back(fn->outputRegister(i));
+    for (size_t i = 0; i < nOuts; i++) {
+      ids.push_back(fn->outputRegister(i));
     }
   }
 };
@@ -106,3 +105,18 @@ void markDirty(uint64_t id)
 
 }  // namespace func
 }  // namespace gal
+
+BOOST_PYTHON_MODULE(pygalfunc)
+{
+  using namespace boost::python;
+
+  class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
+
+  class_<std::shared_ptr<gal::Mesh>>("Mesh");
+
+  def("string", gal::func::py_constant<std::string>);
+  def("loadObjFile", gal::func::py_loadObjFile);
+  def("meshCentroid", gal::func::py_meshCentroid);
+
+  def("readFloat", gal::func::py_readRegister<float>);
+};

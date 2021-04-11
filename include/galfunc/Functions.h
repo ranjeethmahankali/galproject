@@ -1,7 +1,8 @@
 #pragma once
-
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <galfunc/MapMacro.h>
 #include <string.h>
+#include <boost/python.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -342,6 +343,38 @@ types::OutputTuple<1> constant(const T& value)
   return types::makeOutputTuple<1>(*fn);
 };
 
+template<size_t N, typename CppTupleType, typename... TArgs>
+boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
+{
+  static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
+  static_assert(N <= tupleSize, "Invalid tuple accecssor");
+
+  if constexpr (N < tupleSize) {
+    return pythonRegisterTupleInternal<N + 1>(cppTup, args..., std::get<N>(cppTup));
+  }
+  else if constexpr (N == tupleSize) {
+    return boost::python::make_tuple(args...);
+  }
+};
+
+template<typename... Ts>
+boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
+{
+  return pythonRegisterTupleInternal<0>(cppTup);
+};
+
+template<typename T>
+boost::python::tuple py_constant(const T& value)
+{
+  return pythonRegisterTuple(gal::func::constant<T>(value));
+};
+
+template<typename T>
+T py_readRegister(gal::func::store::Register reg)
+{
+  return *gal::func::store::get<T>(reg.id);
+};
+
 }  // namespace func
 }  // namespace gal
 
@@ -376,7 +409,11 @@ std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& r
 #define GAL_REGISTER_ARG(typeTuple) \
   const gal::func::store::Register& GAL_ARG_NAME(typeTuple)
 
+#define GAL_PY_REGISTER_ARG(typeTuple) gal::func::store::Register GAL_ARG_NAME(typeTuple)
+
 #define GAL_EXPAND_REGISTER_ARGS(...) MAP_LIST(GAL_REGISTER_ARG, __VA_ARGS__)
+
+#define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 
 #define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
 
@@ -386,7 +423,8 @@ std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& r
 #define GAL_FUNC_DECL(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                                  \
   gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType                               \
                                        GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__)); \
-  gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__));
+  gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__));                 \
+  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS(__VA_ARGS__));
 
 #define GAL_FUNC_DEFN(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                  \
   gal::func::types::OutputTuple<nArgs> fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__))  \
@@ -399,6 +437,10 @@ std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& r
       std::array<uint64_t, 1> {GAL_EXPAND_REGISTER_IDS(__VA_ARGS__)});                \
     return types::makeOutputTuple<nArgs>(*fn);                                        \
   };                                                                                  \
+  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS(__VA_ARGS__))          \
+  {                                                                                   \
+    return pythonRegisterTuple(fnName(MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)));          \
+  };                                                                                  \
   gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType               \
     GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__))
 
@@ -406,3 +448,7 @@ TYPE_INFO(bool, 0x9566a7b1);
 TYPE_INFO(int32_t, 0x9234a3b1);
 TYPE_INFO(float, 0x32542672);
 TYPE_INFO(std::string, 0x12340989);
+
+// Forward declaration of the module initializer for embedded scripts.
+// This will be defined by boost later.
+extern "C" PyObject* PyInit_pygalfunc();

@@ -12,17 +12,21 @@
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
-#include <galfunc/Bindings.h>
+#include <galview/GuiFunctions.h>
 
 #include <fstream>
 #include <sstream>
 
 using namespace gal;
 
-static void initPythonBindings()
+static void initPythonEnvironment()
 {
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
+  PyImport_AppendInittab("pygalview", &PyInit_pygalview);
   Py_Initialize();
+
+  using namespace std::string_literals;
+  gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
 static std::string readTextFromFile(const std::string& path)
@@ -337,7 +341,7 @@ int main(int argc, char** argv)
   view::Context::get().setWireframeMode(true);
 
   // Initialize Embedded Python
-  initPythonBindings();
+  initPythonEnvironment();
 
   //   meshPlaneClippingDemo();
   //   boxPointsDemo();
@@ -347,7 +351,7 @@ int main(int argc, char** argv)
   //   closestPointDemo();
   //   circumCircleDemo();
   //   boundingCircleDemo();
-  //   testPython();
+  testPython();
   //   stupidImGuiDemo();  // Demo using my own imgui integration.
 
   int W, H;
