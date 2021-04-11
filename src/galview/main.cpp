@@ -18,6 +18,7 @@
 #include <sstream>
 
 using namespace gal;
+namespace fs = std::filesystem;
 
 static void initPythonEnvironment()
 {
@@ -29,7 +30,7 @@ static void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-static std::string readTextFromFile(const std::string& path)
+static std::string readTextFromFile(const fs::path& path)
 {
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -45,7 +46,7 @@ static std::string readTextFromFile(const std::string& path)
   return filestream.str();
 }
 
-static void runDemo(const std::string& path)
+static void loadDemo(const fs::path& path)
 {
   std::string text = readTextFromFile(path);
   try {
@@ -63,6 +64,12 @@ static void glfw_error_cb(int error, const char* desc)
 
 int main(int argc, char** argv)
 {
+  if (argc < 2) {
+    std::cout << "Please supply the filepath to the demo file as an argument.\n";
+    return 1;
+  }
+  fs::path demoPath = fs::absolute(fs::path(argv[1]));
+
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
   if (!glfwInit())
@@ -99,17 +106,9 @@ int main(int argc, char** argv)
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
 
-  //   view::Context::get().setWireframeMode(true);
-
-  // Initialize Embedded Python
+  // Initialize Embedded Python and the demo
   initPythonEnvironment();
-
-  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py");
-  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/convexHull.py");
-  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/boxRandomPoints.py");
-  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/meshSphereQuery.py");
-  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/closestPointsOnMesh.py");
-  runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/boundingCircle.py");
+  loadDemo(demoPath.string());
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
@@ -136,12 +135,11 @@ int main(int argc, char** argv)
     {
       view::drawAllPanels();
       viewfunc::evalOutputs();
+      view::imGuiRender();
+      view::Context::get().render();
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
-    view::imGuiRender();
-
-    view::Context::get().render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
   }
 
