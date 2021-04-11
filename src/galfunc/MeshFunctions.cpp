@@ -4,19 +4,35 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(((float, x, "x coordinate"),
-               (float, y, "y coordinate"),
-               (float, z, "z coordinate")),
+GAL_FUNC_DEFN(((glm::vec3, centroid, "x coordinate")),
               meshCentroid,
               true,
               1,
               "Gets the centroid of a mesh",
               (gal::Mesh, mesh, "The mesh"))
 {
-  auto pt = mesh->centroid(gal::eMeshCentroidType::volumeBased);
-  return std::make_tuple(std::make_shared<float>(pt.x),
-                         std::make_shared<float>(pt.y),
-                         std::make_shared<float>(pt.z));
+  return std::make_tuple(
+    std::make_shared<glm::vec3>(mesh->centroid(gal::eMeshCentroidType::volumeBased)));
+};
+
+GAL_FUNC_DEFN(((float, volume, "Volume of the mesh")),
+              meshVolume,
+              true,
+              1,
+              "Gets the volume of the mesh",
+              (gal::Mesh, mesh, "The mesh"))
+{
+  return std::make_tuple(std::make_shared<float>(mesh->volume()));
+};
+
+GAL_FUNC_DEFN(((float, area, "Surface area of the mesh")),
+              meshSurfaceArea,
+              true,
+              1,
+              "Gets the surface area of the mesh",
+              (gal::Mesh, mesh, "The mesh"))
+{
+  return std::make_tuple(std::make_shared<float>(mesh->area()));
 };
 
 GAL_FUNC_DEFN(((gal::Mesh, mesh, "Loaded mesh")),

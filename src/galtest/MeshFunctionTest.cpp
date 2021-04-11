@@ -8,10 +8,9 @@ TEST(MeshFunction, Centroid)
   using namespace std::string_literals;
   auto [path] = constant<std::string>("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj");
   auto [mesh] = loadObjFile(path);
-  auto [x, y, z] = meshCentroid(mesh);
-  std::cout << x << std::endl << y << std::endl << z << std::endl;
+  auto [pt]   = meshCentroid(mesh);
 
-  std::cout << *store::get<float>(x.id) << std::endl;
-  std::cout << *store::get<float>(y.id) << std::endl;
-  std::cout << *store::get<float>(z.id) << std::endl;
+  auto ptval = *(store::get<glm::vec3>(pt.id));
+
+  std::cout << "(" << ptval.x << ", " << ptval.y << ", " << ptval.z << ")\n";
 };

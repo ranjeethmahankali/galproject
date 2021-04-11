@@ -7,13 +7,25 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DECL(((float, x, "x coordinate"),
-               (float, y, "y coordinate"),
-               (float, z, "z coordinate")),
+GAL_FUNC_DECL(((glm::vec3, centroid, "x coordinate")),
               meshCentroid,
               true,
-              3,
+              1,
               "Gets the centroid of a mesh",
+              (gal::Mesh, mesh, "The mesh"));
+
+GAL_FUNC_DECL(((float, volume, "Volume of the mesh")),
+              meshVolume,
+              true,
+              1,
+              "Gets the volume of the mesh",
+              (gal::Mesh, mesh, "The mesh"));
+
+GAL_FUNC_DECL(((float, area, "Surface area of the mesh")),
+              meshSurfaceArea,
+              true,
+              1,
+              "Gets the surface area of the mesh",
               (gal::Mesh, mesh, "The mesh"));
 
 GAL_FUNC_DECL(((gal::Mesh, mesh, "Loaded mesh")),
