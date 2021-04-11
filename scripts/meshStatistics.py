@@ -1,8 +1,9 @@
 from galutils import *
 
+# fmt: off
 AppendBinPath()
-
 import pygalfunc as pgf
+# fmt: on
 
 path, = pgf.string(GetRelativePath("assets/bunny_large.obj"))
 mesh, = pgf.loadObjFile(path)
