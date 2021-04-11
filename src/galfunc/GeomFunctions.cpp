@@ -16,6 +16,17 @@ GAL_FUNC_DEFN(((glm::vec3, vector, "3D vector")),
   return std::make_tuple(std::make_shared<glm::vec3>(*x, *y, *z));
 };
 
+GAL_FUNC_DEFN(((glm::vec2, vector, "2D vector")),
+              vec2,
+              true,
+              2,
+              "Creates a 2D vector from coordinates",
+              (float, x, "x coordinate"),
+              (float, y, "y coordinate"))
+{
+  return std::make_tuple(std::make_shared<glm::vec2>(*x, *y));
+};
+
 GAL_FUNC_DEFN(((gal::Sphere, sphere, "Sphere")),
               sphere,
               true,
@@ -49,6 +60,17 @@ GAL_FUNC_DEFN(((gal::Box3, box, "Box")),
   return std::make_tuple(std::make_shared<Box3>(*min, *max));
 };
 
+GAL_FUNC_DEFN(((gal::Box2, box, "Box")),
+              box2,
+              true,
+              2,
+              "Creates a 2d box with the two given points",
+              (glm::vec2, min, "min point"),
+              (glm::vec2, max, "max point"))
+{
+  return std::make_tuple(std::make_shared<gal::Box2>(*min, *max));
+};
+
 GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
               randomPointCloudFromBox,
               true,
@@ -73,6 +95,24 @@ GAL_FUNC_DEFN(((gal::Mesh, hull, "Convex hull")),
 {
   gal::ConvexHull hull(cloud->begin(), cloud->end());
   return std::make_tuple(std::make_shared<gal::Mesh>(hull.toMesh()));
+};
+
+GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
+              boundingCircle,
+              true,
+              1,
+              "Creates a bounding circle for the given points. The 3d points are "
+              "flattened to 2d by removing the z-coordinate.",
+              (gal::PointCloud, points, "Points"))
+{
+  std::vector<glm::vec2> pts2d;
+  pts2d.reserve(points->size());
+  std::transform(
+    points->begin(), points->end(), std::back_inserter(pts2d), [](const glm::vec3& p) {
+      return glm::vec2(p);
+    });
+  return std::make_tuple(std::make_shared<gal::Circle2d>(
+    gal::Circle2d::minBoundingCircle(pts2d.data(), pts2d.size())));
 };
 
 }  // namespace func

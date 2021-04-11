@@ -116,8 +116,6 @@ void markDirty(uint64_t id)
 }  // namespace func
 }  // namespace gal
 
-#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName)
-
 BOOST_PYTHON_MODULE(pygalfunc)
 {
   using namespace boost::python;
@@ -127,6 +125,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   class_<std::shared_ptr<gal::Mesh>>("Mesh");
   class_<std::shared_ptr<glm::vec3>>("Vec3");
+  class_<std::shared_ptr<glm::vec2>>("Vec2");
   class_<std::shared_ptr<gal::Sphere>>("Sphere");
 
   def("string", py_constant<std::string>);
@@ -140,11 +139,15 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(box3);
   GAL_DEF_PY_FN(randomPointCloudFromBox);
   GAL_DEF_PY_FN(pointCloudConvexHull);
+  GAL_DEF_PY_FN(closestPointsOnMesh);
+  GAL_DEF_PY_FN(meshBbox);
+  GAL_DEF_PY_FN(boundingCircle);
 
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);
   GAL_DEF_PY_FN(scaleMesh);
   GAL_DEF_PY_FN(clipMesh);
+  GAL_DEF_PY_FN(meshSphereQuery);
 
   def("readFloat", gal::func::py_readRegister<float>);
 };

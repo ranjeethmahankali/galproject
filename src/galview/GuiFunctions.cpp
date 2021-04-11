@@ -112,7 +112,13 @@ gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg)
 boost::python::tuple py_show(gal::func::store::Register reg)
 {
   return gal::func::pythonRegisterTuple(show(reg));
-}
+};
+
+// Simple functions that are not part of the functional system.
+void py_set2dMode(bool flag)
+{
+  gal::view::Context::get().set2dMode(flag);
+};
 
 }  // namespace viewfunc
 }  // namespace gal
@@ -120,6 +126,7 @@ boost::python::tuple py_show(gal::func::store::Register reg)
 BOOST_PYTHON_MODULE(pygalview)
 {
   using namespace boost::python;
+  using namespace gal::viewfunc;
   //   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
   // Bindings related to gui
   // Views for drawables
@@ -128,5 +135,6 @@ BOOST_PYTHON_MODULE(pygalview)
   // Text fields for string inputs
   def("sliderf32", gal::viewfunc::pySliderFn<float>);
   def("slideri32", gal::viewfunc::pySliderFn<int32_t>);
-  def("show", gal::viewfunc::py_show);
+  GAL_DEF_PY_FN(show);
+  GAL_DEF_PY_FN(set2dMode);
 };

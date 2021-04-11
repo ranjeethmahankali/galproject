@@ -14,6 +14,14 @@ GAL_FUNC_DECL(((glm::vec3, vector, "3D vector")),
               (float, y, "y coordinate"),
               (float, z, "z coordinate"));
 
+GAL_FUNC_DECL(((glm::vec2, vector, "2D vector")),
+              vec2,
+              true,
+              2,
+              "Creates a 2D vector from coordinates",
+              (float, x, "x coordinate"),
+              (float, y, "y coordinate"));
+
 GAL_FUNC_DECL(((gal::Sphere, sphere, "Sphere")),
               sphere,
               true,
@@ -38,6 +46,14 @@ GAL_FUNC_DECL(((gal::Box3, box, "Box")),
               (glm::vec3, min, "min point"),
               (glm::vec3, max, "max point"));
 
+GAL_FUNC_DECL(((gal::Box2, box, "Box")),
+              box2,
+              true,
+              2,
+              "Creates a 2d box with the two given points",
+              (glm::vec2, min, "min point"),
+              (glm::vec2, max, "max point"));
+
 GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
               randomPointCloudFromBox,
               true,
@@ -52,6 +68,14 @@ GAL_FUNC_DECL(((gal::Mesh, hull, "Convex hull")),
               1,
               "Creates a convex hull from the given point cloud",
               (gal::PointCloud, cloud, "Point cloud"));
+
+GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
+              boundingCircle,
+              true,
+              1,
+              "Creates a bounding circle for the given points. The 3d points are "
+              "flattened to 2d by removing the z-coordinate.",
+              (gal::PointCloud, points, "Points"));
 
 }  // namespace func
 }  // namespace gal
