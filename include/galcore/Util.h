@@ -135,7 +135,7 @@ void random(T min, T max, size_t count, DstIter dst)
     else if constexpr (std::is_floating_point_v<T>) {
       static constexpr T TMax = static_cast<T>(RAND_MAX);
       T                  span = max - min;
-      T val = static_cast<T>(rand());
+      T                  val  = static_cast<T>(rand());
       *(dst++)                = min + span * (val / TMax);
     }
     else {
