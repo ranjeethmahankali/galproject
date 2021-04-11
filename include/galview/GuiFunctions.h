@@ -22,7 +22,9 @@ protected:
   void handleChanges() override
   {
     gal::view::Slider<T>::handleChanges();
-    this->set(this->mValue);
+    if (*(this->mValuePtr) != this->mValue) {  // The value changed.
+      this->set(this->mValue);
+    }
   };
 };
 

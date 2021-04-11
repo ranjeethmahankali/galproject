@@ -1,6 +1,7 @@
 #include <galcore/Util.h>
 #include <galfunc/UtilFunctions.h>
 
+
 namespace gal {
 namespace func {
 

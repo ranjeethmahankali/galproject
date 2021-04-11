@@ -1,19 +1,6 @@
 #pragma once
 
-#include <galcore/Box.h>
-#include <galcore/Circle2d.h>
-#include <galcore/Plane.h>
-#include <galcore/PointCloud.h>
-#include <galcore/Sphere.h>
-#include <galcore/Mesh.h>
-#include <galfunc/Functions.h>
-
-GAL_TYPE_INFO(glm::vec3, 0x33821151);
-GAL_TYPE_INFO(gal::Sphere, 0x5e8f631c);
-GAL_TYPE_INFO(gal::Plane, 0x591f323f);
-GAL_TYPE_INFO(gal::Box3, 0x8fcb9e01);
-GAL_TYPE_INFO(gal::PointCloud, 0xe6e934eb);
-GAL_TYPE_INFO(gal::Circle2d, 0X3271dc29);
+#include <galfunc/Types.h>
 
 namespace gal {
 namespace func {
@@ -42,6 +29,29 @@ GAL_FUNC_DECL(((gal::Plane, plane, "The plane")),
               "Creates a plane with the given point and normal",
               (glm::vec3, point, "Point"),
               (glm::vec3, normal, "Normal"));
+
+GAL_FUNC_DECL(((gal::Box3, box, "Box")),
+              box3,
+              true,
+              2,
+              "Creates a 3d box with the two given points",
+              (glm::vec3, min, "min point"),
+              (glm::vec3, max, "max point"));
+
+GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
+              randomPointCloudFromBox,
+              true,
+              2,
+              "Creates a random point cloud with points inside the given box",
+              (gal::Box3, box, "Box to sample from"),
+              (int32_t, numPoints, "Number of points to sample"));
+
+GAL_FUNC_DECL(((gal::Mesh, hull, "Convex hull")),
+              pointCloudConvexHull,
+              true,
+              1,
+              "Creates a convex hull from the given point cloud",
+              (gal::PointCloud, cloud, "Point cloud"));
 
 }  // namespace func
 }  // namespace gal

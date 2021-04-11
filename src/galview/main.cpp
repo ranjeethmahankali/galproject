@@ -40,7 +40,7 @@ static std::string readTextFromFile(const std::string& path)
     file.close();
   }
   catch (std::ifstream::failure e) {
-    std::cout << "Error reading shader source file!" << std::endl;
+    std::cout << "Error reading file!" << std::endl;
   }
   return filestream.str();
 }
@@ -101,53 +101,6 @@ static Mesh loadBunnySmall()
 static void glfw_error_cb(int error, const char* desc)
 {
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
-}
-
-static void convexHullDemo()
-{
-  using namespace std::string_literals;
-  auto& panel  = view::newPanel("Convex Hull Demo"s);
-  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 1000, 10);
-
-  static const Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-  static std::vector<glm::vec3> points;
-  static size_t                 id = 0;
-
-  auto updater = [](const int& n) {
-    points.clear();
-    points.reserve(n);
-    box.randomPoints(size_t(n), std::back_inserter(points));
-    ConvexHull hull(points.begin(), points.end());
-    id = view::Context::get().replaceDrawable(id, hull.toMesh());
-  };
-
-  // For the first time.
-  updater(10);
-
-  slider->addHandler(updater);
-}
-
-static void boxPointsDemo()
-{
-  using namespace std::string_literals;
-  auto& panel  = view::newPanel("Random Points Demo"s);
-  auto  slider = panel.newWidget<view::SliderI>("Number of Points"s, 10, 1000, 10);
-
-  static Box3 box(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-  view::Context::get().addDrawable(box);
-  static gal::PointCloud cloud;
-  static size_t          id = 0;
-
-  auto numUpdater = [](const int& n) {
-    cloud.clear();
-    cloud.reserve(n);
-    box.randomPoints(size_t(n), std::back_inserter(cloud));
-    id = view::Context::get().replaceDrawable(id, cloud);
-  };
-
-  // For the first time;
-  numUpdater(1000);
-  slider->addHandler(numUpdater);
 }
 
 static void sphereQueryDemo()
@@ -314,10 +267,9 @@ int main(int argc, char** argv)
   // Initialize Embedded Python
   initPythonEnvironment();
 
-  runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py");
-  //   meshPlaneClippingDemo();
-  //   boxPointsDemo();
-  //   convexHullDemo();
+  //   runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py");
+  // runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/convexHull.py");
+  runDemo("/home/rnjth94/dev/GeomAlgoLib/demos/boxRandomPoints.py");
   //   sphereQueryDemo();
   //   createBoxMeshDemo();
   //   closestPointDemo();

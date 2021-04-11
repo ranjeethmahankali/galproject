@@ -3,6 +3,7 @@
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/UtilFunctions.h>
+#include <galfunc/Types.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
@@ -136,6 +137,9 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(vec3);
   GAL_DEF_PY_FN(sphere);
   GAL_DEF_PY_FN(plane);
+  GAL_DEF_PY_FN(box3);
+  GAL_DEF_PY_FN(randomPointCloudFromBox);
+  GAL_DEF_PY_FN(pointCloudConvexHull);
 
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);

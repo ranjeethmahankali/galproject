@@ -1,3 +1,4 @@
+#include <galcore/ConvexHull.h>
 #include <galfunc/GeomFunctions.h>
 
 namespace gal {
@@ -35,6 +36,43 @@ GAL_FUNC_DEFN(((gal::Plane, plane, "The plane")),
               (glm::vec3, normal, "Normal"))
 {
   return std::make_tuple(std::make_shared<gal::Plane>(*point, *normal));
+};
+
+GAL_FUNC_DEFN(((gal::Box3, box, "Box")),
+              box3,
+              true,
+              2,
+              "Creates a 3d box with the two given points",
+              (glm::vec3, min, "min point"),
+              (glm::vec3, max, "max point"))
+{
+  return std::make_tuple(std::make_shared<Box3>(*min, *max));
+};
+
+GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
+              randomPointCloudFromBox,
+              true,
+              2,
+              "Creates a random point cloud with points inside the given box",
+              (gal::Box3, box, "Box to sample from"),
+              (int32_t, numPoints, "Number of points to sample"))
+{
+  auto   cloud = std::make_shared<gal::PointCloud>();
+  size_t nPts  = size_t(*numPoints);
+  cloud->reserve(nPts);
+  box->randomPoints(nPts, std::back_inserter(*cloud));
+  return std::make_tuple(cloud);
+};
+
+GAL_FUNC_DEFN(((gal::Mesh, hull, "Convex hull")),
+              pointCloudConvexHull,
+              true,
+              1,
+              "Creates a convex hull from the given point cloud",
+              (gal::PointCloud, cloud, "Point cloud"))
+{
+  gal::ConvexHull hull(cloud->begin(), cloud->end());
+  return std::make_tuple(std::make_shared<gal::Mesh>(hull.toMesh()));
 };
 
 }  // namespace func

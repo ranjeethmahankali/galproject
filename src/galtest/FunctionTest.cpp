@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <galfunc/Functions.h>
+#include <galfunc/Types.h>
 
 TEST(Function, StringConstant) {
     using namespace gal::func;

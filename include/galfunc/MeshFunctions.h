@@ -1,10 +1,8 @@
 #pragma once
 
 #include <galcore/ObjLoader.h>
-#include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
-
-GAL_TYPE_INFO(gal::Mesh, 0x45342367);
+#include <galfunc/Types.h>
 
 namespace gal {
 namespace func {
