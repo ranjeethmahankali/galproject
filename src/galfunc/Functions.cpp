@@ -70,9 +70,11 @@ Register& getRegister(uint64_t id)
   return match->second;
 };
 
-void addFunction(const std::shared_ptr<Function>& fn)
+std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn)
 {
   sFunctionMap.emplace(uint64_t(fn.get()), fn);
+  fn->initOutputRegisters();
+  return fn;
 };
 
 void useRegister(const Function* fn, uint64_t id)

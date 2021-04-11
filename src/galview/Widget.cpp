@@ -24,14 +24,16 @@ void initializeImGui(GLFWwindow* window, const char* glslVersion)
   ImGui_ImplOpenGL3_Init(glslVersion);
 };
 
-void imGuiNewFrame() {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+void imGuiNewFrame()
+{
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
 };
 
-void imGuiRender() {
-    ImGui::Render();
+void imGuiRender()
+{
+  ImGui::Render();
 }
 
 Panel::Panel(const std::string& title)
@@ -48,6 +50,11 @@ void Panel::draw()
   if (sFont)
     ImGui::PopFont();
   ImGui::End();
+};
+
+void Panel::addWidget(const std::shared_ptr<Widget>& widget)
+{
+  mWidgets.push_back(widget);
 };
 
 static std::vector<Panel> sPanels;

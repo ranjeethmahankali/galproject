@@ -45,6 +45,8 @@ public:
     mWidgets.push_back(w);
     return w;
   };
+
+  void addWidget(const std::shared_ptr<Widget>& widget);
 };
 
 Panel& newPanel(const std::string& title);
@@ -82,7 +84,7 @@ protected:
   T                      mValue;
 
 protected:
-  void handleChanges()
+  virtual void handleChanges()
   {
     if (!ImGui::IsItemEdited()) {
       return;

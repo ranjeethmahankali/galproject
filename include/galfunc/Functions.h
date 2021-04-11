@@ -109,7 +109,7 @@ std::shared_ptr<T> get(uint64_t id)
   throw std::bad_alloc();
 };
 
-void addFunction(const std::shared_ptr<Function>& fn);
+std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
 
 };  // namespace store
 
@@ -250,11 +250,11 @@ struct TConstant : public Function
 {
 protected:
   uint64_t           mRegisterId;
-  std::shared_ptr<T> mValue;
+  std::shared_ptr<T> mValuePtr;
 
 public:
   TConstant(const T& value)
-      : mValue(std::make_shared<T>(value)) {};
+      : mValuePtr(std::make_shared<T>(value)) {};
 
   ~TConstant() { store::free(mRegisterId); }
 
@@ -274,7 +274,7 @@ public:
     throw std::out_of_range("Index out of range");
   };
 
-  void run() override { store::set<T>(mRegisterId, mValue); };
+  void run() override { store::set<T>(mRegisterId, mValuePtr); };
 };
 
 template<typename T>
@@ -282,8 +282,14 @@ struct TVariable : public TConstant<T>
 {
   void set(const T& value)
   {
-    *(this->mValue) = value;
+    *(this->mValuePtr) = value;
     store::markDirty(this->mRegisterId);
+  };
+
+  TVariable(const T& value)
+      : TConstant<T>(value)
+  {
+    this->set(value);
   };
 };
 
@@ -292,23 +298,17 @@ namespace store {
 template<typename TFunc, typename... TArgs>
 std::shared_ptr<Function> makeFunction(TArgs... args)
 {
-  static_assert(std::is_base_of_v<Function, TFunc> &&
-                  gal::func::types::IsInstance<TFunction, TFunc>::value,
-                "Not a valid function type");
+  static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
-  addFunction(fn);
-  fn->initOutputRegisters();
-  return fn;
+  return addFunction(fn);
 };
 
 template<typename T>
 std::shared_ptr<Function> makeConstant(const T& value)
 {
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TConstant<T>>(value));
-  addFunction(fn);
-  fn->initOutputRegisters();
-  return fn;
+  return addFunction(fn);
 };
 
 }  // namespace store
