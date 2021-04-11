@@ -57,18 +57,18 @@ void Panel::addWidget(const std::shared_ptr<Widget>& widget)
   mWidgets.push_back(widget);
 };
 
-static std::vector<Panel> sPanels;
+static std::vector<std::shared_ptr<Panel>> sPanels;
 
 Panel& newPanel(const std::string& title)
 {
-  sPanels.emplace_back(title);
-  return sPanels.back();
+  sPanels.push_back(std::make_shared<Panel>(title));
+  return *sPanels.back();
 };
 
 void drawAllPanels()
 {
   for (auto& p : sPanels) {
-    p.draw();
+    p->draw();
   }
 };
 

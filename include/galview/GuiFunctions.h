@@ -11,10 +11,10 @@ view::Panel& outputPanel();
 void         evalOutputs();
 
 template<typename T>
-struct Slider : public gal::func::TVariable<T>, public gal::view::Slider<T>
+struct SliderFunc : public gal::func::TVariable<T>, public gal::view::Slider<T>
 {
 public:
-  Slider(const std::string& label, T min, T max, T value)
+  SliderFunc(const std::string& label, T min, T max, T value)
       : gal::func::TVariable<T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
@@ -44,27 +44,24 @@ private:
   uint64_t              mRegisterId;
 };
 
-// Manual declaration of the show function because it has special needs.
-gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg);
-
 template<typename T>
-gal::func::types::OutputTuple<1> sliderFn(const std::string& label,
-                                          const T&           min,
-                                          const T&           max,
-                                          const T&           value)
+gal::func::types::OutputTuple<1> slider(const std::string& label,
+                                        const T&           min,
+                                        const T&           max,
+                                        const T&           value)
 {
-  auto fn = gal::func::store::makeFunction<Slider<T>>(label, min, max, value);
+  auto fn = gal::func::store::makeFunction<SliderFunc<T>>(label, min, max, value);
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return gal::func::types::makeOutputTuple<1>(*fn);
 };
 
 template<typename T>
-boost::python::tuple pySliderFn(const std::string& label,
-                                const T&           min,
-                                const T&           max,
-                                const T&           value)
+boost::python::tuple py_slider(const std::string& label,
+                               const T&           min,
+                               const T&           max,
+                               const T&           value)
 {
-  return gal::func::pythonRegisterTuple(sliderFn<T>(label, min, max, value));
+  return gal::func::pythonRegisterTuple(slider<T>(label, min, max, value));
 };
 
 }  // namespace viewfunc

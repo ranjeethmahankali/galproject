@@ -3,6 +3,15 @@
 #include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <sstream>
+
+namespace std {
+std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v)
+{
+  ostr << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+  return ostr;
+};
+}  // namespace std
 
 namespace gal {
 namespace viewfunc {
@@ -10,6 +19,7 @@ namespace viewfunc {
 static view::Panel*          sInputPanel  = nullptr;
 static view::Panel*          sOutputPanel = nullptr;
 static std::vector<uint64_t> mShowFuncRegs;
+static std::vector<uint64_t> mPrintFuncRegs;
 
 void initPanels(view::Panel& inputs, view::Panel& outputs)
 {
@@ -30,6 +40,9 @@ view::Panel& outputPanel()
 void evalOutputs()
 {
   for (uint64_t id : mShowFuncRegs) {
+    auto success = gal::func::store::get<bool>(id);
+  }
+  for (uint64_t id : mPrintFuncRegs) {
     auto success = gal::func::store::get<bool>(id);
   }
 };
@@ -101,6 +114,77 @@ uint64_t ShowFunc::outputRegister(size_t index) const
   throw std::out_of_range("Index out of range");
 };
 
+template<typename T, typename... TRest>
+struct PrintManager
+{
+  static std::string print(uint64_t typeId, const std::shared_ptr<void>& ptr)
+  {
+    static_assert(gal::func::types::TypeInfo<T>::value, "Unknown type");
+    if (typeId == gal::func::types::TypeInfo<T>::id) {
+      auto              castsp = std::static_pointer_cast<T>(ptr);
+      std::stringstream ss;
+      ss << *castsp;
+      return ss.str();
+    }
+    else if constexpr (sizeof...(TRest) > 0) {
+      return PrintManager<TRest...>::print(typeId, ptr);
+    }
+    else if constexpr (sizeof...(TRest) == 0) {
+      std::cerr << "Datatype " << gal::func::types::TypeInfo<T>::name
+                << " is not a printable object\n";
+      throw std::bad_cast();
+    }
+  };
+};
+
+using printmanager = PrintManager<float, int32_t, glm::vec3, std::string>;
+
+struct PrintFunc : public gal::func::Function, public gal::view::Text
+{
+private:
+  std::string           mLabel;
+  uint64_t              mObjRegId;
+  std::shared_ptr<bool> mSuccess;
+  uint64_t              mRegisterId;
+
+public:
+  PrintFunc(const std::string& label, uint64_t regId)
+      : gal::view::Text("")
+      , mLabel(label)
+      , mObjRegId(regId)
+      , mSuccess(std::make_shared<bool>(false))
+  {
+    gal::func::store::useRegister(this, mObjRegId);
+  };
+
+  void run() override
+  {
+    try {
+      auto  obj    = gal::func::store::get<void>(mObjRegId);
+      auto& reg    = gal::func::store::getRegister(mObjRegId);
+      this->mValue = mLabel + ": " + printmanager::print(reg.typeId, reg.ptr);
+      *mSuccess    = true;
+    }
+    catch (std::bad_alloc ex) {
+      *mSuccess = false;
+    }
+    gal::func::store::set<bool>(mRegisterId, mSuccess);
+  };
+  void initOutputRegisters() override
+  {
+    mRegisterId = gal::func::store::allocate(
+      this, gal::func::types::TypeInfo<bool>::id, gal::func::types::TypeInfo<bool>::name);
+  };
+  size_t   numOutputs() const override { return 1; };
+  uint64_t outputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mRegisterId;
+    }
+    throw std::out_of_range("Index out of range");
+  };
+};
+
 // Manual definition for show function because it has special needs.
 gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg)
 {
@@ -112,6 +196,22 @@ gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg)
 boost::python::tuple py_show(gal::func::store::Register reg)
 {
   return gal::func::pythonRegisterTuple(show(reg));
+};
+
+// Manual definition for the print function because it has special needs.
+gal::func::types::OutputTuple<1> print(const std::string&                label,
+                                       const gal::func::store::Register& reg)
+{
+  using namespace gal::func;
+  auto fn = store::makeFunction<PrintFunc>(label, reg.id);
+  mPrintFuncRegs.push_back(fn->outputRegister(0));
+  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return types::makeOutputTuple<1>(*fn);
+};
+boost::python::tuple py_print(const std::string& label, gal::func::store::Register reg)
+{
+  return gal::func::pythonRegisterTuple(print(label, reg));
 };
 
 // Simple functions that are not part of the functional system.
@@ -133,8 +233,9 @@ BOOST_PYTHON_MODULE(pygalview)
   // Labels for strings
   // Sliders for float input
   // Text fields for string inputs
-  def("sliderf32", gal::viewfunc::pySliderFn<float>);
-  def("slideri32", gal::viewfunc::pySliderFn<int32_t>);
+  def("sliderf32", gal::viewfunc::py_slider<float>);
+  def("slideri32", gal::viewfunc::py_slider<int32_t>);
   GAL_DEF_PY_FN(show);
+  GAL_DEF_PY_FN(print);
   GAL_DEF_PY_FN(set2dMode);
 };

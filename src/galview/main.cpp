@@ -64,11 +64,15 @@ static void glfw_error_cb(int error, const char* desc)
 
 int main(int argc, char** argv)
 {
+  fs::path demoPath;
   if (argc < 2) {
     std::cout << "Please supply the filepath to the demo file as an argument.\n";
-    return 1;
+    demoPath = "/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py";
+    // return 1;
   }
-  fs::path demoPath = fs::absolute(fs::path(argv[1]));
+  else {
+    demoPath = fs::absolute(fs::path(argv[1]));
+  }
 
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";

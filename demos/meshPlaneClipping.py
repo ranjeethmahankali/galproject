@@ -16,5 +16,10 @@ norm, = pgf.vec3(normCoords[0], normCoords[1], normCoords[2])
 plane, = pgf.plane(pt, norm)
 clipped,  = pgf.clipMesh(scaled, plane)
 
+area, = pgf.meshSurfaceArea(clipped)
+centroid,  = pgf.meshCentroid(clipped)
+
 pgv.show(plane)
 pgv.show(clipped)
+pgv.print("Mesh Area", area)
+pgv.print("Mesh Centroid", centroid)
