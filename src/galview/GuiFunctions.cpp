@@ -50,7 +50,7 @@ struct DrawableManager
     else if constexpr (sizeof...(TRest) == 0) {
       std::cerr << "Datatype " << gal::func::types::TypeInfo<T>::name
                 << " is not a drawable object\n";
-      throw std::bad_alloc();
+      throw std::bad_cast();
     }
   };
 };
