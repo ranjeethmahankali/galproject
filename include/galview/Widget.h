@@ -22,10 +22,11 @@ void imGuiRender();
 class Widget
 {
 public:
+  virtual ~Widget()   = default;
   virtual void draw() = 0;
 };
 
-class Panel : public Widget
+class Panel final : public Widget
 {
 public:
   Panel(const std::string& title);
@@ -45,6 +46,8 @@ public:
     mWidgets.push_back(w);
     return w;
   };
+
+  void addWidget(const std::shared_ptr<Widget>& widget);
 };
 
 Panel& newPanel(const std::string& title);
@@ -55,10 +58,11 @@ class Text : public Widget
 {
 public:
   Text(const std::string& text);
+  virtual ~Text() = default;
 
   void draw();
 
-private:
+protected:
   std::string mValue;
 };
 
@@ -76,13 +80,14 @@ protected:
   InputWidget(const std::string& label, const T& value)
       : mLabel(label)
       , mValue(value) {};
+  virtual ~InputWidget() = default;
 
   std::vector<HandlerFn> mHandlers;
   std::string            mLabel;
   T                      mValue;
 
 protected:
-  void handleChanges()
+  virtual void handleChanges()
   {
     if (!ImGui::IsItemEdited()) {
       return;
@@ -125,6 +130,8 @@ public:
       : InputWidget<T>(label, std::clamp(value, min, max))
       , mRange {min, max} {};
 
+  virtual ~Slider() = default;
+
   void draw()
   {
     drawSlider<T>(
@@ -165,6 +172,8 @@ public:
   {
     std::copy_n(value, 3, this->mValue);
   };
+
+  virtual ~Slider3() = default;
 
   void draw()
   {
