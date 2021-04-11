@@ -1,5 +1,6 @@
 #pragma once
 #include <galfunc/Functions.h>
+#include <galview/Context.h>
 #include <galview/Widget.h>
 
 namespace gal {
@@ -8,9 +9,10 @@ namespace viewfunc {
 void         initPanels(view::Panel& inputs, view::Panel& outputs);
 view::Panel& inputPanel();
 view::Panel& outputPanel();
+void         evalOutputs();
 
 template<typename T>
-class Slider : public gal::func::TVariable<T>, public gal::view::Slider<T>
+struct Slider : public gal::func::TVariable<T>, public gal::view::Slider<T>
 {
 public:
   Slider(const std::string& label, T min, T max, T value)
@@ -24,6 +26,25 @@ protected:
     this->set(this->mValue);
   };
 };
+
+struct ShowFunc : public gal::func::Function
+{
+  ShowFunc(uint64_t regId);
+
+  void     run() override;
+  void     initOutputRegisters() override;
+  size_t   numOutputs() const override;
+  uint64_t outputRegister(size_t index) const override;
+
+private:
+  uint64_t              mObjRegId;
+  size_t                mDrawId = 0;
+  std::shared_ptr<bool> mSuccess;
+  uint64_t              mRegisterId;
+};
+
+// Manual declaration of the show function because it has special needs.
+gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg);
 
 template<typename T>
 gal::func::types::OutputTuple<1> sliderFn(const std::string& label,

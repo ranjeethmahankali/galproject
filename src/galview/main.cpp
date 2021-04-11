@@ -48,7 +48,12 @@ static std::string readTextFromFile(const std::string& path)
 static void testPython()
 {
   std::string text = readTextFromFile("/home/rnjth94/dev/GeomAlgoLib/scripts/test.py");
-  boost::python::exec(text.c_str());
+  try {
+    boost::python::exec(text.c_str());
+  }
+  catch (boost::python::error_already_set) {
+    PyErr_Print();
+  }
 }
 
 static void createBoxMeshDemo()
@@ -378,6 +383,7 @@ int main(int argc, char** argv)
 
     {
       view::drawAllPanels();
+      viewfunc::evalOutputs();
     }
 
     view::imGuiRender();

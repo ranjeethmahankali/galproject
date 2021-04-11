@@ -1,5 +1,6 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
+#include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 
 namespace std {
@@ -98,7 +99,12 @@ void markDirty(uint64_t id)
     auto   fn    = getRegister(current).ownerFunc();
     size_t nOuts = fn->numOutputs();
     for (size_t i = 0; i < nOuts; i++) {
-      ids.push_back(fn->outputRegister(i));
+      const auto& users = sRegisterUserMap[fn->outputRegister(i)];
+      for (const auto& user : users) {
+        for (size_t j = 0; j < user->numOutputs(); j++) {
+            ids.push_back(user->outputRegister(j));
+        }
+      }
     }
   }
 };
@@ -108,17 +114,24 @@ void markDirty(uint64_t id)
 }  // namespace func
 }  // namespace gal
 
+#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName)
+
 BOOST_PYTHON_MODULE(pygalfunc)
 {
   using namespace boost::python;
+  using namespace gal::func;
 
   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
 
   class_<std::shared_ptr<gal::Mesh>>("Mesh");
+  class_<std::shared_ptr<glm::vec3>>("Vec3");
+  class_<std::shared_ptr<gal::Sphere>>("Sphere");
 
-  def("string", gal::func::py_constant<std::string>);
-  def("loadObjFile", gal::func::py_loadObjFile);
-  def("meshCentroid", gal::func::py_meshCentroid);
+  def("string", py_constant<std::string>);
+  GAL_DEF_PY_FN(loadObjFile);
+  GAL_DEF_PY_FN(meshCentroid);
+  GAL_DEF_PY_FN(vec3);
+  GAL_DEF_PY_FN(sphere);
 
   def("readFloat", gal::func::py_readRegister<float>);
 };

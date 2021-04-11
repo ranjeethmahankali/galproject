@@ -8,7 +8,7 @@ GAL_FUNC_DEFN(((float, x, "x coordinate"),
                (float, z, "z coordinate")),
               meshCentroid,
               true,
-              3,
+              1,
               "Gets the centroid of a mesh",
               (gal::Mesh, mesh, "The mesh"))
 {

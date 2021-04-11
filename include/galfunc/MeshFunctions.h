@@ -3,7 +3,7 @@
 #include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 
-TYPE_INFO(gal::Mesh, 0x45342367);
+GAL_TYPE_INFO(gal::Mesh, 0x45342367);
 
 namespace gal {
 namespace func {
