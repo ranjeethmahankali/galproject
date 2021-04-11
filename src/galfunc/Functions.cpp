@@ -123,11 +123,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
 
-  class_<std::shared_ptr<gal::Mesh>>("Mesh");
-  class_<std::shared_ptr<glm::vec3>>("Vec3");
-  class_<std::shared_ptr<glm::vec2>>("Vec2");
-  class_<std::shared_ptr<gal::Sphere>>("Sphere");
-
   def("string", py_constant<std::string>);
   def("numberf32", py_constant<float>);
 
