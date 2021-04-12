@@ -1,5 +1,6 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
+#include <galfunc/Variable.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/UtilFunctions.h>
@@ -116,6 +117,11 @@ void markDirty(uint64_t id)
 }  // namespace func
 }  // namespace gal
 
+// Temp code.
+float listItem() {
+    return 42.42;
+};
+
 BOOST_PYTHON_MODULE(pygalfunc)
 {
   using namespace boost::python;
@@ -123,8 +129,8 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
 
-  def("string", py_constant<std::string>);
-  def("numberf32", py_constant<float>);
+  def("string", py_variable<std::string>);
+  def("numberf32", py_variable<float>);
 
   GAL_DEF_PY_FN(absPath);
 

@@ -251,62 +251,6 @@ public:
   };
 };
 
-template<typename T>
-struct TConstant : public Function
-{
-protected:
-  uint64_t           mRegisterId;
-  std::shared_ptr<T> mValuePtr;
-
-public:
-  TConstant(const T& value)
-      : mValuePtr(std::make_shared<T>(value))
-  {
-    store::useRegister(this, mRegisterId);
-  };
-
-  virtual ~TConstant() { store::free(mRegisterId); }
-
-  void initOutputRegisters() override
-  {
-    static_assert(types::TypeInfo<T>::value, "Unknown type");
-    mRegisterId = store::allocate(this, types::TypeInfo<T>::id, types::TypeInfo<T>::name);
-  };
-
-  size_t numOutputs() const override { return 1; };
-
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
-  };
-
-  void run() override { store::set<T>(mRegisterId, mValuePtr); };
-};
-
-template<typename T>
-struct TVariable : public TConstant<T>
-{
-  TVariable(const T& value)
-      : TConstant<T>(value) {};
-
-  virtual ~TVariable() = default;
-
-  void set(const T& value)
-  {
-    *(this->mValuePtr) = value;
-    store::markDirty(this->mRegisterId);
-  };
-
-  void initOutputRegisters() override
-  {
-    TConstant<T>::initOutputRegisters();
-    set(*(this->mValuePtr));
-  };
-};
-
 namespace store {
 
 template<typename TFunc, typename... TArgs>
@@ -315,13 +259,6 @@ std::shared_ptr<Function> makeFunction(TArgs... args)
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
-  return addFunction(fn);
-};
-
-template<typename T>
-std::shared_ptr<Function> makeConstant(const T& value)
-{
-  auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TConstant<T>>(value));
   return addFunction(fn);
 };
 
@@ -350,13 +287,6 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 
 }  // namespace types
 
-template<typename T>
-types::OutputTuple<1> constant(const T& value)
-{
-  auto fn = store::makeConstant<T>(value);
-  return types::makeOutputTuple<1>(*fn);
-};
-
 template<size_t N, typename CppTupleType, typename... TArgs>
 boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
 {
@@ -375,12 +305,6 @@ template<typename... Ts>
 boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
 {
   return pythonRegisterTupleInternal<0>(cppTup);
-};
-
-template<typename T>
-boost::python::tuple py_constant(const T& value)
-{
-  return pythonRegisterTuple(gal::func::constant<T>(value));
 };
 
 template<typename T>

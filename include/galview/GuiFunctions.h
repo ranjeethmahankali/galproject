@@ -1,5 +1,6 @@
 #pragma once
 #include <galfunc/Functions.h>
+#include <galfunc/Variable.h>
 #include <galview/Widget.h>
 
 namespace gal {
