@@ -129,7 +129,7 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
   std::ifstream file;
   file.open(mPath);
   if (!file) {
-    std::cerr << "Unable to open the obj file\n";
+    std::cerr << "Unable to open the obj file:\n\t" << mPath << std::endl;
   }
 
   static const std::string sv  = "v";
