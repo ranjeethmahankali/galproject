@@ -56,13 +56,16 @@ static bool checkWord(const std::string& line,
 
 static void readCoords(const std::string& line, size_t from, float* dst, size_t nCoords)
 {
-  for (size_t i = 0; i < nCoords; i++) {
+  for (size_t i = 0; i < nCoords;) {
     size_t to;
     findWord(line, ' ', from, from, to);
-    auto begin = line.cbegin() + from;
-    auto end   = to < line.length() ? line.cbegin() + to : line.cend();
-    dst[i]     = std::stof(std::string(begin, end));
-    from       = to + 1;
+    if (from < to) {
+      auto begin = line.cbegin() + from;
+      auto end   = to < line.length() ? line.cbegin() + to : line.cend();
+      dst[i]     = std::stof(std::string(begin, end));
+      i++;
+    }
+    from = to + 1;
   }
 }
 
