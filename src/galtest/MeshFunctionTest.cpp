@@ -13,5 +13,7 @@ TEST(MeshFunction, Centroid)
 
   auto ptval = *(store::get<glm::vec3>(pt.id));
 
-  std::cout << "(" << ptval.x << ", " << ptval.y << ", " << ptval.z << ")\n";
+  //   std::cout << "(" << ptval.x << ", " << ptval.y << ", " << ptval.z << ")\n";
+  ASSERT_TRUE(glm::distance(glm::vec3(-0.0209832f, -0.0108626f, 0.087616f), ptval) <
+              .00001f);
 };
