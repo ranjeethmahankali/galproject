@@ -16,6 +16,10 @@ static void findWord(const std::string& line,
                      size_t&            from,
                      size_t&            to)
 {
+  if (line[from] == delim) {
+    to = from;  // degenerate case.
+    return;
+  }
   from = line.find_first_not_of(delim, begin);
   if (from == std::string::npos) {
     to = std::string::npos;
@@ -76,21 +80,23 @@ static glm::vec2 readVector2(const std::string& line, size_t from)
   return glm::vec2(coords[0], coords[1]);
 };
 
-static void readUint32s(const std::string& line,
-                        size_t             from,
-                        size_t             stop,
-                        uint32_t*          dst,
-                        size_t             nVals,
-                        char               delim)
+static void readInt64s(const std::string& line,
+                       size_t             from,
+                       size_t             stop,
+                       int64_t*           dst,
+                       size_t             nVals,
+                       char               delim)
 {
   for (size_t i = 0; i < nVals; i++) {
     size_t to;
     findWord(line, delim, from, from, to);
-    auto begin = line.cbegin() + from;
-    auto end   = to < line.length() ? line.cbegin() + to : line.cend();
-    dst[i]     = std::stoul(std::string(begin, end)) - 1;
-    if (to == std::string::npos)
-      return;
+    if (from < to) {
+      auto begin = line.cbegin() + from;
+      auto end   = to < line.length() ? line.cbegin() + to : line.cend();
+      dst[i]     = std::stoll(std::string(begin, end));
+      if (to == std::string::npos)
+        return;
+    }
     from = to + 1;
     if (from >= stop)
       return;
@@ -99,11 +105,11 @@ static void readUint32s(const std::string& line,
 
 static ObjMeshData::Face readFace(const std::string& line, size_t from)
 {
-  uint32_t vals[9];
+  int64_t vals[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   for (size_t i = 0; i < 3; i++) {
     size_t to;
     findWord(line, ' ', from, from, to);
-    readUint32s(line, from, to, vals + (i * 3), 3, '/');
+    readInt64s(line, from, to, vals + (i * 3), 3, '/');
     from = to + 1;
   }
 
@@ -176,8 +182,9 @@ Mesh ObjMeshData::toMesh() const
   std::vector<size_t> indices;
   indices.reserve(mFaces.size() * 3);
   for (const auto& face : mFaces) {
-    for (size_t i = 0; i < 3; i++) {
-      indices.push_back(face.vertices[i]);
+    for (int64_t fvi : face.vertices) {
+      indices.push_back(fvi < 0 ? size_t(int64_t(mVertices.size()) + fvi)
+                                : size_t(fvi - 1));
     }
   }
   return Mesh((float*)mVertices.data(), mVertices.size(), indices.data(), mFaces.size());

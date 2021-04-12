@@ -7,7 +7,7 @@ TEST(MeshFunction, Centroid)
 {
   using namespace gal::func;
   using namespace std::string_literals;
-  auto [path] = variable<std::string>("/home/rnjth94/dev/GeomAlgoLib/assets/bunny.obj"s);
+  auto [path] = variable<std::string>(gal::utils::absPath("../assets/bunny.obj"));
   auto [mesh] = loadObjFile(path);
   auto [pt]   = meshCentroid(mesh);
 
