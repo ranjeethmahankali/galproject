@@ -183,7 +183,7 @@ public:
   {
     static_assert(types::TypeInfo<DType>::value, "Unknown type");
     regIds[N] = store::allocate(
-      fn, types::TypeInfo<DType>::id, std::string(types::TypeInfo<DType>::name));
+      fn, types::TypeInfo<DType>::id, std::string(types::TypeInfo<DType>::name()));
     if constexpr (N < NumData - 1) {
       RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
     }
@@ -318,15 +318,21 @@ T py_readRegister(gal::func::store::Register reg)
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg);
-}
 
-#define GAL_TYPE_INFO(type, idInt)                                \
-  template<>                                                      \
-  struct gal::func::types::TypeInfo<type> : public std::true_type \
-  {                                                               \
-    static constexpr uint32_t id     = idInt;                     \
-    static constexpr char     name[] = #type;                     \
-  };
+template<typename T>
+std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
+{
+  static constexpr char sep[] = ", ";
+  static constexpr char tab   = '\t';
+  ostr << "[\n";
+  auto begin = vec.cbegin();
+  while (begin != vec.cend()) {
+    ostr << tab << *(begin++) << std::endl;
+  }
+  ostr << "]";
+  return ostr;
+};
+}  // namespace std
 
 #define GAL_CONCAT(x, y) x##y
 

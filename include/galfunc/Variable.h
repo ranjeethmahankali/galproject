@@ -43,9 +43,9 @@ struct Converter<boost::python::list, std::vector<T>>
   static void assign(const boost::python::list& src, std::vector<T>& dst)
   {
     size_t count = boost::python::len(src);
-    dst->reserve(count);
+    dst.reserve(count);
     for (size_t i = 0; i < count; i++) {
-      dst->push_back(boost::python::extract<T>(src[i]));
+      dst.push_back(boost::python::extract<T>(src[i]));
     }
   };
 };
@@ -70,7 +70,7 @@ public:
   {
     static_assert(types::TypeInfo<TVal>::value, "Unknown type");
     mRegisterId =
-      store::allocate(this, types::TypeInfo<TVal>::id, types::TypeInfo<TVal>::name);
+      store::allocate(this, types::TypeInfo<TVal>::id, types::TypeInfo<TVal>::name());
     store::markDirty(this->mRegisterId);
   };
 
@@ -116,6 +116,12 @@ template<typename TVal, typename TArg = TVal>
 boost::python::tuple py_variable(const TArg& value)
 {
   return pythonRegisterTuple(gal::func::variable<TVal, TArg>(value));
+};
+
+template<typename T>
+boost::python::tuple py_list(const boost::python::list& lst)
+{
+  return py_variable<std::vector<T>, boost::python::list>(lst);
 };
 
 }  // namespace func

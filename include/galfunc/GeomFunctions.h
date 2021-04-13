@@ -77,5 +77,7 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
               "flattened to 2d by removing the z-coordinate.",
               (gal::PointCloud, points, "Points"));
 
+
+
 }  // namespace func
 }  // namespace gal

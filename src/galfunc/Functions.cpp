@@ -132,6 +132,8 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("string", py_variable<std::string>);
   def("numberf32", py_variable<float>);
 
+  def("listf32", py_list<float>);
+
   GAL_DEF_PY_FN(absPath);
 
   GAL_DEF_PY_FN(vec3);

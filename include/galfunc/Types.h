@@ -8,6 +8,36 @@
 #include <galcore/Sphere.h>
 #include <galfunc/Functions.h>
 
+#define GAL_TYPE_INFO(type, idInt)                                            \
+  template<>                                                                  \
+  struct gal::func::types::TypeInfo<type> : public std::true_type             \
+  {                                                                           \
+    static constexpr uint32_t id       = idInt;                               \
+    static constexpr char     s_name[] = #type;                               \
+    static std::string        name() noexcept { return std::string(s_name); } \
+  };
+
+namespace gal {
+namespace func {
+namespace types {
+
+template<typename T>
+struct TypeInfo<std::vector<T>> : public std::true_type
+{
+  static_assert(TypeInfo<T>::value);
+  static constexpr uint32_t sVecMask   = 0xe2b7b4b9;
+  static constexpr char     sVecName[] = "vec_";
+  static constexpr uint32_t id         = TypeInfo<T>::id ^ sVecMask;
+
+  static std::string name() noexcept
+  {
+    return std::string(sVecName) + TypeInfo<T>::name();
+  }
+};
+}  // namespace types
+}  // namespace func
+}  // namespace gal
+
 GAL_TYPE_INFO(void, 0x9267e7bf);
 GAL_TYPE_INFO(bool, 0x9566a7b1);
 GAL_TYPE_INFO(int32_t, 0x9234a3b1);

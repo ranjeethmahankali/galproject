@@ -61,7 +61,7 @@ struct DrawableManager
       return DrawableManager<TRest...>::draw(typeId, ptr, oldDrawId);
     }
     else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::func::types::TypeInfo<T>::name
+      std::cerr << "Datatype " << gal::func::types::TypeInfo<T>::name()
                 << " is not a drawable object\n";
       throw std::bad_cast();
     }
@@ -84,7 +84,7 @@ ShowFunc::ShowFunc(uint64_t regId)
 void ShowFunc::initOutputRegisters()
 {
   mRegisterId = gal::func::store::allocate(
-    this, gal::func::types::TypeInfo<bool>::id, gal::func::types::TypeInfo<bool>::name);
+    this, gal::func::types::TypeInfo<bool>::id, gal::func::types::TypeInfo<bool>::name());
 };
 
 void ShowFunc::run()
@@ -122,6 +122,12 @@ struct PrintManager
     static_assert(gal::func::types::TypeInfo<T>::value, "Unknown type");
     if (typeId == gal::func::types::TypeInfo<T>::id) {
       auto              castsp = std::static_pointer_cast<T>(ptr);
+      std::stringstream ss;
+      ss << *castsp;
+      return ss.str();
+    }
+    else if (typeId == gal::func::types::TypeInfo<std::vector<T>>::id) {
+      auto              castsp = std::static_pointer_cast<std::vector<T>>(ptr);
       std::stringstream ss;
       ss << *castsp;
       return ss.str();
@@ -172,8 +178,9 @@ public:
   };
   void initOutputRegisters() override
   {
-    mRegisterId = gal::func::store::allocate(
-      this, gal::func::types::TypeInfo<bool>::id, gal::func::types::TypeInfo<bool>::name);
+    mRegisterId = gal::func::store::allocate(this,
+                                             gal::func::types::TypeInfo<bool>::id,
+                                             gal::func::types::TypeInfo<bool>::name());
   };
   size_t   numOutputs() const override { return 1; };
   uint64_t outputRegister(size_t index) const override
