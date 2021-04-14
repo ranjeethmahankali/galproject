@@ -7,6 +7,7 @@ class PointCloud : public std::vector<glm::vec3>
 {
 public:
   PointCloud() = default;
+  PointCloud(const std::vector<glm::vec3>&);
   PointCloud(const std::vector<glm::vec2>& pts2d);
 };
 }  // namespace gal

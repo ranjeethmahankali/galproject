@@ -77,7 +77,12 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
               "flattened to 2d by removing the z-coordinate.",
               (gal::PointCloud, points, "Points"));
 
-
+GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
+              pointCloud3d,
+              true,
+              1,
+              "Creates a point cloud from the list of points",
+              (std::vector<glm::vec3>, points, points));
 
 }  // namespace func
 }  // namespace gal

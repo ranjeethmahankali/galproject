@@ -133,6 +133,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("numberf32", py_variable<float>);
 
   def("listf32", py_list<float>);
+  def("listvec3", py_list<glm::vec3>);
 
   GAL_DEF_PY_FN(absPath);
 
@@ -145,6 +146,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(closestPointsOnMesh);
   GAL_DEF_PY_FN(meshBbox);
   GAL_DEF_PY_FN(boundingCircle);
+  GAL_DEF_PY_FN(pointCloud3d);
 
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);

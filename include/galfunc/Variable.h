@@ -1,6 +1,7 @@
 #pragma once
 
 #include <galfunc/Functions.h>
+#include <glm/glm.hpp>
 
 namespace gal {
 namespace func {
@@ -31,6 +32,43 @@ struct Converter
 };
 
 template<typename T>
+struct Converter<boost::python::api::const_object_item, T>
+{
+  static std::shared_ptr<T> convert(const boost::python::api::const_object_item& obj)
+  {
+    return std::make_shared<T>(boost::python::extract<T>(obj));
+  };
+
+  static void assign(const boost::python::api::const_object_item& src, T& dst)
+  {
+    dst = boost::python::extract<T>(src);
+  };
+};
+
+template<>
+struct Converter<boost::python::api::const_object_item, glm::vec3>
+{
+  static std::shared_ptr<glm::vec3> convert(
+    const boost::python::api::const_object_item& obj)
+  {
+    const boost::python::list& lst = (const boost::python::list&)obj;
+    auto                       v   = std::make_shared<glm::vec3>();
+    Converter<boost::python::api::const_object_item, float>::assign(lst[0], v->x);
+    Converter<boost::python::api::const_object_item, float>::assign(lst[1], v->y);
+    Converter<boost::python::api::const_object_item, float>::assign(lst[2], v->z);
+    return v;
+  };
+
+  static void assign(const boost::python::api::const_object_item& src, glm::vec3& dst)
+  {
+    boost::python::list lst = boost::python::extract<boost::python::list>(src);
+    dst.x                   = boost::python::extract<float>(lst[0]);
+    dst.y                   = boost::python::extract<float>(lst[1]);
+    dst.z                   = boost::python::extract<float>(lst[2]);
+  };
+};
+
+template<typename T>
 struct Converter<boost::python::list, std::vector<T>>
 {
   static std::shared_ptr<std::vector<T>> convert(const boost::python::list& lst)
@@ -43,9 +81,9 @@ struct Converter<boost::python::list, std::vector<T>>
   static void assign(const boost::python::list& src, std::vector<T>& dst)
   {
     size_t count = boost::python::len(src);
-    dst.reserve(count);
+    dst.resize(count);
     for (size_t i = 0; i < count; i++) {
-      dst.push_back(boost::python::extract<T>(src[i]));
+      Converter<boost::python::api::const_object_item, T>::assign(src[i], dst.at(i));
     }
   };
 };

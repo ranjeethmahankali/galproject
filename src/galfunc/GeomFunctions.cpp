@@ -115,5 +115,15 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
     gal::Circle2d::minBoundingCircle(pts2d.data(), pts2d.size())));
 };
 
+GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
+              pointCloud3d,
+              true,
+              1,
+              "Creates a point cloud from the list of points",
+              (std::vector<glm::vec3>, points, points))
+{
+  return std::make_tuple(std::make_shared<gal::PointCloud>(*points));
+};
+
 }  // namespace func
 }  // namespace gal
