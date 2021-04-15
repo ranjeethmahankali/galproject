@@ -3,6 +3,7 @@
 #include <galfunc/MapMacro.h>
 #include <string.h>
 #include <boost/python.hpp>
+#include <boost/python/numpy.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
