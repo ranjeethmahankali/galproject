@@ -1,9 +1,14 @@
 import pygalfunc as pgf
 import pygalview as pgv
-import random
+import sys
 
-random.seed(42)
-pypoints = [[random.uniform(-1.0, 1.0) for i in range(3)] for j in range(20)]
+pypoints = [
+    [0, 0, 0],
+    [1, 0, 0],
+    [1, 1, 0],
+    [-.3, 1, 0],
+    [0, -1, 0],
+]
 
 pgv.set2dMode(True)
 pts, = pgf.listvec3(pypoints)
