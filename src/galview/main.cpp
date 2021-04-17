@@ -30,13 +30,15 @@ static void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-static void loadDemo(const fs::path& path)
+static int loadDemo(const fs::path& path)
 {
   try {
     boost::python::exec_file(path.c_str());
+    return 0;
   }
   catch (boost::python::error_already_set) {
     PyErr_Print();
+    return 1;
   }
 }
 
@@ -95,7 +97,11 @@ int main(int argc, char** argv)
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
-  loadDemo(demoPath.string());
+  int err = 0;
+  if (0 != (err = loadDemo(demoPath.string()))) {
+      std::cerr << "Unable to load the demo... aborting...\n";
+      return 1;
+  }
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
