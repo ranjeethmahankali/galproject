@@ -1,5 +1,6 @@
 #pragma once
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#include <galcore/Types.h>
 #include <galfunc/MapMacro.h>
 #include <string.h>
 #include <boost/python.hpp>
@@ -32,13 +33,6 @@ struct IsInstance : public std::false_type
 template<template<typename...> typename Tem, typename... Ts>
 struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 {
-};
-
-template<typename T>
-struct TypeInfo : public std::false_type
-{
-  static constexpr uint32_t id     = 0U;
-  static constexpr char     name[] = "UnknownType";
 };
 
 template<size_t N, typename T>
@@ -83,9 +77,9 @@ void useRegister(const Function* fn, uint64_t id);
 template<typename T>
 void set(uint64_t id, const std::shared_ptr<T>& data)
 {
-  static_assert(types::TypeInfo<T>::value, "Unknown type");
+  static_assert(gal::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (types::TypeInfo<T>::id == reg.typeId) {
+  if (TypeInfo<T>::id == reg.typeId) {
     reg.ptr = data;
     return;
   }
@@ -96,9 +90,9 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
 template<typename T>
 std::shared_ptr<T> get(uint64_t id)
 {
-  static_assert(types::TypeInfo<T>::value, "Unknown type");
+  static_assert(TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (types::TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
+  if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
     if (reg.isDirty) {
       auto fn = reg.ownerFunc();
       fn->run();
@@ -142,8 +136,8 @@ struct RegisterAccessor
 private:
   static void typeCheck(const store::Register& reg)
   {
-    static_assert(types::TypeInfo<DType>::value, "Unknown type");
-    if (reg.typeId != types::TypeInfo<DType>::id) {
+    static_assert(TypeInfo<DType>::value, "Unknown type");
+    if (reg.typeId != TypeInfo<DType>::id) {
       std::cerr << "Type mismatch error\n";
       throw std::bad_cast();
     }
@@ -181,9 +175,10 @@ public:
 
   static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
   {
-    static_assert(types::TypeInfo<DType>::value, "Unknown type");
-    regIds[N] = store::allocate(
-      fn, types::TypeInfo<DType>::id, std::string(types::TypeInfo<DType>::name()));
+    static_assert(TypeInfo<DType>::value, "Unknown type");
+    regIds[N] = store::allocate(fn,
+                                TypeInfo<DType>::id,
+                                std::string(TypeInfo<DType>::name()));
     if constexpr (N < NumData - 1) {
       RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
     }

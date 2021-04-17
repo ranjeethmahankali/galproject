@@ -106,9 +106,9 @@ public:
 
   void initOutputRegisters() override
   {
-    static_assert(types::TypeInfo<TVal>::value, "Unknown type");
+    static_assert(TypeInfo<TVal>::value, "Unknown type");
     mRegisterId =
-      store::allocate(this, types::TypeInfo<TVal>::id, types::TypeInfo<TVal>::name());
+      store::allocate(this, TypeInfo<TVal>::id, TypeInfo<TVal>::name());
     store::markDirty(this->mRegisterId);
   };
 

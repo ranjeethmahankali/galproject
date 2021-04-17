@@ -1,6 +1,6 @@
 #pragma once
 
-#include <galfunc/Types.h>
+#include <galfunc/Functions.h>
 
 namespace gal {
 namespace func {

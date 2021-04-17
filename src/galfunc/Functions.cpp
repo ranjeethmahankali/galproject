@@ -4,7 +4,7 @@
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/UtilFunctions.h>
-#include <galfunc/Types.h>
+#include <galcore/Types.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)

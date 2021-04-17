@@ -6,11 +6,19 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Sphere.h>
-#include <galfunc/Functions.h>
+
+namespace gal {
+template<typename T>
+struct TypeInfo : public std::false_type
+{
+  static constexpr uint32_t id     = 0U;
+  static constexpr char     name[] = "UnknownType";
+};
+}  // namespace gal
 
 #define GAL_TYPE_INFO(type, idInt)                                            \
   template<>                                                                  \
-  struct gal::func::types::TypeInfo<type> : public std::true_type             \
+  struct gal::TypeInfo<type> : public std::true_type                   \
   {                                                                           \
     static constexpr uint32_t id       = idInt;                               \
     static constexpr char     s_name[] = #type;                               \
@@ -18,8 +26,6 @@
   };
 
 namespace gal {
-namespace func {
-namespace types {
 
 template<typename T>
 struct TypeInfo<std::vector<T>> : public std::true_type
@@ -34,8 +40,6 @@ struct TypeInfo<std::vector<T>> : public std::true_type
     return std::string(sVecName) + TypeInfo<T>::name();
   }
 };
-}  // namespace types
-}  // namespace func
 }  // namespace gal
 
 GAL_TYPE_INFO(void, 0x9267e7bf);
