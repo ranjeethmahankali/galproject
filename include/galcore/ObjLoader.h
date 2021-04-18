@@ -12,9 +12,9 @@ class ObjMeshData
 public:
   struct Face
   {
-    uint32_t vertices[3];
-    uint32_t texCoords[3];
-    uint32_t normals[3];
+    int64_t vertices[3];
+    int64_t texCoords[3];
+    int64_t normals[3];
   };
 
   ObjMeshData(const std::filesystem::path& filepath, bool flipYAndZ = false);
