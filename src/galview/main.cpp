@@ -70,7 +70,7 @@ int main(int argc, char** argv)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  GLFWwindow* window = glfwCreateWindow(1600, 900, "First Attempt", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
