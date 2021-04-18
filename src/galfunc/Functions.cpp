@@ -1,9 +1,10 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
+#include <galfunc/Variable.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/UtilFunctions.h>
-#include <galfunc/Types.h>
+#include <galcore/Types.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
@@ -116,6 +117,11 @@ void markDirty(uint64_t id)
 }  // namespace func
 }  // namespace gal
 
+// Temp code.
+float listItem() {
+    return 42.42;
+};
+
 BOOST_PYTHON_MODULE(pygalfunc)
 {
   using namespace boost::python;
@@ -123,13 +129,11 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
 
-  class_<std::shared_ptr<gal::Mesh>>("Mesh");
-  class_<std::shared_ptr<glm::vec3>>("Vec3");
-  class_<std::shared_ptr<glm::vec2>>("Vec2");
-  class_<std::shared_ptr<gal::Sphere>>("Sphere");
+  def("string", py_variable<std::string>);
+  def("numberf32", py_variable<float>);
 
-  def("string", py_constant<std::string>);
-  def("numberf32", py_constant<float>);
+  def("listf32", py_list<float>);
+  def("listvec3", py_list<glm::vec3>);
 
   GAL_DEF_PY_FN(absPath);
 
@@ -142,6 +146,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(closestPointsOnMesh);
   GAL_DEF_PY_FN(meshBbox);
   GAL_DEF_PY_FN(boundingCircle);
+  GAL_DEF_PY_FN(pointCloud3d);
 
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);

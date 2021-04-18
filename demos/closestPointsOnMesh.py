@@ -16,4 +16,5 @@ cloud2, = pgf.closestPointsOnMesh(scaled, cloud)
 
 pgv.show(box)
 pgv.show(scaled)
+# pgv.show(cloud)
 pgv.show(cloud2)

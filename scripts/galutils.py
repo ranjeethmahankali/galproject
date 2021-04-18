@@ -11,5 +11,5 @@ def GetRelativePath(path: str):
 
 def AppendBinPath():
     binpath = GetRelativePath("build")
-    print("Appending %s to the path" % binpath)
+    print("Appending '%s' to the path" % binpath)
     sys.path.append(binpath) 

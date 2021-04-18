@@ -2,7 +2,7 @@
 
 #include <galcore/ObjLoader.h>
 #include <galfunc/GeomFunctions.h>
-#include <galfunc/Types.h>
+#include <galcore/Types.h>
 
 namespace gal {
 namespace func {

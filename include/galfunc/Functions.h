@@ -1,5 +1,6 @@
 #pragma once
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#include <galcore/Types.h>
 #include <galfunc/MapMacro.h>
 #include <string.h>
 #include <boost/python.hpp>
@@ -32,13 +33,6 @@ struct IsInstance : public std::false_type
 template<template<typename...> typename Tem, typename... Ts>
 struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 {
-};
-
-template<typename T>
-struct TypeInfo : public std::false_type
-{
-  static constexpr uint32_t id     = 0U;
-  static constexpr char     name[] = "UnknownType";
 };
 
 template<size_t N, typename T>
@@ -83,9 +77,9 @@ void useRegister(const Function* fn, uint64_t id);
 template<typename T>
 void set(uint64_t id, const std::shared_ptr<T>& data)
 {
-  static_assert(types::TypeInfo<T>::value, "Unknown type");
+  static_assert(gal::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (types::TypeInfo<T>::id == reg.typeId) {
+  if (TypeInfo<T>::id == reg.typeId) {
     reg.ptr = data;
     return;
   }
@@ -96,9 +90,9 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
 template<typename T>
 std::shared_ptr<T> get(uint64_t id)
 {
-  static_assert(types::TypeInfo<T>::value, "Unknown type");
+  static_assert(TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (types::TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
+  if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
     if (reg.isDirty) {
       auto fn = reg.ownerFunc();
       fn->run();
@@ -142,8 +136,8 @@ struct RegisterAccessor
 private:
   static void typeCheck(const store::Register& reg)
   {
-    static_assert(types::TypeInfo<DType>::value, "Unknown type");
-    if (reg.typeId != types::TypeInfo<DType>::id) {
+    static_assert(TypeInfo<DType>::value, "Unknown type");
+    if (reg.typeId != TypeInfo<DType>::id) {
       std::cerr << "Type mismatch error\n";
       throw std::bad_cast();
     }
@@ -181,9 +175,10 @@ public:
 
   static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
   {
-    static_assert(types::TypeInfo<DType>::value, "Unknown type");
-    regIds[N] = store::allocate(
-      fn, types::TypeInfo<DType>::id, std::string(types::TypeInfo<DType>::name));
+    static_assert(TypeInfo<DType>::value, "Unknown type");
+    regIds[N] = store::allocate(fn,
+                                TypeInfo<DType>::id,
+                                std::string(TypeInfo<DType>::name()));
     if constexpr (N < NumData - 1) {
       RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
     }
@@ -251,62 +246,6 @@ public:
   };
 };
 
-template<typename T>
-struct TConstant : public Function
-{
-protected:
-  uint64_t           mRegisterId;
-  std::shared_ptr<T> mValuePtr;
-
-public:
-  TConstant(const T& value)
-      : mValuePtr(std::make_shared<T>(value))
-  {
-    store::useRegister(this, mRegisterId);
-  };
-
-  virtual ~TConstant() { store::free(mRegisterId); }
-
-  void initOutputRegisters() override
-  {
-    static_assert(types::TypeInfo<T>::value, "Unknown type");
-    mRegisterId = store::allocate(this, types::TypeInfo<T>::id, types::TypeInfo<T>::name);
-  };
-
-  size_t numOutputs() const override { return 1; };
-
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
-  };
-
-  void run() override { store::set<T>(mRegisterId, mValuePtr); };
-};
-
-template<typename T>
-struct TVariable : public TConstant<T>
-{
-  TVariable(const T& value)
-      : TConstant<T>(value) {};
-
-  virtual ~TVariable() = default;
-
-  void set(const T& value)
-  {
-    *(this->mValuePtr) = value;
-    store::markDirty(this->mRegisterId);
-  };
-
-  void initOutputRegisters() override
-  {
-    TConstant<T>::initOutputRegisters();
-    set(*(this->mValuePtr));
-  };
-};
-
 namespace store {
 
 template<typename TFunc, typename... TArgs>
@@ -315,13 +254,6 @@ std::shared_ptr<Function> makeFunction(TArgs... args)
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
-  return addFunction(fn);
-};
-
-template<typename T>
-std::shared_ptr<Function> makeConstant(const T& value)
-{
-  auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TConstant<T>>(value));
   return addFunction(fn);
 };
 
@@ -350,13 +282,6 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 
 }  // namespace types
 
-template<typename T>
-types::OutputTuple<1> constant(const T& value)
-{
-  auto fn = store::makeConstant<T>(value);
-  return types::makeOutputTuple<1>(*fn);
-};
-
 template<size_t N, typename CppTupleType, typename... TArgs>
 boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
 {
@@ -378,12 +303,6 @@ boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
 };
 
 template<typename T>
-boost::python::tuple py_constant(const T& value)
-{
-  return pythonRegisterTuple(gal::func::constant<T>(value));
-};
-
-template<typename T>
 T py_readRegister(gal::func::store::Register reg)
 {
   return *gal::func::store::get<T>(reg.id);
@@ -394,15 +313,21 @@ T py_readRegister(gal::func::store::Register reg)
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg);
-}
 
-#define GAL_TYPE_INFO(type, idInt)                                \
-  template<>                                                      \
-  struct gal::func::types::TypeInfo<type> : public std::true_type \
-  {                                                               \
-    static constexpr uint32_t id     = idInt;                     \
-    static constexpr char     name[] = #type;                     \
-  };
+template<typename T>
+std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
+{
+  static constexpr char sep[] = ", ";
+  static constexpr char tab   = '\t';
+  ostr << "[\n";
+  auto begin = vec.cbegin();
+  while (begin != vec.cend()) {
+    ostr << tab << *(begin++) << std::endl;
+  }
+  ostr << "]";
+  return ostr;
+};
+}  // namespace std
 
 #define GAL_CONCAT(x, y) x##y
 
