@@ -1,6 +1,6 @@
 #pragma once
 
-#include <galfunc/Types.h>
+#include <galfunc/Functions.h>
 
 namespace gal {
 namespace func {
@@ -76,6 +76,13 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
               "Creates a bounding circle for the given points. The 3d points are "
               "flattened to 2d by removing the z-coordinate.",
               (gal::PointCloud, points, "Points"));
+
+GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
+              pointCloud3d,
+              true,
+              1,
+              "Creates a point cloud from the list of points",
+              (std::vector<glm::vec3>, points, points));
 
 }  // namespace func
 }  // namespace gal

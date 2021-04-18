@@ -30,30 +30,15 @@ static void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-static std::string readTextFromFile(const fs::path& path)
+static int loadDemo(const fs::path& path)
 {
-  std::ifstream file;
-  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-  std::stringstream filestream;
   try {
-    file.open(path);
-    filestream << file.rdbuf();
-    file.close();
-  }
-  catch (std::ifstream::failure e) {
-    std::cout << "Error reading file!" << std::endl;
-  }
-  return filestream.str();
-}
-
-static void loadDemo(const fs::path& path)
-{
-  std::string text = readTextFromFile(path);
-  try {
-    boost::python::exec(text.c_str());
+    boost::python::exec_file(path.c_str());
+    return 0;
   }
   catch (boost::python::error_already_set) {
     PyErr_Print();
+    return 1;
   }
 }
 
@@ -67,8 +52,8 @@ int main(int argc, char** argv)
   fs::path demoPath;
   if (argc < 2) {
     std::cout << "Please supply the filepath to the demo file as an argument.\n";
-    demoPath = "/home/rnjth94/dev/GeomAlgoLib/demos/meshPlaneClipping.py";
-    // return 1;
+    // demoPath = "/home/rnjth94/dev/GeomAlgoLib/demos/staticBoundinCircle.py";
+    return 1;
   }
   else {
     demoPath = fs::absolute(fs::path(argv[1]));
@@ -85,7 +70,7 @@ int main(int argc, char** argv)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  GLFWwindow* window = glfwCreateWindow(1600, 900, "First Attempt", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -112,7 +97,11 @@ int main(int argc, char** argv)
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
-  loadDemo(demoPath.string());
+  int err = 0;
+  if (0 != (err = loadDemo(demoPath.string()))) {
+      std::cerr << "Unable to load the demo... aborting...\n";
+      return 1;
+  }
 
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
