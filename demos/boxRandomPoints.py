@@ -10,5 +10,5 @@ npts, = pgv.slideri32("Point count", 10, 1000, 100)
 
 cloud, = pgf.randomPointCloudFromBox(box, npts)
 
-pgv.show(box)
-pgv.show(cloud)
+pgv.show("Box", box)
+pgv.show("Points", cloud)

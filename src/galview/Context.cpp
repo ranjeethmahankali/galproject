@@ -41,12 +41,22 @@ bool Drawable::opaque() const
   return true;  // Everything is assumed to be opaque by default, unless overriden.
 }
 
-static bool       sRightDown = false;
-static bool       sLeftDown  = false;
-static glm::dvec2 sMousePos  = {0.0f, 0.0f};
+void Drawable::setBounds(const Box3& bounds)
+{
+  mBounds = bounds;
+}
 
-static glm::mat4 sTrans    = glm::identity<glm::mat4>();
-static glm::mat4 sInvTrans = glm::identity<glm::mat4>();
+const Box3& Drawable::bounds() const
+{
+  return mBounds;
+}
+
+static bool       sRightDown  = false;
+static bool       sLeftDown   = false;
+static glm::dvec2 sMousePos   = {0.0f, 0.0f};
+static float      sTransScale = 500.f;
+static glm::mat4  sTrans      = glm::identity<glm::mat4>();
+static glm::mat4  sInvTrans   = glm::identity<glm::mat4>();
 
 static bool s2dMode   = false;
 static bool sEdgeMode = false;
@@ -61,6 +71,21 @@ void Context::cameraChanged()
 {
   setUniform("mvpMat", mvpMatrix());
 };
+
+void Context::zoomExtents()
+{
+  Box3 bounds;
+  for (auto& d : mDrawables) {
+    const Box3& b = d.drawable->bounds();
+    bounds.inflate(b.min);
+    bounds.inflate(b.max);
+  }
+  glm::vec3 target = bounds.center();
+  glm::vec3 diag   = bounds.diagonal();
+  useCamera(target + diag, target, vec3_zunit);
+  sTrans    = glm::translate(-target);
+  sInvTrans = glm::inverse(sTrans);
+}
 
 void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable) {
   // Incomplete
@@ -126,7 +151,8 @@ void Context::useCamera(const glm::vec3& eye,
                         const glm::vec3& target,
                         const glm::vec3& up)
 {
-  mView = glm::lookAt(eye, target, up);
+  mView       = glm::lookAt(eye, target, up);
+  sTransScale = 700.f / glm::distance(eye, target);
   cameraChanged();
 };
 
@@ -164,7 +190,6 @@ void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
     get().cameraChanged();
   }
 
-  static constexpr float sTransScale = 500.0f;
   if (sLeftDown) {
     auto trans = glm::translate(glm::vec3(
       glm::inverse(get().mView) * glm::vec4 {float(xpos - sMousePos[0]) / sTransScale,
@@ -200,6 +225,11 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
 void Context::onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
   // No key events at the moment. But keeping this handler around just in case.
+  if (ImGui::IsAnyItemActive())
+    return;
+  if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
+    Context::get().zoomExtents();
+  }
 }
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
@@ -380,28 +410,13 @@ Context::Shader::~Shader()
 void Context::render() const
 {
   for (const auto& data : mDrawables) {
+    if (data.visibilityFlag) {
+      if (!(*data.visibilityFlag))
+        continue;
+    }
     data.settings.apply();
     data.drawable->draw();
   }
-//   for (const auto& pair : mDrawables) {
-//     if (pair.second->opaque()) {
-//       auto& settings = pair.second->renderSettings();
-//       for (const auto& s : settings) {
-//         s.apply();
-//         pair.second->draw();
-//       }
-//     }
-//   }
-
-//   for (const auto& pair : mDrawables) {
-//     if (!pair.second->opaque()) {
-//       auto& settings = pair.second->renderSettings();
-//       for (const auto& s : settings) {
-//         s.apply();
-//         pair.second->draw();
-//       }
-//     }
-//   }
 };
 
 void Context::removeDrawable(size_t id)

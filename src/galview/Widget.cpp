@@ -80,5 +80,48 @@ void Text::draw()
   ImGui::Text(mValue.c_str());
 };
 
+TextInput::TextInput(const std::string& label, const std::string& value)
+    : InputWidget<std::string>(label, value)
+{
+  mValue.reserve(1024);  // avoids reallocation for each frame.
+};
+
+static int TextInputResizeCallback(ImGuiInputTextCallbackData* data)
+{
+  if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+    std::string* str = (std::string*)data->UserData;
+    str->resize(data->BufSize);
+    data->Buf = str->data();
+  }
+  return 0;
+}
+
+void TextInput::draw()
+{
+  ImGui::InputText(mLabel.c_str(),
+                   mValue.data(),
+                   mValue.size(),
+                   ImGuiInputTextFlags_CallbackResize,
+                   TextInputResizeCallback,
+                   (void*)(&mValue));
+
+  if (!ImGui::IsItemActive()) {
+    handleChanges();
+  }
+}
+
+CheckBox::CheckBox(const std::string& label, bool value)
+    : InputWidget<bool>(label, value)
+{}
+
+void CheckBox::draw()
+{
+  ImGui::Checkbox(mLabel.c_str(), &mValue);
+}
+
+const bool* CheckBox::checkedPtr() const
+{
+  return &mValue;
+}
 }  // namespace view
 }  // namespace gal
