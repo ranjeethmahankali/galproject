@@ -3,6 +3,8 @@
 
 namespace gal {
 
+struct Box2;
+
 struct Box3
 {
   static const Box3 empty;
@@ -12,6 +14,7 @@ struct Box3
   Box3(const glm::vec3& min, const glm::vec3& max);
   Box3(const glm::vec3& pt);
   Box3(const glm::vec3* points, size_t nPoints);
+  Box3(const Box2& b2);
 
   glm::vec3 diagonal() const;
   void      inflate(const glm::vec3&);
@@ -22,6 +25,7 @@ struct Box3
   bool      intersects(const Box3&) const;
   glm::vec3 center() const;
   float     volume() const;
+  bool      valid() const;
 
   glm::vec3 eval(float u, float v, float w) const;
 
@@ -60,6 +64,8 @@ struct Box2
   bool      contains(const Box2&) const;
   bool      intersects(const Box2&) const;
   glm::vec2 center() const;
+  float     area() const;
+  bool      valid() const;
 
   template<typename DstIter>
   void randomPoints(size_t n, DstIter dst) const

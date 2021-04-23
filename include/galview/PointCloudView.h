@@ -42,6 +42,7 @@ struct MakeDrawable<PointCloud>
 
     auto view    = std::make_shared<PointCloudView>();
     view->mVSize = cloud.size();
+    view->setBounds(cloud.bounds());
 
     GL_CALL(glGenVertexArrays(1, &view->mVAO));
     GL_CALL(glGenBuffers(1, &view->mVBO));

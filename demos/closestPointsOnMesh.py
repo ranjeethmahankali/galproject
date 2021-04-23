@@ -14,7 +14,7 @@ cloud, = pgf.randomPointCloudFromBox(box, npts)
 
 cloud2, = pgf.closestPointsOnMesh(scaled, cloud)
 
-pgv.show(box)
-pgv.show(scaled)
-# pgv.show(cloud)
-pgv.show(cloud2)
+pgv.show("Box", box)
+pgv.show("Mesh", scaled)
+pgv.show("Query Points", cloud)
+pgv.show("Closest Points", cloud2)

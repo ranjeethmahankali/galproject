@@ -50,15 +50,18 @@ void evalOutputs()
 template<typename T, typename... TRest>
 struct DrawableManager
 {
-  static size_t draw(uint64_t typeId, const std::shared_ptr<void>& ptr, size_t oldDrawId)
+  static size_t draw(uint64_t                     typeId,
+                     const std::shared_ptr<void>& ptr,
+                     size_t                       oldDrawId,
+                     const bool*                  visibility)
   {
     static_assert(gal::TypeInfo<T>::value, "Unknown type");
     if (typeId == gal::TypeInfo<T>::id) {
       auto castsp = std::static_pointer_cast<T>(ptr);
-      return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp);
+      return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp, visibility);
     }
     else if constexpr (sizeof...(TRest) > 0) {
-      return DrawableManager<TRest...>::draw(typeId, ptr, oldDrawId);
+      return DrawableManager<TRest...>::draw(typeId, ptr, oldDrawId, visibility);
     }
     else if constexpr (sizeof...(TRest) == 0) {
       std::cerr << "Datatype " << gal::TypeInfo<T>::name()
@@ -74,9 +77,10 @@ using dmanager = DrawableManager<gal::Box3,
                                  gal::Mesh,
                                  gal::Plane>;
 
-ShowFunc::ShowFunc(uint64_t regId)
+ShowFunc::ShowFunc(const std::string& label, uint64_t regId)
     : mObjRegId(regId)
     , mSuccess(std::make_shared<bool>(false))
+    , gal::view::CheckBox(label, true)
 {
   gal::func::store::useRegister(this, mObjRegId);
 };
@@ -92,7 +96,7 @@ void ShowFunc::run()
   try {
     auto  obj = gal::func::store::get<void>(mObjRegId);
     auto& reg = gal::func::store::getRegister(mObjRegId);
-    mDrawId   = dmanager::draw(reg.typeId, reg.ptr, mDrawId);
+    mDrawId   = dmanager::draw(reg.typeId, reg.ptr, mDrawId, checkedPtr());
     *mSuccess = true;
   }
   catch (std::bad_alloc ex) {
@@ -178,9 +182,8 @@ public:
   };
   void initOutputRegisters() override
   {
-    mRegisterId = gal::func::store::allocate(this,
-                                             gal::TypeInfo<bool>::id,
-                                             gal::TypeInfo<bool>::name());
+    mRegisterId = gal::func::store::allocate(
+      this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
   };
   size_t   numOutputs() const override { return 1; };
   uint64_t outputRegister(size_t index) const override
@@ -192,17 +195,38 @@ public:
   };
 };
 
+struct TextFieldFunc : public gal::func::TVariable<std::string>,
+                       public gal::view::TextInput
+{
+public:
+  TextFieldFunc(const std::string& label)
+      : gal::func::TVariable<std::string>("")
+      , gal::view::TextInput(label, "") {};
+
+protected:
+  void handleChanges() override
+  {
+    gal::view::TextInput::handleChanges();
+    if (*(this->mValuePtr) != this->mValue) {  // The value changed.
+      this->set(this->mValue);
+    }
+  }
+};
+
 // Manual definition for show function because it has special needs.
-gal::func::types::OutputTuple<1> show(const gal::func::store::Register& reg)
+gal::func::types::OutputTuple<1> show(const std::string&                label,
+                                      const gal::func::store::Register& reg)
 {
   using namespace gal::func;
-  auto fn = store::makeFunction<ShowFunc>(reg.id);
+  auto fn = store::makeFunction<ShowFunc>(label, reg.id);
   mShowFuncRegs.push_back(fn->outputRegister(0));
+  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return types::makeOutputTuple<1>(*fn);
 };
-boost::python::tuple py_show(gal::func::store::Register reg)
+boost::python::tuple py_show(const std::string& label, gal::func::store::Register reg)
 {
-  return gal::func::pythonRegisterTuple(show(reg));
+  return gal::func::pythonRegisterTuple(show(label, reg));
 };
 
 // Manual definition for the print function because it has special needs.
@@ -227,6 +251,18 @@ void py_set2dMode(bool flag)
   gal::view::Context::get().set2dMode(flag);
 };
 
+gal::func::types::OutputTuple<1> textField(const std::string& label)
+{
+  auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
+  inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return gal::func::types::makeOutputTuple<1>(*fn);
+};
+
+boost::python::tuple py_textField(const std::string& label)
+{
+  return gal::func::pythonRegisterTuple(textField(label));
+};
+
 }  // namespace viewfunc
 }  // namespace gal
 
@@ -244,5 +280,6 @@ BOOST_PYTHON_MODULE(pygalview)
   def("slideri32", gal::viewfunc::py_slider<int32_t>);
   GAL_DEF_PY_FN(show);
   GAL_DEF_PY_FN(print);
+  GAL_DEF_PY_FN(textField);
   GAL_DEF_PY_FN(set2dMode);
 };

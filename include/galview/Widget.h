@@ -185,6 +185,25 @@ private:
   T mRange[2];
 };
 
+class TextInput : public InputWidget<std::string>
+{
+public:
+  TextInput(const std::string& label, const std::string& value);
+  virtual ~TextInput() = default;
+
+  void draw();
+};
+
+class CheckBox : public InputWidget<bool>
+{
+public:
+  CheckBox(const std::string& label, bool value);
+  virtual ~CheckBox() = default;
+
+  void draw();
+  const bool* checkedPtr() const;
+};
+
 using SliderF  = Slider<float>;
 using SliderI  = Slider<int>;
 using SliderF3 = Slider3<float>;

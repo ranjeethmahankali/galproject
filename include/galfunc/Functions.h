@@ -95,7 +95,12 @@ std::shared_ptr<T> get(uint64_t id)
   if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
     if (reg.isDirty) {
       auto fn = reg.ownerFunc();
-      fn->run();
+      try {
+        fn->run();
+      }
+      catch (std::exception e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+      }
       reg.isDirty = false;
     }
     return std::static_pointer_cast<T>(reg.ptr);
@@ -176,9 +181,8 @@ public:
   static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
   {
     static_assert(TypeInfo<DType>::value, "Unknown type");
-    regIds[N] = store::allocate(fn,
-                                TypeInfo<DType>::id,
-                                std::string(TypeInfo<DType>::name()));
+    regIds[N] =
+      store::allocate(fn, TypeInfo<DType>::id, std::string(TypeInfo<DType>::name()));
     if constexpr (N < NumData - 1) {
       RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
     }

@@ -13,4 +13,9 @@ PointCloud::PointCloud(const std::vector<glm::vec2>& pts2d)
   }
 };
 
+Box3 PointCloud::bounds() const
+{
+  return Box3(data(), size());
+}
+
 };  // namespace gal

@@ -49,6 +49,7 @@ struct MakeDrawable<Circle2d>
     size_t nvBytes = sizeof(decltype(vBuf)::value_type) * vBuf.size();
 
     auto view    = std::make_shared<Circle2dView>();
+    view->setBounds(Box3(circle.bounds()));
     view->mVSize = sNumPts;
 
     GL_CALL(glGenVertexArrays(1, &view->mVAO));

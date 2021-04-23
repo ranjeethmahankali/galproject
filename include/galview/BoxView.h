@@ -60,6 +60,14 @@ struct MakeDrawable<gal::Box3>
 
     auto view = std::make_shared<BoxView>();
 
+    Box3 bounds;
+    auto vbegin = vBuf.begin();
+    while (vbegin != vBuf.end()) {
+      bounds.inflate(*(vbegin++));
+      vbegin++;
+    }
+    view->setBounds(bounds);
+
     view->mVSize = (uint32_t)sizeof(vBuf);
     view->mISize = (uint32_t)iBuf.size();
 

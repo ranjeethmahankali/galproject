@@ -58,6 +58,14 @@ struct MakeDrawable<gal::Plane>
 
     view->mVSize = 4;
 
+    Box3 bounds;
+    auto vbegin = vBuf.begin();
+    while (vbegin != vBuf.end()) {
+        bounds.inflate(*(vbegin++));
+        vbegin++;
+    }
+    view->setBounds(bounds);
+
     GL_CALL(glGenVertexArrays(1, &view->mVAO));
     GL_CALL(glGenBuffers(1, &view->mVBO));
 

@@ -11,8 +11,14 @@
 #include <vector>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
+static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
+static constexpr glm::vec3 vec3_yunit = {0.0f, 1.0f, 0.0f};
+static constexpr glm::vec3 vec3_zunit = {0.0f, 0.0f, 1.0f};
 static constexpr glm::vec3 vec3_unset = {FLT_MAX, FLT_MAX, FLT_MAX};
+
 static constexpr glm::vec2 vec2_zero  = {0.0f, 0.0f};
+static constexpr glm::vec2 vec2_xunit = {1.0f, 0.0f};
+static constexpr glm::vec2 vec2_yunit = {0.0f, 1.0f};
 static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
 
 namespace gal {

@@ -29,9 +29,9 @@ protected:
   };
 };
 
-struct ShowFunc : public gal::func::Function
+struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
 {
-  ShowFunc(uint64_t regId);
+  ShowFunc(const std::string& label, uint64_t regId);
 
   void     run() override;
   void     initOutputRegisters() override;

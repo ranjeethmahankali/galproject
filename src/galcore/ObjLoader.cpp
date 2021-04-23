@@ -10,117 +10,6 @@ namespace io {
 
 using CStrIter = std::string::const_iterator;
 
-static void findWord(const std::string& line,
-                     char               delim,
-                     size_t             begin,
-                     size_t&            from,
-                     size_t&            to)
-{
-  if (line[from] == delim) {
-    to = from;  // degenerate case.
-    return;
-  }
-  from = line.find_first_not_of(delim, begin);
-  if (from == std::string::npos) {
-    to = std::string::npos;
-    return;
-  }
-  to = line.find_first_of(delim, from);
-};
-
-static void findWord(const std::string& line, char delim, size_t& from, size_t& to)
-{
-  findWord(line, delim, 0, from, to);
-};
-
-static void findWord(const std::string& line,
-                     char               delim,
-                     size_t             begin,
-                     size_t             end,
-                     size_t&            from,
-                     size_t&            to)
-{
-  findWord(line, delim, 0, from, to);
-  if (to > end) {
-    to = end;
-  }
-};
-
-static bool checkWord(const std::string& line,
-                      size_t             from,
-                      size_t             to,
-                      const std::string& word)
-{
-  return std::equal(line.cbegin() + from, line.cbegin() + to, word.cbegin());
-}
-
-static void readCoords(const std::string& line, size_t from, float* dst, size_t nCoords)
-{
-  for (size_t i = 0; i < nCoords;) {
-    size_t to;
-    findWord(line, ' ', from, from, to);
-    if (from < to) {
-      auto begin = line.cbegin() + from;
-      auto end   = to < line.length() ? line.cbegin() + to : line.cend();
-      dst[i]     = std::stof(std::string(begin, end));
-      i++;
-    }
-    from = to + 1;
-  }
-}
-
-static glm::vec3 readVector3(const std::string& line, size_t from)
-{
-  float coords[3];
-  readCoords(line, from, coords, 3);
-  return glm::vec3(coords[0], coords[1], coords[2]);
-}
-
-static glm::vec2 readVector2(const std::string& line, size_t from)
-{
-  float coords[2];
-  readCoords(line, from, coords, 2);
-  return glm::vec2(coords[0], coords[1]);
-};
-
-static void readInt64s(const std::string& line,
-                       size_t             from,
-                       size_t             stop,
-                       int64_t*           dst,
-                       size_t             nVals,
-                       char               delim)
-{
-  for (size_t i = 0; i < nVals; i++) {
-    size_t to;
-    findWord(line, delim, from, from, to);
-    if (from < to) {
-      auto begin = line.cbegin() + from;
-      auto end   = to < line.length() ? line.cbegin() + to : line.cend();
-      dst[i]     = std::stoll(std::string(begin, end));
-      if (to == std::string::npos)
-        return;
-    }
-    from = to + 1;
-    if (from >= stop)
-      return;
-  }
-};
-
-static ObjMeshData::Face readFace(const std::string& line, size_t from)
-{
-  int64_t vals[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-  for (size_t i = 0; i < 3; i++) {
-    size_t to;
-    findWord(line, ' ', from, from, to);
-    readInt64s(line, from, to, vals + (i * 3), 3, '/');
-    from = to + 1;
-  }
-
-  return {{vals[0], vals[3], vals[6]},
-          {vals[1], vals[4], vals[7]},
-          {vals[2], vals[5], vals[8]}};
-};
-
 static std::filesystem::path makeAbsolute(const std::filesystem::path& path)
 {
   return path.is_absolute() ? path : std::filesystem::path(utils::absPath(path));
@@ -128,69 +17,65 @@ static std::filesystem::path makeAbsolute(const std::filesystem::path& path)
 
 ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
     : mPath(makeAbsolute(pathIn))
+    , mFlipYZ(flipYZ)
 {
-  std::ifstream file;
-  file.open(mPath);
-  if (!file) {
-    std::cerr << "Unable to open the obj file:\n\t" << mPath << std::endl;
+  tinyobj::ObjReaderConfig config;
+  config.triangulate = true;
+  if (!mReader.ParseFromFile(mPath, config)) {
+    if (!mReader.Error().empty()) {
+      std::cerr << "TinyObjReader error: " << mReader.Error() << std::endl;
+    }
+    throw std::filesystem::filesystem_error("Cannot parse file", std::error_code());
   }
 
-  static const std::string sv  = "v";
-  static const std::string svt = "vt";
-  static const std::string svn = "vn";
-  static const std::string sf  = "f";
-
-  std::string line;
-  size_t      from  = 0;
-  size_t      to    = 0;
-  glm::mat4   xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
-  while (std::getline(file, line)) {
-    findWord(line, ' ', from, to);
-    if (from == std::string::npos)
-      continue;
-    if (line[from] == '#')
-      continue;
-
-    if (to == std::string::npos || to > line.length())
-      continue;
-
-    if (checkWord(line, from, to, sv)) {
-      glm::vec3 v = readVector3(line, to + 1);
-      if (flipYZ)
-        v = glm::vec3(xform * glm::vec4 {v.x, v.y, v.z, 1.0f});
-      mVertices.push_back(v);
-    }
-    else if (checkWord(line, from, to, svt)) {
-      mTexCoords.push_back(std::move(readVector2(line, to + 1)));
-    }
-    else if (checkWord(line, from, to, svn)) {
-      glm::vec3 v = readVector3(line, to + 1);
-      if (flipYZ)
-        v = glm::vec3(xform * glm::vec4 {v.x, v.y, v.z, 1.0f});
-      mNormals.push_back(v);
-    }
-    else if (checkWord(line, from, to, sf)) {
-      mFaces.push_back(std::move(readFace(line, to + 1)));
-    }
-    else {
-      continue;
-    }
+  if (!mReader.Warning().empty()) {
+    std::cout << "TinyObjReader warning: " << mReader.Warning();
   }
-
-  file.close();
 };
 
 Mesh ObjMeshData::toMesh() const
 {
   std::vector<size_t> indices;
-  indices.reserve(mFaces.size() * 3);
-  for (const auto& face : mFaces) {
-    for (int64_t fvi : face.vertices) {
-      indices.push_back(fvi < 0 ? size_t(int64_t(mVertices.size()) + fvi)
-                                : size_t(fvi - 1));
+
+  const auto&        shapes     = mReader.GetShapes();
+  const auto&        attrib     = mReader.GetAttrib();
+  std::vector<float> vertCoords = attrib.vertices;
+
+  glm::mat4 xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
+  if (vertCoords.size() % 3) {
+    throw std::out_of_range("Invalid coordinate array");
+  }
+  static_assert(sizeof(glm::vec3) == 3 * sizeof(float), "Alignment problem");
+  if (mFlipYZ) {
+    glm::vec3* vptr   = (glm::vec3*)vertCoords.data();
+    size_t     nVerts = vertCoords.size() / 3;
+    for (size_t vi = 0; vi < nVerts; vi++) {
+      *vptr = glm::vec3(xform * glm::vec4 {vptr->x, vptr->y, vptr->z, 1.0f});
+      vptr++;
     }
   }
-  return Mesh((float*)mVertices.data(), mVertices.size(), indices.data(), mFaces.size());
+
+  for (const auto& shape : shapes) {
+    size_t indexOffset = 0;
+    for (size_t fi = 0; fi < shape.mesh.num_face_vertices.size(); fi++) {
+      size_t nfv = size_t(shape.mesh.num_face_vertices[fi]);
+      if (nfv < 3) {
+        continue;
+      }
+      size_t fvi = 1;
+      while (fvi < nfv) {
+        size_t a = fvi++;
+        size_t b = fvi++;
+        indices.push_back(size_t(shape.mesh.indices[indexOffset + 0].vertex_index));
+        indices.push_back(size_t(shape.mesh.indices[indexOffset + a].vertex_index));
+        indices.push_back(size_t(shape.mesh.indices[indexOffset + b].vertex_index));
+      }
+      indexOffset += nfv;
+    }
+  }
+
+  return Mesh(
+    vertCoords.data(), vertCoords.size() / 3, indices.data(), indices.size() / 3);
 }
 
 }  // namespace io

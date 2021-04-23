@@ -15,5 +15,5 @@ npts, = pgv.slideri32("Point count", 5, 50, 25)
 cloud, = pgf.randomPointCloudFromBox(box, npts)
 circ, = pgf.boundingCircle(cloud)
 
-pgv.show(cloud)
-pgv.show(circ)
+pgv.show("cloud", cloud)
+pgv.show("circ", circ)
