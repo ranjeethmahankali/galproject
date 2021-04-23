@@ -13,5 +13,5 @@ radius, = pgv.sliderf32("radius", 0., 1., .5)
 sphere, = pgf.sphere(center, radius)
 result, = pgf.meshSphereQuery(scaled, sphere)
 
-pgv.show(result)
-pgv.show(sphere)
+pgv.show("Queried faces", result)
+pgv.show("Sphere", sphere)

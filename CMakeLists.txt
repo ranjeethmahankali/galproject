@@ -20,10 +20,10 @@ if (Boost_FOUND)
 endif()
 
 find_package(glm CONFIG REQUIRED)
-
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(tinyobjloader CONFIG REQUIRED)
 
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
@@ -35,7 +35,9 @@ include_directories(include)
 file(GLOB GALCORE_SRC "src/galcore/*.cpp")
 add_library(galcore STATIC ${GALCORE_SRC})
 
-target_link_libraries(galcore PUBLIC glm::glm)
+target_link_libraries(galcore PUBLIC
+    glm::glm
+    tinyobjloader::tinyobjloader)
 #GALCORE - end
 
 #GALFUNC - begin

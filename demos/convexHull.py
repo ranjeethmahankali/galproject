@@ -11,4 +11,5 @@ npts, = pgv.slideri32("Point count", 10, 1000, 100)
 cloud, = pgf.randomPointCloudFromBox(box, npts)
 hull, = pgf.pointCloudConvexHull(cloud)
 
-pgv.show(hull)
+pgv.show("Convex Hull", hull)
+pgv.show("Points", cloud)

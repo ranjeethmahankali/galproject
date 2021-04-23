@@ -1,6 +1,7 @@
 #pragma once
 #include <galcore/Serialization.h>
 #include <glm/glm.hpp>
+#include <galcore/Box.h>
 #include <vector>
 
 namespace gal {
@@ -10,6 +11,8 @@ public:
   PointCloud() = default;
   PointCloud(const std::vector<glm::vec3>&);
   PointCloud(const std::vector<glm::vec2>& pts2d);
+
+  Box3 bounds() const;
 };
 
 template<>

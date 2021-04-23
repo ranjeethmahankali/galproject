@@ -6,7 +6,7 @@ namespace gal {
 
 Circle2d::Circle2d(const glm::vec2& center, float radius)
     : mCenter(center)
-    , mRadius(radius) {};
+    , mRadius(std::abs(radius)) {};
 
 const glm::vec2& Circle2d::center() const
 {
@@ -22,6 +22,11 @@ bool Circle2d::contains(const glm::vec2& pt) const
 {
   return glm::distance2(mCenter, pt) <= (mRadius * mRadius);
 };
+
+Box2 Circle2d::bounds() const {
+    glm::vec2 r{mRadius, mRadius};
+    return Box2(mCenter - r, mCenter + r);
+}
 
 Circle2d Circle2d::createCircumcircle(const glm::vec2& a,
                                       const glm::vec2& b,

@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <galcore/Box.h>
 
 namespace gal {
 
@@ -11,6 +12,8 @@ public:
   const glm::vec2& center() const;
   float            radius() const;
   bool             contains(const glm::vec2&) const;
+
+  Box2 bounds() const;
 
   static Circle2d createCircumcircle(const glm::vec2& a,
                                      const glm::vec2& b,

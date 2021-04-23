@@ -27,7 +27,7 @@ void main()
     float fdot = abs(dot(vertNorm, vec4(0.0, 0.0, -1.0, 0.0)));
     // Lighting w.r.t. global normal.
     float fdot2 = abs(dot(vertNormWorld, vec4(1.0, 0.0, 0.0, 0.0)));
-    fdot2       = 0.3 * fdot2 + (1.0 - fdot2) * 0.7;  // reduce contrast of fdot2.
+    fdot2       = 0.2 * fdot2 + (1.0 - fdot2) * 0.8;  // reduce contrast of fdot2.
     fdot        = 0.5 * (fdot + fdot2);
     // reduce contrast and clamp
     fdot = clamp(0.1 * (1.0 - fdot) + 1.5 * fdot, 0.0, 1.0);
@@ -36,7 +36,7 @@ void main()
     if (!orthoMode) {
       fdot *= 0.7;
     }
-    
+
     FragColor.x = faceColor.x * fdot;
     FragColor.y = faceColor.y * fdot;
     FragColor.z = faceColor.z * fdot;

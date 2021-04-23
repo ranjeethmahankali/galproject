@@ -29,6 +29,11 @@ Box3::Box3(const glm::vec3* points, size_t nPoints)
   }
 }
 
+Box3::Box3(const Box2& b2)
+    : min(b2.min.x, b2.min.y, 0.f)
+    , max(b2.max.x, b2.max.y, 0.f)
+{}
+
 glm::vec3 Box3::diagonal() const
 {
   return max - min;
@@ -80,6 +85,11 @@ float Box3::volume() const
 {
   glm::vec3 d = diagonal();
   return d.x * d.y * d.z;
+}
+
+bool Box3::valid() const
+{
+  return min == vec3_unset || max == -vec3_unset;
 }
 
 Box3 Box3::init(const glm::vec3& m1, const glm::vec3& m2)
@@ -186,6 +196,17 @@ bool Box2::intersects(const Box2& b) const
 glm::vec2 Box2::center() const
 {
   return (min + max) * 0.5f;
+}
+
+float Box2::area() const
+{
+  glm::vec2 d = diagonal();
+  return d.x * d.y;
+}
+
+bool Box2::valid() const
+{
+  return min == vec2_unset || max == -vec2_unset;
 }
 
 Box2 Box2::init(const glm::vec2& m1, const glm::vec2& m2)

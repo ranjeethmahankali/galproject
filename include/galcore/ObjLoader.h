@@ -1,5 +1,6 @@
 #pragma once
 #include <galcore/Mesh.h>
+#include <tiny_obj_loader.h>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <vector>
@@ -22,11 +23,9 @@ public:
   Mesh toMesh() const;
 
 private:
-  std::filesystem::path  mPath;
-  std::vector<glm::vec3> mVertices;
-  std::vector<glm::vec3> mNormals;
-  std::vector<glm::vec2> mTexCoords;
-  std::vector<Face>      mFaces;
+  std::filesystem::path mPath;
+  tinyobj::ObjReader mReader;
+  bool mFlipYZ = false;
 };
 
 }  // namespace io

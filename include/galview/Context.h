@@ -1,5 +1,6 @@
 #pragma once
 
+#include <galcore/Box.h>
 #include <galview/GLUtil.h>
 #include <stdint.h>
 #include <algorithm>
@@ -37,11 +38,17 @@ public:
 
   virtual void draw() const = 0;
   virtual bool opaque() const;
+  const Box3&  bounds() const;
+
+protected:
+  void setBounds(const Box3& bounds);
 
 private:
   Drawable(const Drawable&) = delete;
   const Drawable& operator=(const Drawable&) = delete;
   Drawable(Drawable&&)                       = default;
+
+  Box3 mBounds;
 };
 
 // Template specialization needed.
@@ -78,6 +85,13 @@ public:
   {
     std::shared_ptr<Drawable> drawable;
     RenderSettings            settings;
+    /**
+     * @brief Before drawing the drawable, the boolean value stored at this pointer will
+     * be checked. The drawable will be drawn only if it is set to true.
+     * Who ever created this drawable is responsible for the lifetime of this boolean
+     * pointer.
+     */
+    const bool* visibilityFlag;
   };
 
   static Context& get();
@@ -132,7 +146,8 @@ private:
 
   glm::mat4 mProj;
   glm::mat4 mView;
-  int32_t   mShaderIndex = -1;
+
+  int32_t mShaderIndex = -1;
 
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
@@ -140,6 +155,8 @@ private:
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
   void cameraChanged();
+
+  void zoomExtents();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
@@ -159,12 +176,12 @@ public:
    */
 
   template<typename T>
-  size_t addDrawable(const T& val)
+  size_t addDrawable(const T& val, const bool* visibility)
   {
     std::vector<RenderSettings> settings;
     auto                        drawable = MakeDrawable<T>::get(val, settings);
     for (const auto& s : settings) {
-      mDrawables.push_back({drawable, s});
+      mDrawables.push_back({drawable, s, visibility});
     }
     std::sort(
       mDrawables.begin(), mDrawables.end(), [](const RenderData& a, const RenderData& b) {
@@ -183,10 +200,10 @@ public:
    * @return size_t The id of the new render data.
    */
   template<typename T>
-  size_t replaceDrawable(size_t id, const T& val)
+  size_t replaceDrawable(size_t id, const T& val, const bool* visibility)
   {
     removeDrawable(id);
-    return addDrawable<T>(val);
+    return addDrawable<T>(val, visibility);
   };
 };
 

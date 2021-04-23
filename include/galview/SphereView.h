@@ -3712,7 +3712,7 @@ struct MakeDrawable<gal::Sphere>
     }
 
     view->mVSize = sizeof(vBuf);
-
+    view->setBounds(sphere.bounds());
     view->mISize = (uint32_t)sIndices.size();
 
     // Now write the data to the device.

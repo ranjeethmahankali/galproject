@@ -52,6 +52,7 @@ struct MakeDrawable<gal::Mesh>
       utils::copy_coords(mesh.vertexNormal(i), dstf);
     }
     view->mVSize = sizeof(float) * vBuf.size();
+    view->setBounds(mesh.bounds());
 
     // 3 indices per face and nothing else.
     std::vector<uint32_t> iBuf(3 * mesh.numFaces());
