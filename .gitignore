@@ -2,3 +2,5 @@
 build/
 imgui.ini
 scripts/__pycache__/
+Debug/
+Release/
