@@ -1,6 +1,7 @@
 #pragma once
-#include <glm/glm.hpp>
 #include <galcore/Box.h>
+#include <galcore/Serialization.h>
+#include <glm/glm.hpp>
 
 namespace gal {
 
@@ -24,6 +25,25 @@ public:
 private:
   glm::vec2 mCenter;
   float     mRadius;
+};
+
+template<>
+struct Serial<Circle2d> : public std::true_type
+{
+  static Circle2d deserialize(Bytes& bytes)
+  {
+    glm::vec2 center;
+    float     radius;
+    bytes >> center >> radius;
+    return Circle2d(center, radius);
+  }
+
+  static Bytes serialize(const Circle2d& cloud)
+  {
+    Bytes bytes;
+    bytes << cloud.center() << cloud.radius();
+    return bytes;
+  }
 };
 
 }  // namespace gal

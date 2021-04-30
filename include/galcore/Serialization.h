@@ -18,6 +18,11 @@ struct IsValueType<glm::vec3> : public std::true_type
 {
 };
 
+template<>
+struct IsValueType<glm::vec2> : public std::true_type
+{
+};
+
 template<typename T>
 struct Serial : std::false_type
 {
