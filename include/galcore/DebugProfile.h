@@ -6,6 +6,8 @@
 namespace gal {
 namespace debug {
 
+static constexpr char sDebugDir[] = ".galdebug";
+
 struct ContextNode
 {
   ContextNode(const std::string& name, ContextNode* parent);
@@ -21,6 +23,7 @@ private:
   std::vector<ContextNode> mChildren;
   std::string              mName;
   ContextNode*             mParent;
+  uint64_t                 mId;
 };
 
 struct ScopedContext
@@ -28,6 +31,13 @@ struct ScopedContext
 public:
   ScopedContext(const std::string& name);
   ~ScopedContext();
+};
+
+struct IndexedNode
+{
+private:
+  std::string mName;
+  uint64_t    mId;
 };
 
 }  // namespace debug

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <vector>
@@ -7,6 +8,8 @@
 namespace gal {
 
 class Bytes;
+
+namespace fs = std::filesystem;
 
 template<typename T>
 struct IsValueType : public std::is_fundamental<T>
@@ -35,11 +38,11 @@ class Bytes
 public:
   Bytes();
   Bytes(uint32_t version);
+  Bytes(const fs::path& filepath);
 
 private:
-  std::vector<uint8_t> mData;
-  size_t               mReadPos = 0;
-  uint32_t             mVersion = 0;
+  std::vector<char> mData;
+  size_t            mReadPos = 0;
 
 public:
   uint32_t version() const noexcept;
@@ -57,8 +60,8 @@ public:
   Bytes& read(T& data)
   {
     static_assert(IsValueType<T>::value, "Must be a fundamental type");
-    uint8_t* dst    = (uint8_t*)(&data);
-    uint8_t* src    = mData.data() + mReadPos;
+    char* dst    = (char*)(&data);
+    char* src    = mData.data() + mReadPos;
     size_t   offset = sizeof(T);
     mReadPos += offset;
     if (mReadPos > mData.size()) {
@@ -68,9 +71,9 @@ public:
     return *this;
   };
 
-  Bytes& writeBytes(const uint8_t* src, size_t nBytes);
+  Bytes& writeBytes(const char* src, size_t nBytes);
 
-  Bytes& readBytes(size_t nBytes, uint8_t* dst);
+  Bytes& readBytes(size_t nBytes, char* dst);
 
   Bytes& writeNested(Bytes nested);
 
