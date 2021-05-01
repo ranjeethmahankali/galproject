@@ -1,5 +1,6 @@
 #include "galcore/Mesh.h"
 #define _USE_MATH_DEFINES
+#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <math.h>
 #include <array>
@@ -475,11 +476,13 @@ bool Mesh::isSolid() const
 
 glm::vec3 Mesh::centroid() const
 {
+  GALSCOPE(__func__);
   return centroid(eMeshCentroidType::vertexBased);
 }
 
 glm::vec3 Mesh::centroid(const eMeshCentroidType centroid_type) const
 {
+  GALSCOPE(__func__);
   switch (centroid_type) {
   case eMeshCentroidType::vertexBased:
     return utils::average(vertexCBegin(), vertexCEnd());

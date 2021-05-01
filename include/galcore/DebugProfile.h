@@ -1,12 +1,18 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
 namespace gal {
 namespace debug {
 
-static constexpr char sDebugDir[] = ".galdebug";
+static constexpr char sDebugDir[]  = ".galdebug";
+static constexpr char sIndexFile[] = "index";
+
+namespace fs = std::filesystem;
+
+fs::path indexFilePath();
 
 struct ContextNode
 {
@@ -24,6 +30,7 @@ private:
   std::string              mName;
   ContextNode*             mParent;
   uint64_t                 mId;
+  uint32_t                 mDepth;
 };
 
 struct ScopedContext
@@ -31,13 +38,6 @@ struct ScopedContext
 public:
   ScopedContext(const std::string& name);
   ~ScopedContext();
-};
-
-struct IndexedNode
-{
-private:
-  std::string mName;
-  uint64_t    mId;
 };
 
 }  // namespace debug
@@ -49,7 +49,7 @@ private:
  * it doesn't actually conflict with an actual variable that someone might want to declare
  * in that scope
  */
-#ifdef NDEBUG
+#ifndef NDEBUG
 #define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
 #else
 #define GALSCOPE(name)

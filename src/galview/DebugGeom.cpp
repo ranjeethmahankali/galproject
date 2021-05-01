@@ -37,11 +37,11 @@ struct DrawableManager
 
 using manager = DrawableManager<PointCloud>;
 
-void DebugGeom::draw(uint64_t contextId)
+void DebugGeom::load()
 {
-  Bytes    bytes(fs::path(sDebugDir) / fs::path(std::to_string(contextId)));
-  uint32_t typeId = 0;
-  bytes >> typeId;
+  //   Bytes    bytes(fs::path(sDebugDir) / fs::path(std::to_string(contextId)));
+  //   uint32_t typeId = 0;
+  //   bytes >> typeId;
 }
 
 }  // namespace debug

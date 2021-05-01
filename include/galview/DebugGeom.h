@@ -8,7 +8,7 @@ namespace debug {
 struct DebugGeom
 {
   static void initDebugPanel();
-  static void draw(uint64_t contextId);
+  static void load();
 };
 
 }  // namespace debug
