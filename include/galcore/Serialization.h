@@ -108,30 +108,4 @@ public:
   };
 };
 
-template<typename T>
-struct Serial<std::vector<T>>
-{
-  static constexpr bool value = Serial<T>::value;
-  static std::vector<T> deserialize(Bytes& bytes)
-  {
-    uint64_t size = 0;
-    bytes >> size;
-    std::vector<T> res(size);
-    for (auto& v : res) {
-      bytes >> v;
-    }
-    return res;
-  }
-
-  static Bytes serialize(const std::vector<T>& data)
-  {
-    Bytes ser;
-    ser << uint64_t(data.size());
-    for (const auto& v : data) {
-      ser << v;
-    }
-    return ser;
-  }
-};
-
 }  // namespace gal

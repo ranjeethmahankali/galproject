@@ -6,21 +6,21 @@
 namespace gal {
 namespace debug {
 
-struct ContextTree
+struct ContextNode
 {
-  ContextTree(const std::string& name, ContextTree* parent);
+  ContextNode(const std::string& name, ContextNode* parent);
   static void push(const std::string& name);
   static void pop();
 
 private:
-  static ContextTree  sRoot;
-  static ContextTree* sCurrent;
+  static ContextNode  sRoot;
+  static ContextNode* sCurrent;
 
-  ContextTree* addChild(const std::string& name);
+  ContextNode* addChild(const std::string& name);
 
-  std::vector<ContextTree> mChildren;
+  std::vector<ContextNode> mChildren;
   std::string              mName;
-  ContextTree*             mParent;
+  ContextNode*             mParent;
 };
 
 struct ScopedContext
