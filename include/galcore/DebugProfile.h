@@ -9,10 +9,12 @@ namespace debug {
 
 static constexpr char sDebugDir[]  = ".galdebug";
 static constexpr char sIndexFile[] = "index";
+static constexpr char sCallStackFile[] = "callstack";
 
 namespace fs = std::filesystem;
 
 fs::path indexFilePath();
+fs::path callStackPath();
 
 struct ContextNode
 {

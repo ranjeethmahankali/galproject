@@ -130,12 +130,12 @@ static int getAbsolutePath(char const* relative, char* absolute, size_t absPathS
  * @param relPath Path relative to the executable.
  * @return std::string The absolute path.
  */
-std::string gal::utils::absPath(const std::string& relPath)
+fs::path gal::utils::absPath(const fs::path& relPath)
 {
   std::string absPath(MAX_PATH, '\0');
   if (getAbsolutePath(relPath.c_str(), absPath.data(), MAX_PATH) != 0) {
     throw "Cannot find absolute path";
   }
   absPath.erase(std::find(absPath.begin(), absPath.end(), '\0'), absPath.end());
-  return absPath;
+  return fs::path(absPath);
 }

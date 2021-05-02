@@ -9,6 +9,7 @@
 #include <limits>
 #include <type_traits>
 #include <vector>
+#include <filesystem>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
@@ -20,6 +21,8 @@ static constexpr glm::vec2 vec2_zero  = {0.0f, 0.0f};
 static constexpr glm::vec2 vec2_xunit = {1.0f, 0.0f};
 static constexpr glm::vec2 vec2_yunit = {0.0f, 1.0f};
 static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
+
+namespace fs = std::filesystem;
 
 namespace gal {
 
@@ -128,7 +131,7 @@ void copy_coords(const glm::tvec3<T>& v, T*& dst)
   *(dst++) = v.z;
 };
 
-std::string absPath(const std::string& relPath);
+fs::path absPath(const fs::path& relPath);
 
 template<typename T, typename DstIter>
 void random(T min, T max, size_t count, DstIter dst)
