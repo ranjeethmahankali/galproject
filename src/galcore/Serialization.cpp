@@ -51,4 +51,11 @@ Bytes& Bytes::readNested(Bytes& nested)
   return readBytes(size, nested.mData.data());
 }
 
+void Bytes::saveToFile(const fs::path& path) const
+{
+  std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
+  file.write(mData.data(), mData.size());
+  file.close();
+}
+
 }  // namespace gal

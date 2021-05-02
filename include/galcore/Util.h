@@ -1,15 +1,16 @@
 #pragma once
 #include <float.h>
+#include <galcore/Serialization.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <limits>
 #include <type_traits>
 #include <vector>
-#include <filesystem>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
@@ -152,6 +153,8 @@ void random(T min, T max, size_t count, DstIter dst)
     }
   }
 };
+
+
 
 }  // namespace utils
 }  // namespace gal

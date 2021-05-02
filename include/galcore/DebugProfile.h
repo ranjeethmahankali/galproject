@@ -1,5 +1,7 @@
 #pragma once
 
+#include <galcore/Serialization.h>
+#include <galcore/Util.h>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -7,8 +9,8 @@
 namespace gal {
 namespace debug {
 
-static constexpr char sDebugDir[]  = ".galdebug";
-static constexpr char sIndexFile[] = "index";
+static constexpr char sDebugDir[]      = ".galdebug";
+static constexpr char sIndexFile[]     = "index";
 static constexpr char sCallStackFile[] = "callstack";
 
 namespace fs = std::filesystem;
@@ -33,6 +35,16 @@ private:
   ContextNode*             mParent;
   uint64_t                 mId;
   uint32_t                 mDepth;
+
+public:
+  template<typename T>
+  static void capture(const T& var, const std::string& name)
+  {
+    Bytes data;
+    data << var;
+    data.saveToFile(utils::absPath(fs::path(sDebugDir) /
+                                   fs::path(std::to_string(sCurrent->mId) + "_" + name)));
+  };
 };
 
 struct ScopedContext
@@ -55,4 +67,10 @@ public:
 #define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
 #else
 #define GALSCOPE(name)
+#endif
+
+#ifndef NDEBUG
+#define GALCAPTURE(var) gal::debug::ContextNode::capture(var, #var)
+#else
+#define GALCAPTURE(var)
 #endif

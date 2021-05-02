@@ -47,6 +47,8 @@ private:
 public:
   uint32_t version() const noexcept;
 
+  void saveToFile(const fs::path& path) const;
+
   template<typename T>
   Bytes& write(const T& data)
   {
