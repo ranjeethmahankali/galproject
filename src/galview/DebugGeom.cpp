@@ -1,16 +1,16 @@
 #include <galcore/DebugProfile.h>
+#include <galcore/PointCloud.h>
 #include <galcore/Serialization.h>
 #include <galcore/Types.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/Widget.h>
-
-#include <galcore/PointCloud.h>
+#include <fstream>
 
 namespace gal {
 namespace debug {
 
-view::Panel& debugPanel()
+static view::Panel& debugPanel()
 {
   static view::Panel sDebugPanel = view::newPanel("Debug Geometry");
   return sDebugPanel;
@@ -37,11 +37,38 @@ struct DrawableManager
 
 using manager = DrawableManager<PointCloud>;
 
-void DebugGeom::load()
+static std::string debugDirPath;
+
+void initSession(const fs::path& dirpath)
 {
-  //   Bytes    bytes(fs::path(sDebugDir) / fs::path(std::to_string(contextId)));
-  //   uint32_t typeId = 0;
-  //   bytes >> typeId;
+  auto stackfile = dirpath / fs::path(sCallStackFile);
+  if (!fs::exists(stackfile)) {
+    throw std::runtime_error("Cannot find the stack file");
+  }
+
+  debugDirPath = dirpath;
+}
+
+static void pushFrame(const std::pair<std::string, uint64_t>& frame)
+{
+  debugPanel().newWidget<gal::view::Text>(frame.first + ": " +
+                                          std::to_string(frame.second));
+}
+
+void clearCallstack()
+{
+  debugPanel().clearWidgets();
+}
+
+void loadCallstack(const fs::path& dirpath)
+{
+  std::ifstream stackfile(dirpath / fs::path(sCallStackFile), std::ios::in);
+
+  std::pair<std::string, uint64_t> frame;
+  while (!stackfile.eof()) {
+    stackfile >> frame.first >> frame.second;
+    pushFrame(frame);
+  }
 }
 
 }  // namespace debug

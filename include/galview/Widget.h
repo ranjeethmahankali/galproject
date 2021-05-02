@@ -48,6 +48,8 @@ public:
   };
 
   void addWidget(const std::shared_ptr<Widget>& widget);
+
+  void clearWidgets();
 };
 
 Panel& newPanel(const std::string& title);

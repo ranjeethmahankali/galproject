@@ -57,6 +57,10 @@ void Panel::addWidget(const std::shared_ptr<Widget>& widget)
   mWidgets.push_back(widget);
 };
 
+void Panel::clearWidgets() {
+    mWidgets.clear();
+}
+
 static std::vector<std::shared_ptr<Panel>> sPanels;
 
 Panel& newPanel(const std::string& title)
