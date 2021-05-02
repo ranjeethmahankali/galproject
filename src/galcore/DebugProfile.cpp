@@ -41,6 +41,7 @@ ContextNode::ContextNode(const std::string& name, ContextNode* parent)
   }
 
   if (!indexFile) {
+    std::cerr << indexFilePath() << std::endl;
     throw std::filesystem::filesystem_error("Cannot open the index file.",
                                             std::error_code());
   }
@@ -75,23 +76,20 @@ static void popStackFile()
 {
   static constexpr char tempFile[] = "tempCallStack";
 
-  auto path = callStackPath();
+  auto path     = callStackPath();
+  auto tempPath = path.parent_path() / fs::path(tempFile);
 
-  std::stringstream ss;
-  {
-    std::ifstream fin(path, std::ios::in);
-    std::string   line;
-    std::getline(fin, line);
-    for (std::string temp; std::getline(fin, temp); line.swap(temp)) {
-      ss << line << std::endl;
-    }
-    fin.close();
+  std::ifstream fin(path, std::ios::in);
+  std::ofstream fout(tempPath, std::ios::out | std::ios::trunc);
+  std::string   line;
+  std::getline(fin, line);
+  for (std::string temp; std::getline(fin, temp); line.swap(temp)) {
+    fout << line << std::endl;
   }
-  {
-    std::ofstream fout(path, std::ios::out | std::ios::trunc);
-    fout << ss.rdbuf();
-    fout.close();
-  }
+  fin.close();
+  fout.close();
+
+  fs::rename(tempPath, path);
 }
 
 void ContextNode::pop()

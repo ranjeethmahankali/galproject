@@ -1,6 +1,7 @@
 #include <galcore/Util.h>
 #include <cmath>
 #include <filesystem>
+#include <string>
 #ifdef _MSC_VER
 #include <Shlwapi.h>
 #else
@@ -88,43 +89,6 @@ glm::vec3 gal::utils::barycentricEvaluate(float const (&coords)[3],
   return pts[0] * coords[0] + pts[1] * coords[1] + pts[2] * coords[2];
 }
 
-static int getAbsolutePath(char const* relative, char* absolute, size_t absPathSize)
-{
-#ifdef _MSC_VER
-  HMODULE binary = NULL;
-  int     ret    = 0;
-  /*First get the handle to this DLL by passing in a pointer to any function inside this
-   * dll (cast to a char pointer).*/
-  if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          (char*)&get_absolute_path,
-                          &binary)) {
-    /*If we fail to get this handle, NULL will be used as the module, this means
-    GetModuleFileNameA will assume we are asking about the current executable. This is
-    harmless for our application because this dll is right next to our application. But
-    this will
-    cause the unit tests to fail because the executable in that case is not our
-    application.*/
-    ret = GetLastError();
-  }
-  GetModuleFileNameA(binary, absolute, (DWORD)absPathSize);
-  PathRemoveFileSpecA(absolute);
-  PathAppendA(absolute, relative);
-  return ret;
-#else
-  char    result[MAX_PATH];
-  ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-  auto    path  = std::filesystem::current_path();
-  if (count != -1) {
-    path = std::filesystem::path(result).parent_path() / std::filesystem::path(relative);
-  }
-  auto pathstr = path.string();
-  std::fill(absolute, absolute + MAX_PATH, '\0');
-  std::copy(pathstr.begin(), pathstr.end(), absolute);
-  return 0;
-#endif
-};
-
 /**
  * @brief For the given path relative to the executable, the absolute path is returned.
  * @param relPath Path relative to the executable.
@@ -132,10 +96,13 @@ static int getAbsolutePath(char const* relative, char* absolute, size_t absPathS
  */
 fs::path gal::utils::absPath(const fs::path& relPath)
 {
-  std::string absPath(MAX_PATH, '\0');
-  if (getAbsolutePath(relPath.c_str(), absPath.data(), MAX_PATH) != 0) {
+  std::string apath(MAX_PATH, '\0');
+  ssize_t     count = readlink("/proc/self/exe", apath.data(), PATH_MAX);
+  fs::path    path;
+  if (count == -1) {
     throw "Cannot find absolute path";
   }
-  absPath.erase(std::find(absPath.begin(), absPath.end(), '\0'), absPath.end());
-  return fs::path(absPath);
+  apath.erase(apath.begin() + count, apath.end());
+  path = fs::path(apath).parent_path() / relPath;
+  return path;
 }
