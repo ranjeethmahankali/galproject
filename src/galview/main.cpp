@@ -1,24 +1,24 @@
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
+#include <boost/program_options.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include <galview/AllViews.h>
-#include <galview/Context.h>
-#include <galview/GLUtil.h>
-#include <galview/Widget.h>
 
 #include <galcore/Circle2d.h>
 #include <galcore/ConvexHull.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
+#include <galview/AllViews.h>
+#include <galview/Context.h>
+#include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
-
-#include <fstream>
-#include <sstream>
+#include <galview/Widget.h>
 
 using namespace gal;
-namespace fs = std::filesystem;
+namespace fs  = std::filesystem;
+namespace bpo = boost::program_options;
 
 static void initPythonEnvironment()
 {
@@ -30,35 +30,13 @@ static void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-static int loadDemo(const fs::path& path)
-{
-  try {
-    boost::python::exec_file(path.c_str());
-    return 0;
-  }
-  catch (boost::python::error_already_set) {
-    PyErr_Print();
-    return 1;
-  }
-}
-
 static void glfw_error_cb(int error, const char* desc)
 {
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-int main(int argc, char** argv)
+static int loadDemo(const fs::path& demoPath)
 {
-  fs::path demoPath;
-  if (argc < 2) {
-    demoPath = "/home/rnjth94/dev/GeomAlgoLib/demos/meshView.py";
-    // std::cout << "Please supply the filepath to the demo file as an argument.\n";
-    // return 1;
-  }
-  else {
-    demoPath = fs::absolute(fs::path(argv[1]));
-  }
-
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
   if (!glfwInit())
@@ -92,17 +70,6 @@ int main(int argc, char** argv)
   view::Context::registerCallbacks(window);
   view::Context::get().setPerspective();
 
-  // Setup IMGUI
-  view::initializeImGui(window, glslVersion);
-
-  // Initialize Embedded Python and the demo
-  initPythonEnvironment();
-  int err = 0;
-  if (0 != (err = loadDemo(demoPath.string()))) {
-      std::cerr << "Unable to load the demo... aborting...\n";
-      return 1;
-  }
-
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
   glViewport(0, 0, W, H);
@@ -114,6 +81,20 @@ int main(int argc, char** argv)
   glEnable(GL_POINT_SMOOTH);
   glPointSize(3.0f);
   glLineWidth(1.5f);
+
+  // Setup IMGUI
+  view::initializeImGui(window, glslVersion);
+
+  // Initialize Embedded Python and the demo
+  initPythonEnvironment();
+  try {
+    boost::python::exec_file(demoPath.c_str());
+  }
+  catch (boost::python::error_already_set) {
+    PyErr_Print();
+    std::cerr << "Unable to load the demo... aborting...\n";
+    return 1;
+  }
 
   std::cout << "Starting render loop...\n";
 
@@ -142,4 +123,80 @@ int main(int argc, char** argv)
   glfwDestroyWindow(window);
   glfwTerminate();
   return 0;
+}
+
+int main(int argc, char** argv)
+{
+  static constexpr char pathKey[] = "path";
+  bool                  debugFlag;
+  bool                  postMortemFlag;
+
+  bpo::options_description desc("galview options");
+  desc.add_options()("help", "produce help message")(
+    "debug, d",
+    bpo::bool_switch(&debugFlag),
+    "Flag used to debug a application running at the given path")(
+    "postmortem, p",
+    bpo::bool_switch(&postMortemFlag),
+    "Flag used to do a postmortem of the gal application session at the"
+    " given folder");
+
+  bpo::options_description hidden("hidden options");
+  hidden.add_options()(pathKey, "Path to run the program with.");
+  bpo::options_description allOptions;
+  allOptions.add(desc).add(hidden);
+
+  bpo::positional_options_description posn;
+  posn.add(pathKey, 1);
+
+  bpo::variables_map vmap;
+  try {
+    bpo::store(
+      bpo::command_line_parser(argc, argv).options(allOptions).positional(posn).run(),
+      vmap);
+    bpo::notify(vmap);
+  }
+  catch (const bpo::error& err) {
+    std::cerr << "Couldn't parse command line arguments properly:\n";
+    std::cerr << err.what() << '\n' << '\n';
+    std::cerr << desc << '\n';
+    return 1;
+  }
+
+  if (vmap.count("help")) {
+    std::cout << desc << "\n";
+    return 1;
+  }
+
+  if (!vmap.count(pathKey)) {
+    std::cerr << "Please provide a path to a demo file, or a directory for debugging or "
+                 "postmortem";
+    std::cerr << desc << '\n';
+    return 1;
+  }
+
+  fs::path path = fs::path(vmap[pathKey].as<std::string>());
+
+  if (fs::exists(path)) {
+    bool isDir = fs::is_directory(path);
+    if (!debugFlag && !postMortemFlag && !isDir) {
+      return loadDemo(path);
+    }
+    else if (debugFlag && !postMortemFlag && isDir) {
+      std::cerr << "Debug feature is not implemented\n";
+      return 1;
+    }
+    else if (!debugFlag && postMortemFlag && isDir) {
+      std::cerr << "Postmortem feature is not implemented\n";
+      return 1;
+    }
+    else {
+      std::cerr << "Invalid options!\n";
+      return 1;
+    }
+  }
+  else {
+    std::cerr << "The given path does not exist!\n";
+    return 1;
+  }
 }
