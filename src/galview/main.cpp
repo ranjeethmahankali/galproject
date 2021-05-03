@@ -146,10 +146,10 @@ int main(int argc, char** argv)
 
   bpo::options_description desc("galview options");
   desc.add_options()("help", "produce help message")(
-    "debug, d",
+    "debug,d",
     bpo::bool_switch(&debugFlag),
     "Flag used to debug a application running at the given path")(
-    "postmortem, p",
+    "postmortem,p",
     bpo::bool_switch(&postMortemFlag),
     "Flag used to do a postmortem of the gal application session at the"
     " given folder");
