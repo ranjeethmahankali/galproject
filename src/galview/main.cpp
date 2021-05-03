@@ -20,6 +20,8 @@ using namespace gal;
 namespace fs  = std::filesystem;
 namespace bpo = boost::program_options;
 
+static constexpr char glslVersion[] = "#version 330 core";
+
 static void initPythonEnvironment()
 {
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
@@ -35,20 +37,19 @@ static void glfw_error_cb(int error, const char* desc)
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-static int loadDemo(const fs::path& demoPath)
+static int initViewer(GLFWwindow*& window)
 {
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
   if (!glfwInit())
     return 1;
 
-  constexpr char glslVersion[] = "#version 330 core";
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  GLFWwindow* window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
+  window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -81,6 +82,26 @@ static int loadDemo(const fs::path& demoPath)
   glEnable(GL_POINT_SMOOTH);
   glPointSize(3.0f);
   glLineWidth(1.5f);
+  return 0;
+}
+
+static void wrapUp(GLFWwindow* window)
+{
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  glfwDestroyWindow(window);
+  glfwTerminate();
+}
+
+static int loadDemo(const fs::path& demoPath)
+{
+  int         err    = 0;
+  GLFWwindow* window = nullptr;
+  if (err = initViewer(window)) {
+    std::cerr << "Failed to initialize the viewer\n";
+    return err;
+  }
 
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
@@ -100,28 +121,20 @@ static int loadDemo(const fs::path& demoPath)
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
-
     view::imGuiNewFrame();
-
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     {
-      view::drawAllPanels();
       viewfunc::evalOutputs();
+      view::drawAllPanels();
       view::imGuiRender();
       view::Context::get().render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
-
     glfwSwapBuffers(window);
   }
 
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  glfwDestroyWindow(window);
-  glfwTerminate();
+  wrapUp(window);
   return 0;
 }
 
