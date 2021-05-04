@@ -12,6 +12,7 @@
 #include <galcore/PointCloud.h>
 #include <galview/AllViews.h>
 #include <galview/Context.h>
+#include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Widget.h>
@@ -138,6 +139,44 @@ static int loadDemo(const fs::path& demoPath)
   return 0;
 }
 
+static int debugSession(const fs::path& targetDir)
+{
+  if (!fs::is_directory(targetDir)) {
+    return 1;
+  }
+
+  int         err    = 0;
+  GLFWwindow* window = nullptr;
+  if (err = initViewer(window)) {
+    std::cerr << "Failed to initialize the viewer\n";
+    return err;
+  }
+
+  // Setup IMGUI
+  view::initializeImGui(window, glslVersion);
+
+  gal::debug::initSession(targetDir);
+
+  std::cout << "Starting render loop...\n";
+
+  while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
+    view::imGuiNewFrame();
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    {
+      view::drawAllPanels();
+      view::imGuiRender();
+      view::Context::get().render();
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+    glfwSwapBuffers(window);
+  }
+
+  wrapUp(window);
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
   static constexpr char pathKey[] = "path";
@@ -196,8 +235,7 @@ int main(int argc, char** argv)
       return loadDemo(path);
     }
     else if (debugFlag && !postMortemFlag && isDir) {
-      std::cerr << "Debug feature is not implemented\n";
-      return 1;
+      return debugSession(path);
     }
     else if (!debugFlag && postMortemFlag && isDir) {
       std::cerr << "Postmortem feature is not implemented\n";

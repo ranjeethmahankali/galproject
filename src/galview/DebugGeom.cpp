@@ -12,7 +12,7 @@ namespace debug {
 
 static view::Panel& debugPanel()
 {
-  static view::Panel sDebugPanel = view::newPanel("Debug Geometry");
+  static view::Panel& sDebugPanel = view::newPanel("Debug Geometry");
   return sDebugPanel;
 }
 
@@ -37,16 +37,20 @@ struct DrawableManager
 
 using manager = DrawableManager<PointCloud>;
 
-static std::string debugDirPath;
+static std::string sDebugDirPath;
+
+static fs::path stackfilepath()
+{
+  return sDebugDirPath / fs::path(sDebugDir) / fs::path(sCallStackFile);
+}
 
 void initSession(const fs::path& dirpath)
 {
-  auto stackfile = dirpath / fs::path(sCallStackFile);
-  if (!fs::exists(stackfile)) {
+  sDebugDirPath = dirpath;
+  if (!fs::exists(stackfilepath())) {
     throw std::runtime_error("Cannot find the stack file");
   }
-
-  debugDirPath = dirpath;
+  loadCallstack();
 }
 
 static void pushFrame(const std::pair<std::string, uint64_t>& frame)
@@ -60,9 +64,9 @@ void clearCallstack()
   debugPanel().clearWidgets();
 }
 
-void loadCallstack(const fs::path& dirpath)
+void loadCallstack()
 {
-  std::ifstream stackfile(dirpath / fs::path(sCallStackFile), std::ios::in);
+  std::ifstream stackfile(stackfilepath(), std::ios::in);
 
   std::pair<std::string, uint64_t> frame;
   while (!stackfile.eof()) {

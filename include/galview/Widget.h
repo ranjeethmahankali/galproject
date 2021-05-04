@@ -202,7 +202,7 @@ public:
   CheckBox(const std::string& label, bool value);
   virtual ~CheckBox() = default;
 
-  void draw();
+  void        draw();
   const bool* checkedPtr() const;
 };
 
