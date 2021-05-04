@@ -10,6 +10,8 @@
 namespace gal {
 namespace debug {
 
+static std::string sDebugDirPath;
+
 static view::Panel& debugPanel()
 {
   static view::Panel& sDebugPanel = view::newPanel("Debug Geometry");
@@ -35,9 +37,40 @@ struct DrawableManager
   };
 };
 
-using manager = DrawableManager<PointCloud>;
+class DebugFrame : public gal::view::TextInputBox
+{
+  std::string mName;
+  std::string mPrefix;
+  std::string mOldValue;
 
-static std::string sDebugDirPath;
+public:
+  DebugFrame(const std::string& name, uint64_t id)
+      : view::TextInputBox(name)
+      , mPrefix(std::to_string(id) + "_")
+  {}
+
+  void handleChanges() override
+  {
+    if (mOldValue == mValue) {
+      return;
+    }
+    view::TextInputBox::handleChanges();
+    std::stringstream ss(mValue);
+    std::string       name;
+    while (std::getline(ss, name)) {
+      fs::path path = sDebugDirPath / fs::path(sDebugDir) / fs::path(mPrefix + name);
+      if (fs::exists(path) && !fs::is_directory(path)) {
+        std::cout << "Fake loading the debug geometry from path: " << path << std::endl;
+      }
+      else {
+        std::cout << "Cannot find the file: " << path << std::endl;
+      }
+    }
+    mOldValue = mValue;
+  }
+};
+
+using manager = DrawableManager<PointCloud>;
 
 static fs::path stackfilepath()
 {
@@ -53,10 +86,9 @@ void initSession(const fs::path& dirpath)
   loadCallstack();
 }
 
-static void pushFrame(const std::pair<std::string, uint64_t>& frame)
+static void pushFrame(const std::string& name, uint64_t id)
 {
-  debugPanel().newWidget<gal::view::Text>(frame.first + ": " +
-                                          std::to_string(frame.second));
+  debugPanel().newWidget<DebugFrame>(name, id);
 }
 
 void clearCallstack()
@@ -68,10 +100,15 @@ void loadCallstack()
 {
   std::ifstream stackfile(stackfilepath(), std::ios::in);
 
-  std::pair<std::string, uint64_t> frame;
-  while (!stackfile.eof()) {
-    stackfile >> frame.first >> frame.second;
-    pushFrame(frame);
+  std::string       line;
+  std::string       word;
+  std::stringstream ss;
+  while (std::getline(stackfile, line)) {
+    ss << line;
+    uint64_t id;
+    ss >> word >> id;
+    pushFrame(word, id);
+    ss.clear();
   }
 }
 

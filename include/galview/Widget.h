@@ -196,6 +196,15 @@ public:
   void draw();
 };
 
+class TextInputBox : public InputWidget<std::string>
+{
+public:
+  TextInputBox(const std::string& label);
+  virtual ~TextInputBox() = default;
+
+  void draw();
+};
+
 class CheckBox : public InputWidget<bool>
 {
 public:

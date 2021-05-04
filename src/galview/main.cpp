@@ -10,6 +10,7 @@
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
+#include <galcore/Util.h>
 #include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
