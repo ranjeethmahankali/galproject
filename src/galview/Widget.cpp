@@ -110,6 +110,7 @@ void TextInput::draw()
                    TextInputResizeCallback,
                    (void*)(&mValue));
 
+  checkEdited();
   if (!ImGui::IsItemActive()) {
     handleChanges();
   }
@@ -130,7 +131,7 @@ void TextInputBox::draw()
                             ImGuiInputTextFlags_CallbackResize,
                             TextInputResizeCallback,
                             (void*)(&mValue));
-
+  checkEdited();
   if (!ImGui::IsItemActive()) {
     handleChanges();
   }
@@ -143,6 +144,7 @@ CheckBox::CheckBox(const std::string& label, bool value)
 void CheckBox::draw()
 {
   ImGui::Checkbox(mLabel.c_str(), &mValue);
+  checkEdited();
 }
 
 const bool* CheckBox::checkedPtr() const

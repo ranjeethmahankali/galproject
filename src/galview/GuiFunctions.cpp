@@ -203,13 +203,16 @@ public:
       : gal::func::TVariable<std::string>("")
       , gal::view::TextInput(label, "") {};
 
+private:
+  using gal::view::TextInput::addHandler;
+
 protected:
   void handleChanges() override
   {
-    gal::view::TextInput::handleChanges();
-    if (*(this->mValuePtr) != this->mValue) {  // The value changed.
+    if (isEdited())
       this->set(this->mValue);
-    }
+
+    clearEdited();
   }
 };
 

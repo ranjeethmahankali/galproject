@@ -87,16 +87,28 @@ protected:
   std::vector<HandlerFn> mHandlers;
   std::string            mLabel;
   T                      mValue;
+  bool                   mEdited = false;
 
 protected:
+  /**
+   * @brief IMPORTANT: THis can only be called right after drawing this widget!
+   * This is because the ImGui works in "immediate" mode.
+   */
+  void checkEdited() { mEdited |= ImGui::IsItemEdited(); }
+
+  bool isEdited() const { return mEdited; }
+
+  void clearEdited() { mEdited = false; }
+
   virtual void handleChanges()
   {
-    if (!ImGui::IsItemEdited()) {
+    if (!isEdited())
       return;
-    }
+
     for (auto handler : mHandlers) {
       handler(mValue);
     }
+    clearEdited();
   };
 
 public:
@@ -138,6 +150,7 @@ public:
   {
     drawSlider<T>(
       this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
+    this->checkEdited();
     this->handleChanges();
   };
 
@@ -180,6 +193,7 @@ public:
   void draw()
   {
     drawSlider3<T>(this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
+    this->checkEdited();
     this->handleChanges();
   };
 

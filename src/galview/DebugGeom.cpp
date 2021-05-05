@@ -41,7 +41,6 @@ class DebugFrame : public gal::view::TextInputBox
 {
   std::string mName;
   std::string mPrefix;
-  std::string mOldValue;
 
 public:
   DebugFrame(const std::string& name, uint64_t id)
@@ -49,15 +48,20 @@ public:
       , mPrefix(std::to_string(id) + "_")
   {}
 
+private:
+  using gal::view::TextInputBox::addHandler;
+
+protected:
   void handleChanges() override
   {
-    if (mOldValue == mValue) {
+    if (!isEdited())
       return;
-    }
-    view::TextInputBox::handleChanges();
     std::stringstream ss(mValue);
     std::string       name;
     while (std::getline(ss, name)) {
+      if (name.empty()) {
+        continue;
+      }
       fs::path path = sDebugDirPath / fs::path(sDebugDir) / fs::path(mPrefix + name);
       if (fs::exists(path) && !fs::is_directory(path)) {
         std::cout << "Fake loading the debug geometry from path: " << path << std::endl;
@@ -66,7 +70,7 @@ public:
         std::cout << "Cannot find the file: " << path << std::endl;
       }
     }
-    mOldValue = mValue;
+    clearEdited();
   }
 };
 

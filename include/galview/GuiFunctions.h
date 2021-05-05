@@ -19,13 +19,16 @@ public:
       : gal::func::TVariable<T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
+private:
+  using gal::view::Slider<T>::addHandler;
+
 protected:
   void handleChanges() override
   {
-    gal::view::Slider<T>::handleChanges();
-    if (*(this->mValuePtr) != this->mValue) {  // The value changed.
+    if (this->isEdited())
       this->set(this->mValue);
-    }
+
+    this->clearEdited();
   };
 };
 
@@ -37,6 +40,9 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
   void     initOutputRegisters() override;
   size_t   numOutputs() const override;
   uint64_t outputRegister(size_t index) const override;
+
+private:
+  using gal::view::CheckBox::addHandler;
 
 private:
   uint64_t              mObjRegId;
