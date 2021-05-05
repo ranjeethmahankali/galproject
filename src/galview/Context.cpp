@@ -435,5 +435,10 @@ void Context::removeDrawable(size_t id)
     mDrawables.end());
 }
 
+void Context::clearDrawables()
+{
+  mDrawables.clear();
+}
+
 }  // namespace view
 }  // namespace gal

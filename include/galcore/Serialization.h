@@ -38,7 +38,8 @@ class Bytes
 public:
   Bytes();
   Bytes(uint32_t version);
-  Bytes(const fs::path& filepath);
+
+  static Bytes loadFromFile(const fs::path& filepath);
 
 private:
   std::vector<char> mData;
@@ -62,9 +63,9 @@ public:
   Bytes& read(T& data)
   {
     static_assert(IsValueType<T>::value, "Must be a fundamental type");
-    char* dst    = (char*)(&data);
-    char* src    = mData.data() + mReadPos;
-    size_t   offset = sizeof(T);
+    char*  dst    = (char*)(&data);
+    char*  src    = mData.data() + mReadPos;
+    size_t offset = sizeof(T);
     mReadPos += offset;
     if (mReadPos > mData.size()) {
       throw std::out_of_range("Out of bounds while reading bytes!");

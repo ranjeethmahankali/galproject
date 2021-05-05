@@ -1,6 +1,7 @@
 #pragma once
 
 #include <galcore/Serialization.h>
+#include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <filesystem>
 #include <string>
@@ -41,6 +42,7 @@ public:
   static void capture(const T& var, const std::string& name)
   {
     Bytes data;
+    data << TypeInfo<T>::id;
     data << var;
     data.saveToFile(utils::absPath(fs::path(sDebugDir) /
                                    fs::path(std::to_string(sCurrent->mId) + "_" + name)));

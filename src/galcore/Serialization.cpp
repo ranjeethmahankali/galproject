@@ -8,18 +8,6 @@ Bytes::Bytes()
   mData.reserve(5120);
 };
 
-Bytes::Bytes(const fs::path& filepath)
-{
-  std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-  auto          pos = file.tellg();
-  mData.resize(size_t(pos));
-
-  file.seekg(0, std::ios::beg);
-  file.read(mData.data(), pos);
-
-  file.close();
-}
-
 Bytes& Bytes::writeBytes(const char* src, size_t nBytes)
 {
   std::copy(src, src + nBytes, std::back_inserter(mData));
@@ -56,6 +44,21 @@ void Bytes::saveToFile(const fs::path& path) const
   std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
   file.write(mData.data(), mData.size());
   file.close();
+}
+
+Bytes Bytes::loadFromFile(const fs::path& filepath)
+{
+  std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+  auto          pos = file.tellg();
+  Bytes         bytes;
+  bytes.mData.resize(size_t(pos));
+
+  file.seekg(0, std::ios::beg);
+  file.read(bytes.mData.data(), pos);
+
+  file.close();
+
+  return bytes;
 }
 
 }  // namespace gal

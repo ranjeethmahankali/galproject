@@ -5,14 +5,6 @@
 #include <galview/GuiFunctions.h>
 #include <sstream>
 
-namespace std {
-std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v)
-{
-  ostr << "(" << v.x << ", " << v.y << ", " << v.z << ")";
-  return ostr;
-};
-}  // namespace std
-
 namespace gal {
 namespace viewfunc {
 

@@ -2,6 +2,7 @@
 #include <galcore/PointCloud.h>
 #include <galcore/Serialization.h>
 #include <galcore/Types.h>
+#include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/Widget.h>
@@ -18,24 +19,45 @@ static view::Panel& debugPanel()
   return sDebugPanel;
 }
 
+static view::Panel& outputsPanel()
+{
+  static view::Panel& sOutputPanel = view::newPanel("Outputs");
+  return sOutputPanel;
+}
+
 template<typename T, typename... TRest>
-struct DrawableManager
+struct WatchManager
 {
   static_assert(TypeInfo<T>::value, "Not a known type.");
-  static_assert(Serial<T>::value, "Cannot serialize or deserialize this type.");
 
-  static void draw(uint32_t typeId, Bytes& bytes, const std::string& geomKey)
+  static void watch(uint32_t typeId, Bytes& bytes, const std::string& geomKey)
   {
     if (typeId == TypeInfo<T>::id) {
-      view::Context::addDrawable(
-        Serial<T>::deserialize(bytes),
-        debugPanel().newWidget<view::CheckBox>(geomKey, true)->checkedPtr());
+      if constexpr (view::MakeDrawable<T>::value) {
+        view::Context::get().addDrawable(
+          Serial<T>::deserialize(bytes),
+          outputsPanel().newWidget<view::CheckBox>(geomKey, true)->checkedPtr());
+      }
+      else {
+        T instance;
+        bytes >> instance;
+        std::stringstream ss;
+        ss << instance;
+        outputsPanel().newWidget<view::Text>(geomKey + ": " + ss.str());
+      }
     }
     else if constexpr (sizeof...(TRest) > 0) {
-      DrawableManager<TRest...>::draw(typeId, bytes);
+      WatchManager<TRest...>::watch(typeId, bytes, geomKey);
+    }
+    else if constexpr (sizeof...(TRest) == 0) {
+      std::cerr << "Datatype " << gal::TypeInfo<T>::name
+                << " is not watchable in a debug session\n";
+      throw std::bad_cast();
     }
   };
 };
+
+using manager = WatchManager<glm::vec2, Circle2d>;
 
 class DebugFrame : public gal::view::TextInputBox
 {
@@ -64,6 +86,11 @@ protected:
       }
       fs::path path = sDebugDirPath / fs::path(sDebugDir) / fs::path(mPrefix + name);
       if (fs::exists(path) && !fs::is_directory(path)) {
+        Bytes    bytes = Bytes::loadFromFile(path);
+        uint32_t typeId;
+        bytes >> typeId;
+        name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
+        manager::watch(typeId, bytes, name);
         std::cout << "Fake loading the debug geometry from path: " << path << std::endl;
       }
       else {
@@ -73,8 +100,6 @@ protected:
     clearEdited();
   }
 };
-
-using manager = DrawableManager<PointCloud>;
 
 static fs::path stackfilepath()
 {
@@ -98,6 +123,8 @@ static void pushFrame(const std::string& name, uint64_t id)
 void clearCallstack()
 {
   debugPanel().clearWidgets();
+  outputsPanel().clearWidgets();
+  view::Context::get().clearDrawables();
 }
 
 void loadCallstack()
