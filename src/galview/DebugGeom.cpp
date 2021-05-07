@@ -113,6 +113,7 @@ void initSession(const fs::path& dirpath)
     throw std::runtime_error("Cannot find the stack file");
   }
   loadCallstack();
+  outputsPanel();
 }
 
 static void pushFrame(const std::string& name, uint64_t id)

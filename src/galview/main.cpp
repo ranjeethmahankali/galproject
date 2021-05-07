@@ -87,6 +87,16 @@ static int initViewer(GLFWwindow*& window)
   return 0;
 }
 
+void showSettingsPanel()
+{
+  static view::Panel& panel = view::newPanel("Settings");
+  panel.newWidget<view::Button>("Toggle 2d Mode", []() {
+    static bool flag = true;
+    view::Context::get().set2dMode(flag);
+    flag = !flag;
+  });
+}
+
 static void wrapUp(GLFWwindow* window)
 {
   ImGui_ImplOpenGL3_Shutdown();
@@ -160,6 +170,8 @@ static int debugSession(const fs::path& targetDir)
 
   std::cout << "Starting render loop...\n";
 
+  showSettingsPanel();
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     view::imGuiNewFrame();
@@ -180,7 +192,7 @@ static int debugSession(const fs::path& targetDir)
 
 int main(int argc, char** argv)
 {
-  return debugSession(gal::utils::absPath("../temp/"));
+  //   return debugSession(gal::utils::absPath("../temp/"));
   //   return loadDemo(gal::utils::absPath("../demos/meshPlaneClipping.py"));
 
   static constexpr char pathKey[] = "path";

@@ -85,6 +85,19 @@ void Text::draw()
   ImGui::Text(mValue.c_str());
 };
 
+Button::Button(const std::string& label, const std::function<void()>& onClick)
+    : mLabel(label)
+    , mOnClick(onClick) {};
+
+void Button::draw()
+{
+  auto size = ImGui::CalcTextSize(mLabel.c_str());
+  ImGui::Button(mLabel.c_str(), ImVec2(size.x + 10.f, size.y + 10.f));
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    mOnClick();
+  }
+}
+
 TextInput::TextInput(const std::string& label, const std::string& value)
     : InputWidget<std::string>(label, value)
 {

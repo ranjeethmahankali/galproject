@@ -30,6 +30,7 @@ class Panel final : public Widget
 {
 public:
   Panel(const std::string& title);
+  virtual ~Panel() = default;
 
   void draw();
 
@@ -66,6 +67,18 @@ public:
 
 protected:
   std::string mValue;
+};
+
+class Button : public Widget
+{
+  std::string           mLabel;
+  std::function<void()> mOnClick;
+
+public:
+  Button(const std::string& label, const std::function<void()>& onClick);
+  virtual ~Button() = default;
+
+  void draw();
 };
 
 template<typename T>
