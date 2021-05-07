@@ -24,6 +24,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_package(efsw CONFIG REQUIRED)
 
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
@@ -72,7 +73,8 @@ target_link_libraries(galview PRIVATE
   galfunc
   imgui::imgui
   GLEW::GLEW
-  glfw)
+  glfw
+  efsw::efsw)
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview
