@@ -57,7 +57,7 @@ struct WatchManager
   };
 };
 
-using manager = WatchManager<glm::vec2, Circle2d>;
+using manager = WatchManager<glm::vec2, Circle2d, Box3, Mesh, Sphere, PointCloud>;
 
 class DebugFrame : public gal::view::TextInputBox
 {
@@ -90,7 +90,9 @@ protected:
         uint32_t typeId;
         bytes >> typeId;
         name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
-        manager::watch(typeId, bytes, name);
+        Bytes nested;
+        bytes.readNested(nested);
+        manager::watch(typeId, nested, name);
         std::cout << "Fake loading the debug geometry from path: " << path << std::endl;
       }
       else {

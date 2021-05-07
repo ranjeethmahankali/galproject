@@ -114,4 +114,28 @@ public:
   };
 };
 
+template<typename T>
+struct Serial<std::vector<T>> : public std::true_type
+{
+  static std::vector<T> deserialize(Bytes& bytes)
+  {
+    uint64_t size;
+    bytes >> size;
+    std::vector<T> v(size);
+    for (auto& e : v) {
+      bytes >> e;
+    }
+    return v;
+  }
+  static Bytes serialize(const std::vector<T>& data)
+  {
+    Bytes bytes;
+    bytes << data.size();
+    for (const auto& d : data) {
+      bytes << d;
+    }
+    return bytes;
+  }
+};
+
 }  // namespace gal

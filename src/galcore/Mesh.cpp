@@ -386,6 +386,16 @@ const glm::vec3& Mesh::faceNormal(size_t fi) const
   return fi < numFaces() ? mFaceNormals.at(fi) : vec3_unset;
 }
 
+const std::vector<glm::vec3>& Mesh::vertices() const
+{
+  return mVertices;
+}
+
+const std::vector<Mesh::Face>& Mesh::faces() const
+{
+  return mFaces;
+}
+
 Mesh::ConstVertIter Mesh::vertexCBegin() const
 {
   return mVertices.cbegin();
