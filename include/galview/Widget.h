@@ -50,6 +50,8 @@ public:
 
   void addWidget(const std::shared_ptr<Widget>& widget);
 
+  void removeWidget(const std::shared_ptr<Widget>& widget);
+
   void clearWidgets();
 };
 
@@ -112,6 +114,8 @@ protected:
   bool isEdited() const { return mEdited; }
 
   void clearEdited() { mEdited = false; }
+
+  void setEdited() { mEdited = true; }
 
   virtual void handleChanges()
   {

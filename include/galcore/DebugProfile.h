@@ -31,22 +31,33 @@ private:
 
   ContextNode* addChild(const std::string& name);
 
+  void deleteCapturedVars();
+
   std::vector<ContextNode> mChildren;
   std::string              mName;
   ContextNode*             mParent;
   uint64_t                 mId;
   uint32_t                 mDepth;
+  std::vector<fs::path>    mCaptured;
+
+  template<typename T>
+  void captureInternal(const T& var, const std::string& name)
+  {
+    Bytes data;
+    data << TypeInfo<T>::id;
+    data << var;
+    fs::path varpath =
+      utils::absPath(fs::path(sDebugDir) / fs::path(std::to_string(mId) + "_" + name));
+    mCaptured.push_back(varpath);
+    data.saveToFile(varpath);
+  };
 
 public:
   template<typename T>
   static void capture(const T& var, const std::string& name)
   {
-    Bytes data;
-    data << TypeInfo<T>::id;
-    data << var;
-    data.saveToFile(utils::absPath(fs::path(sDebugDir) /
-                                   fs::path(std::to_string(sCurrent->mId) + "_" + name)));
-  };
+    sCurrent->captureInternal(var, name);
+  }
 };
 
 struct ScopedContext

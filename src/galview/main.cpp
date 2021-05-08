@@ -192,7 +192,7 @@ static int debugSession(const fs::path& targetDir)
 
 int main(int argc, char** argv)
 {
-  //   return debugSession(gal::utils::absPath("../temp/"));
+  //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/meshPlaneClipping.py"));
 
   static constexpr char pathKey[] = "path";
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  fs::path path = fs::path(vmap[pathKey].as<std::string>());
+  fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
 
   if (fs::exists(path)) {
     bool isDir = fs::is_directory(path);

@@ -65,6 +65,14 @@ ContextNode* ContextNode::addChild(const std::string& name)
   return &mChildren.back();
 }
 
+void ContextNode::deleteCapturedVars()
+{
+  for (const fs::path& p : mCaptured) {
+    fs::remove(p);
+  }
+  mCaptured.clear();
+}
+
 void ContextNode::push(const std::string& name)
 {
   sCurrent = sCurrent->addChild(name);
@@ -92,6 +100,7 @@ static void popStackFile()
 
 void ContextNode::pop()
 {
+  sCurrent->deleteCapturedVars();
   sCurrent = sCurrent->mParent;
   popStackFile();
 }

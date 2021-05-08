@@ -57,6 +57,11 @@ void Panel::addWidget(const std::shared_ptr<Widget>& widget)
   mWidgets.push_back(widget);
 };
 
+void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
+{
+  mWidgets.erase(std::remove(mWidgets.begin(), mWidgets.end(), widget), mWidgets.end());
+}
+
 void Panel::clearWidgets()
 {
   mWidgets.clear();
