@@ -6,12 +6,20 @@
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/Widget.h>
+#include <efsw/efsw.hpp>
 #include <fstream>
 
 namespace gal {
 namespace debug {
 
-static std::string sDebugDirPath;
+class DebugFrame;
+class FSListener;
+
+static std::string                              sDebugDirPath;
+static std::vector<std::shared_ptr<DebugFrame>> sFrames;
+static std::shared_ptr<FSListener>              sFileListener;
+static std::shared_ptr<efsw::FileWatcher>       sFileWatcher;
+static efsw::WatchID                            sWatchId;
 
 static view::Panel& debugPanel()
 {
@@ -73,11 +81,11 @@ public:
 private:
   using gal::view::TextInputBox::addHandler;
 
-protected:
-  void handleChanges() override
+public:
+  void reloadChanges()
   {
-    if (!isEdited())
-      return;
+    view::Context::get().clearDrawables();
+    outputsPanel().clearWidgets();
     std::stringstream ss(mValue);
     std::string       name;
     while (std::getline(ss, name)) {
@@ -93,12 +101,20 @@ protected:
         Bytes nested;
         bytes.readNested(nested);
         manager::watch(typeId, nested, name);
-        std::cout << "Fake loading the debug geometry from path: " << path << std::endl;
+        std::cout << "Loading the debug geometry from path: " << path << std::endl;
       }
       else {
         std::cout << "Cannot find the file: " << path << std::endl;
       }
     }
+  }
+
+protected:
+  void handleChanges() override
+  {
+    if (!isEdited())
+      return;
+    reloadChanges();
     clearEdited();
   }
 };
@@ -108,6 +124,34 @@ static fs::path stackfilepath()
   return sDebugDirPath / fs::path(sDebugDir) / fs::path(sCallStackFile);
 }
 
+static void reloadAllFrames()
+{
+  for (auto& frame : sFrames) {
+    frame->reloadChanges();
+  }
+}
+
+class FSListener : public efsw::FileWatchListener
+{
+public:
+  FSListener() = default;
+
+  void handleFileAction(efsw::WatchID      watchid,
+                        const std::string& dir,
+                        const std::string& filename,
+                        efsw::Action       action,
+                        std::string        oldFilename = "")
+  {
+    switch (action) {
+    case efsw::Actions::Add:
+    case efsw::Actions::Delete:
+    case efsw::Actions::Modified:
+    case efsw::Actions::Moved:
+      reloadAllFrames();
+    }
+  }
+};
+
 void initSession(const fs::path& dirpath)
 {
   sDebugDirPath = dirpath;
@@ -116,18 +160,16 @@ void initSession(const fs::path& dirpath)
   }
   loadCallstack();
   outputsPanel();
+
+  // Start watching the folder.
+  sFileWatcher  = std::make_shared<efsw::FileWatcher>();
+  sFileListener = std::make_shared<FSListener>();
+  sWatchId      = sFileWatcher->addWatch(sDebugDir, sFileListener.get(), false);
 }
 
 static void pushFrame(const std::string& name, uint64_t id)
 {
-  debugPanel().newWidget<DebugFrame>(name, id);
-}
-
-void clearCallstack()
-{
-  debugPanel().clearWidgets();
-  outputsPanel().clearWidgets();
-  view::Context::get().clearDrawables();
+  sFrames.push_back(debugPanel().newWidget<DebugFrame>(name, id));
 }
 
 void loadCallstack()
