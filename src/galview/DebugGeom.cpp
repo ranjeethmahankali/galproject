@@ -311,8 +311,12 @@ public:
                         std::string        oldFilename = "")
   {
     static const fs::path fext(sDbgExt);
+    static const fs::path fextTemp(sDbgExtTemp);
     fs::path              fpath(filename);
-    if (fpath.extension() == fext) {
+    if (fpath.extension() == fextTemp) {
+      return;
+    }
+    else if (fpath.extension() == fext) {
       setFileChanged(filename, true);
       VariablesBox::stackChanged();
     }

@@ -14,6 +14,7 @@ static constexpr char sDebugDir[]      = ".galdebug";
 static constexpr char sIndexFile[]     = "index";
 static constexpr char sCallStackFile[] = "callstack";
 static constexpr char sDbgExt[]        = ".galdbg";
+static constexpr char sDbgExtTemp[]    = ".galdbgtemp";
 
 namespace fs = std::filesystem;
 
@@ -50,7 +51,10 @@ private:
     fs::path varpath = utils::absPath(
       fs::path(sDebugDir) / fs::path(std::to_string(mId) + "_" + name + sDbgExt));
     mCaptured.push_back(varpath);
-    data.saveToFile(varpath);
+    fs::path tempPath = varpath;
+    tempPath.replace_extension(sDbgExtTemp);
+    data.saveToFile(tempPath);
+    fs::rename(tempPath, varpath);
   };
 
 public:
