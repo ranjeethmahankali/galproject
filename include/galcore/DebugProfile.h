@@ -13,6 +13,7 @@ namespace debug {
 static constexpr char sDebugDir[]      = ".galdebug";
 static constexpr char sIndexFile[]     = "index";
 static constexpr char sCallStackFile[] = "callstack";
+static constexpr char sDbgExt[]        = ".galdbg";
 
 namespace fs = std::filesystem;
 
@@ -46,8 +47,8 @@ private:
     Bytes data;
     data << TypeInfo<T>::id;
     data << var;
-    fs::path varpath =
-      utils::absPath(fs::path(sDebugDir) / fs::path(std::to_string(mId) + "_" + name));
+    fs::path varpath = utils::absPath(
+      fs::path(sDebugDir) / fs::path(std::to_string(mId) + "_" + name + sDbgExt));
     mCaptured.push_back(varpath);
     data.saveToFile(varpath);
   };

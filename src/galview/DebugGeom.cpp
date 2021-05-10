@@ -15,22 +15,6 @@ namespace debug {
 class DebugFrame;
 class FSListener;
 
-static std::string                              sDebugDirPath;
-static std::vector<std::shared_ptr<DebugFrame>> sFrames;
-static std::shared_ptr<FSListener>              sFileListener;
-static std::shared_ptr<efsw::FileWatcher>       sFileWatcher;
-static efsw::WatchID                            sWatchId;
-
-static fs::path stackfiledir()
-{
-  return sDebugDirPath / fs::path(sDebugDir);
-}
-
-static fs::path stackfilepath()
-{
-  return stackfiledir() / fs::path(sCallStackFile);
-}
-
 static view::Panel& debugPanel()
 {
   static view::Panel& sDebugPanel = view::newPanel("Debug Geometry");
@@ -43,29 +27,101 @@ static view::Panel& outputsPanel()
   return sOutputPanel;
 }
 
+static std::string                              sDebugDirPath;
+static std::vector<std::shared_ptr<DebugFrame>> sFrames;
+static std::shared_ptr<FSListener>              sFileListener;
+static std::shared_ptr<efsw::FileWatcher>       sFileWatcher;
+static efsw::WatchID                            sWatchId;
+
+static std::unordered_map<std::string, bool>                          sFileChangedMap;
+static std::unordered_map<std::string, std::shared_ptr<view::Widget>> sVarWidgetMap;
+static std::unordered_map<std::string, size_t>                        sVarDrawIdMap;
+
+static void setFileChanged(const std::string& filename, bool value)
+{
+  sFileChangedMap[filename] = value;
+}
+
+static bool isFileChanged(const std::string& filename)
+{
+  auto match = sFileChangedMap.find(filename);
+  if (match == sFileChangedMap.end())
+    return true;
+  return match->second;
+}
+
+static void setVarWidget(const std::string&                   varname,
+                         const std::shared_ptr<view::Widget>& w)
+{
+  if (w) {
+    sVarWidgetMap[varname] = w;
+  }
+};
+
+static void setVarDrawId(const std::string& varname, size_t drawId)
+{
+  if (drawId) {
+    sVarDrawIdMap[varname] = drawId;
+  }
+}
+
+static void removeVarWidget(const std::string& varname)
+{
+  auto match = sVarWidgetMap.find(varname);
+  if (match == sVarWidgetMap.end()) {
+    return;
+  }
+  outputsPanel().removeWidget(match->second);
+}
+
+static void removeVarDrawable(const std::string& varname)
+{
+  auto match = sVarDrawIdMap.find(varname);
+  if (match == sVarDrawIdMap.end()) {
+    return;
+  }
+  view::Context::get().removeDrawable(match->second);
+}
+
+static fs::path stackfiledir()
+{
+  return sDebugDirPath / fs::path(sDebugDir);
+}
+
+static fs::path stackfilepath()
+{
+  return stackfiledir() / fs::path(sCallStackFile);
+}
+
 template<typename T, typename... TRest>
 struct WatchManager
 {
   static_assert(TypeInfo<T>::value, "Not a known type.");
 
-  static void watch(uint32_t typeId, Bytes& bytes, const std::string& geomKey)
+  static void watch(uint32_t                       typeId,
+                    Bytes&                         bytes,
+                    const std::string&             geomKey,
+                    size_t&                        drawId,
+                    std::shared_ptr<view::Widget>& widget)
   {
     if (typeId == TypeInfo<T>::id) {
       if constexpr (view::MakeDrawable<T>::value) {
-        view::Context::get().addDrawable(
-          Serial<T>::deserialize(bytes),
-          outputsPanel().newWidget<view::CheckBox>(geomKey, true)->checkedPtr());
+        auto checkBox = outputsPanel().newWidget<view::CheckBox>(geomKey, true);
+        drawId        = view::Context::get().addDrawable(Serial<T>::deserialize(bytes),
+                                                  checkBox->checkedPtr());
+        widget        = checkBox;
       }
       else {
         T instance;
         bytes >> instance;
         std::stringstream ss;
         ss << instance;
-        outputsPanel().newWidget<view::Text>(geomKey + ": " + ss.str());
+        drawId = 0;
+        widget = outputsPanel().newWidget<view::Text>(geomKey + ": " + ss.str());
       }
     }
     else if constexpr (sizeof...(TRest) > 0) {
-      WatchManager<TRest...>::watch(typeId, bytes, geomKey);
+      WatchManager<TRest...>::watch(typeId, bytes, geomKey, drawId, widget);
     }
     else if constexpr (sizeof...(TRest) == 0) {
       std::cerr << "Datatype " << gal::TypeInfo<T>::name
@@ -97,7 +153,7 @@ public:
 
   fs::path varfilepath(const std::string& name) const
   {
-    return stackfiledir() / fs::path(mPrefix + name);
+    return stackfiledir() / fs::path(mPrefix + name + sDbgExt);
   }
 
   bool hasVariable(const std::string& name) const
@@ -133,8 +189,6 @@ public:
   }
   static void reloadChanges()
   {
-    outputsPanel().clearWidgets();
-    view::Context::get().clearDrawables();
     std::stringstream ss(instance()->mValue);
     std::string       name;
     while (std::getline(ss, name)) {
@@ -148,17 +202,32 @@ public:
         });
       if (match == sFrames.rend()) {
         std::cout << "Unknown variable: " << name << std::endl;
+        removeVarWidget(name);
+        removeVarDrawable(name);
         continue;
       }
-      fs::path path = (*match)->varfilepath(name);
+      fs::path    path    = (*match)->varfilepath(name);
+      std::string fileKey = path.filename().string();
+      if (!isFileChanged(fileKey)) {
+        // std::cout << "Variable " << name << " is uptodate.\n";
+        continue;
+      }
+      removeVarWidget(name);
+      removeVarDrawable(name);
       if (fs::exists(path) && !fs::is_directory(path)) {
         Bytes    bytes = Bytes::loadFromFile(path);
         uint32_t typeId;
         bytes >> typeId;
         Bytes nested;
         bytes.readNested(nested);
-        manager::watch(typeId, nested, name);
+
         std::cout << "Loading the debug geometry from path: " << path << std::endl;
+        size_t                        drawId = 0;
+        std::shared_ptr<view::Widget> widget;
+        manager::watch(typeId, nested, name, drawId, widget);
+        setFileChanged(fileKey, false);
+        setVarDrawId(name, drawId);
+        setVarWidget(name, widget);
       }
       else {
         std::cout << "Cannot load file: " << path << std::endl;
@@ -241,8 +310,16 @@ public:
                         efsw::Action       action,
                         std::string        oldFilename = "")
   {
-    loadCallstack();
-    VariablesBox::stackChanged();
+    static const fs::path fext(sDbgExt);
+    fs::path              fpath(filename);
+    if (fpath.extension() == fext) {
+      setFileChanged(filename, true);
+      VariablesBox::stackChanged();
+    }
+    else if (filename == sCallStackFile) {
+      loadCallstack();
+      VariablesBox::stackChanged();
+    }
   }
 };
 

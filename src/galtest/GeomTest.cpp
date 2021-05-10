@@ -17,6 +17,8 @@ TEST(Circle2d, MinBoundingCircle)
   GALCAPTURE(cloud);
   auto circ = gal::Circle2d::minBoundingCircle(points.data(), points.size());
 
+  cloud.emplace_back(.3f, 1.4f, 0.0f);
+  GALCAPTURE(cloud);
   for (const auto& pt : points) {
     ASSERT_TRUE(circ.contains(pt));
   }
