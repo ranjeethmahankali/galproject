@@ -104,31 +104,36 @@ struct WatchManager
                     size_t&                        drawId,
                     std::shared_ptr<view::Widget>& widget)
   {
-    if (typeId == TypeInfo<T>::id) {
-      if constexpr (view::MakeDrawable<T>::value) {
-        auto checkBox = outputsPanel().newWidget<view::CheckBox>(geomKey, true);
-        drawId        = view::Context::get().addDrawable(Serial<T>::deserialize(bytes),
-                                                  checkBox->checkedPtr());
-        widget        = checkBox;
+    try {
+      if (typeId == TypeInfo<T>::id) {
+        if constexpr (view::MakeDrawable<T>::value) {
+          auto checkBox = outputsPanel().newWidget<view::CheckBox>(geomKey, true);
+          drawId        = view::Context::get().addDrawable(Serial<T>::deserialize(bytes),
+                                                    checkBox->checkedPtr());
+          widget        = checkBox;
+        }
+        else {
+          T instance;
+          bytes >> instance;
+          std::stringstream ss;
+          ss << instance;
+          drawId = 0;
+          widget = outputsPanel().newWidget<view::Text>(geomKey + ": " + ss.str());
+        }
       }
-      else {
-        T instance;
-        bytes >> instance;
-        std::stringstream ss;
-        ss << instance;
-        drawId = 0;
-        widget = outputsPanel().newWidget<view::Text>(geomKey + ": " + ss.str());
+      else if constexpr (sizeof...(TRest) > 0) {
+        WatchManager<TRest...>::watch(typeId, bytes, geomKey, drawId, widget);
+      }
+      else if constexpr (sizeof...(TRest) == 0) {
+        std::cerr << "Datatype " << gal::TypeInfo<T>::name
+                  << " is not watchable in a debug session\n";
+        throw std::bad_cast();
       }
     }
-    else if constexpr (sizeof...(TRest) > 0) {
-      WatchManager<TRest...>::watch(typeId, bytes, geomKey, drawId, widget);
+    catch (std::exception e) {
+      std::cerr << "Cannot watch variable because of error: " << e.what() << std::endl;
     }
-    else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name
-                << " is not watchable in a debug session\n";
-      throw std::bad_cast();
-    }
-  };
+  }
 };
 
 using manager = WatchManager<glm::vec2, Circle2d, Box3, Mesh, Sphere, PointCloud>;
@@ -277,7 +282,7 @@ static void updateFrames(const std::vector<FrameData>& frames)
     });
 }
 
-void loadCallstack()
+static void loadCallstack()
 {
   static std::vector<FrameData> sFrameCache;
 

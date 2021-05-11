@@ -18,6 +18,13 @@ fs::path callStackPath()
   return utils::absPath(fs::path(sDebugDir) / fs::path(sCallStackFile));
 }
 
+static void deleteDirContent(const fs::path& dir_path)
+{
+  for (auto& path : fs::directory_iterator(dir_path)) {
+    fs::remove_all(path);
+  }
+}
+
 ContextNode::ContextNode(const std::string& name, ContextNode* parent)
     : mName(name)
     , mParent(parent)
@@ -28,6 +35,8 @@ ContextNode::ContextNode(const std::string& name, ContextNode* parent)
   if (!mParent) {
     // This means we initialized the root scope.
     std::filesystem::create_directory(sDebugDir);
+    deleteDirContent(sDebugDir);
+
     indexFile.open(indexFilePath(), std::ios::out | std::ios::trunc);
     stackFile.open(callStackPath(), std::ios::out | std::ios::trunc);
     mDepth = 0;
