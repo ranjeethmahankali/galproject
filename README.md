@@ -13,6 +13,7 @@ vcpkg dependencies:
 * gtest
 * tinyobjloader
 * efsw
+* freetype
 
 Also needs `inotify`:
 ```
