@@ -15,7 +15,7 @@ vcpkg dependencies:
 * efsw
 * freetype
 
-Also needs `inotify`:
+EFSW depends on `inotify`. It can be installed as follows:
 ```
 sudo apt-get install inotify-tools
 ```
