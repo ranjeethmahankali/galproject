@@ -1,11 +1,11 @@
 #pragma once
 
+#include <galview/GLUtil.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-
-#include <galview/GLUtil.h>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -30,24 +30,29 @@ class Panel final : public Widget
 {
 public:
   Panel(const std::string& title);
+  virtual ~Panel() = default;
 
   void draw();
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
+  std::vector<std::shared_ptr<Widget>> toBeAdded;
+  std::vector<std::shared_ptr<Widget>> toBeRemoved;
   std::string                          mTitle;
 
 public:
+  void addWidget(const std::shared_ptr<Widget>& widget);
+
+  void removeWidget(const std::shared_ptr<Widget>& widget);
+
   template<typename T, typename... TArgs>
   std::shared_ptr<T> newWidget(const TArgs&... args)
   {
     static_assert(std::is_base_of_v<Widget, T>, "Type must inherit from Widget.");
     auto w = std::make_shared<T>(args...);
-    mWidgets.push_back(w);
+    addWidget(w);
     return w;
   };
-
-  void addWidget(const std::shared_ptr<Widget>& widget);
 };
 
 Panel& newPanel(const std::string& title);
@@ -64,6 +69,18 @@ public:
 
 protected:
   std::string mValue;
+};
+
+class Button : public Widget
+{
+  std::string           mLabel;
+  std::function<void()> mOnClick;
+
+public:
+  Button(const std::string& label, const std::function<void()>& onClick);
+  virtual ~Button() = default;
+
+  void draw();
 };
 
 template<typename T>
@@ -85,16 +102,34 @@ protected:
   std::vector<HandlerFn> mHandlers;
   std::string            mLabel;
   T                      mValue;
+  bool                   mEdited = false;
 
 protected:
+  /**
+   * @brief IMPORTANT: THis can only be called right after drawing this widget!
+   * This is because the ImGui works in "immediate" mode.
+   */
+  void checkEdited()
+  {
+    if (ImGui::IsItemEdited())
+      mEdited = true;
+  }
+
+  bool isEdited() const { return mEdited; }
+
+  void clearEdited() { mEdited = false; }
+
+  void setEdited() { mEdited = true; }
+
   virtual void handleChanges()
   {
-    if (!ImGui::IsItemEdited()) {
+    if (!isEdited())
       return;
-    }
+
     for (auto handler : mHandlers) {
       handler(mValue);
     }
+    clearEdited();
   };
 
 public:
@@ -136,6 +171,7 @@ public:
   {
     drawSlider<T>(
       this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
+    this->checkEdited();
     this->handleChanges();
   };
 
@@ -178,6 +214,7 @@ public:
   void draw()
   {
     drawSlider3<T>(this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
+    this->checkEdited();
     this->handleChanges();
   };
 
@@ -194,13 +231,22 @@ public:
   void draw();
 };
 
+class TextInputBox : public InputWidget<std::string>
+{
+public:
+  TextInputBox(const std::string& label);
+  virtual ~TextInputBox() = default;
+
+  void draw();
+};
+
 class CheckBox : public InputWidget<bool>
 {
 public:
   CheckBox(const std::string& label, bool value);
   virtual ~CheckBox() = default;
 
-  void draw();
+  void        draw();
   const bool* checkedPtr() const;
 };
 

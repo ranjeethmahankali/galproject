@@ -1,8 +1,10 @@
 #pragma once
 #include <float.h>
+#include <galcore/Serialization.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
@@ -20,6 +22,13 @@ static constexpr glm::vec2 vec2_zero  = {0.0f, 0.0f};
 static constexpr glm::vec2 vec2_xunit = {1.0f, 0.0f};
 static constexpr glm::vec2 vec2_yunit = {0.0f, 1.0f};
 static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
+
+namespace std {
+std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v);
+std::ostream& operator<<(std::ostream& ostr, const glm::vec2& v);
+}  // namespace std
+
+namespace fs = std::filesystem;
 
 namespace gal {
 
@@ -128,7 +137,7 @@ void copy_coords(const glm::tvec3<T>& v, T*& dst)
   *(dst++) = v.z;
 };
 
-std::string absPath(const std::string& relPath);
+fs::path absPath(const fs::path& relPath);
 
 template<typename T, typename DstIter>
 void random(T min, T max, size_t count, DstIter dst)

@@ -3695,7 +3695,7 @@ private:
 };
 
 template<>
-struct MakeDrawable<gal::Sphere>
+struct MakeDrawable<gal::Sphere> : public std::true_type
 {
   static std::shared_ptr<Drawable> get(const gal::Sphere&           sphere,
                                        std::vector<RenderSettings>& renderSettings)
