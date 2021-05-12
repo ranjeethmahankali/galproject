@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <vector>
@@ -8,6 +9,8 @@ namespace gal {
 
 class Bytes;
 
+namespace fs = std::filesystem;
+
 template<typename T>
 struct IsValueType : public std::is_fundamental<T>
 {
@@ -15,6 +18,11 @@ struct IsValueType : public std::is_fundamental<T>
 
 template<>
 struct IsValueType<glm::vec3> : public std::true_type
+{
+};
+
+template<>
+struct IsValueType<glm::vec2> : public std::true_type
 {
 };
 
@@ -31,13 +39,16 @@ public:
   Bytes();
   Bytes(uint32_t version);
 
+  static Bytes loadFromFile(const fs::path& filepath);
+
 private:
-  std::vector<uint8_t> mData;
-  size_t               mReadPos = 0;
-  uint32_t             mVersion = 0;
+  std::vector<char> mData;
+  size_t            mReadPos = 0;
 
 public:
   uint32_t version() const noexcept;
+
+  void saveToFile(const fs::path& path) const;
 
   template<typename T>
   Bytes& write(const T& data)
@@ -52,9 +63,9 @@ public:
   Bytes& read(T& data)
   {
     static_assert(IsValueType<T>::value, "Must be a fundamental type");
-    uint8_t* dst    = (uint8_t*)(&data);
-    uint8_t* src    = mData.data() + mReadPos;
-    size_t   offset = sizeof(T);
+    char*  dst    = (char*)(&data);
+    char*  src    = mData.data() + mReadPos;
+    size_t offset = sizeof(T);
     mReadPos += offset;
     if (mReadPos > mData.size()) {
       throw std::out_of_range("Out of bounds while reading bytes!");
@@ -63,9 +74,9 @@ public:
     return *this;
   };
 
-  Bytes& writeBytes(const uint8_t* src, size_t nBytes);
+  Bytes& writeBytes(const char* src, size_t nBytes);
 
-  Bytes& readBytes(size_t nBytes, uint8_t* dst);
+  Bytes& readBytes(size_t nBytes, char* dst);
 
   Bytes& writeNested(Bytes nested);
 
@@ -104,28 +115,26 @@ public:
 };
 
 template<typename T>
-struct Serial<std::vector<T>>
+struct Serial<std::vector<T>> : public std::true_type
 {
-  static constexpr bool value = Serial<T>::value;
   static std::vector<T> deserialize(Bytes& bytes)
   {
-    uint64_t size = 0;
+    uint64_t size;
     bytes >> size;
-    std::vector<T> res(size);
-    for (auto& v : res) {
-      bytes >> v;
+    std::vector<T> v(size);
+    for (auto& e : v) {
+      bytes >> e;
     }
-    return res;
+    return v;
   }
-
   static Bytes serialize(const std::vector<T>& data)
   {
-    Bytes ser;
-    ser << uint64_t(data.size());
-    for (const auto& v : data) {
-      ser << v;
+    Bytes bytes;
+    bytes << data.size();
+    for (const auto& d : data) {
+      bytes << d;
     }
-    return ser;
+    return bytes;
   }
 };
 

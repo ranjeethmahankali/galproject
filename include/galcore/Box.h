@@ -1,4 +1,5 @@
 #pragma once
+#include <galcore/Serialization.h>
 #include <galcore/Util.h>
 
 namespace gal {
@@ -44,6 +45,24 @@ struct Box3
   static Box3      init(const glm::vec3&, const glm::vec3&);
   static glm::vec3 max_coords(const glm::vec3& a, const glm::vec3& b);
   static glm::vec3 min_coords(const glm::vec3& a, const glm::vec3& b);
+};
+
+template<>
+struct Serial<Box3> : public std::true_type
+{
+  static Box3 deserialize(Bytes& bytes)
+  {
+    Box3 box;
+    bytes >> box.min >> box.max;
+    return box;
+  }
+  
+  static Bytes serialize(const Box3& box)
+  {
+    Bytes bytes;
+    bytes << box.min << box.max;
+    return bytes;
+  }
 };
 
 struct Box2

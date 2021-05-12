@@ -53,7 +53,7 @@ private:
 
 // Template specialization needed.
 template<typename T>
-struct MakeDrawable
+struct MakeDrawable : public std::false_type
 {
   static std::shared_ptr<Drawable> get(const T&                     geom,
                                        std::vector<RenderSettings>& renderSettings);
@@ -178,6 +178,7 @@ public:
   template<typename T>
   size_t addDrawable(const T& val, const bool* visibility)
   {
+    static_assert(MakeDrawable<T>::value, "This is not a drawable type");
     std::vector<RenderSettings> settings;
     auto                        drawable = MakeDrawable<T>::get(val, settings);
     for (const auto& s : settings) {
@@ -205,6 +206,8 @@ public:
     removeDrawable(id);
     return addDrawable<T>(val, visibility);
   };
+
+  void clearDrawables();
 };
 
 }  // namespace view

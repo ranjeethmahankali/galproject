@@ -121,16 +121,18 @@ public:
        const size_t* faceVertIndices,
        size_t        nFaces);
 
-  size_t              numVertices() const noexcept;
-  size_t              numFaces() const noexcept;
-  glm::vec3           vertex(size_t vi) const;
-  Face                face(size_t fi) const;
-  glm::vec3           vertexNormal(size_t vi) const;
-  const glm::vec3&    faceNormal(size_t fi) const;
-  Mesh::ConstVertIter vertexCBegin() const;
-  Mesh::ConstVertIter vertexCEnd() const;
-  Mesh::ConstFaceIter faceCBegin() const;
-  Mesh::ConstFaceIter faceCEnd() const;
+  size_t                        numVertices() const noexcept;
+  size_t                        numFaces() const noexcept;
+  glm::vec3                     vertex(size_t vi) const;
+  Face                          face(size_t fi) const;
+  glm::vec3                     vertexNormal(size_t vi) const;
+  const glm::vec3&              faceNormal(size_t fi) const;
+  const std::vector<glm::vec3>& vertices() const;
+  const std::vector<Face>&      faces() const;
+  Mesh::ConstVertIter           vertexCBegin() const;
+  Mesh::ConstVertIter           vertexCEnd() const;
+  Mesh::ConstFaceIter           faceCBegin() const;
+  Mesh::ConstFaceIter           faceCEnd() const;
 
   gal::Box3 bounds() const;
   float     faceArea(size_t fi) const;
@@ -167,6 +169,29 @@ public:
   Mesh extractFaces(const std::vector<size_t>& faces);
 
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
+};
+
+template<>
+struct IsValueType<Mesh::Face> : public std::true_type
+{
+};
+
+template<>
+struct Serial<Mesh> : public std::true_type
+{
+  static Mesh deserialize(Bytes& bytes)
+  {
+    std::vector<glm::vec3>  verts;
+    std::vector<Mesh::Face> faces;
+    bytes >> verts >> faces;
+    return Mesh(verts, faces);
+  }
+  static Bytes serialize(const Mesh& msh)
+  {
+    Bytes bytes;
+    bytes << msh.vertices() << msh.faces();
+    return bytes;
+  }
 };
 
 }  // namespace gal

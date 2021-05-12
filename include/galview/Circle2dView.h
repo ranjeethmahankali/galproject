@@ -23,7 +23,7 @@ private:
 };
 
 template<>
-struct MakeDrawable<Circle2d>
+struct MakeDrawable<Circle2d> : public std::true_type
 {
   static std::shared_ptr<Drawable> get(const Circle2d&              circle,
                                        std::vector<RenderSettings>& renderSettings)

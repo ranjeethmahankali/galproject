@@ -1,5 +1,6 @@
 #include "galcore/Mesh.h"
 #define _USE_MATH_DEFINES
+#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <math.h>
 #include <array>
@@ -385,6 +386,16 @@ const glm::vec3& Mesh::faceNormal(size_t fi) const
   return fi < numFaces() ? mFaceNormals.at(fi) : vec3_unset;
 }
 
+const std::vector<glm::vec3>& Mesh::vertices() const
+{
+  return mVertices;
+}
+
+const std::vector<Mesh::Face>& Mesh::faces() const
+{
+  return mFaces;
+}
+
 Mesh::ConstVertIter Mesh::vertexCBegin() const
 {
   return mVertices.cbegin();
@@ -475,11 +486,13 @@ bool Mesh::isSolid() const
 
 glm::vec3 Mesh::centroid() const
 {
+  GALSCOPE(__func__);
   return centroid(eMeshCentroidType::vertexBased);
 }
 
 glm::vec3 Mesh::centroid(const eMeshCentroidType centroid_type) const
 {
+  GALSCOPE(__func__);
   switch (centroid_type) {
   case eMeshCentroidType::vertexBased:
     return utils::average(vertexCBegin(), vertexCEnd());

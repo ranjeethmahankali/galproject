@@ -24,7 +24,7 @@ private:
 };
 
 template<>
-struct MakeDrawable<PointCloud>
+struct MakeDrawable<PointCloud> : public std::true_type
 {
   static std::shared_ptr<Drawable> get(const PointCloud&            cloud,
                                        std::vector<RenderSettings>& renderSettings)
