@@ -44,9 +44,28 @@ void Panel::draw()
   ImGui::Begin(mTitle.c_str());
   if (sFont)
     ImGui::PushFont(sFont);
+
+  // Add the widgets that are queued to be added.
+  if (!toBeAdded.empty()) {
+    std::copy(toBeAdded.begin(), toBeAdded.end(), std::back_inserter(mWidgets));
+    toBeAdded.clear();
+  }
+  // Remove the widgets that are queued to be removed.
+  if (!toBeRemoved.empty()) {
+    mWidgets.erase(std::remove_if(mWidgets.begin(),
+                                  mWidgets.end(),
+                                  [this](const std::shared_ptr<Widget>& w) {
+                                    return std::find(toBeRemoved.begin(),
+                                                     toBeRemoved.end(),
+                                                     w) != toBeRemoved.end();
+                                  }),
+                   mWidgets.end());
+    toBeRemoved.clear();
+  }
   for (auto& w : mWidgets) {
     w->draw();
   }
+
   if (sFont)
     ImGui::PopFont();
   ImGui::End();
@@ -54,8 +73,13 @@ void Panel::draw()
 
 void Panel::addWidget(const std::shared_ptr<Widget>& widget)
 {
-  mWidgets.push_back(widget);
+  toBeAdded.push_back(widget);
 };
+
+void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
+{
+  toBeRemoved.push_back(widget);
+}
 
 static std::vector<std::shared_ptr<Panel>> sPanels;
 
@@ -79,6 +103,19 @@ void Text::draw()
 {
   ImGui::Text(mValue.c_str());
 };
+
+Button::Button(const std::string& label, const std::function<void()>& onClick)
+    : mLabel(label)
+    , mOnClick(onClick) {};
+
+void Button::draw()
+{
+  auto size = ImGui::CalcTextSize(mLabel.c_str());
+  ImGui::Button(mLabel.c_str(), ImVec2(size.x + 10.f, size.y + 10.f));
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    mOnClick();
+  }
+}
 
 TextInput::TextInput(const std::string& label, const std::string& value)
     : InputWidget<std::string>(label, value)
@@ -105,6 +142,28 @@ void TextInput::draw()
                    TextInputResizeCallback,
                    (void*)(&mValue));
 
+  checkEdited();
+  if (!ImGui::IsItemActive()) {
+    handleChanges();
+  }
+}
+
+TextInputBox::TextInputBox(const std::string& label)
+    : InputWidget<std::string>(label, "")
+{
+  mValue.reserve(1024);
+}
+
+void TextInputBox::draw()
+{
+  ImGui::InputTextMultiline(mLabel.c_str(),
+                            mValue.data(),
+                            mValue.size(),
+                            ImVec2(200, ImGui::GetTextLineHeight() * 4),
+                            ImGuiInputTextFlags_CallbackResize,
+                            TextInputResizeCallback,
+                            (void*)(&mValue));
+  checkEdited();
   if (!ImGui::IsItemActive()) {
     handleChanges();
   }
@@ -117,11 +176,13 @@ CheckBox::CheckBox(const std::string& label, bool value)
 void CheckBox::draw()
 {
   ImGui::Checkbox(mLabel.c_str(), &mValue);
+  checkEdited();
 }
 
 const bool* CheckBox::checkedPtr() const
 {
   return &mValue;
 }
+
 }  // namespace view
 }  // namespace gal

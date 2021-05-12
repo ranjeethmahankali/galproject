@@ -13,7 +13,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 project(gal)
 find_package(PythonInterp 3.9 REQUIRED)
 find_package(PythonLibs 3.9 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS python39)
+find_package(Boost REQUIRED COMPONENTS python39 program_options)
 if (Boost_FOUND)
     add_compile_definitions(BOOST_UUID_FORCE_AUTO_LINK)
     include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
@@ -24,6 +24,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_package(efsw CONFIG REQUIRED)
 
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
@@ -72,7 +73,8 @@ target_link_libraries(galview PRIVATE
   galfunc
   imgui::imgui
   GLEW::GLEW
-  glfw)
+  glfw
+  efsw::efsw)
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview

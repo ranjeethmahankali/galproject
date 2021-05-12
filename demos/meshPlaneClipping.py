@@ -5,7 +5,8 @@ ptCoords = [pgv.sliderf32("ptCoord%s" % i, 0., 1., .5)[0] for i in range(3)]
 normCoords = [pgv.sliderf32("normCoord%s" % i, 0., 1., .5)[0]
               for i in range(3)]
 
-relpath, = pgf.string("../assets/bunny.obj")
+# relpath, = pgf.string("../assets/bunny.obj")
+relpath, = pgv.textField("relpath")
 path, = pgf.absPath(relpath)
 mesh, = pgf.loadObjFile(path)
 scale, = pgf.numberf32(10.0)

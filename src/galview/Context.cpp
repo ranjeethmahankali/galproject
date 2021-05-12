@@ -80,9 +80,16 @@ void Context::zoomExtents()
     bounds.inflate(b.min);
     bounds.inflate(b.max);
   }
+  if (!bounds.valid())
+    return;
   glm::vec3 target = bounds.center();
   glm::vec3 diag   = bounds.diagonal();
-  useCamera(target + diag, target, vec3_zunit);
+  if (s2dMode) {
+    useCamera(target + glm::vec3 {0.f, 0.f, 2.0f}, target, {0.0f, 1.0f, 0.0f});
+  }
+  else {
+    useCamera(target + diag, target, vec3_zunit);
+  }
   sTrans    = glm::translate(-target);
   sInvTrans = glm::inverse(sTrans);
 }
@@ -433,6 +440,11 @@ void Context::removeDrawable(size_t id)
                    mDrawables.end(),
                    [](const RenderData& data) { return data.drawable.get() == nullptr; }),
     mDrawables.end());
+}
+
+void Context::clearDrawables()
+{
+  mDrawables.clear();
 }
 
 }  // namespace view

@@ -35,7 +35,7 @@ private:
 };
 
 template<>
-struct MakeDrawable<gal::Mesh>
+struct MakeDrawable<gal::Mesh> : public std::true_type
 {
   static std::shared_ptr<Drawable> get(const gal::Mesh&             mesh,
                                        std::vector<RenderSettings>& renderSettings)
