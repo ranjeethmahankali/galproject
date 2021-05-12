@@ -1,11 +1,11 @@
 #pragma once
 
+#include <galview/GLUtil.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-
-#include <galview/GLUtil.h>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,23 +36,23 @@ public:
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
+  std::vector<std::shared_ptr<Widget>> toBeAdded;
+  std::vector<std::shared_ptr<Widget>> toBeRemoved;
   std::string                          mTitle;
 
 public:
+  void addWidget(const std::shared_ptr<Widget>& widget);
+
+  void removeWidget(const std::shared_ptr<Widget>& widget);
+
   template<typename T, typename... TArgs>
   std::shared_ptr<T> newWidget(const TArgs&... args)
   {
     static_assert(std::is_base_of_v<Widget, T>, "Type must inherit from Widget.");
     auto w = std::make_shared<T>(args...);
-    mWidgets.push_back(w);
+    addWidget(w);
     return w;
   };
-
-  void addWidget(const std::shared_ptr<Widget>& widget);
-
-  void removeWidget(const std::shared_ptr<Widget>& widget);
-
-  void clearWidgets();
 };
 
 Panel& newPanel(const std::string& title);
@@ -109,7 +109,11 @@ protected:
    * @brief IMPORTANT: THis can only be called right after drawing this widget!
    * This is because the ImGui works in "immediate" mode.
    */
-  void checkEdited() { mEdited |= ImGui::IsItemEdited(); }
+  void checkEdited()
+  {
+    if (ImGui::IsItemEdited())
+      mEdited = true;
+  }
 
   bool isEdited() const { return mEdited; }
 

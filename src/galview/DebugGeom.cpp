@@ -6,8 +6,11 @@
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/Widget.h>
+#include <atomic>
+#include <chrono>
 #include <efsw/efsw.hpp>
 #include <fstream>
+#include <mutex>
 
 namespace gal {
 namespace debug {
@@ -36,10 +39,29 @@ static efsw::WatchID                            sWatchId;
 static std::unordered_map<std::string, bool>                          sFileChangedMap;
 static std::unordered_map<std::string, std::shared_ptr<view::Widget>> sVarWidgetMap;
 static std::unordered_map<std::string, size_t>                        sVarDrawIdMap;
+static std::unordered_map<std::string, std::string>                   sVarFileMap;
+
+static std::mutex sMutex;
 
 static void setFileChanged(const std::string& filename, bool value)
 {
   sFileChangedMap[filename] = value;
+}
+
+static bool setVarFile(const std::string& varname, const std::string& filename)
+{
+  auto match = sVarFileMap.find(varname);
+  if (match == sVarFileMap.end()) {
+    sVarFileMap.emplace(varname, filename);
+    return true;
+  }
+  else if (match->second == filename) {
+    return false;
+  }
+  else {
+    match->second = filename;
+    return true;
+  }
 }
 
 static bool isFileChanged(const std::string& filename)
@@ -72,6 +94,7 @@ static void removeVarWidget(const std::string& varname)
     return;
   }
   outputsPanel().removeWidget(match->second);
+  sVarDrawIdMap.erase(varname);
 }
 
 static void removeVarDrawable(const std::string& varname)
@@ -81,6 +104,7 @@ static void removeVarDrawable(const std::string& varname)
     return;
   }
   view::Context::get().removeDrawable(match->second);
+  sVarDrawIdMap.erase(varname);
 }
 
 static fs::path stackfiledir()
@@ -167,91 +191,6 @@ public:
   }
 };
 
-class VariablesBox : public gal::view::TextInputBox
-{
-public:
-  VariablesBox()
-      : TextInputBox("")
-  {}
-
-private:
-  using gal::view::TextInputBox::addHandler;
-
-  static std::shared_ptr<VariablesBox> instance()
-  {
-    static std::shared_ptr<VariablesBox> sInstance =
-      debugPanel().newWidget<VariablesBox>();
-    return sInstance;
-  }
-
-public:
-  static void init()
-  {
-    auto temp = instance();
-    if (!temp) {
-      std::cerr << "Unable to initialize the variables box\n";
-    }
-  }
-  static void reloadChanges()
-  {
-    std::stringstream ss(instance()->mValue);
-    std::string       name;
-    while (std::getline(ss, name)) {
-      if (name.empty()) {
-        continue;
-      }
-      name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
-      auto match = std::find_if(
-        sFrames.rbegin(), sFrames.rend(), [&name](const std::shared_ptr<DebugFrame>& f) {
-          return f->hasVariable(name);
-        });
-      if (match == sFrames.rend()) {
-        std::cout << "Unknown variable: " << name << std::endl;
-        removeVarWidget(name);
-        removeVarDrawable(name);
-        continue;
-      }
-      fs::path    path    = (*match)->varfilepath(name);
-      std::string fileKey = path.filename().string();
-      if (!isFileChanged(fileKey)) {
-        // std::cout << "Variable " << name << " is uptodate.\n";
-        continue;
-      }
-      removeVarWidget(name);
-      removeVarDrawable(name);
-      if (fs::exists(path) && !fs::is_directory(path)) {
-        Bytes    bytes = Bytes::loadFromFile(path);
-        uint32_t typeId;
-        bytes >> typeId;
-        Bytes nested;
-        bytes.readNested(nested);
-
-        std::cout << "Loading the debug geometry from path: " << path << std::endl;
-        size_t                        drawId = 0;
-        std::shared_ptr<view::Widget> widget;
-        manager::watch(typeId, nested, name, drawId, widget);
-        setFileChanged(fileKey, false);
-        setVarDrawId(name, drawId);
-        setVarWidget(name, widget);
-      }
-      else {
-        std::cout << "Cannot load file: " << path << std::endl;
-      }
-    }
-  }
-
-  static void stackChanged() { instance()->setEdited(); }
-
-protected:
-  void handleChanges() override
-  {
-    if (!isEdited())
-      return;
-    reloadChanges();
-    clearEdited();
-  }
-};
-
 using FrameData = std::pair<std::string, uint64_t>;
 
 static void updateFrames(const std::vector<FrameData>& frames)
@@ -304,6 +243,109 @@ static void loadCallstack()
   sFrameCache.clear();
 }
 
+static std::atomic_bool                                   sStackChanged = false;
+static std::atomic_bool                                   sReloadStack  = true;
+static std::atomic<std::chrono::system_clock::time_point> sLastReloadRequestTime =
+  std::chrono::system_clock::now();
+
+class VariablesBox : public gal::view::TextInputBox
+{
+public:
+  VariablesBox()
+      : TextInputBox("")
+  {}
+
+private:
+  using gal::view::TextInputBox::addHandler;
+
+  static std::shared_ptr<VariablesBox> instance()
+  {
+    static std::shared_ptr<VariablesBox> sInstance =
+      debugPanel().newWidget<VariablesBox>();
+    return sInstance;
+  }
+
+public:
+  static void init()
+  {
+    auto temp = instance();
+    if (!temp) {
+      std::cerr << "Unable to initialize the variables box\n";
+    }
+  }
+
+private:
+  static void reloadChanges()
+  {
+    std::stringstream ss(instance()->mValue);
+    std::string       name;
+    while (std::getline(ss, name)) {
+      if (name.empty()) {
+        continue;
+      }
+      name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
+      auto match = std::find_if(
+        sFrames.rbegin(), sFrames.rend(), [&name](const std::shared_ptr<DebugFrame>& f) {
+          return f->hasVariable(name);
+        });
+      if (match == sFrames.rend()) {
+        std::cout << "Unknown variable: " << name << std::endl;
+        removeVarDrawable(name);
+        removeVarWidget(name);
+        continue;
+      }
+      fs::path    path    = (*match)->varfilepath(name);
+      std::string fileKey = path.filename().string();
+      if (!(setVarFile(name, fileKey) || isFileChanged(fileKey))) {
+        // std::cout << "Variable " << name << " is uptodate.\n";
+        continue;
+      }
+      removeVarDrawable(name);
+      removeVarWidget(name);
+      if (fs::exists(path) && !fs::is_directory(path)) {
+        Bytes    bytes = Bytes::loadFromFile(path);
+        uint32_t typeId;
+        bytes >> typeId;
+        Bytes nested;
+        bytes.readNested(nested);
+
+        std::cout << "Loading the debug geometry from path: " << path << std::endl;
+        size_t                        drawId = 0;
+        std::shared_ptr<view::Widget> widget;
+        manager::watch(typeId, nested, name, drawId, widget);
+        setFileChanged(fileKey, false);
+        setVarDrawId(name, drawId);
+        setVarWidget(name, widget);
+      }
+      else {
+        std::cout << "Cannot load file: " << path << std::endl;
+      }
+    }
+  }
+
+protected:
+  void handleChanges() override
+  {
+    if (!isEdited() && !sStackChanged)
+      return;
+
+    using namespace std::chrono_literals;
+    if (std::chrono::system_clock::now() -
+          std::chrono::system_clock::time_point(sLastReloadRequestTime) <
+        200ms)
+      return;
+
+    std::lock_guard<std::mutex> lock(sMutex);
+    if (sReloadStack) {
+      loadCallstack();
+      sReloadStack = false;
+    }
+    reloadChanges();
+    clearEdited();
+    sStackChanged = false;
+  }
+};
+
 class FSListener : public efsw::FileWatchListener
 {
 public:
@@ -322,12 +364,16 @@ public:
       return;
     }
     else if (fpath.extension() == fext) {
+      std::lock_guard<std::mutex> lock(sMutex);
       setFileChanged(filename, true);
-      VariablesBox::stackChanged();
+      sStackChanged          = true;
+      sLastReloadRequestTime = std::chrono::system_clock::now();
     }
     else if (filename == sCallStackFile) {
-      loadCallstack();
-      VariablesBox::stackChanged();
+      std::lock_guard<std::mutex> lock(sMutex);
+      sStackChanged          = true;
+      sReloadStack           = true;
+      sLastReloadRequestTime = std::chrono::system_clock::now();
     }
   }
 };

@@ -44,9 +44,28 @@ void Panel::draw()
   ImGui::Begin(mTitle.c_str());
   if (sFont)
     ImGui::PushFont(sFont);
+
+  // Add the widgets that are queued to be added.
+  if (!toBeAdded.empty()) {
+    std::copy(toBeAdded.begin(), toBeAdded.end(), std::back_inserter(mWidgets));
+    toBeAdded.clear();
+  }
+  // Remove the widgets that are queued to be removed.
+  if (!toBeRemoved.empty()) {
+    mWidgets.erase(std::remove_if(mWidgets.begin(),
+                                  mWidgets.end(),
+                                  [this](const std::shared_ptr<Widget>& w) {
+                                    return std::find(toBeRemoved.begin(),
+                                                     toBeRemoved.end(),
+                                                     w) != toBeRemoved.end();
+                                  }),
+                   mWidgets.end());
+    toBeRemoved.clear();
+  }
   for (auto& w : mWidgets) {
     w->draw();
   }
+
   if (sFont)
     ImGui::PopFont();
   ImGui::End();
@@ -54,17 +73,12 @@ void Panel::draw()
 
 void Panel::addWidget(const std::shared_ptr<Widget>& widget)
 {
-  mWidgets.push_back(widget);
+  toBeAdded.push_back(widget);
 };
 
 void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
 {
-  mWidgets.erase(std::remove(mWidgets.begin(), mWidgets.end(), widget), mWidgets.end());
-}
-
-void Panel::clearWidgets()
-{
-  mWidgets.clear();
+  toBeRemoved.push_back(widget);
 }
 
 static std::vector<std::shared_ptr<Panel>> sPanels;
