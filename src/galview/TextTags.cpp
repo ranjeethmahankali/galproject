@@ -1,3 +1,4 @@
+#include <galcore/Util.h>
 #include <galview/GLUtil.h>
 #include <galview/TextTags.h>
 
@@ -12,15 +13,15 @@ static std::array<Character, 128> sCharacters;
 
 int initFreeType()
 {
-  static const char fntFileName[] = "CascadiaMono.ttf";
-  FT_Library        sFtLib;
+  static const std::string sFontFilePath = utils::absPath("CascadiaMono.ttf").string();
+  FT_Library               sFtLib;
   if (FT_Init_FreeType(&sFtLib)) {
     std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
     return -1;
   }
 
   FT_Face face;
-  if (FT_New_Face(sFtLib, fntFileName, 0, &face)) {
+  if (FT_New_Face(sFtLib, sFontFilePath.c_str(), 0, &face)) {
     std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
     return -1;
   }
