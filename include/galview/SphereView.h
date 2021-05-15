@@ -3703,41 +3703,22 @@ struct MakeDrawable<gal::Sphere> : public std::true_type
     auto view = std::make_shared<SphereView>();
 
     // Position and Normal for each vertex.
-    std::array<glm::vec3, sVertices.size() * 2> vBuf;
+    glutil::VertexBuffer vBuf(sVertices.size());
 
-    glm::vec3* vIter = vBuf.data();
+    auto vbegin = vBuf.begin();
     for (const auto& v : sVertices) {
-      *(vIter++) = (v * sphere.radius) + sphere.center;  // position
-      *(vIter++) = v;                                    // Normal
+      *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
     }
 
-    view->mVSize = sizeof(vBuf);
+    view->mVSize = (uint32_t)vBuf.size();
     view->setBounds(sphere.bounds());
-    view->mISize = (uint32_t)sIndices.size();
 
-    // Now write the data to the device.
-    GL_CALL(glGenVertexArrays(1, &view->mVAO));
-    GL_CALL(glGenBuffers(1, &view->mVBO));
-    GL_CALL(glGenBuffers(1, &view->mIBO));
+    glutil::IndexBuffer iBuf(sIndices.size());
+    view->mISize = (uint32_t)iBuf.size();
+    std::copy(sIndices.begin(), sIndices.end(), iBuf.begin());
 
-    GL_CALL(glBindVertexArray(view->mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, view->mVBO));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, view->mVSize, vBuf.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, view->mIBO));
-    GL_CALL(glBufferData(
-      GL_ELEMENT_ARRAY_BUFFER, sizeof(sIndices), sIndices.data(), GL_STATIC_DRAW));
-
-    // Vertex position attribute.
-    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(
-      1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))));
-    GL_CALL(glEnableVertexAttribArray(1));
-
-    // Unbind stuff.
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GL_CALL(glBindVertexArray(0));
+    vBuf.finalize(view->mVAO, view->mVBO);
+    iBuf.finalize(view->mIBO);
 
     // Render settings.
     static constexpr glm::vec4 sFaceColor = {1.0f, 1.0f, 1.0f, 1.0f};

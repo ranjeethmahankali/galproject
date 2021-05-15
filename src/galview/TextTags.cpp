@@ -2,7 +2,6 @@
 #include <galview/TextTags.h>
 
 #include <array>
-#include <glm/glm.hpp>
 #include <iostream>
 
 namespace gal {

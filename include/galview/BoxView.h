@@ -31,66 +31,31 @@ struct MakeDrawable<gal::Box3> : public std::true_type
   static std::shared_ptr<Drawable> get(const gal::Box3&             box,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    glm::vec3                  min   = box.min;
-    glm::vec3                  max   = box.max;
-    static constexpr glm::vec3 sZero = {0.0f, 0.0f, 0.0f};
+    glutil::VertexBuffer vBuf(8);
 
-    std::array<glm::vec3, 16> vBuf = {{
-      {min.x, min.y, min.z},
-      sZero,
-      {max.x, min.y, min.z},
-      sZero,
-      {max.x, max.y, min.z},
-      sZero,
-      {min.x, max.y, min.z},
-      sZero,
-      {min.x, min.y, max.z},
-      sZero,
-      {max.x, min.y, max.z},
-      sZero,
-      {max.x, max.y, max.z},
-      sZero,
-      {min.x, max.y, max.z},
-      sZero,
-    }};
+    auto vbegin = vBuf.begin();
+    *(vbegin++) = {{box.min.x, box.min.y, box.min.z}};
+    *(vbegin++) = {{box.max.x, box.min.y, box.min.z}};
+    *(vbegin++) = {{box.max.x, box.max.y, box.min.z}};
+    *(vbegin++) = {{box.min.x, box.max.y, box.min.z}};
+    *(vbegin++) = {{box.min.x, box.min.y, box.max.z}};
+    *(vbegin++) = {{box.max.x, box.min.y, box.max.z}};
+    *(vbegin++) = {{box.max.x, box.max.y, box.max.z}};
+    *(vbegin++) = {{box.min.x, box.max.y, box.max.z}};
 
-    static constexpr std::array<uint32_t, 24> iBuf = {{
+    static constexpr std::array<uint32_t, 24> sIBuf = {{
       0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
     }};
 
+    glutil::IndexBuffer iBuf(sIBuf.size());
+    std::copy(sIBuf.begin(), sIBuf.end(), iBuf.begin());
+
     auto view = std::make_shared<BoxView>();
-
-    Box3 bounds;
-    auto vbegin = vBuf.begin();
-    while (vbegin != vBuf.end()) {
-      bounds.inflate(*(vbegin++));
-      vbegin++;
-    }
-    view->setBounds(bounds);
-
-    view->mVSize = (uint32_t)sizeof(vBuf);
+    view->setBounds(box);
+    view->mVSize = (uint32_t)vBuf.size();
     view->mISize = (uint32_t)iBuf.size();
-
-    // Now write the data to the device.
-    GL_CALL(glGenVertexArrays(1, &view->mVAO));
-    GL_CALL(glGenBuffers(1, &view->mVBO));
-    GL_CALL(glGenBuffers(1, &view->mIBO));
-
-    GL_CALL(glBindVertexArray(view->mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, view->mVBO));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, view->mVSize, vBuf.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, view->mIBO));
-    GL_CALL(
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iBuf), iBuf.data(), GL_STATIC_DRAW));
-
-    // Vertex position attribute.
-    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));
-    GL_CALL(glEnableVertexAttribArray(0));
-
-    // Unbind stuff.
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GL_CALL(glBindVertexArray(0));
+    vBuf.finalize(view->mVAO, view->mVBO);
+    iBuf.finalize(view->mIBO);
 
     // Render settings.
     static constexpr glm::vec4 sLineColor = {1.0, 1.0, 1.0, 1.0};

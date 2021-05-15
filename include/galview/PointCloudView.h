@@ -29,38 +29,18 @@ struct MakeDrawable<PointCloud> : public std::true_type
   static std::shared_ptr<Drawable> get(const PointCloud&            cloud,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    static constexpr glm::vec3 sZero = {0.0f, 0.0f, 0.0f};
-    std::vector<glm::vec3>     vBuf(cloud.size() * 2);
-    auto                       dstv = vBuf.begin();
-    auto                       srcv = cloud.cbegin();
-    while (dstv != vBuf.end()) {
-      *(dstv++) = *(srcv++);
-      *(dstv++) = sZero;
-    }
-
-    size_t nvBytes = sizeof(decltype(vBuf)::value_type) * vBuf.size();
+    glutil::VertexBuffer vBuf(cloud.size());
+    std::transform(
+      cloud.cbegin(),
+      cloud.cend(),
+      vBuf.begin(),
+      [](const glm::vec3& pt) -> glutil::Vertex { return {pt}; });
 
     auto view    = std::make_shared<PointCloudView>();
-    view->mVSize = cloud.size();
+    view->mVSize = vBuf.size();
     view->setBounds(cloud.bounds());
 
-    GL_CALL(glGenVertexArrays(1, &view->mVAO));
-    GL_CALL(glGenBuffers(1, &view->mVBO));
-
-    GL_CALL(glBindVertexArray(view->mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, view->mVBO));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, nvBytes, vBuf.data(), GL_STATIC_DRAW));
-
-    // Vertex position attribute.
-    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr));
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(
-      1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))));
-    GL_CALL(glEnableVertexAttribArray(1));
-
-    // Unbind stuff.
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GL_CALL(glBindVertexArray(0));
+    vBuf.finalize(view->mVAO, view->mVBO);
 
     // Render Settings.
     static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};

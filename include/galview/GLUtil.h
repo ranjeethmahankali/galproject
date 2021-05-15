@@ -2,6 +2,8 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <vector>
 
 #ifdef _MSVC
 #else
@@ -28,6 +30,31 @@ namespace glutil {
 
 bool log_errors(const char* function, const char* file, uint line);
 void clear_errors();
+
+struct Vertex
+{
+  glm::vec3 position  = glm::vec3 {0.f, 0.f, 0.f};
+  glm::vec3 normal    = glm::vec3 {0.f, 0.f, 0.f};
+  glm::vec2 texCoords = glm::vec2 {0.f, 0.f};
+};
+
+class VertexBuffer : public std::vector<Vertex>
+{
+public:
+  VertexBuffer(size_t nverts);
+
+  size_t numbytes() const;
+  void   finalize(uint32_t& vao, uint32_t& vbo) const;
+};
+
+class IndexBuffer : public std::vector<uint32_t>
+{
+public:
+  IndexBuffer(size_t nIndices);
+
+  size_t numbytes() const;
+  void   finalize(uint32_t& ibo) const;
+};
 
 };  // namespace glutil
 }  // namespace gal
