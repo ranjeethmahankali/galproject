@@ -114,6 +114,7 @@ void Context::useShader(size_t shaderId)
   else if (shaderId < mShaders.size()) {
     mShaders[shaderId].use();
     mShaderIndex = shaderId;
+    cameraChanged();  // this sets the uniforms again.
   }
   else {
     std::cerr << "Invalid shader id\n";
