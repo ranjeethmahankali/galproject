@@ -161,8 +161,6 @@ private:
   template<typename T>
   void setUniformInternal(int location, const T& val);
 
-  void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable);
-
 public:
   /**
    * @brief Adds a drawable object to the scene.

@@ -109,7 +109,7 @@ size_t Context::shaderId(const std::string& name) const
 void Context::useShader(size_t shaderId)
 {
   if (shaderId == mShaderIndex) {
-    return; // Already using the shader.
+    return;  // Already using the shader.
   }
   else if (shaderId < mShaders.size()) {
     mShaders[shaderId].use();
@@ -270,6 +270,12 @@ template<>
 void Context::setUniformInternal<glm::vec4>(int location, const glm::vec4& v)
 {
   GL_CALL(glUniform4fv(location, 1, &v[0]));
+};
+
+template<>
+void Context::setUniformInternal<glm::vec3>(int location, const glm::vec3& v)
+{
+  GL_CALL(glUniform3fv(location, 1, &v[0]));
 };
 
 template<>

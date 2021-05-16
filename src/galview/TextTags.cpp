@@ -137,6 +137,9 @@ public:
   uint32_t                    advance(uint8_t c) const { return mAdvances[c]; }
   const std::array<float, 4>& texcoords(uint8_t c) const { return mTexCoords[c]; }
 
+  void bindTexture() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId)); }
+  void unbindTexture() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); }
+
   static const CharAtlas& get()
   {
     static CharAtlas sInstance = CharAtlas();
@@ -187,10 +190,13 @@ void TextTags::draw() const
 {
   static const size_t shaderId = Context::get().shaderId("text");
   Context::get().useShader(shaderId);
+  Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
 
+  CharAtlas::get().bindTexture();
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
   GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+  CharAtlas::get().unbindTexture();
 };
 
 }  // namespace view
