@@ -34,7 +34,7 @@ struct MakeDrawable<PointCloud> : public std::true_type
       cloud.cbegin(),
       cloud.cend(),
       vBuf.begin(),
-      [](const glm::vec3& pt) -> glutil::Vertex { return {pt}; });
+      [](const glm::vec3& pt) -> glutil::VertexBuffer::VertexType { return {pt}; });
 
     auto view    = std::make_shared<PointCloudView>();
     view->mVSize = vBuf.size();

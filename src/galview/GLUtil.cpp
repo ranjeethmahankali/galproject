@@ -33,39 +33,16 @@ void clear_errors()
   }
 };
 
-VertexBuffer::VertexBuffer(size_t nverts)
-    : std::vector<Vertex>(nverts)
-{}
-
-size_t VertexBuffer::numbytes() const
+void DefaultVertex::initAttributes()
 {
-  return sizeof(Vertex) * size();
-}
-
-void VertexBuffer::finalize(uint32_t& vao, uint32_t& vbo) const
-{
-  GL_CALL(glGenVertexArrays(1, &vao));
-  GL_CALL(glGenBuffers(1, &vbo));
-
-  GL_CALL(glBindVertexArray(vao));
-  GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-  GL_CALL(glBufferData(GL_ARRAY_BUFFER, numbytes(), data(), GL_STATIC_DRAW));
-
-  static constexpr size_t stride    = sizeof(Vertex);
-  static const void*      posOffset = (void*)(&(((Vertex*)nullptr)->position));
-  static const void*      nrmOffset = (void*)(&(((Vertex*)nullptr)->normal));
-  static const void*      texOffset = (void*)(&(((Vertex*)nullptr)->texCoords));
+  static constexpr size_t stride    = sizeof(DefaultVertex);
+  static const void*      posOffset = (void*)(&(((DefaultVertex*)nullptr)->position));
+  static const void*      nrmOffset = (void*)(&(((DefaultVertex*)nullptr)->normal));
   // Vertex position attribute.
   GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, posOffset));
   GL_CALL(glEnableVertexAttribArray(0));
   GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, nrmOffset));
   GL_CALL(glEnableVertexAttribArray(1));
-  GL_CALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, texOffset));
-  GL_CALL(glEnableVertexAttribArray(2));
-
-  // Unbind stuff.
-  GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-  GL_CALL(glBindVertexArray(0));
 }
 
 IndexBuffer::IndexBuffer(size_t nIndices)
