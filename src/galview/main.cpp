@@ -130,7 +130,6 @@ static int loadDemo(const fs::path& demoPath)
     return 1;
   }
 
-  err = gal::view::text::initFreeType();
   if (err) {
     std::cerr << "Unable to initialize free type\n";
     return err;

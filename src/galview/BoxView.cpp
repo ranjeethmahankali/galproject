@@ -9,7 +9,11 @@ BoxView::~BoxView()
   GL_CALL(glDeleteBuffers(1, &mVBO));
 };
 
-void BoxView::draw() const {
+void BoxView::draw() const
+{
+  static const size_t shaderId = Context::get().shaderId("default");
+  Context::get().useShader(shaderId);
+
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
   GL_CALL(glDrawElements(GL_LINES, mISize, GL_UNSIGNED_INT, nullptr));

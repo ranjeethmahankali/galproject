@@ -94,10 +94,6 @@ void Context::zoomExtents()
   sInvTrans = glm::inverse(sTrans);
 }
 
-void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable) {
-  // Incomplete
-};
-
 size_t Context::shaderId(const std::string& name) const
 {
   size_t i = 0;
@@ -112,7 +108,10 @@ size_t Context::shaderId(const std::string& name) const
 
 void Context::useShader(size_t shaderId)
 {
-  if (shaderId < mShaders.size()) {
+  if (shaderId == mShaderIndex) {
+    return; // Already using the shader.
+  }
+  else if (shaderId < mShaders.size()) {
     mShaders[shaderId].use();
     mShaderIndex = shaderId;
   }
@@ -142,10 +141,10 @@ void Context::set2dMode(bool flag)
 };
 
 Context::Context()
-    : mShaders(1)
+    : mShaders(2)
 {
   mShaders[0].loadFromName("default");
-  useShader(0);
+  mShaders[1].loadFromName("text");
 
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),

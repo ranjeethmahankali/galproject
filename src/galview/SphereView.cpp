@@ -12,7 +12,9 @@ SphereView::~SphereView()
 
 void SphereView::draw() const
 {
-  
+  static const size_t shaderId = Context::get().shaderId("default");
+  Context::get().useShader(shaderId);
+
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
