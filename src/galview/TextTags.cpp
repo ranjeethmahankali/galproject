@@ -4,6 +4,7 @@
 
 #include <array>
 #include <iostream>
+#include <vector>
 
 namespace gal {
 namespace view {
@@ -14,23 +15,27 @@ class CharAtlas
 {
   static constexpr uint32_t                  NX        = 1 << 4;
   static constexpr uint32_t                  NY        = 1 << 3;
-  static constexpr float                     NXf       = float(NX);
-  static constexpr float                     NYf       = float(NY);
   uint32_t                                   mTileSize = 0;
-  std::vector<char>                          mAtlas;
+  std::vector<uint8_t>                       mAtlas;
   std::array<std::array<float, 4>, NUMCHARS> mTexCoords;
   std::array<glm::ivec2, NUMCHARS>           mBearings;
   std::array<glm::ivec2, NUMCHARS>           mSizes;
   std::array<uint32_t, NUMCHARS>             mAdvances;
   uint32_t                                   mGLTextureId = 0;
 
-  char*    tilestart(uint8_t c) { return mAtlas.data() + c * mTileSize * mTileSize; }
+  uint8_t* tilestart(uint8_t c)
+  {
+    uint32_t xi = (c % NX) * mTileSize;
+    uint32_t yi = (c / NX) * mTileSize;
+
+    return mAtlas.data() + (yi * width() + xi);
+  }
   uint32_t width() const { return NX * mTileSize; }
   uint32_t height() const { return NY * mTileSize; }
 
   static void getFontTextureData(
     FT_Face                                              face,
-    std::vector<char>&                                   textureData,
+    std::vector<uint8_t>&                                textureData,
     std::array<size_t, NUMCHARS>&                        offsets,
     std::array<std::pair<uint32_t, uint32_t>, NUMCHARS>& sizes,
     uint32_t&                                            tilesize)
@@ -45,10 +50,11 @@ class CharAtlas
       uint32_t width  = face->glyph->bitmap.width;
       uint32_t height = face->glyph->bitmap.rows;
       tilesize        = std::max(std::max(width, height), tilesize);
-
-      offsets[c] = textureData.size();
-      std::copy_n(
-        face->glyph->bitmap.buffer, width * height, std::back_inserter(textureData));
+      sizes[c]        = std::make_pair(width, height);
+      offsets[c]      = textureData.size();
+      std::copy_n((uint8_t*)face->glyph->bitmap.buffer,
+                  width * height,
+                  std::back_inserter(textureData));
     }
   }
 
@@ -91,23 +97,27 @@ class CharAtlas
     if (FT_New_Face(sFtLib, sFontFilePath.c_str(), 0, &face)) {
       throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
-    FT_Set_Pixel_Sizes(face, 0, 48);
+    FT_Set_Pixel_Sizes(face, 0, 64);
 
-    uint32_t                                            tilesize = 0;
-    std::vector<char>                                   textureData;
+    std::vector<uint8_t>                                textureData;
     std::array<size_t, NUMCHARS>                        offsets;
     std::array<std::pair<uint32_t, uint32_t>, NUMCHARS> sizes;
     getFontTextureData(face, textureData, offsets, sizes, mTileSize);
-    mAtlas.resize(tilesize * NX * tilesize * NY, 0);
+    mAtlas.resize(mTileSize * NX * mTileSize * NY, 0);
 
+    const float    wf = float(width());
+    const float    hf = float(height());
+    const uint32_t w  = width();
+    const uint32_t h  = height();
     for (uint8_t c = 0; c < NUMCHARS; c++) {
-      size_t      offset = offsets[c];
-      char*       src    = textureData.data() + offset;
-      const auto& dims   = sizes.at(c);
-      char*       dst    = tilestart(c);
+      size_t      offset    = offsets[c];
+      uint8_t*    src       = textureData.data() + offset;
+      const auto& dims      = sizes.at(c);
+      uint8_t*    dst       = tilestart(c);
+      size_t      dstoffset = std::distance(mAtlas.data(), dst);
 
-      uint32_t x1 = offset % NX;
-      uint32_t y1 = offset / NX;
+      uint32_t x1 = dstoffset % w;
+      uint32_t y1 = dstoffset / w;
       uint32_t x2 = x1 + dims.first;
       uint32_t y2 = y1 + dims.second;
 
@@ -117,16 +127,17 @@ class CharAtlas
         dst += width();
       }
 
-      mTexCoords[c] = {
-        float(x1) / NXf, float(y1) / NYf, float(x2) / NXf, float(y2) / NYf};
+      mTexCoords[c] = {float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
 
-      mBearings[c] = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
-      mSizes[c]    = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
+      mSizes[c]    = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
+      mBearings[c] = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
       mAdvances[c] = face->glyph->advance.x;
     }
 
     FT_Done_Face(face);
     FT_Done_FreeType(sFtLib);
+
+    initGLTexture();
   }
 
 public:

@@ -69,10 +69,10 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
         const auto& s    = charsize(c);
         const auto& a    = charadvance(c);
         const auto& tc   = chartexcoords(c);
-        float       xpos = x + float(b.x);
-        float       ypos = y - float(s.y - b.y);
-        float       w    = float(s.x);
-        float       h    = float(s.y);
+        float       xpos = x + (float(b.x) / 1920.f);
+        float       ypos = y - (float(s.y - b.y) / 1080.f);
+        float       w    = float(s.x) / 1920.f;
+        float       h    = float(s.y) / 1080.f;
 
         *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[0]}};
         *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[1]}};
@@ -81,12 +81,18 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
         *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[1], tc[1]}};
         *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[1], tc[0]}};
 
-        x += float(a >> 6);
+        x += float(a >> 6) / 1920.f;
       }
     }
 
     view->mVSize = vBuf.size();
     vBuf.finalize(view->mVAO, view->mVBO);
+
+    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
+    RenderSettings             settings;
+    settings.pointColor = sPointColor;
+    renderSettings.push_back(settings);
+
     return view;
   }
 };

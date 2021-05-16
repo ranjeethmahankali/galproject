@@ -106,7 +106,7 @@ public:
   {
     int loc = glGetUniformLocation(mShaders[mShaderIndex].mId, name.c_str());
     if (loc == -1) {
-      std::cerr << "Uniform " << name << " not found.\n";
+      //   std::cerr << "Uniform " << name << " not found.\n";
       return;
     }
     setUniformInternal<T>(loc, val);
