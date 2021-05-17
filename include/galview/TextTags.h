@@ -74,12 +74,12 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
         float       w    = float(s.x) / 1920.f;
         float       h    = float(s.y) / 1080.f;
 
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[0]}};
-        *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[1], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[0]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[1], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[1], tc[0]}};
+        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[3]}};
+        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[2], tc[1]}};
 
         x += float(a >> 6) / 1920.f;
       }

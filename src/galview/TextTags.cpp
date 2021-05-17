@@ -33,12 +33,13 @@ class CharAtlas
   uint32_t width() const { return NX * mTileSize; }
   uint32_t height() const { return NY * mTileSize; }
 
-  static void getFontTextureData(
-    FT_Face                                              face,
-    std::vector<uint8_t>&                                textureData,
-    std::array<size_t, NUMCHARS>&                        offsets,
-    std::array<std::pair<uint32_t, uint32_t>, NUMCHARS>& sizes,
-    uint32_t&                                            tilesize)
+  static void getFontTextureData(FT_Face                           face,
+                                 std::vector<uint8_t>&             textureData,
+                                 std::array<size_t, NUMCHARS>&     offsets,
+                                 std::array<glm::ivec2, NUMCHARS>& sizes,
+                                 std::array<glm::ivec2, NUMCHARS>& bearings,
+                                 std::array<uint32_t, NUMCHARS>&   advances,
+                                 uint32_t&                         tilesize)
   {
     for (unsigned char c = 0; c < 128; c++) {
       // load character glyph
@@ -50,8 +51,10 @@ class CharAtlas
       uint32_t width  = face->glyph->bitmap.width;
       uint32_t height = face->glyph->bitmap.rows;
       tilesize        = std::max(std::max(width, height), tilesize);
-      sizes[c]        = std::make_pair(width, height);
+      sizes[c]        = {width, height};
+      bearings[c]     = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
       offsets[c]      = textureData.size();
+      advances[c]     = face->glyph->advance.x;
       std::copy_n((uint8_t*)face->glyph->bitmap.buffer,
                   width * height,
                   std::back_inserter(textureData));
@@ -99,10 +102,10 @@ class CharAtlas
     }
     FT_Set_Pixel_Sizes(face, 0, 64);
 
-    std::vector<uint8_t>                                textureData;
-    std::array<size_t, NUMCHARS>                        offsets;
-    std::array<std::pair<uint32_t, uint32_t>, NUMCHARS> sizes;
-    getFontTextureData(face, textureData, offsets, sizes, mTileSize);
+    std::vector<uint8_t>         textureData;
+    std::array<size_t, NUMCHARS> offsets;
+    getFontTextureData(
+      face, textureData, offsets, mSizes, mBearings, mAdvances, mTileSize);
     mAtlas.resize(mTileSize * NX * mTileSize * NY, 0);
 
     const float    wf = float(width());
@@ -112,26 +115,22 @@ class CharAtlas
     for (uint8_t c = 0; c < NUMCHARS; c++) {
       size_t      offset    = offsets[c];
       uint8_t*    src       = textureData.data() + offset;
-      const auto& dims      = sizes.at(c);
+      const auto& dims      = mSizes.at(c);
       uint8_t*    dst       = tilestart(c);
       size_t      dstoffset = std::distance(mAtlas.data(), dst);
 
       uint32_t x1 = dstoffset % w;
       uint32_t y1 = dstoffset / w;
-      uint32_t x2 = x1 + dims.first;
-      uint32_t y2 = y1 + dims.second;
+      uint32_t x2 = x1 + dims.x;
+      uint32_t y2 = y1 + dims.y;
 
-      for (uint32_t r = 0; r < dims.second; r++) {
-        std::copy_n(src, dims.first, dst);
-        src += dims.first;
+      for (uint32_t r = 0; r < dims.y; r++) {
+        std::copy_n(src, dims.x, dst);
+        src += dims.x;
         dst += width();
       }
 
       mTexCoords[c] = {float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
-
-      mSizes[c]    = glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
-      mBearings[c] = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
-      mAdvances[c] = face->glyph->advance.x;
     }
 
     FT_Done_Face(face);
