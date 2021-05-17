@@ -43,6 +43,11 @@ size_t RenderSettings::opacityScore() const
   return score;
 };
 
+bool Context::RenderData::isVisible() const
+{
+  return visibilityFlag == nullptr ? false : *visibilityFlag;
+}
+
 bool Drawable::opaque() const
 {
   return true;  // Everything is assumed to be opaque by default, unless overriden.
@@ -83,9 +88,11 @@ void Context::zoomExtents()
 {
   Box3 bounds;
   for (auto& d : mDrawables) {
-    const Box3& b = d.drawable->bounds();
-    bounds.inflate(b.min);
-    bounds.inflate(b.max);
+    if (d.isVisible()) {
+      const Box3& b = d.drawable->bounds();
+      bounds.inflate(b.min);
+      bounds.inflate(b.max);
+    }
   }
   if (!bounds.valid())
     return;
@@ -434,9 +441,8 @@ Context::Shader::~Shader()
 void Context::render() const
 {
   for (const auto& data : mDrawables) {
-    if (data.visibilityFlag) {
-      if (!(*data.visibilityFlag))
-        continue;
+    if (!data.isVisible()) {
+      continue;
     }
     data.settings.apply();
     data.drawable->draw();

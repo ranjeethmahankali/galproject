@@ -93,6 +93,8 @@ public:
      * pointer.
      */
     const bool* visibilityFlag;
+
+    bool isVisible() const;
   };
 
   static Context& get();

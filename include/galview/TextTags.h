@@ -61,9 +61,11 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
                           }));
 
     auto vbegin = vBuf.begin();
+    Box3 bounds;
     for (const auto& tag : tags) {
       float x = 0.f;
       float y = 0.f;
+      bounds.inflate(tag.first);
       for (char c : tag.second) {
         const auto& b    = charbearing(c);
         const auto& s    = charsize(c);
@@ -86,6 +88,7 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
     }
 
     view->mVSize = vBuf.size();
+    view->setBounds(bounds);
     vBuf.finalize(view->mVAO, view->mVBO);
 
     static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
