@@ -89,7 +89,7 @@ float Box3::volume() const
 
 bool Box3::valid() const
 {
-  return min == vec3_unset || max == -vec3_unset;
+  return !(min == vec3_unset || max == -vec3_unset);
 }
 
 Box3 Box3::init(const glm::vec3& m1, const glm::vec3& m2)

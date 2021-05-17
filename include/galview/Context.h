@@ -21,9 +21,10 @@ struct RenderSettings
   float                         shadingFactor = 1.0f;
   bool                          edgeMode      = false;
   bool                          pointMode     = false;
-  bool                          orthoMode     = false;
   std::pair<uint32_t, uint32_t> polygonMode   = {uint32_t(GL_FRONT_AND_BACK),
                                                uint32_t(GL_FILL)};
+
+  size_t shaderId = 0; // default shader
 
   void apply() const;
 
@@ -92,6 +93,8 @@ public:
      * pointer.
      */
     const bool* visibilityFlag;
+
+    bool isVisible() const;
   };
 
   static Context& get();
@@ -106,7 +109,7 @@ public:
   {
     int loc = glGetUniformLocation(mShaders[mShaderIndex].mId, name.c_str());
     if (loc == -1) {
-      std::cerr << "Uniform " << name << " not found.\n";
+      //   std::cerr << "Uniform " << name << " not found.\n";
       return;
     }
     setUniformInternal<T>(loc, val);
@@ -160,8 +163,6 @@ private:
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
-
-  void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable);
 
 public:
   /**

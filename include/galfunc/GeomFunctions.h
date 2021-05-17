@@ -82,7 +82,7 @@ GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
               true,
               1,
               "Creates a point cloud from the list of points",
-              (std::vector<glm::vec3>, points, points));
+              (std::vector<glm::vec3>, points, "points"));
 
 }  // namespace func
 }  // namespace gal
