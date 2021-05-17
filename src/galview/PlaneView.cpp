@@ -11,9 +11,6 @@ PlaneView::~PlaneView()
 
 void PlaneView::draw() const
 {
-  static const size_t shaderId = Context::get().shaderId("default");
-  Context::get().useShader(shaderId);
-
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
   GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, mVSize));

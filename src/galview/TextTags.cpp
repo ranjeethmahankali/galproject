@@ -63,22 +63,23 @@ class CharAtlas
 
   void initGLTexture()
   {
-    glGenTextures(1, &mGLTextureId);
-    glBindTexture(GL_TEXTURE_2D, mGLTextureId);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 width(),
-                 height(),
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_BYTE,
-                 mAtlas.data());
+    GL_CALL(glGenTextures(1, &mGLTextureId));
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId));
+    GL_CALL(glTexImage2D(GL_TEXTURE_2D,
+                         0,
+                         GL_RED,
+                         width(),
+                         height(),
+                         0,
+                         GL_RED,
+                         GL_UNSIGNED_BYTE,
+                         mAtlas.data()));
     // set texture options
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
   }
 
   void deleteGLTexture()
@@ -100,7 +101,7 @@ class CharAtlas
     if (FT_New_Face(sFtLib, sFontFilePath.c_str(), 0, &face)) {
       throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
-    FT_Set_Pixel_Sizes(face, 0, 64);
+    FT_Set_Pixel_Sizes(face, 0, 48);
 
     std::vector<uint8_t>         textureData;
     std::array<size_t, NUMCHARS> offsets;
@@ -198,10 +199,7 @@ TextTags::~TextTags()
 
 void TextTags::draw() const
 {
-  static const size_t shaderId = Context::get().shaderId("text");
-  Context::get().useShader(shaderId);
   Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
-
   CharAtlas::get().bindTexture();
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));

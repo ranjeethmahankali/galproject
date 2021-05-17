@@ -304,6 +304,16 @@ void py_set2dMode(bool flag)
   gal::view::Context::get().set2dMode(flag);
 };
 
+void py_useOrthoCam()
+{
+  gal::view::Context::get().setOrthographic();
+}
+
+void py_usePerspectiveCam()
+{
+  gal::view::Context::get().setPerspective();
+}
+
 gal::func::types::OutputTuple<1> textField(const std::string& label)
 {
   auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
@@ -354,4 +364,6 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(textField);
   GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(set2dMode);
+  GAL_DEF_PY_FN(useOrthoCam);
+  GAL_DEF_PY_FN(usePerspectiveCam);
 };

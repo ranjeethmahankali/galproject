@@ -91,6 +91,7 @@ struct MakeDrawable<TextTags::ValueType> : public std::true_type
     static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
     RenderSettings             settings;
     settings.pointColor = sPointColor;
+    settings.shaderId   = Context::get().shaderId("text");
     renderSettings.push_back(settings);
 
     return view;

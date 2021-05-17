@@ -14,8 +14,16 @@
 namespace gal {
 namespace view {
 
+static bool sOrthoMode = false;
+
+static void setOrthoModeUniform()
+{
+  Context::get().setUniform<bool>("orthoMode", sOrthoMode);
+}
+
 void RenderSettings::apply() const
 {
+  Context::get().useShader(shaderId);
   Context& ctx = Context::get();
   ctx.setUniform<glm::vec4>("faceColor", faceColor);
   ctx.setUniform<glm::vec4>("edgeColor", edgeColor);
@@ -23,7 +31,6 @@ void RenderSettings::apply() const
   ctx.setUniform<float>("shadingFactor", shadingFactor);
   ctx.setUniform<bool>("edgeMode", edgeMode);
   ctx.setUniform<bool>("pointMode", pointMode);
-  ctx.setUniform<bool>("orthoMode", orthoMode);
 
   GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
 };
@@ -114,7 +121,9 @@ void Context::useShader(size_t shaderId)
   else if (shaderId < mShaders.size()) {
     mShaders[shaderId].use();
     mShaderIndex = shaderId;
-    cameraChanged();  // this sets the uniforms again.
+    // Set all the uniforms again.
+    cameraChanged();
+    setOrthoModeUniform();
   }
   else {
     std::cerr << "Invalid shader id\n";
@@ -299,7 +308,8 @@ void Context::setPerspective(float fovy, float aspect, float near, float far)
 {
   get().mProj = glm::perspective(fovy, aspect, near, far);
   cameraChanged();
-  get().setUniform<bool>("orthoMode", false);
+  sOrthoMode = false;
+  setOrthoModeUniform();
 };
 
 void Context::setOrthographic(float left,
@@ -311,7 +321,8 @@ void Context::setOrthographic(float left,
 {
   get().mProj = glm::ortho(left, right, bottom, top, near, far);
   cameraChanged();
-  get().setUniform<bool>("orthoMode", true);
+  sOrthoMode = true;
+  setOrthoModeUniform();
 };
 
 static void checkCompilation(uint32_t id, uint32_t type)

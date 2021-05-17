@@ -21,9 +21,10 @@ struct RenderSettings
   float                         shadingFactor = 1.0f;
   bool                          edgeMode      = false;
   bool                          pointMode     = false;
-  bool                          orthoMode     = false;
   std::pair<uint32_t, uint32_t> polygonMode   = {uint32_t(GL_FRONT_AND_BACK),
                                                uint32_t(GL_FILL)};
+
+  size_t shaderId = 0; // default shader
 
   void apply() const;
 
