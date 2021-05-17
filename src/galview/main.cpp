@@ -16,6 +16,7 @@
 #include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
+#include <galview/TextTags.h>
 #include <galview/Widget.h>
 
 using namespace gal;
@@ -129,6 +130,11 @@ static int loadDemo(const fs::path& demoPath)
     return 1;
   }
 
+  if (err) {
+    std::cerr << "Unable to initialize free type\n";
+    return err;
+  }
+
   std::cout << "Starting render loop...\n";
 
   while (!glfwWindowShouldClose(window)) {
@@ -192,8 +198,8 @@ static int debugSession(const fs::path& targetDir)
 
 int main(int argc, char** argv)
 {
-  // return debugSession(gal::utils::absPath("../temp"));
-  //   return loadDemo(gal::utils::absPath("../demos/meshPlaneClipping.py"));
+  //   return debugSession(gal::utils::absPath("../temp"));
+  //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
 
   static constexpr char pathKey[] = "path";
   bool                  debugFlag;

@@ -1,10 +1,10 @@
+#include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
-#include <galfunc/Variable.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/UtilFunctions.h>
-#include <galcore/Types.h>
+#include <galfunc/Variable.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
@@ -118,8 +118,9 @@ void markDirty(uint64_t id)
 }  // namespace gal
 
 // Temp code.
-float listItem() {
-    return 42.42;
+float listItem()
+{
+  return 42.42;
 };
 
 BOOST_PYTHON_MODULE(pygalfunc)
@@ -134,6 +135,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   def("listf32", py_list<float>);
   def("listvec3", py_list<glm::vec3>);
+  def("liststring", py_list<std::string>);
 
   GAL_DEF_PY_FN(absPath);
 
