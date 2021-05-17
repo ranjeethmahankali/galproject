@@ -5,7 +5,7 @@ A library of computational geometry algorithms
 
 vcpkg dependencies:
 * boost, boost-python
-* python
+* python3
 * glm
 * glfw3
 * GLEW
@@ -13,8 +13,9 @@ vcpkg dependencies:
 * gtest
 * tinyobjloader
 * efsw
+* freetype
 
-Also needs `inotify`:
+EFSW depends on `inotify`. It can be installed as follows:
 ```
 sudo apt-get install inotify-tools
 ```

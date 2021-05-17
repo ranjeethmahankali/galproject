@@ -14,8 +14,16 @@
 namespace gal {
 namespace view {
 
+static bool sOrthoMode = false;
+
+static void setOrthoModeUniform()
+{
+  Context::get().setUniform<bool>("orthoMode", sOrthoMode);
+}
+
 void RenderSettings::apply() const
 {
+  Context::get().useShader(shaderId);
   Context& ctx = Context::get();
   ctx.setUniform<glm::vec4>("faceColor", faceColor);
   ctx.setUniform<glm::vec4>("edgeColor", edgeColor);
@@ -23,7 +31,6 @@ void RenderSettings::apply() const
   ctx.setUniform<float>("shadingFactor", shadingFactor);
   ctx.setUniform<bool>("edgeMode", edgeMode);
   ctx.setUniform<bool>("pointMode", pointMode);
-  ctx.setUniform<bool>("orthoMode", orthoMode);
 
   GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
 };
@@ -35,6 +42,11 @@ size_t RenderSettings::opacityScore() const
   score += size_t(float(UINT8_MAX) * std::clamp(pointColor.a, 0.f, 1.f));
   return score;
 };
+
+bool Context::RenderData::isVisible() const
+{
+  return visibilityFlag == nullptr ? false : *visibilityFlag;
+}
 
 bool Drawable::opaque() const
 {
@@ -76,9 +88,11 @@ void Context::zoomExtents()
 {
   Box3 bounds;
   for (auto& d : mDrawables) {
-    const Box3& b = d.drawable->bounds();
-    bounds.inflate(b.min);
-    bounds.inflate(b.max);
+    if (d.isVisible()) {
+      const Box3& b = d.drawable->bounds();
+      bounds.inflate(b.min);
+      bounds.inflate(b.max);
+    }
   }
   if (!bounds.valid())
     return;
@@ -94,10 +108,6 @@ void Context::zoomExtents()
   sInvTrans = glm::inverse(sTrans);
 }
 
-void insertKeyInPlace(size_t key, const std::shared_ptr<Drawable>& drawable) {
-  // Incomplete
-};
-
 size_t Context::shaderId(const std::string& name) const
 {
   size_t i = 0;
@@ -112,9 +122,15 @@ size_t Context::shaderId(const std::string& name) const
 
 void Context::useShader(size_t shaderId)
 {
-  if (shaderId < mShaders.size()) {
+  if (shaderId == mShaderIndex) {
+    return;  // Already using the shader.
+  }
+  else if (shaderId < mShaders.size()) {
     mShaders[shaderId].use();
     mShaderIndex = shaderId;
+    // Set all the uniforms again.
+    cameraChanged();
+    setOrthoModeUniform();
   }
   else {
     std::cerr << "Invalid shader id\n";
@@ -142,10 +158,10 @@ void Context::set2dMode(bool flag)
 };
 
 Context::Context()
-    : mShaders(1)
+    : mShaders(2)
 {
   mShaders[0].loadFromName("default");
-  useShader(0);
+  mShaders[1].loadFromName("text");
 
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
@@ -274,6 +290,12 @@ void Context::setUniformInternal<glm::vec4>(int location, const glm::vec4& v)
 };
 
 template<>
+void Context::setUniformInternal<glm::vec3>(int location, const glm::vec3& v)
+{
+  GL_CALL(glUniform3fv(location, 1, &v[0]));
+};
+
+template<>
 void Context::setUniformInternal<bool>(int location, const bool& flag)
 {
   GL_CALL(glUniform1i(location, flag));
@@ -293,7 +315,8 @@ void Context::setPerspective(float fovy, float aspect, float near, float far)
 {
   get().mProj = glm::perspective(fovy, aspect, near, far);
   cameraChanged();
-  get().setUniform<bool>("orthoMode", false);
+  sOrthoMode = false;
+  setOrthoModeUniform();
 };
 
 void Context::setOrthographic(float left,
@@ -305,7 +328,8 @@ void Context::setOrthographic(float left,
 {
   get().mProj = glm::ortho(left, right, bottom, top, near, far);
   cameraChanged();
-  get().setUniform<bool>("orthoMode", true);
+  sOrthoMode = true;
+  setOrthoModeUniform();
 };
 
 static void checkCompilation(uint32_t id, uint32_t type)
@@ -417,9 +441,8 @@ Context::Shader::~Shader()
 void Context::render() const
 {
   for (const auto& data : mDrawables) {
-    if (data.visibilityFlag) {
-      if (!(*data.visibilityFlag))
-        continue;
+    if (!data.isVisible()) {
+      continue;
     }
     data.settings.apply();
     data.drawable->draw();

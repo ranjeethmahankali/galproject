@@ -51,6 +51,26 @@ private:
   uint64_t              mRegisterId;
 };
 
+struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
+{
+  TagsFunc(const std::string& label, uint64_t locRegId, uint64_t wordsRegId);
+
+  void     run() override;
+  void     initOutputRegisters() override;
+  size_t   numOutputs() const override;
+  uint64_t outputRegister(size_t index) const override;
+
+private:
+  using gal::view::CheckBox::addHandler;
+
+private:
+  uint64_t              mLocsRegId;
+  uint64_t              mWordsRegId;
+  size_t                mDrawId = 0;
+  std::shared_ptr<bool> mSuccess;
+  uint64_t              mRegisterId;
+};
+
 template<typename T>
 gal::func::types::OutputTuple<1> slider(const std::string& label,
                                         const T&           min,

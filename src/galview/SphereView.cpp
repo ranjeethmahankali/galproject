@@ -12,7 +12,6 @@ SphereView::~SphereView()
 
 void SphereView::draw() const
 {
-  
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   GL_CALL(glBindVertexArray(mVAO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));

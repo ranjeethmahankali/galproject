@@ -74,6 +74,7 @@ ShowFunc::ShowFunc(const std::string& label, uint64_t regId)
     , mSuccess(std::make_shared<bool>(false))
     , gal::view::CheckBox(label, true)
 {
+  // Telling galfunc that this functor depends on this input register.
   gal::func::store::useRegister(this, mObjRegId);
 };
 
@@ -86,7 +87,8 @@ void ShowFunc::initOutputRegisters()
 void ShowFunc::run()
 {
   try {
-    auto  obj = gal::func::store::get<void>(mObjRegId);
+    // Calling get triggers the upstream computations if needed.
+    gal::func::store::get<void>(mObjRegId);
     auto& reg = gal::func::store::getRegister(mObjRegId);
     mDrawId   = dmanager::draw(reg.typeId, reg.ptr, mDrawId, checkedPtr());
     *mSuccess = true;
@@ -109,6 +111,62 @@ uint64_t ShowFunc::outputRegister(size_t index) const
   }
   throw std::out_of_range("Index out of range");
 };
+
+TagsFunc::TagsFunc(const std::string& label, uint64_t locsRegId, uint64_t wordsRegId)
+    : mLocsRegId(locsRegId)
+    , mWordsRegId(wordsRegId)
+    , mSuccess(std::make_shared<bool>(false))
+    , gal::view::CheckBox(label, true)
+{
+  gal::func::store::useRegister(this, mLocsRegId);
+  gal::func::store::useRegister(this, mWordsRegId);
+}
+
+void TagsFunc::initOutputRegisters()
+{
+  mRegisterId = gal::func::store::allocate(
+    this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
+}
+
+void TagsFunc::run()
+{
+  try {
+    // Calling get triggers the upstream computations if needed.
+    gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
+    gal::func::store::get<std::vector<std::string>>(mWordsRegId);
+    auto& locsReg  = gal::func::store::getRegister(mLocsRegId);
+    auto& wordsReg = gal::func::store::getRegister(mWordsRegId);
+    auto  locs     = std::static_pointer_cast<std::vector<glm::vec3>>(locsReg.ptr);
+    auto  words    = std::static_pointer_cast<std::vector<std::string>>(wordsReg.ptr);
+
+    size_t ntags = std::min(locs->size(), words->size());
+    std::vector<std::pair<glm::vec3, std::string>> tagvals;
+    tagvals.reserve(ntags);
+    for (size_t i = 0; i < ntags; i++) {
+      tagvals.emplace_back(locs->at(i), words->at(i));
+    }
+
+    mDrawId   = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
+    *mSuccess = true;
+  }
+  catch (std::bad_alloc ex) {
+    *mSuccess = false;
+  }
+  gal::func::store::set<bool>(mRegisterId, mSuccess);
+}
+
+size_t TagsFunc::numOutputs() const
+{
+  return 1;
+}
+
+uint64_t TagsFunc::outputRegister(size_t index) const
+{
+  if (index == 0) {
+    return mRegisterId;
+  }
+  throw std::out_of_range("Index out of range");
+}
 
 template<typename T, typename... TRest>
 struct PrintManager
@@ -246,6 +304,16 @@ void py_set2dMode(bool flag)
   gal::view::Context::get().set2dMode(flag);
 };
 
+void py_useOrthoCam()
+{
+  gal::view::Context::get().setOrthographic();
+}
+
+void py_usePerspectiveCam()
+{
+  gal::view::Context::get().setPerspective();
+}
+
 gal::func::types::OutputTuple<1> textField(const std::string& label)
 {
   auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
@@ -257,6 +325,24 @@ boost::python::tuple py_textField(const std::string& label)
 {
   return gal::func::pythonRegisterTuple(textField(label));
 };
+
+gal::func::types::OutputTuple<1> tags(const std::string&                label,
+                                      const gal::func::store::Register& locsReg,
+                                      gal::func::store::Register&       wordsReg)
+{
+  using namespace gal::func;
+  auto fn = store::makeFunction<TagsFunc>(label, locsReg.id, wordsReg.id);
+  mShowFuncRegs.push_back(fn->outputRegister(0));
+  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return types::makeOutputTuple<1>(*fn);
+}
+boost::python::tuple py_tags(const std::string&         label,
+                             gal::func::store::Register locs,
+                             gal::func::store::Register words)
+{
+  return gal::func::pythonRegisterTuple(tags(label, locs, words));
+}
 
 }  // namespace viewfunc
 }  // namespace gal
@@ -276,5 +362,8 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(show);
   GAL_DEF_PY_FN(print);
   GAL_DEF_PY_FN(textField);
+  GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(set2dMode);
+  GAL_DEF_PY_FN(useOrthoCam);
+  GAL_DEF_PY_FN(usePerspectiveCam);
 };
