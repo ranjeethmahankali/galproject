@@ -1,3 +1,4 @@
+#include <galcore/Annotations.h>
 #include <galcore/Circle2d.h>
 #include <galcore/DebugProfile.h>
 #include <gtest/gtest.h>
@@ -14,7 +15,8 @@ TEST(Circle2d, MinBoundingCircle)
   };
 
   auto cloud = gal::PointCloud(points);
-  GALCAPTURE(cloud);
+  GALWATCH(cloud);
+  GALCAPTURE(gal::Annotations::createIndexedPointCloud(cloud), tags);
   auto circ = gal::Circle2d::minBoundingCircle(points.data(), points.size());
 
   for (const auto& pt : points) {

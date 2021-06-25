@@ -1,6 +1,9 @@
+#pragma once
+#include <algorithm>
 #include <string>
 #include <vector>
 
+#include <galcore/PointCloud.h>
 #include <galcore/Serialization.h>
 
 namespace gal {
@@ -11,7 +14,11 @@ class Annotations : public std::vector<PositionalTextType>
 {
 public:
   Annotations() = default;
-  Annotations(std::vector<PositionalTextType> tags) { *this = std::move(tags); }
+  Annotations(size_t size);
+  Annotations(std::vector<PositionalTextType> tags);
+
+  static Annotations createIndexedPoints(const std::vector<glm::vec3>& points);
+  static Annotations createIndexedPointCloud(const PointCloud& cloud);
 };
 
 template<>
