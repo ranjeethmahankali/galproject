@@ -7,16 +7,15 @@ Annotations::Annotations(size_t size)
 {}
 
 Annotations::Annotations(std::vector<PositionalTextType> tags)
-{
-  *this = std::move(tags);
-}
+    : std::vector<PositionalTextType>(std::move(tags))
+{}
 
 Annotations Annotations::createIndexedPoints(const std::vector<glm::vec3>& points)
 {
   Annotations tags(points.size());
   size_t      i = 0;
   std::transform(points.begin(), points.end(), tags.begin(), [&i](const glm::vec3& pos) {
-    return std::make_pair(pos, std::to_string(i));
+    return std::make_pair(pos, std::to_string(i++));
   });
   return tags;
 }
