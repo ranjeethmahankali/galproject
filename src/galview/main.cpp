@@ -16,7 +16,6 @@
 #include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
-#include <galview/TextTags.h>
 #include <galview/Widget.h>
 
 using namespace gal;

@@ -6,19 +6,19 @@
 #include FT_FREETYPE_H
 #include <glm/glm.hpp>
 
+#include <galcore/Annotations.h>
 #include <galview/Context.h>
 
 namespace gal {
 namespace view {
 
-class TextTags : public Drawable
+class AnnotationsView : public Drawable
 {
 public:
-  using ValueType = std::vector<std::pair<glm::vec3, std::string>>;
-  friend struct MakeDrawable<ValueType>;
+  friend struct MakeDrawable<Annotations>;
 
-  TextTags() = default;
-  ~TextTags();
+  AnnotationsView() = default;
+  ~AnnotationsView();
 
   void draw() const override;
 
@@ -45,12 +45,12 @@ struct CharVertex
 using CharVertexBuffer = glutil::TVertexBuffer<CharVertex>;
 
 template<>
-struct MakeDrawable<TextTags::ValueType> : public std::true_type
+struct MakeDrawable<Annotations> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const TextTags::ValueType&   tags,
+  static std::shared_ptr<Drawable> get(const Annotations&           tags,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    auto view = std::make_shared<TextTags>();
+    auto view = std::make_shared<AnnotationsView>();
 
     CharVertexBuffer vBuf(
       6 * std::accumulate(tags.begin(),
