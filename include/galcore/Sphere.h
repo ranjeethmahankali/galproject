@@ -14,7 +14,7 @@ struct Sphere
 
   Box3 bounds() const;
 
-  bool contains(const glm::vec3& pt) const;
+  bool contains(const glm::vec3& pt, float tolerance = 0.f) const;
 
   static Sphere createCircumsphere(const glm::vec3& a,
                                    const glm::vec3& b,

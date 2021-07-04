@@ -19,9 +19,9 @@ float Circle2d::radius() const
   return mRadius;
 };
 
-bool Circle2d::contains(const glm::vec2& pt) const
+bool Circle2d::contains(const glm::vec2& pt, float tolerance) const
 {
-  return glm::distance2(mCenter, pt) <= (mRadius * mRadius);
+  return glm::distance(mCenter, pt) <= mRadius + tolerance;
 };
 
 Box2 Circle2d::bounds() const

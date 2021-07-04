@@ -14,7 +14,7 @@ void SphereView::draw() const
 {
   GL_CALL(glEnable(GL_CULL_FACE));
   GL_CALL(glCullFace(GL_BACK));
-  GL_CALL(glFrontFace(GL_CCW));
+  GL_CALL(glFrontFace(GL_CW));
 
   GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
   GL_CALL(glBindVertexArray(mVAO));

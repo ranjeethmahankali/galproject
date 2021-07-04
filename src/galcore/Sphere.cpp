@@ -15,9 +15,9 @@ Sphere::Sphere(const glm::vec3& c, float r)
     , radius(r)
 {}
 
-bool Sphere::contains(const glm::vec3& pt) const
+bool Sphere::contains(const glm::vec3& pt, float tolerance) const
 {
-  return glm::distance2(center, pt) <= (radius * radius);
+  return glm::distance(center, pt) <= radius + tolerance;
 }
 
 Sphere Sphere::createCircumsphere(const glm::vec3& a,

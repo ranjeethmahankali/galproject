@@ -13,7 +13,7 @@ public:
 
   const glm::vec2& center() const;
   float            radius() const;
-  bool             contains(const glm::vec2&) const;
+  bool             contains(const glm::vec2&, float tolerance = 0.f) const;
 
   Box2 bounds() const;
 
