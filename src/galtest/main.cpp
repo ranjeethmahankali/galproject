@@ -4,7 +4,8 @@
 void applyFilter(int& argc, char**& argv)
 {
   //   static std::string filter = "--gtest_filter=MeshFunction.Centroid";
-  static std::string filter = "--gtest_filter=Circle2d.MinBoundingCircle";
+  //   static std::string filter = "--gtest_filter=Circle2d.MinBoundingCircle";
+  static std::string filter = "--gtest_filter=Sphere.MinBoundingSphere";
   if (argc == 1) {
     char** newArgs = new char*[2];
     newArgs[0]     = argv[0];

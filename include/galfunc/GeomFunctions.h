@@ -84,5 +84,12 @@ GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
               "Creates a point cloud from the list of points",
               (std::vector<glm::vec3>, points, "points"));
 
+GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere")),
+              boundingSphere,
+              true,
+              1,
+              "Creates a minimum bounding sphere for the given points.",
+              (gal::PointCloud, points, "Points"));
+
 }  // namespace func
 }  // namespace gal

@@ -16,7 +16,6 @@
 #include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
-#include <galview/TextTags.h>
 #include <galview/Widget.h>
 
 using namespace gal;
@@ -52,7 +51,7 @@ static int initViewer(GLFWwindow*& window)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
+  window = glfwCreateWindow(1920, 1080, "galview", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 

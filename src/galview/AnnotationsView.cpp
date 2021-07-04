@@ -1,6 +1,6 @@
 #include <galcore/Util.h>
 #include <galview/GLUtil.h>
-#include <galview/TextTags.h>
+#include <galview/AnnotationsView.h>
 
 #include <array>
 #include <iostream>
@@ -191,13 +191,13 @@ const std::array<float, 4>& chartexcoords(char c)
   return CharAtlas::get().texcoords(uint8_t(c));
 }
 
-TextTags::~TextTags()
+AnnotationsView::~AnnotationsView()
 {
   GL_CALL(glDeleteVertexArrays(1, &mVAO));
   GL_CALL(glDeleteBuffers(1, &mVBO));
 };
 
-void TextTags::draw() const
+void AnnotationsView::draw() const
 {
   Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
   CharAtlas::get().bindTexture();
