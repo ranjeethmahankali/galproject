@@ -4,7 +4,7 @@ A library of computational geometry algorithms
 ### Dependencies
 
 vcpkg dependencies:
-* boost, boost-python
+* boost, boost-python, boost-program-options
 * python3
 * glm
 * glfw3
