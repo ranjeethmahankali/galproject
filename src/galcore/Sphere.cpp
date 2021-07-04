@@ -72,7 +72,7 @@ static Sphere triangleCircumsphere(const glm::vec3& a,
     (glm::length2(ca) * glm::cross(crs, ba) + glm::cross(ca, crs) * glm::length2(ba)) /
     (2.f * glm::length2(crs));
 
-  return Sphere(a + rvec, glm::length2(rvec));
+  return Sphere(a + rvec, glm::length(rvec));
 }
 
 static void minBoundingSphereImpl(Sphere&          sp,

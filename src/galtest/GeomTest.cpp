@@ -33,3 +33,19 @@ TEST(Circle2d, MinBoundingCircle)
     }
   }
 }
+
+TEST(Sphere, MinBoundingSphere)
+{
+  GALSCOPE(__func__);
+  const static std::vector<glm::vec3> points {
+    {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};
+
+  auto cloud = gal::PointCloud(points);
+  GALWATCH(cloud);
+  GALCAPTURE(gal::Annotations::createIndexedPointCloud(cloud), tags);
+  auto sp = gal::Sphere::minBoundingSphere(points);
+
+  for (const auto& pt : points) {
+    ASSERT_TRUE(sp.contains(pt));
+  }
+}
