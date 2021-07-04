@@ -91,27 +91,54 @@ static Circle2d minBoundingCircle1Pt(const glm::vec2* pts, size_t n, const glm::
   return circ;
 };
 
-Circle2d Circle2d::minBoundingCircle(const glm::vec2* pts, size_t n)
+static void minBoundingCircleImpl(Circle2d&        circ,
+                                  const glm::vec2* begin,
+                                  const glm::vec2* end,
+                                  const glm::vec2* pin1 = nullptr,
+                                  const glm::vec2* pin2 = nullptr)
 {
-  GALSCOPE(__func__);
-  if (n < 2) {
-    throw "Cannot compute circle";
+  auto current = begin;
+  if (pin1 && pin2) {
+    circ = Circle2d::createFromDiameter(*pin1, *pin2);
+    GALWATCH(circ);
   }
-  if (n == 3) {
-    return Circle2d::createCircumcircle(pts[0], pts[1], pts[2]);
+  else if (pin1) {
+    circ = Circle2d::createFromDiameter(*(current++), *pin1);
+    GALWATCH(circ);
+  }
+  else {
+    circ = Circle2d::createFromDiameter(*current, *(current + 1));
+    GALWATCH(circ);
+    current += 2;
   }
 
-  Circle2d circ = createFromDiameter(pts[0], pts[1]);
-  GALWATCH(circ);
-  if (n == 2) {
-    return circ;
-  }
-  for (size_t i = 2; i < n; i++) {
-    if (!circ.contains(pts[i])) {
-      circ = minBoundingCircle1Pt(pts, i, pts[i]);
-      GALWATCH(circ);
+  while (current != end) {
+    if (!circ.contains(*current)) {
+      if (pin1 && pin2) {
+        circ = Circle2d::createCircumcircle(*pin1, *pin2, *current);
+        GALWATCH(circ);
+      }
+      else if (pin1) {
+        minBoundingCircleImpl(circ, begin, current, pin1, current);
+      }
+      else {
+        minBoundingCircleImpl(circ, begin, current, current);
+      }
     }
+    current++;
   }
+}
+
+Circle2d Circle2d::minBoundingCircle(const std::vector<glm::vec2>& points)
+{
+  GALSCOPE(__func__);
+  if (points.size() < 2) {
+    throw "Cannot compute circle";
+  }
+
+  Circle2d circ;
+  minBoundingCircleImpl(circ, points.data(), points.data() + points.size());
+  GALWATCH(circ);
   return circ;
 };
 

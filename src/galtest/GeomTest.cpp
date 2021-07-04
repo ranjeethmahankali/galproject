@@ -7,17 +7,18 @@ TEST(Circle2d, MinBoundingCircle)
 {
   GALSCOPE(__func__);
   std::vector<glm::vec2> points {
-    {0, 0},
-    {1, 0},
-    {1, 1},
-    {-.3, 1},
-    {0, -1},
+    {0.f, 0.f},
+    {1.f, 0.f},
+    {0.25f, 0.25f},
+    {0.9f, 0.9f},
+    {-.3f, 1.f},
+    {0.f, -1.f},
   };
 
   auto cloud = gal::PointCloud(points);
   GALWATCH(cloud);
   GALCAPTURE(gal::Annotations::createIndexedPointCloud(cloud), tags);
-  auto circ = gal::Circle2d::minBoundingCircle(points.data(), points.size());
+  auto circ = gal::Circle2d::minBoundingCircle(points);
 
   for (const auto& pt : points) {
     ASSERT_TRUE(circ.contains(pt));

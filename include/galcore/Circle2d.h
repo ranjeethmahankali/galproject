@@ -8,6 +8,7 @@ namespace gal {
 class Circle2d
 {
 public:
+  Circle2d() = default;
   Circle2d(const glm::vec2& center, float radius);
 
   const glm::vec2& center() const;
@@ -20,11 +21,11 @@ public:
                                      const glm::vec2& b,
                                      const glm::vec2& c);
   static Circle2d createFromDiameter(const glm::vec2& a, const glm::vec2& b);
-  static Circle2d minBoundingCircle(const glm::vec2* pts, size_t n);
+  static Circle2d minBoundingCircle(const std::vector<glm::vec2>& points);
 
 private:
-  glm::vec2 mCenter;
-  float     mRadius;
+  glm::vec2 mCenter = {0.f, 0.f};
+  float     mRadius = 0.f;
 };
 
 template<>

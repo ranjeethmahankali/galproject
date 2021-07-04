@@ -112,7 +112,7 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
       return glm::vec2(p);
     });
   return std::make_tuple(std::make_shared<gal::Circle2d>(
-    gal::Circle2d::minBoundingCircle(pts2d.data(), pts2d.size())));
+    gal::Circle2d::minBoundingCircle(pts2d)));
 };
 
 GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
