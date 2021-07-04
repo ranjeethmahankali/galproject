@@ -3721,8 +3721,8 @@ struct MakeDrawable<gal::Sphere> : public std::true_type
     iBuf.finalize(view->mIBO);
 
     // Render settings.
-    static constexpr glm::vec4 sFaceColor = {1.0f, 1.0f, 1.0f, 1.0f};
-    static constexpr glm::vec4 sEdgeColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    static constexpr glm::vec4 sFaceColor = {.5f, 1.f, .5f, .7f};
+    static constexpr glm::vec4 sEdgeColor = {0.0f, 0.0f, 0.0f, .7f};
     RenderSettings             settings;
     settings.faceColor     = sFaceColor;
     settings.edgeColor     = sEdgeColor;

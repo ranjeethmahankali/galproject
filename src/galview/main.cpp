@@ -51,7 +51,7 @@ static int initViewer(GLFWwindow*& window)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  window = glfwCreateWindow(1920, 1080, "First Attempt", nullptr, nullptr);
+  window = glfwCreateWindow(1920, 1080, "galview", nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
