@@ -1,5 +1,6 @@
 #pragma once
 
+#include <galcore/Annotations.h>
 #include <galcore/Box.h>
 #include <galcore/Circle2d.h>
 #include <galcore/Mesh.h>
@@ -18,7 +19,7 @@ struct TypeInfo : public std::false_type
 
 #define GAL_TYPE_INFO(type, idInt)                                            \
   template<>                                                                  \
-  struct gal::TypeInfo<type> : public std::true_type                   \
+  struct gal::TypeInfo<type> : public std::true_type                          \
   {                                                                           \
     static constexpr uint32_t id       = idInt;                               \
     static constexpr char     s_name[] = #type;                               \
@@ -58,3 +59,4 @@ GAL_TYPE_INFO(gal::Box2, 0xd60b396d);
 GAL_TYPE_INFO(gal::PointCloud, 0xe6e934eb);
 GAL_TYPE_INFO(gal::Circle2d, 0X3271dc29);
 GAL_TYPE_INFO(gal::Mesh, 0x45342367);
+GAL_TYPE_INFO(gal::Annotations, 0x901da902);

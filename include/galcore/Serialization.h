@@ -138,4 +138,48 @@ struct Serial<std::vector<T>> : public std::true_type
   }
 };
 
+template<typename T1, typename T2>
+struct Serial<std::pair<T1, T2>> : public std::true_type
+{
+  static std::pair<T1, T2> deserialize(Bytes& bytes)
+  {
+    T1 a;
+    T2 b;
+    bytes >> a >> b;
+    return std::make_pair(std::move(a), std::move(b));
+  }
+
+  static Bytes serialize(const std::pair<T1, T2>& pair)
+  {
+    Bytes bytes;
+    bytes << pair.first << pair.second;
+    return bytes;
+  }
+};
+
+template<>
+struct Serial<std::string> : public std::true_type
+{
+  static std::string deserialize(Bytes& bytes)
+  {
+    uint64_t size;
+    bytes >> size;
+    std::string str(size, '\0');
+    for (char& c : str) {
+      bytes >> c;
+    }
+    return str;
+  }
+
+  static Bytes serialize(const std::string& str)
+  {
+    Bytes bytes;
+    bytes << str.size();
+    for (char c : str) {
+      bytes << c;
+    }
+    return bytes;
+  }
+};
+
 }  // namespace gal
