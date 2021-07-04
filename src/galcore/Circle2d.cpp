@@ -53,42 +53,8 @@ Circle2d Circle2d::createCircumcircle(const glm::vec2& a,
 
 Circle2d Circle2d::createFromDiameter(const glm::vec2& a, const glm::vec2& b)
 {
-  GALSCOPE(__func__);
   glm::vec2 center = 0.5f * (a + b);
-  GALWATCH(center);
   return Circle2d(center, glm::distance(center, a));
-};
-
-static Circle2d minBoundingCircle2Pt(const glm::vec2* pts,
-                                     size_t           n,
-                                     const glm::vec2& p,
-                                     const glm::vec2& q)
-{
-  GALSCOPE(__func__);
-  Circle2d circ = Circle2d::createFromDiameter(p, q);
-  GALWATCH(circ);
-  for (size_t i = 0; i < n; i++) {
-    if (!circ.contains(pts[i])) {
-      circ = Circle2d::createCircumcircle(pts[i], p, q);
-      GALWATCH(circ);
-    }
-  }
-
-  return circ;
-};
-
-static Circle2d minBoundingCircle1Pt(const glm::vec2* pts, size_t n, const glm::vec2& pt)
-{
-  GALSCOPE(__func__);
-  Circle2d circ = Circle2d::createFromDiameter(pts[0], pt);
-  GALWATCH(circ);
-  for (size_t i = 1; i < n; i++) {
-    if (!circ.contains(pts[i])) {
-      circ = minBoundingCircle2Pt(pts, i, pts[i], pt);
-      GALWATCH(circ);
-    }
-  }
-  return circ;
 };
 
 static void minBoundingCircleImpl(Circle2d&        circ,
