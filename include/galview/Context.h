@@ -24,7 +24,7 @@ struct RenderSettings
   std::pair<uint32_t, uint32_t> polygonMode   = {uint32_t(GL_FRONT_AND_BACK),
                                                uint32_t(GL_FILL)};
 
-  size_t shaderId = 0; // default shader
+  size_t shaderId = 0;  // default shader
 
   void apply() const;
 

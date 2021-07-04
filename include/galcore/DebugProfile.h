@@ -82,13 +82,15 @@ public:
  * in that scope
  */
 #ifndef NDEBUG
-#define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
-#else
-#define GALSCOPE(name)
-#endif
 
-#ifndef NDEBUG
-#define GALCAPTURE(var) gal::debug::ContextNode::capture(var, #var)
+#define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
+#define GALWATCH(var) gal::debug::ContextNode::capture(var, #var)
+#define GALCAPTURE(data, name) gal::debug::ContextNode::capture(data, #name)
+
 #else
-#define GALCAPTURE(var)
+
+#define GALSCOPE(name)
+#define GALWATCH(var)
+#define GALCAPTURE(data, name)
+
 #endif

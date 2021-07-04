@@ -6,10 +6,22 @@ namespace gal {
 
 struct Sphere
 {
-  glm::vec3 center;
-  float     radius;
+  glm::vec3 center = glm::vec3 {0.f, 0.f, 0.f};
+  float     radius = 0.f;
+
+  Sphere() = default;
+  Sphere(const glm::vec3&, float);
 
   Box3 bounds() const;
+
+  bool contains(const glm::vec3& pt, float tolerance = 0.f) const;
+
+  static Sphere createCircumsphere(const glm::vec3& a,
+                                   const glm::vec3& b,
+                                   const glm::vec3& c,
+                                   const glm::vec3& d);
+  static Sphere createFromDiameter(const glm::vec3& a, const glm::vec3& b);
+  static Sphere minBoundingSphere(const std::vector<glm::vec3>& points);
 };
 
 template<>
