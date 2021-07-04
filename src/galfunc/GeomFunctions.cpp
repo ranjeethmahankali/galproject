@@ -111,8 +111,8 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
     points->begin(), points->end(), std::back_inserter(pts2d), [](const glm::vec3& p) {
       return glm::vec2(p);
     });
-  return std::make_tuple(std::make_shared<gal::Circle2d>(
-    gal::Circle2d::minBoundingCircle(pts2d)));
+  return std::make_tuple(
+    std::make_shared<gal::Circle2d>(gal::Circle2d::minBoundingCircle(pts2d)));
 };
 
 GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
@@ -123,6 +123,17 @@ GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
               (std::vector<glm::vec3>, points, "points"))
 {
   return std::make_tuple(std::make_shared<gal::PointCloud>(*points));
+};
+
+GAL_FUNC_DEFN(((gal::Sphere, sphere, "Bounding sphere")),
+              boundingSphere,
+              true,
+              1,
+              "Creates a minimum bounding sphere for the given points.",
+              (gal::PointCloud, points, "Points"))
+{
+  return std::make_tuple(
+    std::make_shared<gal::Sphere>(gal::Sphere::minBoundingSphere(*points)));
 };
 
 }  // namespace func
