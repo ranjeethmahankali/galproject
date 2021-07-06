@@ -91,5 +91,14 @@ GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere")),
               "Creates a minimum bounding sphere for the given points.",
               (gal::PointCloud, points, "Points"));
 
+GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
+              circle2d,
+              true,
+              2,
+              "Creates a bounding circle for the given points. The 3d points are "
+              "flattened to 2d by removing the z-coordinate.",
+              (glm::vec2, center, "Center"),
+              (float, radius, "Radius"));
+
 }  // namespace func
 }  // namespace gal

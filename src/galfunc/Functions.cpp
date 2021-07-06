@@ -140,6 +140,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(absPath);
 
   GAL_DEF_PY_FN(vec3);
+  GAL_DEF_PY_FN(vec2);
   GAL_DEF_PY_FN(sphere);
   GAL_DEF_PY_FN(plane);
   GAL_DEF_PY_FN(box3);
@@ -150,6 +151,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN(boundingCircle);
   GAL_DEF_PY_FN(pointCloud3d);
   GAL_DEF_PY_FN(boundingSphere);
+  GAL_DEF_PY_FN(circle2d);
 
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);

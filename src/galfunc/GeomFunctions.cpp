@@ -136,5 +136,17 @@ GAL_FUNC_DEFN(((gal::Sphere, sphere, "Bounding sphere")),
     std::make_shared<gal::Sphere>(gal::Sphere::minBoundingSphere(*points)));
 };
 
+GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
+              circle2d,
+              true,
+              2,
+              "Creates a bounding circle for the given points. The 3d points are "
+              "flattened to 2d by removing the z-coordinate.",
+              (glm::vec2, center, "Center"),
+              (float, radius, "Radius"))
+{
+  return std::make_tuple(std::make_shared<gal::Circle2d>(*center, *radius));
+};
+
 }  // namespace func
 }  // namespace gal
