@@ -35,6 +35,7 @@ protected:
 struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
 {
   ShowFunc(const std::string& label, uint64_t regId);
+  ShowFunc(const std::string& label, const std::vector<uint64_t>& regIds);
 
   void     run() override;
   void     initOutputRegisters() override;
@@ -44,11 +45,18 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
 private:
   using gal::view::CheckBox::addHandler;
 
+  /* The first is the reg-id of the object being shown. The second is the drawId of that
+   * same object that is tracked by the viewer. Knowing the reg-id is needed in order to
+   * get retriggered when the upstream changes, and in order to get the latest geometry.
+   * Knowing the drawId is needed in order to interact with the viewer.*/
+  using Showable = std::pair<uint64_t, size_t>;
+
+  void useUpstreamRegisters();
+
 private:
-  uint64_t              mObjRegId;
-  size_t                mDrawId = 0;
+  std::vector<Showable> mShowables;
   std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;
+  uint64_t              mRegisterId;  // Output
 };
 
 struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
