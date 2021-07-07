@@ -1,8 +1,10 @@
 #include <galcore/Types.h>
 #include <galcore/Util.h>
+#include <galfunc/CircleFunctions.h>
 #include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
+#include <galfunc/SphereFunctions.h>
 #include <galfunc/UtilFunctions.h>
 #include <galfunc/Variable.h>
 
@@ -137,22 +139,31 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
 
+  // UtilFunctions
   GAL_DEF_PY_FN(absPath);
 
+  // GeomFunctions
   GAL_DEF_PY_FN(vec3);
   GAL_DEF_PY_FN(vec2);
-  GAL_DEF_PY_FN(sphere);
   GAL_DEF_PY_FN(plane);
   GAL_DEF_PY_FN(box3);
   GAL_DEF_PY_FN(randomPointCloudFromBox);
   GAL_DEF_PY_FN(pointCloudConvexHull);
   GAL_DEF_PY_FN(closestPointsOnMesh);
   GAL_DEF_PY_FN(meshBbox);
-  GAL_DEF_PY_FN(boundingCircle);
   GAL_DEF_PY_FN(pointCloud3d);
-  GAL_DEF_PY_FN(boundingSphere);
-  GAL_DEF_PY_FN(circle2d);
 
+  // CircleFunctions
+  GAL_DEF_PY_FN(boundingCircle);
+  GAL_DEF_PY_FN(circle2d);
+  GAL_DEF_PY_FN(circle2dFromDiameter);
+  GAL_DEF_PY_FN(circumCircle2d);
+
+  // SphereFunctions
+  GAL_DEF_PY_FN(sphere);
+  GAL_DEF_PY_FN(boundingSphere);
+
+  // MeshFunctions
   GAL_DEF_PY_FN(loadObjFile);
   GAL_DEF_PY_FN(meshCentroid);
   GAL_DEF_PY_FN(scaleMesh);
