@@ -1,4 +1,5 @@
 
+#include <galcore/DebugProfile.h>
 #include <gtest/gtest.h>
 
 void applyFilter(int& argc, char**& argv)
@@ -20,6 +21,10 @@ int main(int argc, char** argv)
   /*
   applyFilter(argc, argv);
    */
+
+#ifndef NDEBUG
+  gal::debug::enableDebugging();
+#endif
 
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
