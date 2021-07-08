@@ -12,8 +12,8 @@ GAL_FUNC_DECL(((std::string, path, "Absolute path")),
               "Gets the absolute path given the path relative to the current binary.",
               (std::string, relpath, "Path relative to the current binary"));
 
-// These are all the functions exposed from this translation unit.
-#define GAL_UtilFunctions absPath
-
 }  // namespace func
 }  // namespace gal
+
+// These are all the functions exposed from this translation unit.
+#define GAL_UtilFunctions absPath
