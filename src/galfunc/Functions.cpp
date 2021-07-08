@@ -142,8 +142,5 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN_ALL(GAL_CircleFunctions)
   GAL_DEF_PY_FN_ALL(GAL_SphereFunctions)
 
-  //   GAL_DEF_PY_FN(read);
-  def("readf32", gal::func::py_readRegister<float>);
-  def("readstring", gal::func::py_readRegister<std::string>);
-  def("readi32", gal::func::py_readRegister<int32_t>);
+  GAL_DEF_PY_FN(read);
 };

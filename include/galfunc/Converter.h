@@ -26,7 +26,7 @@ struct Converter
       dst = src;
     }
     else {
-      dst = (T2)src;
+      dst = T2(src);
     }
   };
 };
@@ -43,6 +43,31 @@ struct Converter<boost::python::api::const_object_item, T>
   {
     dst = boost::python::extract<T>(src);
   };
+};
+
+template<>
+struct Converter<glm::vec3, boost::python::object>
+{
+  static void assign(const glm::vec3& src, boost::python::object& dst)
+  {
+    boost::python::list lst;
+    lst.append(src[0]);
+    lst.append(src[1]);
+    lst.append(src[2]);
+    dst = std::move(lst);
+  }
+};
+
+template<>
+struct Converter<glm::vec2, boost::python::object>
+{
+  static void assign(const glm::vec2& src, boost::python::object& dst)
+  {
+    boost::python::list lst;
+    lst.append(src[0]);
+    lst.append(src[1]);
+    dst = std::move(lst);
+  }
 };
 
 template<>

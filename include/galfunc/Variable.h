@@ -80,5 +80,14 @@ boost::python::tuple py_list(const boost::python::list& lst)
   return py_variable<std::vector<T>, boost::python::list>(lst);
 };
 
+// Reads the data inside a variable.
+template<typename T>
+T read(gal::func::store::Register reg)
+{
+  return *gal::func::store::get<T>(reg.id);
+};
+
+boost::python::object py_read(store::Register reg);
+
 }  // namespace func
 }  // namespace gal

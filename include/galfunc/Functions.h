@@ -306,12 +306,6 @@ boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
   return pythonRegisterTupleInternal<0>(cppTup);
 };
 
-template<typename T>
-T py_readRegister(gal::func::store::Register reg)
-{
-  return *gal::func::store::get<T>(reg.id);
-};
-
 }  // namespace func
 }  // namespace gal
 
