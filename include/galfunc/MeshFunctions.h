@@ -1,8 +1,8 @@
 #pragma once
 
 #include <galcore/ObjLoader.h>
-#include <galfunc/GeomFunctions.h>
 #include <galcore/Types.h>
+#include <galfunc/GeomFunctions.h>
 
 namespace gal {
 namespace func {
@@ -78,3 +78,8 @@ GAL_FUNC_DECL(((gal::Box3, bounds, "Bounds of the mesh")),
 
 }  // namespace func
 }  // namespace gal
+
+#define GAL_MeshFunctions                                                      \
+  meshCentroid, meshVolume, meshSurfaceArea, loadObjFile, scaleMesh, clipMesh, \
+    meshSphereQuery, closestPointsOnMesh, meshBbox
+    

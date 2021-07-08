@@ -70,3 +70,8 @@ GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
 
 }  // namespace func
 }  // namespace gal
+
+// These are all the functions exposed from this translation unit.
+#define GAL_GeomFunctions                                                       \
+  vec3, vec2, plane, box3, box2, randomPointCloudFromBox, pointCloudConvexHull, \
+    pointCloud3d

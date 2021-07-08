@@ -41,3 +41,5 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
 
 }  // namespace func
 }  // namespace gal
+
+#define GAL_CircleFunctions boundingCircle, circle2d, circle2dFromDiameter, circumCircle2d

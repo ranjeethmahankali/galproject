@@ -22,3 +22,5 @@ GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere")),
 
 }  // namespace func
 }  // namespace gal
+
+#define GAL_SphereFunctions sphere, boundingSphere
