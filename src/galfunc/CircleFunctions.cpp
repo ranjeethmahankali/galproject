@@ -3,7 +3,9 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
+GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               boundingCircle,
               true,
               1,
@@ -17,8 +19,12 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Bounding circle")),
     points->begin(), points->end(), std::back_inserter(pts2d), [](const glm::vec3& p) {
       return glm::vec2(p);
     });
-  return std::make_tuple(
-    std::make_shared<gal::Circle2d>(gal::Circle2d::minBoundingCircle(pts2d)));
+  auto      circ = gal::Circle2d::minBoundingCircle(pts2d);
+  glm::vec2 cent = circ.center();
+  float     rad  = circ.radius();
+  return std::make_tuple(std::make_shared<gal::Circle2d>(std::move(circ)),
+                         std::make_shared<glm::vec2>(cent),
+                         std::make_shared<float>(rad));
 }
 
 GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
@@ -33,7 +39,9 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
   return std::make_tuple(std::make_shared<gal::Circle2d>(*center, *radius));
 }
 
-GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
+GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               circle2dFromDiameter,
               true,
               2,
@@ -41,11 +49,17 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
               (glm::vec2, pt1, "First point"),
               (glm::vec2, pt2, "Second point"))
 {
-  return std::make_tuple(
-    std::make_shared<gal::Circle2d>(gal::Circle2d::createFromDiameter(*pt1, *pt2)));
+  auto      circ   = gal::Circle2d::createFromDiameter(*pt1, *pt2);
+  glm::vec2 center = circ.center();
+  float     rad    = circ.radius();
+  return std::make_tuple(std::make_shared<gal::Circle2d>(std::move(circ)),
+                         std::make_shared<glm::vec2>(center),
+                         std::make_shared<float>(rad));
 }
 
-GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
+GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               circumCircle2d,
               true,
               3,
@@ -54,8 +68,12 @@ GAL_FUNC_DEFN(((gal::Circle2d, circle, "Circle")),
               (glm::vec2, pt2, "Second point"),
               (glm::vec2, pt3, "Third point"))
 {
-  return std::make_tuple(
-    std::make_shared<gal::Circle2d>(gal::Circle2d::createCircumcircle(*pt1, *pt2, *pt3)));
+  auto      circ   = gal::Circle2d::createCircumcircle(*pt1, *pt2, *pt3);
+  glm::vec2 center = circ.center();
+  float     radius = circ.radius();
+  return std::make_tuple(std::make_shared<gal::Circle2d>(std::move(circ)),
+                         std::make_shared<glm::vec2>(center),   
+                         std::make_shared<float>(radius));  
 }
 
 }  // namespace func

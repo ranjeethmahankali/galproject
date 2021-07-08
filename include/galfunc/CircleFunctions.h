@@ -5,7 +5,9 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
+GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               boundingCircle,
               true,
               1,
@@ -22,7 +24,9 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
               (glm::vec2, center, "Center"),
               (float, radius, "Radius"));
 
-GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
+GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               circle2dFromDiameter,
               true,
               2,
@@ -30,7 +34,9 @@ GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
               (glm::vec2, pt1, "First point"),
               (glm::vec2, pt2, "Second point"));
 
-GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle")),
+GAL_FUNC_DECL(((gal::Circle2d, circle, "Circle"),
+               (glm::vec2, center, "Center of the circle"),
+               (float, radius, "Radius of the circle")),
               circumCircle2d,
               true,
               3,

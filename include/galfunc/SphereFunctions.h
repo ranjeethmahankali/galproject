@@ -13,7 +13,9 @@ GAL_FUNC_DECL(((gal::Sphere, sphere, "Sphere")),
               (glm::vec3, center, "Center"),
               (float, radius, "Radius"));
 
-GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere")),
+GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere"),
+               (glm::vec3, center, "Center of the sphere"),
+               (float, radius, "Radius of the sphere")),
               boundingSphere,
               true,
               1,
