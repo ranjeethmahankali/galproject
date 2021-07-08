@@ -14,7 +14,7 @@ WORDS = [str(i) for i in range(len(POINTS))]
 pts, = pgf.listvec3(POINTS)
 words, = pgf.liststring(WORDS)
 cloud, = pgf.pointCloud3d(pts)
-circ, = pgf.boundingCircle(cloud)
+circ, *_ = pgf.boundingCircle(cloud)
 
 pgv.tags("indices", pts, words)
 pgv.show("circle", circ)

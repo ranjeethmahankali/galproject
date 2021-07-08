@@ -10,7 +10,7 @@ box, = pgf.box3(minpt, maxpt)
 npts, = pgv.slideri32("Point count", 5, 50, 25)
 
 cloud, = pgf.randomPointCloudFromBox(box, npts)
-sphere, = pgf.boundingSphere(cloud)
+sphere, *_ = pgf.boundingSphere(cloud)
 
 pgv.show("cloud", cloud)
 pgv.show("sphere", sphere)

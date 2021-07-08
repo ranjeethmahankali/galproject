@@ -306,12 +306,6 @@ boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
   return pythonRegisterTupleInternal<0>(cppTup);
 };
 
-template<typename T>
-T py_readRegister(gal::func::store::Register reg)
-{
-  return *gal::func::store::get<T>(reg.id);
-};
-
 }  // namespace func
 }  // namespace gal
 
@@ -392,7 +386,7 @@ std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
   gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType                 \
     GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__))
 
-#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName)
+#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
 
 // Forward declaration of the module initializer for embedded scripts.
 // This will be defined by boost later.
