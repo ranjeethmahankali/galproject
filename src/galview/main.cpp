@@ -7,6 +7,7 @@
 
 #include <galcore/Circle2d.h>
 #include <galcore/ConvexHull.h>
+#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
@@ -157,6 +158,7 @@ static int loadDemo(const fs::path& demoPath)
 
 static int debugSession(const fs::path& targetDir)
 {
+  gal::debug::enableDebugging();
   if (!fs::is_directory(targetDir)) {
     return 1;
   }
@@ -199,7 +201,6 @@ int main(int argc, char** argv)
 {
   //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
-
   static constexpr char pathKey[] = "path";
   bool                  debugFlag;
   bool                  postMortemFlag;
@@ -249,6 +250,10 @@ int main(int argc, char** argv)
   }
 
   fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
+
+#ifndef NDEBUG
+  gal::debug::enableDebugging();
+#endif
 
   if (fs::exists(path)) {
     bool isDir = fs::is_directory(path);

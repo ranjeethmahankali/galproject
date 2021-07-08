@@ -10,7 +10,7 @@ TEST(Circle2d, MinBoundingCircle)
   GALSCOPE(__func__);
   const static std::vector<std::vector<glm::vec2>> pointSets {{
                                                                 {0.f, 0.f},
-                                                                {1.f, 0.f},
+                                                                {1.1f, 0.f},
                                                                 {0.25f, 0.25f},
                                                                 {1.f, 1.f},
                                                                 {-.3f, 1.f},
