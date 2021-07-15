@@ -1,3 +1,5 @@
+#include <execution>
+
 #include <galcore/Annotations.h>
 #include <galcore/Circle2d.h>
 #include <galcore/DebugProfile.h>
@@ -26,8 +28,8 @@ TEST(Circle2d, MinBoundingCircle)
 
   for (const auto& points : pointSets) {
     auto cloud = gal::PointCloud(points);
-    GALWATCH(cloud);
-    GALCAPTURE(gal::Annotations::createIndexedPointCloud(cloud), tags);
+    GALCAPTURE(cloud);
+    GALCAPTURE_WITH_NAME(gal::Annotations::createIndexedPointCloud(cloud), tags);
     auto circ = gal::Circle2d::minBoundingCircle(points);
 
     for (const auto& pt : points) {
@@ -53,11 +55,33 @@ TEST(Sphere, MinBoundingSphere)
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};
 
   auto cloud = gal::PointCloud(points);
-  GALWATCH(cloud);
-  GALCAPTURE(gal::Annotations::createIndexedPointCloud(cloud), tags);
+  GALCAPTURE(cloud);
+  GALCAPTURE_WITH_NAME(gal::Annotations::createIndexedPointCloud(cloud), tags);
   auto sp = gal::Sphere::minBoundingSphere(points);
 
   for (const auto& pt : points) {
     ASSERT_TRUE(sp.contains(pt, TOLERANCE));
+  }
+}
+
+TEST(PointCloud, KMeansClusters)
+{
+  gal::Box3               bounds(glm::vec3(0.f), glm::vec3(10.f));
+  static constexpr size_t nPoints   = 100;
+  static constexpr size_t nClusters = 5;
+  std::vector<glm::vec3>  points(nPoints);
+  bounds.randomPoints(points.size(), points.begin());
+  std::vector<size_t> indices(points.size());
+  gal::kMeansClusters<glm::vec3>(
+    points.begin(), points.end(), nClusters, indices.begin());
+
+  for (size_t i : indices) {
+    ASSERT_TRUE(i < nClusters);
+  }
+
+  for (size_t i = 0; i < nClusters; i++) {
+    size_t clusterSize =
+      std::count(std::execution::par_unseq, indices.begin(), indices.end(), i);
+    ASSERT_TRUE(clusterSize > 0);
   }
 }
