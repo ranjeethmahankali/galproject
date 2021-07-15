@@ -17,6 +17,16 @@ struct Box3
   Box3(const glm::vec3* points, size_t nPoints);
   Box3(const Box2& b2);
 
+  template<typename TPtIter>
+  static Box3 create(TPtIter begin, TPtIter end)
+  {
+    Box3 b;
+    while (begin != end) {
+      b.inflate(*(begin++));
+    }
+    return b;
+  }
+
   glm::vec3 diagonal() const;
   void      inflate(const glm::vec3&);
   void      inflate(float);
@@ -56,7 +66,7 @@ struct Serial<Box3> : public std::true_type
     bytes >> box.min >> box.max;
     return box;
   }
-  
+
   static Bytes serialize(const Box3& box)
   {
     Bytes bytes;
@@ -74,6 +84,16 @@ struct Box2
   Box2(const glm::vec2& pt);
   Box2(const glm::vec2&, const glm::vec2&);
   Box2(const glm::vec2* points, size_t nPoints);
+
+  template<typename TPtIter>
+  static Box2 create(TPtIter begin, TPtIter end)
+  {
+    Box2 b;
+    while (begin != end) {
+      b.inflate(*(begin++));
+    }
+    return b;
+  }
 
   glm::vec2 diagonal() const;
   void      inflate(const glm::vec2&);
