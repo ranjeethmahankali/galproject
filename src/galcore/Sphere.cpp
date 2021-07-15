@@ -85,19 +85,19 @@ static void minBoundingSphereImpl(Sphere&          sp,
   auto current = begin;
   if (pin1 && pin2 && pin3) {
     sp = triangleCircumsphere(*pin1, *pin2, *pin3);
-    GALWATCH(sp);
+    GALCAPTURE(sp);
   }
   else if (pin1 && pin2) {
     sp = Sphere::createFromDiameter(*pin1, *pin2);
-    GALWATCH(sp);
+    GALCAPTURE(sp);
   }
   else if (pin1) {
     sp = Sphere::createFromDiameter(*(current++), *pin1);
-    GALWATCH(sp);
+    GALCAPTURE(sp);
   }
   else {
     sp = Sphere::createFromDiameter(*current, *(current + 1));
-    GALWATCH(sp);
+    GALCAPTURE(sp);
     current += 2;
   }
 
