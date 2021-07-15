@@ -86,13 +86,16 @@ public:
 #ifndef NDEBUG
 
 #define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
-#define GALWATCH(var) gal::debug::ContextNode::capture(var, #var)
-#define GALCAPTURE(data, name) gal::debug::ContextNode::capture(data, #name)
+#define GALCAPTURE(var) gal::debug::ContextNode::capture(var, #var)
+#define GALCAPTURE_WITH_NAME(data, name) gal::debug::ContextNode::capture(data, #name)
+#define GALCAPTURE_WITH_STRING_NAME(data, name) \
+  gal::debug::ContextNode::capture(data, name)
 
 #else
 
 #define GALSCOPE(name)
-#define GALWATCH(var)
-#define GALCAPTURE(data, name)
+#define GALCAPTURE(var)
+#define GALCAPTURE_WITH_NAME(data, name)
+#define GALCAPTURE_WITH_STRING_NAME(data, name)
 
 #endif

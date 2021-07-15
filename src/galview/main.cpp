@@ -158,7 +158,6 @@ static int loadDemo(const fs::path& demoPath)
 
 static int debugSession(const fs::path& targetDir)
 {
-  gal::debug::enableDebugging();
   if (!fs::is_directory(targetDir)) {
     return 1;
   }
@@ -250,10 +249,6 @@ int main(int argc, char** argv)
   }
 
   fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
-
-#ifndef NDEBUG
-  gal::debug::enableDebugging();
-#endif
 
   if (fs::exists(path)) {
     bool isDir = fs::is_directory(path);
