@@ -150,7 +150,7 @@ struct WatchManager
         WatchManager<TRest...>::watch(typeId, bytes, geomKey, drawId, widget);
       }
       else if constexpr (sizeof...(TRest) == 0) {
-        std::cerr << "Datatype " << gal::TypeInfo<T>::name
+        std::cerr << "Datatype " << gal::TypeInfo<T>::name()
                   << " is not watchable in a debug session\n";
         throw std::bad_cast();
       }

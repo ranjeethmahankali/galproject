@@ -212,7 +212,7 @@ struct PrintManager
       return PrintManager<TRest...>::print(typeId, ptr);
     }
     else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name
+      std::cerr << "Datatype " << gal::TypeInfo<T>::name()
                 << " is not a printable object\n";
       throw std::bad_cast();
     }

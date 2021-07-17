@@ -59,9 +59,9 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
     auto                fend   = mesh.faceCEnd();
     while (fbegin != fend) {
       const Mesh::Face& face = *(fbegin++);
-      *(dsti++)              = (uint32_t)face.a;
-      *(dsti++)              = (uint32_t)face.b;
-      *(dsti++)              = (uint32_t)face.c;
+      *(dsti++)              = uint32_t(face.a);
+      *(dsti++)              = uint32_t(face.b);
+      *(dsti++)              = uint32_t(face.c);
     }
     view->mISize = (uint32_t)iBuf.size();
 

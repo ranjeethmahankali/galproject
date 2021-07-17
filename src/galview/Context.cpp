@@ -23,8 +23,8 @@ static void setOrthoModeUniform()
 
 void RenderSettings::apply() const
 {
-  Context::get().useShader(shaderId);
   Context& ctx = Context::get();
+  ctx.useShader(shaderId);
   ctx.setUniform<glm::vec4>("faceColor", faceColor);
   ctx.setUniform<glm::vec4>("edgeColor", edgeColor);
   ctx.setUniform<glm::vec4>("pointColor", pointColor);

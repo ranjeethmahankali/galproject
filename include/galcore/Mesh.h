@@ -172,11 +172,6 @@ public:
 };
 
 template<>
-struct IsValueType<Mesh::Face> : public std::true_type
-{
-};
-
-template<>
 struct Serial<Mesh> : public std::true_type
 {
   static Mesh deserialize(Bytes& bytes)

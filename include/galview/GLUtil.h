@@ -36,6 +36,10 @@ struct DefaultVertex
   glm::vec3 position = glm::vec3 {0.f, 0.f, 0.f};
   glm::vec3 normal   = glm::vec3 {0.f, 0.f, 0.f};
 
+  /**
+   * @brief This will setup the vertex attribute layout. This must be called after the
+   * appropriate buffers are bound.
+   */
   static void initAttributes();
 };
 

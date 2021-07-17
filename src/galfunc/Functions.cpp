@@ -99,17 +99,18 @@ void markDirty(uint64_t id)
   ids.push_back(id);
 
   while (!ids.empty()) {
-    uint64_t current             = ids.back();
-    getRegister(current).isDirty = true;
+    uint64_t  current = ids.back();
+    Register& reg     = getRegister(current);
     ids.pop_back();
-    auto   fn    = getRegister(current).ownerFunc();
-    size_t nOuts = fn->numOutputs();
-    for (size_t i = 0; i < nOuts; i++) {
-      const auto& users = sRegisterUserMap[fn->outputRegister(i)];
-      for (const auto& user : users) {
-        for (size_t j = 0; j < user->numOutputs(); j++) {
-          ids.push_back(user->outputRegister(j));
-        }
+    if (reg.isDirty) {
+      // If this register is already dirty, we expect downstream to be dirty.
+      continue;
+    }
+    reg.isDirty       = true;
+    const auto& users = sRegisterUserMap[current];
+    for (const auto& user : users) {
+      for (size_t j = 0; j < user->numOutputs(); j++) {
+        ids.push_back(user->outputRegister(j));
       }
     }
   }

@@ -80,7 +80,11 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
   static_assert(gal::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
   if (TypeInfo<T>::id == reg.typeId) {
-    reg.ptr = data;
+    // Mark this and everything downstream as dirty.
+    markDirty(reg.id);
+    reg.ptr     = data;
+    // This register itself is not dirty.
+    reg.isDirty = false;
     return;
   }
   std::cerr << "Type mismatch error.\n";
@@ -138,28 +142,11 @@ struct RegisterAccessor
 
   static constexpr size_t NumData = TDataList::NumTypes;
 
-private:
-  static void typeCheck(const store::Register& reg)
-  {
-    static_assert(TypeInfo<DType>::value, "Unknown type");
-    if (reg.typeId != TypeInfo<DType>::id) {
-      std::cerr << "Type mismatch error\n";
-      throw std::bad_cast();
-    }
-  };
-
 public:
   static void readRegisters(const std::array<uint64_t, NumData>& ids,
                             SharedTupleType&                     dst)
   {
-    store::Register& reg = store::getRegister(ids[N]);
-    typeCheck(reg);
-    if (reg.isDirty) {
-      auto fn = reg.ownerFunc();
-      fn->run();
-      reg.isDirty = false;
-    }
-    std::get<N>(dst) = std::static_pointer_cast<DType>(reg.ptr);
+    std::get<N>(dst) = store::get<DType>(ids[N]);
     if constexpr (N < TDataList::NumTypes - 1) {
       // Recurse to the next indices.
       RegisterAccessor<TDataList, N + 1>::readRegisters(ids, dst);
@@ -169,9 +156,7 @@ public:
   static void writeToRegisters(const std::array<uint64_t, NumData>& ids,
                                const SharedTupleType&               src)
   {
-    store::Register& reg = store::getRegister(ids[N]);
-    typeCheck(reg);
-    reg.ptr = std::static_pointer_cast<void>(std::get<N>(src));
+    store::set<DType>(ids[N], std::get<N>(src));
     if constexpr (N < TDataList::NumTypes - 1) {
       // Recurse to the next indices.
       RegisterAccessor<TDataList, N + 1>::writeToRegisters(ids, src);
