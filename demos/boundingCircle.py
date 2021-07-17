@@ -13,7 +13,7 @@ box, = pgf.box3(minpt, maxpt)
 npts, = pgv.slideri32("Point count", 5, 50, 25)
 
 cloud, = pgf.randomPointCloudFromBox(box, npts)
-circ, = pgf.boundingCircle(cloud)
+circ, *_ = pgf.boundingCircle(cloud)
 
 pgv.show("cloud", cloud)
 pgv.show("circ", circ)

@@ -74,7 +74,11 @@ GAL_FUNC_DEFN(((gal::Mesh, mesh, "Clipped mesh")),
 };
 
 GAL_FUNC_DEFN(
-  ((gal::Mesh, resultMesh, "Mesh with the queried faces")),
+  ((gal::Mesh, resultMesh, "Mesh with the queried faces"),
+   (std::vector<int32_t>,
+    faceIndices,
+    "Indices of the faces that are inside / near the query sphere"),
+   (int32_t, numFaces, "The number of faces in the query results")),
   meshSphereQuery,
   true,
   2,
@@ -84,7 +88,12 @@ GAL_FUNC_DEFN(
 {
   std::vector<size_t> results;
   mesh->querySphere(*sphere, std::back_inserter(results), gal::eMeshElement::face);
-  return std::make_tuple(std::make_shared<gal::Mesh>(mesh->extractFaces(results)));
+  std::vector<int32_t> indices(results.size());
+  std::transform(
+    results.begin(), results.end(), indices.begin(), [](size_t i) { return int32_t(i); });
+  return std::make_tuple(std::make_shared<gal::Mesh>(mesh->extractFaces(results)),
+                         std::make_shared<std::vector<int32_t>>(std::move(indices)),
+                         std::make_shared<int32_t>(results.size()));
 };
 
 GAL_FUNC_DEFN(((gal::PointCloud, outCloud, "Result point cloud")),

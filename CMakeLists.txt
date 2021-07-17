@@ -18,7 +18,7 @@ if (Boost_FOUND)
     add_compile_definitions(BOOST_UUID_FORCE_AUTO_LINK)
     include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 endif()
-
+find_package(TBB CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
@@ -26,6 +26,8 @@ find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(efsw CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
+
+add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
@@ -39,7 +41,8 @@ add_library(galcore STATIC ${GALCORE_SRC})
 
 target_link_libraries(galcore PUBLIC
     glm::glm
-    tinyobjloader::tinyobjloader)
+    tinyobjloader::tinyobjloader
+    TBB::tbb)
 #GALCORE - end
 
 #GALFUNC - begin

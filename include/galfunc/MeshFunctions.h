@@ -1,8 +1,8 @@
 #pragma once
 
 #include <galcore/ObjLoader.h>
-#include <galfunc/GeomFunctions.h>
 #include <galcore/Types.h>
+#include <galfunc/GeomFunctions.h>
 
 namespace gal {
 namespace func {
@@ -51,7 +51,11 @@ GAL_FUNC_DECL(((gal::Mesh, mesh, "Clipped mesh")),
               (gal::Mesh, mesh, "mesh to clip"),
               (gal::Plane, plane, "Plane to clip with"));
 
-GAL_FUNC_DECL(((gal::Mesh, resultMesh, "Mesh with the queried faces")),
+GAL_FUNC_DECL(((gal::Mesh, resultMesh, "Mesh with the queried faces"),
+               (std::vector<int32_t>,
+                faceIndices,
+                "Indices of the faces that are inside / near the query sphere"),
+               (int32_t, numFaces, "The number of faces in the query results")),
               meshSphereQuery,
               true,
               2,
@@ -78,3 +82,7 @@ GAL_FUNC_DECL(((gal::Box3, bounds, "Bounds of the mesh")),
 
 }  // namespace func
 }  // namespace gal
+
+#define GAL_MeshFunctions                                                      \
+  meshCentroid, meshVolume, meshSurfaceArea, loadObjFile, scaleMesh, clipMesh, \
+    meshSphereQuery, closestPointsOnMesh, meshBbox

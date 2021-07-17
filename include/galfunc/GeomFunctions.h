@@ -22,14 +22,6 @@ GAL_FUNC_DECL(((glm::vec2, vector, "2D vector")),
               (float, x, "x coordinate"),
               (float, y, "y coordinate"));
 
-GAL_FUNC_DECL(((gal::Sphere, sphere, "Sphere")),
-              sphere,
-              true,
-              2,
-              "Creates a new sphere",
-              (glm::vec3, center, "Center"),
-              (float, radius, "Radius"));
-
 GAL_FUNC_DECL(((gal::Plane, plane, "The plane")),
               plane,
               true,
@@ -69,14 +61,6 @@ GAL_FUNC_DECL(((gal::Mesh, hull, "Convex hull")),
               "Creates a convex hull from the given point cloud",
               (gal::PointCloud, cloud, "Point cloud"));
 
-GAL_FUNC_DECL(((gal::Circle2d, circle, "Bounding circle")),
-              boundingCircle,
-              true,
-              1,
-              "Creates a bounding circle for the given points. The 3d points are "
-              "flattened to 2d by removing the z-coordinate.",
-              (gal::PointCloud, points, "Points"));
-
 GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
               pointCloud3d,
               true,
@@ -84,12 +68,10 @@ GAL_FUNC_DECL(((gal::PointCloud, cloud, "Point cloud")),
               "Creates a point cloud from the list of points",
               (std::vector<glm::vec3>, points, "points"));
 
-GAL_FUNC_DECL(((gal::Sphere, sphere, "Bounding sphere")),
-              boundingSphere,
-              true,
-              1,
-              "Creates a minimum bounding sphere for the given points.",
-              (gal::PointCloud, points, "Points"));
-
 }  // namespace func
 }  // namespace gal
+
+// These are all the functions exposed from this translation unit.
+#define GAL_GeomFunctions                                                       \
+  vec3, vec2, plane, box3, box2, randomPointCloudFromBox, pointCloudConvexHull, \
+    pointCloud3d

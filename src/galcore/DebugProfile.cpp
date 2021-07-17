@@ -4,9 +4,25 @@
 namespace gal {
 namespace debug {
 
-ContextNode     ContextNode::sRoot    = ContextNode("root", nullptr);
-ContextNode*    ContextNode::sCurrent = &ContextNode::sRoot;
-static uint64_t sCurrentId            = 0;
+static bool sDebuggingEnabled = false;
+
+bool isDebuggingEnabled()
+{
+  return sDebuggingEnabled;
+}
+
+std::shared_ptr<ContextNode> ContextNode::sRoot    = nullptr;
+ContextNode*                 ContextNode::sCurrent = nullptr;
+static uint64_t              sCurrentId            = 0;
+
+void enableDebugging()
+{
+  sDebuggingEnabled = true;
+  if (ContextNode::sRoot == nullptr) {
+    ContextNode::sRoot    = std::make_shared<ContextNode>("root", nullptr);
+    ContextNode::sCurrent = ContextNode::sRoot.get();
+  }
+}
 
 fs::path indexFilePath()
 {
@@ -30,6 +46,9 @@ ContextNode::ContextNode(const std::string& name, ContextNode* parent)
     , mParent(parent)
     , mId(sCurrentId++)  // TODO: This is not thread safe!
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   std::ofstream indexFile;
   std::ofstream stackFile;
   if (!mParent) {
@@ -70,12 +89,18 @@ ContextNode::ContextNode(const std::string& name, ContextNode* parent)
 
 ContextNode* ContextNode::addChild(const std::string& name)
 {
+  if (!sDebuggingEnabled) {
+    return nullptr;
+  }
   mChildren.emplace_back(name, this);
   return &mChildren.back();
 }
 
 void ContextNode::deleteCapturedVars()
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   for (const fs::path& p : mCaptured) {
     fs::remove(p);
   }
@@ -84,12 +109,19 @@ void ContextNode::deleteCapturedVars()
 
 void ContextNode::push(const std::string& name)
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   sCurrent = sCurrent->addChild(name);
 }
 
 static void popStackFile()
 {
   static constexpr char tempFile[] = "tempCallStack";
+
+  if (!sDebuggingEnabled) {
+    return;
+  }
 
   auto path     = callStackPath();
   auto tempPath = path.parent_path() / fs::path(tempFile);
@@ -109,6 +141,9 @@ static void popStackFile()
 
 void ContextNode::pop()
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   sCurrent->deleteCapturedVars();
   sCurrent = sCurrent->mParent;
   popStackFile();
@@ -116,11 +151,17 @@ void ContextNode::pop()
 
 ScopedContext::ScopedContext(const std::string& name)
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   ContextNode::push(name);
 }
 
 ScopedContext::~ScopedContext()
 {
+  if (!sDebuggingEnabled) {
+    return;
+  }
   ContextNode::pop();
 }
 
