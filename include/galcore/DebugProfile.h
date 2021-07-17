@@ -20,6 +20,8 @@ namespace fs = std::filesystem;
 
 fs::path indexFilePath();
 fs::path callStackPath();
+bool     isDebuggingEnabled();
+void     enableDebugging();
 
 struct ContextNode
 {
@@ -27,10 +29,10 @@ struct ContextNode
   static void push(const std::string& name);
   static void pop();
 
-private:
-  static ContextNode  sRoot;
-  static ContextNode* sCurrent;
+  static std::shared_ptr<ContextNode> sRoot;
+  static ContextNode*                 sCurrent;
 
+private:
   ContextNode* addChild(const std::string& name);
 
   void deleteCapturedVars();
@@ -84,13 +86,16 @@ public:
 #ifndef NDEBUG
 
 #define GALSCOPE(name) gal::debug::ScopedContext scope_50e31b17d776(name)
-#define GALWATCH(var) gal::debug::ContextNode::capture(var, #var)
-#define GALCAPTURE(data, name) gal::debug::ContextNode::capture(data, #name)
+#define GALCAPTURE(var) gal::debug::ContextNode::capture(var, #var)
+#define GALCAPTURE_WITH_NAME(data, name) gal::debug::ContextNode::capture(data, #name)
+#define GALCAPTURE_WITH_STRING_NAME(data, name) \
+  gal::debug::ContextNode::capture(data, name)
 
 #else
 
 #define GALSCOPE(name)
-#define GALWATCH(var)
-#define GALCAPTURE(data, name)
+#define GALCAPTURE(var)
+#define GALCAPTURE_WITH_NAME(data, name)
+#define GALCAPTURE_WITH_STRING_NAME(data, name)
 
 #endif

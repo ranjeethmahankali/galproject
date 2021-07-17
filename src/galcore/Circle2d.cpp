@@ -66,15 +66,15 @@ static void minBoundingCircleImpl(Circle2d&        circ,
   auto current = begin;
   if (pin1 && pin2) {
     circ = Circle2d::createFromDiameter(*pin1, *pin2);
-    GALWATCH(circ);
+    GALCAPTURE(circ);
   }
   else if (pin1) {
     circ = Circle2d::createFromDiameter(*(current++), *pin1);
-    GALWATCH(circ);
+    GALCAPTURE(circ);
   }
   else {
     circ = Circle2d::createFromDiameter(*current, *(current + 1));
-    GALWATCH(circ);
+    GALCAPTURE(circ);
     current += 2;
   }
 
@@ -82,7 +82,7 @@ static void minBoundingCircleImpl(Circle2d&        circ,
     if (!circ.contains(*current)) {
       if (pin1 && pin2) {
         circ = Circle2d::createCircumcircle(*pin1, *pin2, *current);
-        GALWATCH(circ);
+        GALCAPTURE(circ);
       }
       else if (pin1) {
         minBoundingCircleImpl(circ, begin, current, pin1, current);
@@ -104,7 +104,7 @@ Circle2d Circle2d::minBoundingCircle(const std::vector<glm::vec2>& points)
 
   Circle2d circ;
   minBoundingCircleImpl(circ, points.data(), points.data() + points.size());
-  GALWATCH(circ);
+  GALCAPTURE(circ);
   return circ;
 };
 

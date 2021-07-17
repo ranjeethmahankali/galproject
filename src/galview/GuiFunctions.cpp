@@ -10,8 +10,8 @@ namespace viewfunc {
 
 static view::Panel*          sInputPanel  = nullptr;
 static view::Panel*          sOutputPanel = nullptr;
-static std::vector<uint64_t> mShowFuncRegs;
-static std::vector<uint64_t> mPrintFuncRegs;
+static std::vector<uint64_t> sShowFuncRegs;
+static std::vector<uint64_t> sPrintFuncRegs;
 
 void initPanels(view::Panel& inputs, view::Panel& outputs)
 {
@@ -31,10 +31,10 @@ view::Panel& outputPanel()
 
 void evalOutputs()
 {
-  for (uint64_t id : mShowFuncRegs) {
+  for (uint64_t id : sShowFuncRegs) {
     auto success = gal::func::store::get<bool>(id);
   }
-  for (uint64_t id : mPrintFuncRegs) {
+  for (uint64_t id : sPrintFuncRegs) {
     auto success = gal::func::store::get<bool>(id);
   }
 };
@@ -70,13 +70,32 @@ using dmanager = DrawableManager<gal::Box3,
                                  gal::Plane>;
 
 ShowFunc::ShowFunc(const std::string& label, uint64_t regId)
-    : mObjRegId(regId)
+    : mShowables(1, std::make_pair(regId, 0))
     , mSuccess(std::make_shared<bool>(false))
     , gal::view::CheckBox(label, true)
 {
-  // Telling galfunc that this functor depends on this input register.
-  gal::func::store::useRegister(this, mObjRegId);
+  useUpstreamRegisters();
 };
+
+ShowFunc::ShowFunc(const std::string& label, const std::vector<uint64_t>& regIds)
+    : mShowables(regIds.size())
+    , mSuccess(std::make_shared<bool>(false))
+    , gal::view::CheckBox(label, true)
+{
+  std::transform(regIds.begin(), regIds.end(), mShowables.begin(), [](uint64_t reg) {
+    return std::make_pair(reg, size_t(0));
+  });
+
+  useUpstreamRegisters();
+}
+
+void ShowFunc::useUpstreamRegisters()
+{
+  for (size_t i = 0; i < mShowables.size(); i++) {
+    // Telling galfunc that this functor depends on this input register.
+    gal::func::store::useRegister(this, mShowables[i].first);
+  }
+}
 
 void ShowFunc::initOutputRegisters()
 {
@@ -87,10 +106,13 @@ void ShowFunc::initOutputRegisters()
 void ShowFunc::run()
 {
   try {
-    // Calling get triggers the upstream computations if needed.
-    gal::func::store::get<void>(mObjRegId);
-    auto& reg = gal::func::store::getRegister(mObjRegId);
-    mDrawId   = dmanager::draw(reg.typeId, reg.ptr, mDrawId, checkedPtr());
+    for (auto& showable : mShowables) {
+      // Calling get triggers the upstream computations if needed.
+      gal::func::store::get<void>(showable.first);
+      auto& reg = gal::func::store::getRegister(showable.first);
+      showable.second =
+        dmanager::draw(reg.typeId, reg.ptr, showable.second, checkedPtr());
+    }
     *mSuccess = true;
   }
   catch (std::bad_alloc ex) {
@@ -139,7 +161,7 @@ void TagsFunc::run()
     auto  locs     = std::static_pointer_cast<std::vector<glm::vec3>>(locsReg.ptr);
     auto  words    = std::static_pointer_cast<std::vector<std::string>>(wordsReg.ptr);
 
-    size_t ntags = std::min(locs->size(), words->size());
+    size_t      ntags = std::min(locs->size(), words->size());
     Annotations tagvals;
     tagvals.reserve(ntags);
     for (size_t i = 0; i < ntags; i++) {
@@ -272,14 +294,41 @@ gal::func::types::OutputTuple<1> show(const std::string&                label,
 {
   using namespace gal::func;
   auto fn = store::makeFunction<ShowFunc>(label, reg.id);
-  mShowFuncRegs.push_back(fn->outputRegister(0));
+  sShowFuncRegs.push_back(fn->outputRegister(0));
   auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
   outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return types::makeOutputTuple<1>(*fn);
 };
+
 boost::python::tuple py_show(const std::string& label, gal::func::store::Register reg)
 {
   return gal::func::pythonRegisterTuple(show(label, reg));
+};
+
+// Manual definition for show function because it has special needs.
+gal::func::types::OutputTuple<1> showAll(
+  const std::string&                             label,
+  const std::vector<gal::func::store::Register>& regs)
+{
+  using namespace gal::func;
+  std::vector<uint64_t> regIds(regs.size());
+  std::transform(
+    regs.begin(), regs.end(), regIds.begin(), [](const gal::func::store::Register& reg) {
+      return reg.id;
+    });
+  auto fn = store::makeFunction<ShowFunc>(label, regIds);
+  sShowFuncRegs.push_back(fn->outputRegister(0));
+  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return types::makeOutputTuple<1>(*fn);
+};
+
+boost::python::tuple py_showAll(const std::string&         label,
+                                const boost::python::list& regsPy)
+{
+  std::vector<gal::func::store::Register> regs;
+  gal::func::Converter<boost::python::list, decltype(regs)>::assign(regsPy, regs);
+  return gal::func::pythonRegisterTuple(showAll(label, regs));
 };
 
 // Manual definition for the print function because it has special needs.
@@ -288,7 +337,7 @@ gal::func::types::OutputTuple<1> print(const std::string&                label,
 {
   using namespace gal::func;
   auto fn = store::makeFunction<PrintFunc>(label, reg.id);
-  mPrintFuncRegs.push_back(fn->outputRegister(0));
+  sPrintFuncRegs.push_back(fn->outputRegister(0));
   auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
   outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return types::makeOutputTuple<1>(*fn);
@@ -332,11 +381,12 @@ gal::func::types::OutputTuple<1> tags(const std::string&                label,
 {
   using namespace gal::func;
   auto fn = store::makeFunction<TagsFunc>(label, locsReg.id, wordsReg.id);
-  mShowFuncRegs.push_back(fn->outputRegister(0));
+  sShowFuncRegs.push_back(fn->outputRegister(0));
   auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
   outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return types::makeOutputTuple<1>(*fn);
 }
+
 boost::python::tuple py_tags(const std::string&         label,
                              gal::func::store::Register locs,
                              gal::func::store::Register words)
@@ -360,6 +410,7 @@ BOOST_PYTHON_MODULE(pygalview)
   def("sliderf32", gal::viewfunc::py_slider<float>);
   def("slideri32", gal::viewfunc::py_slider<int32_t>);
   GAL_DEF_PY_FN(show);
+  GAL_DEF_PY_FN(showAll);
   GAL_DEF_PY_FN(print);
   GAL_DEF_PY_FN(textField);
   GAL_DEF_PY_FN(tags);
