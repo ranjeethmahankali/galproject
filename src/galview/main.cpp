@@ -7,6 +7,7 @@
 
 #include <galcore/Circle2d.h>
 #include <galcore/ConvexHull.h>
+#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
@@ -199,7 +200,6 @@ int main(int argc, char** argv)
 {
   //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
-
   static constexpr char pathKey[] = "path";
   bool                  debugFlag;
   bool                  postMortemFlag;

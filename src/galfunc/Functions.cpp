@@ -1,8 +1,11 @@
 #include <galcore/Types.h>
 #include <galcore/Util.h>
+#include <galfunc/CircleFunctions.h>
 #include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
+#include <galfunc/MapMacro.h>
 #include <galfunc/MeshFunctions.h>
+#include <galfunc/SphereFunctions.h>
 #include <galfunc/UtilFunctions.h>
 #include <galfunc/Variable.h>
 
@@ -117,11 +120,7 @@ void markDirty(uint64_t id)
 }  // namespace func
 }  // namespace gal
 
-// Temp code.
-float listItem()
-{
-  return 42.42;
-};
+#define GAL_DEF_PY_FN_ALL(fnNames) MAP(GAL_DEF_PY_FN, fnNames)
 
 BOOST_PYTHON_MODULE(pygalfunc)
 {
@@ -137,29 +136,11 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
 
-  GAL_DEF_PY_FN(absPath);
+  GAL_DEF_PY_FN_ALL(GAL_UtilFunctions)
+  GAL_DEF_PY_FN_ALL(GAL_GeomFunctions)
+  GAL_DEF_PY_FN_ALL(GAL_MeshFunctions)
+  GAL_DEF_PY_FN_ALL(GAL_CircleFunctions)
+  GAL_DEF_PY_FN_ALL(GAL_SphereFunctions)
 
-  GAL_DEF_PY_FN(vec3);
-  GAL_DEF_PY_FN(sphere);
-  GAL_DEF_PY_FN(plane);
-  GAL_DEF_PY_FN(box3);
-  GAL_DEF_PY_FN(randomPointCloudFromBox);
-  GAL_DEF_PY_FN(pointCloudConvexHull);
-  GAL_DEF_PY_FN(closestPointsOnMesh);
-  GAL_DEF_PY_FN(meshBbox);
-  GAL_DEF_PY_FN(boundingCircle);
-  GAL_DEF_PY_FN(pointCloud3d);
-  GAL_DEF_PY_FN(boundingSphere);
-
-  GAL_DEF_PY_FN(loadObjFile);
-  GAL_DEF_PY_FN(meshCentroid);
-  GAL_DEF_PY_FN(scaleMesh);
-  GAL_DEF_PY_FN(clipMesh);
-  GAL_DEF_PY_FN(meshSphereQuery);
-  GAL_DEF_PY_FN(meshSurfaceArea);
-  GAL_DEF_PY_FN(meshVolume);
-
-  def("readf32", gal::func::py_readRegister<float>);
-  def("readstring", gal::func::py_readRegister<std::string>);
-  def("readi32", gal::func::py_readRegister<int32_t>);
+  GAL_DEF_PY_FN(read);
 };

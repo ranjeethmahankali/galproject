@@ -14,6 +14,7 @@ vcpkg dependencies:
 * tinyobjloader
 * efsw
 * freetype
+* tbb
 
 EFSW depends on `inotify`. It can be installed as follows:
 ```
