@@ -4,125 +4,116 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(((glm::vec3, centroid, "x coordinate")),
-              meshCentroid,
-              true,
+GAL_FUNC_DEFN(meshCentroid,
+              1,
               1,
               "Gets the centroid of a mesh",
-              (gal::Mesh, mesh, "The mesh"))
+              ((gal::Mesh, mesh, "The mesh")),
+              ((glm::vec3, centroid, "x coordinate")))
 {
-  return std::make_tuple(
-    std::make_shared<glm::vec3>(mesh->centroid(gal::eMeshCentroidType::volumeBased)));
+  *centroid = mesh->centroid(gal::eMeshCentroidType::volumeBased);
 };
 
-GAL_FUNC_DEFN(((float, volume, "Volume of the mesh")),
-              meshVolume,
-              true,
+GAL_FUNC_DEFN(meshVolume,
+              1,
               1,
               "Gets the volume of the mesh",
-              (gal::Mesh, mesh, "The mesh"))
+              ((gal::Mesh, mesh, "The mesh")),
+              ((float, volume, "Volume of the mesh")))
 {
-  return std::make_tuple(std::make_shared<float>(mesh->volume()));
+  *volume = mesh->volume();
 };
 
-GAL_FUNC_DEFN(((float, area, "Surface area of the mesh")),
-              meshSurfaceArea,
-              true,
+GAL_FUNC_DEFN(meshSurfaceArea,
+              1,
               1,
               "Gets the surface area of the mesh",
-              (gal::Mesh, mesh, "The mesh"))
+              ((gal::Mesh, mesh, "The mesh")),
+              ((float, area, "Surface area of the mesh")))
 {
-  return std::make_tuple(std::make_shared<float>(mesh->area()));
+  *area = mesh->area();
 };
 
-GAL_FUNC_DEFN(((gal::Mesh, mesh, "Loaded mesh")),
-              loadObjFile,
-              true,
+GAL_FUNC_DEFN(loadObjFile,
+              1,
               1,
               "Loads a mesh from an obj file",
-              (std::string, filepath, "The path to the obj file"))
+              ((std::string, filepath, "The path to the obj file")),
+              ((gal::Mesh, mesh, "Loaded mesh")))
 {
-  return std::make_tuple(
-    std::make_shared<gal::Mesh>(io::ObjMeshData(*filepath, true).toMesh()));
+  *mesh = io::ObjMeshData(*filepath, true).toMesh();
 };
 
-GAL_FUNC_DEFN(((gal::Mesh, mesh, "Input mesh")),
-              scaleMesh,
-              true,
+GAL_FUNC_DEFN(scaleMesh,
               2,
-              "Transforms the mesh. Modifies the given instance",
-              (gal::Mesh, mesh, "Transformed mesh"),
-              (float, scale, "Scale"))
+              1,
+              "Scales the mesh. Returns a new instance.",
+              ((gal::Mesh, mesh, "Scaled mesh"), (float, scale, "Scale")),
+              ((gal::Mesh, scaled, "Input mesh")))
 {
-  float s     = *scale;
-  auto  mesh2 = std::make_shared<gal::Mesh>(*mesh);
-  mesh2->transform(glm::scale(glm::vec3(s, s, s)));
-  return std::make_tuple(mesh2);
+  *scaled = *mesh;
+  scaled->transform(glm::scale(glm::vec3(*scale)));
 };
 
-GAL_FUNC_DEFN(((gal::Mesh, mesh, "Clipped mesh")),
-              clipMesh,
-              true,
+GAL_FUNC_DEFN(clipMesh,
               2,
-              "Clips the given mesh with the plane. Returns a new mesh",
-              (gal::Mesh, mesh, "mesh to clip"),
-              (gal::Plane, plane, "Plane to clip with"))
+              1,
+              "Clips the given mesh with the plane. Returns a new mesh.",
+              ((gal::Mesh, mesh, "mesh to clip"),
+               (gal::Plane, plane, "Plane to clip with")),
+              ((gal::Mesh, clipped, "Clipped mesh")))
 {
-  auto mesh2 = std::make_shared<gal::Mesh>(*mesh);
-  mesh2->clipWithPlane(*plane);
-  return std::make_tuple(mesh2);
+  *clipped = *mesh;
+  clipped->clipWithPlane(*plane);
 };
 
-GAL_FUNC_DEFN(
-  ((gal::Mesh, resultMesh, "Mesh with the queried faces"),
-   (std::vector<int32_t>,
-    faceIndices,
-    "Indices of the faces that are inside / near the query sphere"),
-   (int32_t, numFaces, "The number of faces in the query results")),
-  meshSphereQuery,
-  true,
-  2,
-  "Queries the mesh face rtree with the given sphere and returns the new sub-mesh",
-  (gal::Mesh, mesh, "Mesh to query"),
-  (gal::Sphere, sphere, "Sphere to query the faces with"))
+GAL_FUNC_DEFN(meshSphereQuery,
+              2,
+              2,
+              "Queries the mesh face rtree with the given sphere and "
+              "returns the new sub-mesh",
+              ((gal::Mesh, mesh, "Mesh to query"),
+               (gal::Sphere, sphere, "Sphere to query the faces with")),
+              ((gal::Mesh, resultMesh, "Mesh with the queried faces"),
+               (std::vector<int32_t>,
+                faceIndices,
+                "Indices of the faces that are inside / near the query sphere"),
+               (int32_t, numFaces, "The number of faces in the query results")))
 {
   std::vector<size_t> results;
   mesh->querySphere(*sphere, std::back_inserter(results), gal::eMeshElement::face);
-  std::vector<int32_t> indices(results.size());
-  std::transform(
-    results.begin(), results.end(), indices.begin(), [](size_t i) { return int32_t(i); });
-  return std::make_tuple(std::make_shared<gal::Mesh>(mesh->extractFaces(results)),
-                         std::make_shared<std::vector<int32_t>>(std::move(indices)),
-                         std::make_shared<int32_t>(results.size()));
+  faceIndices->resize(results.size());
+  std::transform(results.begin(), results.end(), faceIndices->begin(), [](size_t i) {
+    return int32_t(i);
+  });
+  *resultMesh = mesh->extractFaces(results);
 };
 
-GAL_FUNC_DEFN(((gal::PointCloud, outCloud, "Result point cloud")),
-              closestPointsOnMesh,
-              true,
+GAL_FUNC_DEFN(closestPointsOnMesh,
               2,
+              1,
               "Creates the result point cloud by closest-point-querying the mesh with "
               "the given point cloud",
-              (gal::Mesh, mesh, "Mesh"),
-              (gal::PointCloud, inCloud, "Query point cloud"))
+              ((gal::Mesh, mesh, "Mesh"),
+               (gal::PointCloud, inCloud, "Query point cloud")),
+              ((gal::PointCloud, outCloud, "Result point cloud")))
 {
-  auto outCloud = std::make_shared<gal::PointCloud>();
   outCloud->reserve(inCloud->size());
   auto pbegin = inCloud->cbegin();
   auto pend   = inCloud->cend();
   while (pbegin != pend) {
     outCloud->push_back(mesh->closestPoint(*(pbegin++), FLT_MAX));
   }
-  return std::make_tuple(outCloud);
 };
 
-GAL_FUNC_DEFN(((gal::Box3, bounds, "Bounds of the mesh")),
-              meshBbox,
-              true,
+GAL_FUNC_DEFN(meshBbox,
+              1,
               1,
               "Gets the bounding box of the mesh",
-              (gal::Mesh, mesh, "Mesh"))
+              ((gal::Mesh, mesh, "Mesh")),
+              ((gal::Box3, bounds, "Bounds of the mesh")))
 {
-  return std::make_tuple(std::make_shared<gal::Box3>(std::move(mesh->bounds())));
+  *bounds = mesh->bounds();
 };
 
 }  // namespace func
