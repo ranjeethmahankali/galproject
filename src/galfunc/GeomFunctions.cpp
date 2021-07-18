@@ -71,6 +71,7 @@ GAL_FUNC_DEFN(randomPointCloudFromBox,
               ((gal::PointCloud, cloud, "Point cloud")))
 {
   size_t nPts = size_t(*numPoints);
+  cloud->clear();
   cloud->reserve(nPts);
   box->randomPoints(nPts, std::back_inserter(*cloud));
 };

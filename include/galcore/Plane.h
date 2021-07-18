@@ -35,9 +35,6 @@ struct Plane
   const glm::vec3& xaxis() const;
   const glm::vec3& yaxis() const;
 
-  void setOrigin(const glm::vec3&);
-  void setNormal(const glm::vec3&);
-
 private:
   glm::vec3 mOrigin;
   glm::vec3 mNormal;

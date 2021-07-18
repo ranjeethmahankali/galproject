@@ -69,7 +69,7 @@ GAL_FUNC_DEFN(clipMesh,
 
 GAL_FUNC_DEFN(meshSphereQuery,
               2,
-              2,
+              3,
               "Queries the mesh face rtree with the given sphere and "
               "returns the new sub-mesh",
               ((gal::Mesh, mesh, "Mesh to query"),
@@ -98,6 +98,7 @@ GAL_FUNC_DEFN(closestPointsOnMesh,
                (gal::PointCloud, inCloud, "Query point cloud")),
               ((gal::PointCloud, outCloud, "Result point cloud")))
 {
+  outCloud->clear();
   outCloud->reserve(inCloud->size());
   auto pbegin = inCloud->cbegin();
   auto pend   = inCloud->cend();

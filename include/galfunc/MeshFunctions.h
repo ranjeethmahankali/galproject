@@ -52,7 +52,7 @@ GAL_FUNC_DECL(clipMesh,
 
 GAL_FUNC_DECL(meshSphereQuery,
               2,
-              2,
+              3,
               "Queries the mesh face rtree with the given sphere and "
               "returns the new sub-mesh",
               ((gal::Mesh, mesh, "Mesh to query"),
