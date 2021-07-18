@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <galcore/ConvexHull.h>
 #include <galfunc/GeomFunctions.h>
 
@@ -96,6 +98,29 @@ GAL_FUNC_DEFN(pointCloud3d,
   cloud->resize(points->size());
   std::copy(points->begin(), points->end(), cloud->begin());
 };
+
+GAL_FUNC_DEFN(distance,
+              2,
+              1,
+              "Gets the distance betwen the two points",
+              ((glm::vec3, a, "first point"), (glm::vec3, b, "second point")),
+              ((float, dist, "Distance")))
+{
+  *dist = glm::distance(*a, *b);
+}
+
+GAL_FUNC_DEFN(pointCloudFarthestPt,
+              2,
+              1,
+              "Gets the farthest point in the cloud from the given point",
+              ((gal::PointCloud, cloud, "Pointcloud"), (glm::vec3, pt, "point")),
+              ((glm::vec3, farthest, "Farthest")))
+{
+  *farthest = *(std::max_element(
+    cloud->begin(), cloud->end(), [&pt](const glm::vec3& a, const glm::vec3& b) {
+      return glm::distance2(a, *pt) < glm::distance2(b, *pt);
+    }));
+}
 
 }  // namespace func
 }  // namespace gal

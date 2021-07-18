@@ -64,10 +64,24 @@ GAL_FUNC_DECL(pointCloud3d,
               ((std::vector<glm::vec3>, points, "points")),
               ((gal::PointCloud, cloud, "Point cloud")));
 
+GAL_FUNC_DECL(distance,
+              2,
+              1,
+              "Gets the distance betwen the two points",
+              ((glm::vec3, a, "first point"), (glm::vec3, b, "second point")),
+              ((float, dist, "Distance")));
+
+GAL_FUNC_DECL(pointCloudFarthestPt,
+              2,
+              1,
+              "Gets the farthest point in the cloud from the given point",
+              ((gal::PointCloud, cloud, "Pointcloud"), (glm::vec3, pt, "point")),
+              ((glm::vec3, farthest, "Farthest")));
+
 }  // namespace func
 }  // namespace gal
 
 // These are all the functions exposed from this translation unit.
 #define GAL_GeomFunctions                                                       \
   vec3, vec2, plane, box3, box2, randomPointCloudFromBox, pointCloudConvexHull, \
-    pointCloud3d
+    pointCloud3d, distance, pointCloudFarthestPt
