@@ -68,8 +68,9 @@ private:
   using ConstVertIter = std::vector<glm::vec3>::const_iterator;
   using ConstFaceIter = std::vector<Face>::const_iterator;
 
-  std::vector<glm::vec3> mVertices;
-  std::vector<Face>      mFaces;
+  std::vector<glm::vec3>         mVertices;
+  std::vector<Face>              mFaces;
+  mutable std::vector<glm::vec3> mVertexColors;
 
   /*Maps vertex indices to indices of connected faces.*/
   std::vector<std::vector<size_t>> mVertFaces;
@@ -134,10 +135,12 @@ public:
   Mesh::ConstFaceIter           faceCBegin() const;
   Mesh::ConstFaceIter           faceCEnd() const;
 
-  gal::Box3 bounds() const;
-  float     faceArea(size_t fi) const;
-  float     area() const;
-  gal::Box3 faceBounds(size_t fi) const;
+  gal::Box3                     bounds() const;
+  float                         faceArea(size_t fi) const;
+  float                         area() const;
+  gal::Box3                     faceBounds(size_t fi) const;
+  void                          setVertexColors(std::vector<glm::vec3> colors);
+  const std::vector<glm::vec3>& vertexColors() const;
 
   float     volume() const;
   bool      isSolid() const;
@@ -177,9 +180,12 @@ struct Serial<Mesh> : public std::true_type
   static Mesh deserialize(Bytes& bytes)
   {
     std::vector<glm::vec3>  verts;
+    std::vector<glm::vec3>  vertexColors;
     std::vector<Mesh::Face> faces;
-    bytes >> verts >> faces;
-    return Mesh(verts, faces);
+    bytes >> verts >> faces >> vertexColors;
+    Mesh mesh(verts, faces);
+    mesh.setVertexColors(std::move(vertexColors));
+    return mesh;
   }
   static Bytes serialize(const Mesh& msh)
   {

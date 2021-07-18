@@ -158,10 +158,11 @@ void Context::set2dMode(bool flag)
 };
 
 Context::Context()
-    : mShaders(2)
+    : mShaders(3)
 {
   mShaders[0].loadFromName("default");
   mShaders[1].loadFromName("text");
+  mShaders[2].loadFromName("mesh");
 
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),

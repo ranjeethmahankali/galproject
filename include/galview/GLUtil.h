@@ -43,6 +43,19 @@ struct DefaultVertex
   static void initAttributes();
 };
 
+struct MeshVertex
+{
+  glm::vec3 position = glm::vec3 {0.f, 0.f, 0.f};
+  glm::vec3 normal   = glm::vec3 {0.f, 0.f, 0.f};
+  glm::vec3 color    = glm::vec3 {1.f, 1.f, 1.f};
+
+  /**
+   * @brief This will setup the vertex attribute layout. This must be called after the
+   * appropriate buffers are bound.
+   */
+  static void initAttributes();
+};
+
 template<typename V>
 class TVertexBuffer : public std::vector<V>
 {
@@ -75,7 +88,8 @@ public:
   }
 };
 
-using VertexBuffer = TVertexBuffer<DefaultVertex>;
+using VertexBuffer     = TVertexBuffer<DefaultVertex>;
+using MeshVertexBuffer = TVertexBuffer<MeshVertex>;
 
 class IndexBuffer : public std::vector<uint32_t>
 {

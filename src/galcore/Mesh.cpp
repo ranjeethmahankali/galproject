@@ -449,6 +449,22 @@ Box3 Mesh::faceBounds(size_t fi) const
   return b;
 }
 
+void Mesh::setVertexColors(std::vector<glm::vec3> colors)
+{
+  mVertexColors = std::move(colors);
+  if (!colors.empty()) {
+    colors.resize(numVertices(), colors.back());
+  }
+}
+
+const std::vector<glm::vec3>& Mesh::vertexColors() const
+{
+  if (mVertexColors.empty()) {
+    mVertexColors.resize(numVertices(), glm::vec3 {1.f, 1.f, 1.f});
+  }
+  return mVertexColors;
+}
+
 float Mesh::volume() const
 {
   if (!isSolid())
