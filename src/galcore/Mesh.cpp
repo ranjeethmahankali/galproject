@@ -457,12 +457,29 @@ void Mesh::setVertexColors(std::vector<glm::vec3> colors)
   }
 }
 
+static void defaultVertexColors(std::vector<glm::vec3>& colors, size_t nVertices)
+{
+  if (colors.size() != nVertices) {
+    colors.resize(nVertices, glm::vec3 {1.f, 1.f, 1.f});
+  }
+}
+
 const std::vector<glm::vec3>& Mesh::vertexColors() const
 {
-  if (mVertexColors.empty()) {
-    mVertexColors.resize(numVertices(), glm::vec3 {1.f, 1.f, 1.f});
-  }
+  defaultVertexColors(mVertexColors, numVertices());
   return mVertexColors;
+}
+
+const glm::vec3& Mesh::vertexColor(size_t vi) const
+{
+  defaultVertexColors(mVertexColors, numVertices());
+  return mVertexColors.at(vi);
+}
+
+void Mesh::vertexColor(const glm::vec3& color, size_t vi)
+{
+  defaultVertexColors(mVertexColors, numVertices());
+  mVertexColors[vi] = color;
 }
 
 float Mesh::volume() const

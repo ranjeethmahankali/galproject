@@ -135,13 +135,14 @@ public:
   Mesh::ConstVertIter           vertexCEnd() const;
   Mesh::ConstFaceIter           faceCBegin() const;
   Mesh::ConstFaceIter           faceCEnd() const;
-
   gal::Box3                     bounds() const;
   float                         faceArea(size_t fi) const;
   float                         area() const;
   gal::Box3                     faceBounds(size_t fi) const;
   void                          setVertexColors(std::vector<glm::vec3> colors);
   const std::vector<glm::vec3>& vertexColors() const;
+  const glm::vec3&              vertexColor(size_t vi) const;
+  void                          vertexColor(const glm::vec3& color, size_t vi);
 
   float     volume() const;
   bool      isSolid() const;
