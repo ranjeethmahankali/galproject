@@ -138,6 +138,12 @@ void markDirty(uint64_t id)
 
 }  // namespace store
 
+/**
+ * @brief Add special dependency between registers. This is useful for special situations
+ * where the dependencies are not captured by the input-output relationships.
+ * @param reg The dependent registry
+ * @param deps The dependencies
+ */
 void addDependencies(const store::Register& reg, const std::vector<store::Register>& deps)
 {
   auto fn = reg.ownerFunc().get();
@@ -146,6 +152,12 @@ void addDependencies(const store::Register& reg, const std::vector<store::Regist
   }
 }
 
+/**
+ * @brief Add special dependency between registers. This is useful for special situations
+ * where the dependencies are not captured by the input-output relationships.
+ * @param reg The dependent registry
+ * @param pyDeps The dependencies
+ */
 void py_addDependencies(const store::Register& reg, const boost::python::list& pyDeps)
 {
   std::vector<store::Register> temp;
