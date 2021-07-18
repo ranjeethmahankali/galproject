@@ -39,6 +39,25 @@ std::shared_ptr<Function> Register::ownerFunc() const
   return match->second;
 };
 
+Lambda::Lambda(std::vector<uint64_t> inputs, std::vector<uint64_t> outputs)
+    : mInputs(std::move(inputs))
+    , mOutputs(std::move(outputs))
+{}
+
+Lambda::Lambda(const boost::python::list& pyInputs, const boost::python::list& pyOutputs)
+{
+  std::vector<Register> temp;
+  Converter<boost::python::list, decltype(temp)>::assign(pyInputs, temp);
+  mInputs.resize(temp.size());
+  std::transform(temp.begin(), temp.end(), mInputs.begin(), [](const Register& reg) {
+    return reg.id;
+  });
+  Converter<boost::python::list, decltype(temp)>::assign(pyOutputs, temp);
+  std::transform(temp.begin(), temp.end(), mOutputs.begin(), [](const Register& reg) {
+    return reg.id;
+  });
+}
+
 uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName)
 {
   auto match = sFunctionMap.find(uint64_t(fn));
@@ -130,8 +149,9 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
 
-  def("string", py_variable<std::string>);
-  def("numberf32", py_variable<float>);
+  def("string", py_variable<std::string, std::string>);
+  def("numberf32", py_variable<float, float>);
+  def("lambda", py_variable<store::Lambda, boost::python::list, boost::python::list>);
 
   def("listf32", py_list<float>);
   def("listvec3", py_list<glm::vec3>);

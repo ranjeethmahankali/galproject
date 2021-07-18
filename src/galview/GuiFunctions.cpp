@@ -267,12 +267,12 @@ public:
   };
 };
 
-struct TextFieldFunc : public gal::func::TVariable<std::string>,
+struct TextFieldFunc : public gal::func::TVariable<std::string, std::string>,
                        public gal::view::TextInput
 {
 public:
   TextFieldFunc(const std::string& label)
-      : gal::func::TVariable<std::string>("")
+      : gal::func::TVariable<std::string, std::string>("")
       , gal::view::TextInput(label, "") {};
 
 private:

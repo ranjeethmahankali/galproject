@@ -117,5 +117,28 @@ GAL_FUNC_DEFN(meshBbox,
   *bounds = mesh->bounds();
 };
 
+GAL_FUNC_DEFN(meshWithVertexColorsFromLambda,
+              2,
+              1,
+              "Assigns mesh vertex colors using the lambda.",
+              ((gal::Mesh, inMesh, "Input mesh"),
+               (gal::func::store::Lambda,
+                colorFn,
+                "Subgraph to be used as a lambda to compute vertex colors. Lambda should "
+                "have one argument of type point and should output a 3-component vector "
+                "representing the color")),
+              ((gal::Mesh, outMesh, "Output mesh")))
+{
+  *outMesh                          = *inMesh;
+  size_t                     nVerts = outMesh->numVertices();
+  std::shared_ptr<glm::vec3> vert;
+  for (size_t vi = 0; vi < nVerts; vi++) {
+    *vert = outMesh->vertex(vi);
+    colorFn->setInput(0, vert);
+    auto color = colorFn->getOutput<glm::vec3>(0);
+    outMesh->vertexColor(*color, vi);
+  }
+}
+
 }  // namespace func
 }  // namespace gal

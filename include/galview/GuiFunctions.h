@@ -12,11 +12,11 @@ view::Panel& outputPanel();
 void         evalOutputs();
 
 template<typename T>
-struct SliderFunc : public gal::func::TVariable<T>, public gal::view::Slider<T>
+struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
 {
 public:
   SliderFunc(const std::string& label, T min, T max, T value)
-      : gal::func::TVariable<T>(value)
+      : gal::func::TVariable<T, T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
 private:

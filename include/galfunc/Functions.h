@@ -115,6 +115,39 @@ std::shared_ptr<T> get(uint64_t id)
 
 std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
 
+struct Lambda
+{
+private:
+  std::vector<uint64_t> mInputs;
+  std::vector<uint64_t> mOutputs;
+
+public:
+  Lambda(std::vector<uint64_t> inputs, std::vector<uint64_t> outputs);
+  Lambda(const boost::python::list& inputs, const boost::python::list& outputs);
+
+  template<typename T>
+  void setInput(size_t i, const std::shared_ptr<T>& data) const
+  {
+    if (i < mInputs.size()) {
+      store::set<T>(mInputs[i], data);
+    }
+    else {
+      std::out_of_range("Lambda input index out of range.");
+    }
+  }
+
+  template<typename T>
+  std::shared_ptr<T> getOutput(size_t i) const
+  {
+    if (i < mOutputs.size()) {
+      return store::get<T>(mOutputs[i]);
+    }
+    else {
+      throw std::out_of_range("Lambda output index out of range.");
+    }
+  }
+};
+
 };  // namespace store
 
 namespace types {

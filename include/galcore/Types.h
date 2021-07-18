@@ -9,6 +9,14 @@
 #include <galcore/Sphere.h>
 
 namespace gal {
+
+// Forward declaration.
+namespace func {
+namespace store {
+struct Lambda;
+}
+}  // namespace func
+
 template<typename T>
 struct TypeInfo : public std::false_type
 {
@@ -49,6 +57,8 @@ GAL_TYPE_INFO(int32_t, 0x9234a3b1);
 GAL_TYPE_INFO(uint64_t, 0x913eb3be);
 GAL_TYPE_INFO(float, 0x32542672);
 GAL_TYPE_INFO(std::string, 0x12340989);
+
+GAL_TYPE_INFO(gal::func::store::Lambda, 0x3b07dc46);
 
 GAL_TYPE_INFO(glm::vec3, 0x33821151);
 GAL_TYPE_INFO(glm::vec2, 0xbd40c8a1);

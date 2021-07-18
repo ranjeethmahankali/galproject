@@ -79,9 +79,21 @@ GAL_FUNC_DECL(meshBbox,
               ((gal::Mesh, mesh, "Mesh")),
               ((gal::Box3, bounds, "Bounds of the mesh")));
 
+GAL_FUNC_DECL(meshWithVertexColorsFromLambda,
+              1,
+              1,
+              "Assigns mesh vertex colors using the lambda.",
+              ((gal::Mesh, inMesh, "Input mesh"),
+               (gal::func::store::Lambda,
+                colorFn,
+                "Subgraph to be used as a lambda to compute vertex colors. Lambda should "
+                "have one argument of type point and should output a 3-component vector "
+                "representing the color")),
+              ((gal::Mesh, outMesh, "Output mesh")));
+
 }  // namespace func
 }  // namespace gal
 
 #define GAL_MeshFunctions                                                      \
   meshCentroid, meshVolume, meshSurfaceArea, loadObjFile, scaleMesh, clipMesh, \
-    meshSphereQuery, closestPointsOnMesh, meshBbox
+    meshSphereQuery, closestPointsOnMesh, meshBbox, meshWithVertexColorsFromLambda
