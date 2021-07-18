@@ -14,10 +14,20 @@ const glm::vec2& Circle2d::center() const
   return mCenter;
 };
 
+void Circle2d::center(const glm::vec2& newCenter)
+{
+  mCenter = newCenter;
+}
+
 float Circle2d::radius() const
 {
   return mRadius;
 };
+
+void Circle2d::radius(float newRadius)
+{
+  mRadius = newRadius;
+}
 
 bool Circle2d::contains(const glm::vec2& pt, float tolerance) const
 {

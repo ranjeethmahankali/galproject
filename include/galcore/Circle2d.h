@@ -11,8 +11,14 @@ public:
   Circle2d() = default;
   Circle2d(const glm::vec2& center, float radius);
 
+/**
+ * @brief 
+ * @return const glm::vec2& 
+ */
   const glm::vec2& center() const;
+  void             center(const glm::vec2& newCenter);
   float            radius() const;
+  void             radius(float newRadius);
   bool             contains(const glm::vec2&, float tolerance = 0.f) const;
 
   Box2 bounds() const;
