@@ -105,4 +105,5 @@ GAL_FUNC_DECL(meshWithVertexColorsFromLambda,
 
 #define GAL_MeshFunctions                                                      \
   meshCentroid, meshVolume, meshSurfaceArea, loadObjFile, scaleMesh, clipMesh, \
-    meshSphereQuery, closestPointsOnMesh, meshBbox, meshWithVertexColorsFromLambda
+    meshSphereQuery, closestPointsOnMesh, meshBbox, rectangleMesh,             \
+    meshWithVertexColorsFromLambda

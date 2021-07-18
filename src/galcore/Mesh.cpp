@@ -853,7 +853,7 @@ gal::Mesh createRectangularMesh(const gal::Plane& plane,
                                            size_t(qi.x + (qi.y + 1) * (dims.x + 1)),
                                            size_t(qi.x + (qi.y + 1) * (dims.x + 1) + 1)};
       faces.emplace_back(quadIndices[0], quadIndices[1], quadIndices[2]);
-      faces.emplace_back(quadIndices[0], quadIndices[3], quadIndices[2]);
+      faces.emplace_back(quadIndices[1], quadIndices[3], quadIndices[2]);
     }
   }
 
