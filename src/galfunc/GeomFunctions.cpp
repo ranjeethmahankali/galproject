@@ -4,96 +4,96 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(((glm::vec3, vector, "3D vector")),
-              vec3,
-              true,
+GAL_FUNC_DEFN(vec3,
               3,
+              1,
               "Creates a 3D vector from coordinates",
-              (float, x, "x coordinate"),
-              (float, y, "y coordinate"),
-              (float, z, "z coordinate"))
+              ((float, x, "x coordinate"),
+               (float, y, "y coordinate"),
+               (float, z, "z coordinate")),
+              ((glm::vec3, vector, "3D vector")))
 {
-  return std::make_tuple(std::make_shared<glm::vec3>(*x, *y, *z));
+  vector->x = *x;
+  vector->y = *y;
+  vector->z = *z;
 };
 
-GAL_FUNC_DEFN(((glm::vec2, vector, "2D vector")),
-              vec2,
-              true,
+GAL_FUNC_DEFN(vec2,
               2,
+              1,
               "Creates a 2D vector from coordinates",
-              (float, x, "x coordinate"),
-              (float, y, "y coordinate"))
+              ((float, x, "x coordinate"), (float, y, "y coordinate")),
+              ((glm::vec2, vector, "2D vector")))
 {
-  return std::make_tuple(std::make_shared<glm::vec2>(*x, *y));
+  vector->x = *x;
+  vector->y = *y;
 };
 
-GAL_FUNC_DEFN(((gal::Plane, plane, "The plane")),
-              plane,
-              true,
+GAL_FUNC_DEFN(plane,
               2,
+              1,
               "Creates a plane with the given point and normal",
-              (glm::vec3, point, "Point"),
-              (glm::vec3, normal, "Normal"))
+              ((glm::vec3, point, "Point"), (glm::vec3, normal, "Normal")),
+              ((gal::Plane, plane, "The plane")))
 {
-  return std::make_tuple(std::make_shared<gal::Plane>(*point, *normal));
+  plane->origin(*point);
+  plane->normal(*normal);
 };
 
-GAL_FUNC_DEFN(((gal::Box3, box, "Box")),
-              box3,
-              true,
+GAL_FUNC_DEFN(box3,
               2,
+              1,
               "Creates a 3d box with the two given points",
-              (glm::vec3, min, "min point"),
-              (glm::vec3, max, "max point"))
+              ((glm::vec3, min, "min point"), (glm::vec3, max, "max point")),
+              ((gal::Box3, box, "Box")))
 {
-  return std::make_tuple(std::make_shared<Box3>(*min, *max));
+  box->min = *min;
+  box->max = *max;
 };
 
-GAL_FUNC_DEFN(((gal::Box2, box, "Box")),
-              box2,
-              true,
+GAL_FUNC_DEFN(box2,
               2,
+              1,
               "Creates a 2d box with the two given points",
-              (glm::vec2, min, "min point"),
-              (glm::vec2, max, "max point"))
+              ((glm::vec2, min, "min point"), (glm::vec2, max, "max point")),
+              ((gal::Box2, box, "Box")))
 {
-  return std::make_tuple(std::make_shared<gal::Box2>(*min, *max));
+  box->min = *min;
+  box->max = *max;
 };
 
-GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
-              randomPointCloudFromBox,
-              true,
+GAL_FUNC_DEFN(randomPointCloudFromBox,
               2,
+              1,
               "Creates a random point cloud with points inside the given box",
-              (gal::Box3, box, "Box to sample from"),
-              (int32_t, numPoints, "Number of points to sample"))
+              ((gal::Box3, box, "Box to sample from"),
+               (int32_t, numPoints, "Number of points to sample")),
+              ((gal::PointCloud, cloud, "Point cloud")))
 {
-  auto   cloud = std::make_shared<gal::PointCloud>();
-  size_t nPts  = size_t(*numPoints);
+  size_t nPts = size_t(*numPoints);
   cloud->reserve(nPts);
   box->randomPoints(nPts, std::back_inserter(*cloud));
-  return std::make_tuple(cloud);
 };
 
-GAL_FUNC_DEFN(((gal::Mesh, hull, "Convex hull")),
-              pointCloudConvexHull,
-              true,
+GAL_FUNC_DEFN(pointCloudConvexHull,
+              1,
               1,
               "Creates a convex hull from the given point cloud",
-              (gal::PointCloud, cloud, "Point cloud"))
+              ((gal::PointCloud, cloud, "Point cloud")),
+              ((gal::Mesh, hull, "Convex hull")))
 {
-  gal::ConvexHull hull(cloud->begin(), cloud->end());
-  return std::make_tuple(std::make_shared<gal::Mesh>(hull.toMesh()));
+  *hull = gal::ConvexHull(cloud->begin(), cloud->end()).toMesh();
 };
 
-GAL_FUNC_DEFN(((gal::PointCloud, cloud, "Point cloud")),
-              pointCloud3d,
-              true,
+GAL_FUNC_DEFN(pointCloud3d,
+              1,
               1,
               "Creates a point cloud from the list of points",
-              (std::vector<glm::vec3>, points, "points"))
+              ((std::vector<glm::vec3>, points, "points")),
+              ((gal::PointCloud, cloud, "Point cloud")))
 {
-  return std::make_tuple(std::make_shared<gal::PointCloud>(*points));
+  cloud->resize(points->size());
+  std::copy(points->begin(), points->end(), cloud->begin());
 };
 
 }  // namespace func

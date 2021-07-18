@@ -113,6 +113,7 @@ private:
                      float&           bestSqDist) const;
 
 public:
+  Mesh() = default;
   Mesh(const Mesh& other);
   Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces);
   Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces);
