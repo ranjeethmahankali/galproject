@@ -53,6 +53,7 @@ Lambda::Lambda(const boost::python::list& pyInputs, const boost::python::list& p
     return reg.id;
   });
   Converter<boost::python::list, decltype(temp)>::assign(pyOutputs, temp);
+  mOutputs.resize(temp.size());
   std::transform(temp.begin(), temp.end(), mOutputs.begin(), [](const Register& reg) {
     return reg.id;
   });

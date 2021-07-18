@@ -1,10 +1,6 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-ptCoords = [pgv.sliderf32("ptCoord%s" % i, 0., 1., .5)[0] for i in range(3)]
-normCoords = [pgv.sliderf32("normCoord%s" % i, 0., 1., .5)[0]
-              for i in range(3)]
-
 
 def getLambda(pts):
     pt, = pgf.vec3Var([0., 0., 0.])
@@ -21,12 +17,14 @@ def getLambda(pts):
     return pgf.lambdaFromRegisters([pt], [color])[0]
 
 
-pt, = pgf.vec3(ptCoords[0], ptCoords[1], ptCoords[2])
-norm, = pgf.vec3(normCoords[0], normCoords[1], normCoords[2])
+pgv.set2dMode(True)
+zero, = pgf.numberf32(0.)
+one, = pgf.numberf32(1.)
+pt, = pgf.vec3(zero, zero, zero)
+norm, = pgf.vec3(zero, zero, one)
 plane, = pgf.plane(pt, norm)
 minCoord, = pgf.numberf32(-0.5)
 maxCoord, = pgf.numberf32(0.5)
-zero, = pgf.numberf32(0.)
 minpt, = pgf.vec3(minCoord, minCoord, zero)
 maxpt, = pgf.vec3(maxCoord, maxCoord, zero)
 box2, = pgf.box2(pgf.vec2(minCoord, minCoord)[
@@ -40,5 +38,6 @@ rect, = pgf.rectangleMesh(plane, box2, edgeLen)
 
 colored, = pgf.meshWithVertexColorsFromLambda(rect, getLambda(cloud))
 
-pgv.show("rectangle", rect)
+# pgv.show("rectangle", rect)
+pgv.show("cloud", cloud)
 pgv.show("colored", colored)

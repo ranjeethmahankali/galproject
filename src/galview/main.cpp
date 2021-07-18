@@ -199,7 +199,8 @@ static int debugSession(const fs::path& targetDir)
 int main(int argc, char** argv)
 {
   //   return debugSession(gal::utils::absPath("../temp"));
-  //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
+  //   return loadDemo(gal::utils::absPath("../demos/meshWithColors.py"));
+
   static constexpr char pathKey[] = "path";
   bool                  debugFlag;
   bool                  postMortemFlag;

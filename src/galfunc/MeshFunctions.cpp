@@ -143,7 +143,7 @@ GAL_FUNC_DEFN(meshWithVertexColorsFromLambda,
 {
   *outMesh                          = *inMesh;
   size_t                     nVerts = outMesh->numVertices();
-  std::shared_ptr<glm::vec3> vert;
+  std::shared_ptr<glm::vec3> vert   = std::make_shared<glm::vec3>();
   for (size_t vi = 0; vi < nVerts; vi++) {
     *vert = outMesh->vertex(vi);
     colorFn->setInput(0, vert);

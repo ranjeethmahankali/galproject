@@ -839,8 +839,9 @@ gal::Mesh createRectangularMesh(const gal::Plane& plane,
   glm::ivec2 qi;
   for (qi.x = 0; qi.x <= dims.x; qi.x++) {
     for (qi.y = 0; qi.y <= dims.y; qi.y++) {
-      vertices.emplace_back(plane.origin() + (plane.xaxis() * qsize.x * float(qi.x)) +
-                            (plane.yaxis() * qsize.y * float(qi.y)));
+      vertices.emplace_back(plane.origin() +
+                            (plane.xaxis() * (qsize.x * float(qi.x) + box.min.x)) +
+                            (plane.yaxis() * (qsize.y * float(qi.y) + box.min.y)));
     }
   }
 
