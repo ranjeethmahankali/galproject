@@ -79,6 +79,15 @@ GAL_FUNC_DECL(meshBbox,
               ((gal::Mesh, mesh, "Mesh")),
               ((gal::Box3, bounds, "Bounds of the mesh")));
 
+GAL_FUNC_DECL(rectangleMesh,
+              3,
+              1,
+              "Creates a rectangular mesh",
+              ((gal::Plane, plane, "plane"),
+               (gal::Box2, bounds, "Bounds"),
+               (float, edgeLength, "Approximate edge length.")),
+              ((gal::Mesh, mesh, "Resulting rectangular mesh")));
+
 GAL_FUNC_DECL(meshWithVertexColorsFromLambda,
               1,
               1,

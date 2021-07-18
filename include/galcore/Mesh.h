@@ -1,5 +1,6 @@
 #pragma once
 #include <galcore/Box.h>
+#include <galcore/Plane.h>
 #include <galcore/RTree.h>
 #include <galcore/Sphere.h>
 #include <galcore/Util.h>
@@ -115,6 +116,7 @@ private:
 public:
   Mesh() = default;
   Mesh(const Mesh& other);
+  Mesh(Mesh&& other);
   Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces);
   Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces);
   Mesh(std::vector<glm::vec3>&& verts, std::vector<Face>&& faces);
@@ -122,6 +124,9 @@ public:
        size_t        nVerts,
        const size_t* faceVertIndices,
        size_t        nFaces);
+
+  const Mesh& operator=(const Mesh& mesh);
+  const Mesh& operator=(Mesh&& mesh);
 
   size_t                        numVertices() const noexcept;
   size_t                        numFaces() const noexcept;
@@ -175,6 +180,10 @@ public:
 
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
 };
+
+gal::Mesh createRectangularMesh(const gal::Plane& plane,
+                                const gal::Box2&  box,
+                                float             edgeLength);
 
 template<>
 struct Serial<Mesh> : public std::true_type

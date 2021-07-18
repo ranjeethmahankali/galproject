@@ -117,6 +117,18 @@ GAL_FUNC_DEFN(meshBbox,
   *bounds = mesh->bounds();
 };
 
+GAL_FUNC_DEFN(rectangleMesh,
+              3,
+              1,
+              "Creates a rectangular mesh",
+              ((gal::Plane, plane, "plane"),
+               (gal::Box2, bounds, "Bounds"),
+               (float, edgeLength, "Approximate edge length.")),
+              ((gal::Mesh, mesh, "Resulting rectangular mesh")))
+{
+  *mesh = std::move(createRectangularMesh(*plane, *bounds, *edgeLength));
+}
+
 GAL_FUNC_DEFN(meshWithVertexColorsFromLambda,
               2,
               1,

@@ -83,7 +83,7 @@ GAL_FUNC_DEFN(pointCloudConvexHull,
               ((gal::PointCloud, cloud, "Point cloud")),
               ((gal::Mesh, hull, "Convex hull")))
 {
-  *hull = gal::ConvexHull(cloud->begin(), cloud->end()).toMesh();
+  *hull = std::move(gal::ConvexHull(cloud->begin(), cloud->end()).toMesh());
 };
 
 GAL_FUNC_DEFN(pointCloud3d,
