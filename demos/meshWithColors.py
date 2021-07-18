@@ -6,7 +6,7 @@ def getLambda(pts):
     pt, = pgf.vec3Var([0., 0., 0.])
     fpt, = pgf.pointCloudFarthestPt(pts, pt)
     dist, = pgf.distance(pt, fpt)
-    lims, = pgf.vec2Var([0., 1.414])
+    lims, = pgf.vec2Var([.5, 1.2])
     scheme, = pgf.listvec3([
         [0., 0., 1.],
         [0., 1., 0.],
@@ -33,11 +33,16 @@ box3, = pgf.box3(minpt, maxpt)
 npts, = pgv.slideri32("Point count", 5, 50, 25)
 cloud, = pgf.randomPointCloudFromBox(box3, npts)
 
-edgeLen, = pgf.numberf32(0.1)
+edgeLen, = pgf.numberf32(0.01)
 rect, = pgf.rectangleMesh(plane, box2, edgeLen)
 
 colored, = pgf.meshWithVertexColorsFromLambda(rect, getLambda(cloud))
 
+pgf.addDependencies(colored, [cloud])
+
+circ, *_ = pgf.boundingCircle(cloud)
+
 # pgv.show("rectangle", rect)
 pgv.show("cloud", cloud)
 pgv.show("colored", colored)
+pgv.show("circle", circ)

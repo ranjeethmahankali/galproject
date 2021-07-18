@@ -138,6 +138,21 @@ void markDirty(uint64_t id)
 
 }  // namespace store
 
+void addDependencies(const store::Register& reg, const std::vector<store::Register>& deps)
+{
+  auto fn = reg.ownerFunc().get();
+  for (const store::Register& d : deps) {
+    store::useRegister(fn, d.id);
+  }
+}
+
+void py_addDependencies(const store::Register& reg, const boost::python::list& pyDeps)
+{
+  std::vector<store::Register> temp;
+  Converter<boost::python::list, decltype(temp)>::assign(pyDeps, temp);
+  addDependencies(reg, temp);
+}
+
 }  // namespace func
 }  // namespace gal
 
@@ -160,6 +175,8 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("listf32", py_list<float>);
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
+
+  GAL_DEF_PY_FN(addDependencies);
 
   GAL_DEF_PY_FN_ALL(GAL_UtilFunctions)
   GAL_DEF_PY_FN_ALL(GAL_GeomFunctions)
