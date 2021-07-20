@@ -249,7 +249,7 @@ struct PrintManager
   };
 };
 
-using printmanager = PrintManager<float, int32_t, glm::vec3, std::string>;
+using printmanager = PrintManager<float, int32_t, glm::vec3, glm::vec2, std::string>;
 
 struct PrintFunc : public gal::func::Function, public gal::view::Text
 {

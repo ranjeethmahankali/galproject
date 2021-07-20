@@ -9,8 +9,8 @@ namespace gal {
 
 struct Line2d
 {
-  glm::vec2 mStart;
-  glm::vec2 mEnd;
+  glm::vec2 mStart = {0.f, 0.f};
+  glm::vec2 mEnd = {0.f, 0.f};
 
   Box2 bounds() const;
 };

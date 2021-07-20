@@ -28,9 +28,10 @@ struct MakeDrawable<Line2d> : public std::true_type
   static std::shared_ptr<Drawable> get(const Line2d&                line,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    glutil::VertexBuffer vBuf(2);
-    vBuf[0] = {glm::vec3(line.mStart.x, line.mStart.x, 0.f)};
-    vBuf[1] = {glm::vec3(line.mEnd.x, line.mEnd.y, 0.f)};
+    static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
+    glutil::VertexBuffer       vBuf(2);
+    vBuf[0] = {glm::vec3(line.mStart.x, line.mStart.y, 0.f), sZero};
+    vBuf[1] = {glm::vec3(line.mEnd.x, line.mEnd.y, 0.f), sZero};
 
     auto view = std::make_shared<Line2dView>();
     view->setBounds(Box3(line.bounds()));

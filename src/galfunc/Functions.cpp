@@ -6,6 +6,7 @@
 #include <galfunc/MapMacro.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/SphereFunctions.h>
+#include <galfunc/LineFunctions.h>
 #include <galfunc/UtilFunctions.h>
 #include <galfunc/Variable.h>
 
@@ -194,6 +195,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN_ALL(GAL_MeshFunctions)
   GAL_DEF_PY_FN_ALL(GAL_CircleFunctions)
   GAL_DEF_PY_FN_ALL(GAL_SphereFunctions)
+  GAL_DEF_PY_FN_ALL(GAL_LineFunctions)
 
   GAL_DEF_PY_FN(read);
 };

@@ -21,6 +21,20 @@ GAL_FUNC_DECL(vec2,
               ((float, x, "x coordinate"), (float, y, "y coordinate")),
               ((glm::vec2, vector, "2D vector")));
 
+GAL_FUNC_DECL(vec3FromVec2,
+              1,
+              1,
+              "Creates a 2D vector from coordinates",
+              ((glm::vec2, v2, "2d vector")),
+              ((glm::vec3, v3, "3D vector")));
+
+GAL_FUNC_DECL(vec2FromVec3,
+              1,
+              1,
+              "Creates a 2D vector from coordinates",
+              ((glm::vec3, v3, "3d vector")),
+              ((glm::vec2, v2, "2d vector")));
+
 GAL_FUNC_DECL(plane,
               2,
               1,
@@ -82,6 +96,6 @@ GAL_FUNC_DECL(pointCloudFarthestPt,
 }  // namespace gal
 
 // These are all the functions exposed from this translation unit.
-#define GAL_GeomFunctions                                                       \
-  vec3, vec2, plane, box3, box2, randomPointCloudFromBox, pointCloudConvexHull, \
-    pointCloud3d, distance, pointCloudFarthestPt
+#define GAL_GeomFunctions                                                             \
+  vec3, vec2, vec3FromVec2, vec2FromVec3, plane, box3, box2, randomPointCloudFromBox, \
+    pointCloudConvexHull, pointCloud3d, distance, pointCloudFarthestPt

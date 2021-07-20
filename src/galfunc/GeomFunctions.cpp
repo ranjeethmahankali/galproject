@@ -29,7 +29,30 @@ GAL_FUNC_DEFN(vec2,
 {
   vector->x = *x;
   vector->y = *y;
-};
+}
+
+GAL_FUNC_DEFN(vec3FromVec2,
+              1,
+              1,
+              "Creates a 2D vector from coordinates",
+              ((glm::vec2, v2, "2d vector")),
+              ((glm::vec3, v3, "3D vector")))
+{
+  v3->x = v2->x;
+  v3->y = v2->y;
+  v3->z = 0.f;
+}
+
+GAL_FUNC_DEFN(vec2FromVec3,
+              1,
+              1,
+              "Creates a 2D vector from coordinates",
+              ((glm::vec3, v3, "3d vector")),
+              ((glm::vec2, v2, "2d vector")))
+{
+  v2->x = v3->x;
+  v2->y = v3->y;
+}
 
 GAL_FUNC_DEFN(plane,
               2,
