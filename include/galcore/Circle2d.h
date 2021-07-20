@@ -45,10 +45,10 @@ struct Serial<Circle2d> : public std::true_type
     return Circle2d(center, radius);
   }
 
-  static Bytes serialize(const Circle2d& cloud)
+  static Bytes serialize(const Circle2d& circ)
   {
     Bytes bytes;
-    bytes << cloud.center() << cloud.radius();
+    bytes << circ.center() << circ.radius();
     return bytes;
   }
 };

@@ -7,6 +7,7 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Sphere.h>
+#include <galcore/Line.h>
 
 namespace gal {
 
@@ -67,6 +68,7 @@ GAL_TYPE_INFO(gal::Plane, 0x591f323f);
 GAL_TYPE_INFO(gal::Box3, 0x8fcb9e01);
 GAL_TYPE_INFO(gal::Box2, 0xd60b396d);
 GAL_TYPE_INFO(gal::PointCloud, 0xe6e934eb);
-GAL_TYPE_INFO(gal::Circle2d, 0X3271dc29);
+GAL_TYPE_INFO(gal::Circle2d, 0x3271dc29);
+GAL_TYPE_INFO(gal::Line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Mesh, 0x45342367);
 GAL_TYPE_INFO(gal::Annotations, 0x901da902);
