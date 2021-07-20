@@ -121,6 +121,19 @@ void ShowFunc::run()
   gal::func::store::set<bool>(mRegisterId, mSuccess);
 };
 
+size_t ShowFunc::numInputs() const
+{
+  return mShowables.size();
+};
+
+uint64_t ShowFunc::inputRegister(size_t index) const
+{
+  if (index < numInputs()) {
+    return mShowables[index].first;
+  }
+  throw std::out_of_range("Index out of range");
+};
+
 size_t ShowFunc::numOutputs() const
 {
   return 1;
@@ -175,6 +188,22 @@ void TagsFunc::run()
     *mSuccess = false;
   }
   gal::func::store::set<bool>(mRegisterId, mSuccess);
+}
+
+size_t TagsFunc::numInputs() const
+{
+  return 2;
+}
+
+uint64_t TagsFunc::inputRegister(size_t index) const
+{
+  if (index == 0) {
+    return mLocsRegId;
+  }
+  else if (index == 1) {
+    return mWordsRegId;
+  }
+  throw std::out_of_range("Index out of range");
 }
 
 size_t TagsFunc::numOutputs() const
@@ -256,7 +285,15 @@ public:
   {
     mRegisterId = gal::func::store::allocate(
       this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
-  };
+  }
+  size_t   numInputs() const override { return 1; }
+  uint64_t inputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mObjRegId;
+    }
+    throw std::out_of_range("Index out of range");
+  }
   size_t   numOutputs() const override { return 1; };
   uint64_t outputRegister(size_t index) const override
   {

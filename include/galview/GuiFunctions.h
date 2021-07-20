@@ -39,6 +39,8 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
 
   void     run() override;
   void     initOutputRegisters() override;
+  size_t   numInputs() const override;
+  uint64_t inputRegister(size_t index) const override;
   size_t   numOutputs() const override;
   uint64_t outputRegister(size_t index) const override;
 
@@ -65,6 +67,8 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
 
   void     run() override;
   void     initOutputRegisters() override;
+  size_t   numInputs() const override;
+  uint64_t inputRegister(size_t index) const override;
   size_t   numOutputs() const override;
   uint64_t outputRegister(size_t index) const override;
 

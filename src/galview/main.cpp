@@ -198,8 +198,13 @@ static int debugSession(const fs::path& targetDir)
 
 int main(int argc, char** argv)
 {
+#ifdef GALDEBUG
+  gal::debug::enableDebugging();
+#endif
   //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/meshWithColors.py"));
+  //   return loadDemo(gal::utils::absPath(
+  //     "/home/rnjth94/works/YouTube/GAL_BoundingCircle/boundingCircleField.py"));
 
   static constexpr char pathKey[] = "path";
   bool                  debugFlag;

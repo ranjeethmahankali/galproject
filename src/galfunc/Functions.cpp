@@ -59,6 +59,16 @@ Lambda::Lambda(const boost::python::list& pyInputs, const boost::python::list& p
   });
 }
 
+const std::vector<uint64_t>& Lambda::inputs() const
+{
+  return mInputs;
+}
+
+const std::vector<uint64_t>& Lambda::outputs() const
+{
+  return mOutputs;
+}
+
 uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName)
 {
   auto match = sFunctionMap.find(uint64_t(fn));
@@ -112,6 +122,24 @@ void useRegister(const Function* fn, uint64_t id)
   }
 };
 
+void useLambdaCapturedRegisters(const Function* fn, const Lambda& lda)
+{
+  const auto& outputs = lda.outputs();
+  const auto& inputs  = lda.inputs();
+
+  for (uint64_t current : outputs) {
+    Register& reg     = getRegister(current);
+    auto      owner   = reg.ownerFunc();
+    size_t    nInputs = owner->numInputs();
+    for (size_t i = 0; i < nInputs; i++) {
+      uint64_t inp = owner->inputRegister(i);
+      if (std::find(inputs.begin(), inputs.end(), inp) == inputs.end()) {
+        store::useRegister(fn, inp);
+      }
+    }
+  }
+}
+
 void markDirty(uint64_t id)
 {
   std::vector<uint64_t> ids;
@@ -122,9 +150,9 @@ void markDirty(uint64_t id)
     uint64_t  current = ids.back();
     Register& reg     = getRegister(current);
     ids.pop_back();
-    if (reg.isDirty) {
-      // If this register is already dirty, we expect downstream to be dirty.
-      continue;
+    if (!ids.empty() && id == current) {
+        // Cycle detected... bail out.
+        return;
     }
     reg.isDirty       = true;
     const auto& users = sRegisterUserMap[current];
@@ -137,33 +165,6 @@ void markDirty(uint64_t id)
 };
 
 }  // namespace store
-
-/**
- * @brief Add special dependency between registers. This is useful for special situations
- * where the dependencies are not captured by the input-output relationships.
- * @param reg The dependent registry
- * @param deps The dependencies
- */
-void addDependencies(const store::Register& reg, const std::vector<store::Register>& deps)
-{
-  auto fn = reg.ownerFunc().get();
-  for (const store::Register& d : deps) {
-    store::useRegister(fn, d.id);
-  }
-}
-
-/**
- * @brief Add special dependency between registers. This is useful for special situations
- * where the dependencies are not captured by the input-output relationships.
- * @param reg The dependent registry
- * @param pyDeps The dependencies
- */
-void py_addDependencies(const store::Register& reg, const boost::python::list& pyDeps)
-{
-  std::vector<store::Register> temp;
-  Converter<boost::python::list, decltype(temp)>::assign(pyDeps, temp);
-  addDependencies(reg, temp);
-}
 
 }  // namespace func
 }  // namespace gal
@@ -187,8 +188,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("listf32", py_list<float>);
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
-
-  GAL_DEF_PY_FN(addDependencies);
 
   GAL_DEF_PY_FN_ALL(GAL_UtilFunctions)
   GAL_DEF_PY_FN_ALL(GAL_GeomFunctions)

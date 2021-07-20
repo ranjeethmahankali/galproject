@@ -17,6 +17,8 @@ struct Function
   virtual ~Function()                                 = default;
   virtual void     run()                              = 0;
   virtual void     initOutputRegisters()              = 0;
+  virtual size_t   numInputs() const                  = 0;
+  virtual uint64_t inputRegister(size_t index) const  = 0;
   virtual size_t   numOutputs() const                 = 0;
   virtual uint64_t outputRegister(size_t index) const = 0;
 };
@@ -125,6 +127,9 @@ public:
   Lambda(std::vector<uint64_t> inputs, std::vector<uint64_t> outputs);
   Lambda(const boost::python::list& inputs, const boost::python::list& outputs);
 
+  const std::vector<uint64_t>& inputs() const;
+  const std::vector<uint64_t>& outputs() const;
+
   template<typename T>
   void setInput(size_t i, const std::shared_ptr<T>& data) const
   {
@@ -147,6 +152,14 @@ public:
     }
   }
 };
+
+/**
+ * @brief Will create dependency between captured registers of the lambda and the given
+ * function.
+ * @param fn The function that depends on the lambda.
+ * @param lda The lambda.
+ */
+void useLambdaCapturedRegisters(const Function* fn, const Lambda& lda);
 
 };  // namespace store
 
@@ -252,6 +265,16 @@ public:
     }
   };
 
+  size_t numInputs() const override { return NInputs; }
+
+  uint64_t inputRegister(size_t index) const override
+  {
+    if (index < NInputs) {
+      return mRegIds[index];
+    }
+    throw std::out_of_range("Input index out of range");
+  }
+
   size_t numOutputs() const override { return NOutputs; };
 
   uint64_t outputRegister(size_t index) const override
@@ -259,7 +282,7 @@ public:
     if (index < NOutputs) {
       return mRegIds[index + NInputs];
     }
-    throw std::out_of_range("Index out of range");
+    throw std::out_of_range("Output index out of range");
   };
 
   void initOutputRegisters() override

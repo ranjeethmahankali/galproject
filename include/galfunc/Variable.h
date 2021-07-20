@@ -32,6 +32,9 @@ public:
       mValuePtr = Converter<TFirstArg, TVal>::convert(args...);
     }
     store::useRegister(this, mRegisterId);
+    if constexpr (std::is_same_v<TVal, store::Lambda>) {
+      store::useLambdaCapturedRegisters(this, *mValuePtr);
+    }
   };
 
   virtual ~TVariable() { store::free(mRegisterId); }
@@ -42,6 +45,13 @@ public:
     mRegisterId = store::allocate(this, TypeInfo<TVal>::id, TypeInfo<TVal>::name());
     store::markDirty(this->mRegisterId);
   };
+
+  size_t numInputs() const override { return 0; }
+
+  uint64_t inputRegister(size_t index) const override
+  {
+    throw std::out_of_range("Variable has no inputs.");
+  }
 
   size_t numOutputs() const override { return 1; };
 
