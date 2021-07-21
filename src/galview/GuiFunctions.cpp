@@ -68,7 +68,8 @@ using dmanager = DrawableManager<gal::Box3,
                                  gal::Circle2d,
                                  gal::Mesh,
                                  gal::Plane,
-                                 gal::Line2d>;
+                                 gal::Line2d,
+                                 gal::Line3d>;
 
 ShowFunc::ShowFunc(const std::string& label, uint64_t regId)
     : mShowables(1, std::make_pair(regId, 0))
