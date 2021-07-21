@@ -311,7 +311,9 @@ Mesh::Mesh(const Mesh& other)
 
 Mesh::Mesh(Mesh&& other)
     : Mesh(std::move(other.mVertices), std::move(other.mFaces))
-{}
+{
+  mVertexColors = std::move(other.mVertexColors);
+}
 
 Mesh::Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces)
     : Mesh(verts.data(), verts.size(), faces.data(), faces.size()) {};
@@ -362,16 +364,18 @@ Mesh::Mesh(const float*  vertCoords,
 
 const Mesh& Mesh::operator=(const Mesh& other)
 {
-  mVertices = other.mVertices;
-  mFaces    = other.mFaces;
+  mVertices     = other.mVertices;
+  mFaces        = other.mFaces;
+  mVertexColors = other.mVertexColors;
   computeCache();
   return *this;
 }
 
 const Mesh& Mesh::operator=(Mesh&& other)
 {
-  mVertices = std::move(other.mVertices);
-  mFaces    = std::move(other.mFaces);
+  mVertices     = std::move(other.mVertices);
+  mFaces        = std::move(other.mFaces);
+  mVertexColors = std::move(other.mVertexColors);
   computeCache();
   return *this;
 }
