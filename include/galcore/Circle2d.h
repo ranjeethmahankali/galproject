@@ -11,8 +11,14 @@ public:
   Circle2d() = default;
   Circle2d(const glm::vec2& center, float radius);
 
+/**
+ * @brief 
+ * @return const glm::vec2& 
+ */
   const glm::vec2& center() const;
+  void             center(const glm::vec2& newCenter);
   float            radius() const;
+  void             radius(float newRadius);
   bool             contains(const glm::vec2&, float tolerance = 0.f) const;
 
   Box2 bounds() const;
@@ -39,10 +45,10 @@ struct Serial<Circle2d> : public std::true_type
     return Circle2d(center, radius);
   }
 
-  static Bytes serialize(const Circle2d& cloud)
+  static Bytes serialize(const Circle2d& circ)
   {
     Bytes bytes;
-    bytes << cloud.center() << cloud.radius();
+    bytes << circ.center() << circ.radius();
     return bytes;
   }
 };

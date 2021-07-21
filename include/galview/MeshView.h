@@ -40,14 +40,18 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
   static std::shared_ptr<Drawable> get(const gal::Mesh&             mesh,
                                        std::vector<RenderSettings>& renderSettings)
   {
+    static constexpr glm::vec4 sFaceColor = {1.f, 1.f, 1.f, 1.f};
+    static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, 1.f};
+
     std::shared_ptr<MeshView> view = std::make_shared<MeshView>();
 
     // Position and Normal for each vertex.
-    glutil::VertexBuffer vBuf(mesh.numVertices());
-    auto                 vbegin = vBuf.begin();
-    size_t               nVerts = mesh.numVertices();
+    glutil::MeshVertexBuffer vBuf(mesh.numVertices());
+    auto                     vbegin  = vBuf.begin();
+    size_t                   nVerts  = mesh.numVertices();
+    const auto&              vColors = mesh.vertexColors();
     for (size_t i = 0; i < nVerts; i++) {
-      *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i)};
+      *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i), vColors[i]};
     }
     view->mVSize = (uint32_t)vBuf.size();
     view->setBounds(mesh.bounds());
@@ -59,9 +63,9 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
     auto                fend   = mesh.faceCEnd();
     while (fbegin != fend) {
       const Mesh::Face& face = *(fbegin++);
-      *(dsti++)              = (uint32_t)face.a;
-      *(dsti++)              = (uint32_t)face.b;
-      *(dsti++)              = (uint32_t)face.c;
+      *(dsti++)              = uint32_t(face.a);
+      *(dsti++)              = uint32_t(face.b);
+      *(dsti++)              = uint32_t(face.c);
     }
     view->mISize = (uint32_t)iBuf.size();
 
@@ -69,12 +73,11 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
     iBuf.finalize(view->mIBO);
 
     // Render settings
-    static constexpr glm::vec4 sFaceColor = {1.0, 1.0, 1.0, 1.0};
-    static constexpr glm::vec4 sEdgeColor = {0.0, 0.0, 0.0, 1.0};
-    RenderSettings             settings;
+    RenderSettings settings;
     settings.faceColor   = sFaceColor;
     settings.edgeColor   = sEdgeColor;
     settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
+    settings.shaderId    = Context::get().shaderId("mesh");
     renderSettings.push_back(settings);
     if (Context::get().wireframeMode()) {
       settings.edgeColor   = {0.f, 0.f, 0.f, 1.f};

@@ -114,6 +114,38 @@ struct Converter<boost::python::api::const_object_item, glm::vec2>
   };
 };
 
+template<>
+struct Converter<boost::python::list, glm::vec2>
+{
+  static std::shared_ptr<glm::vec2> convert(const boost::python::list& lst)
+  {
+    return Converter<boost::python::api::const_object_item, glm::vec2>::convert(
+      (const boost::python::api::const_object_item&)lst);
+  }
+
+  static void assign(const boost::python::list& src, glm::vec2& dst)
+  {
+    Converter<boost::python::api::const_object_item, glm::vec2>::assign(
+      (const boost::python::api::const_object_item&)src, dst);
+  }
+};
+
+template<>
+struct Converter<boost::python::list, glm::vec3>
+{
+  static std::shared_ptr<glm::vec3> convert(const boost::python::list& lst)
+  {
+    return Converter<boost::python::api::const_object_item, glm::vec3>::convert(
+      (const boost::python::api::const_object_item&)lst);
+  }
+
+  static void assign(const boost::python::list& src, glm::vec3& dst)
+  {
+    Converter<boost::python::api::const_object_item, glm::vec3>::assign(
+      (const boost::python::api::const_object_item&)src, dst);
+  }
+};
+
 template<typename T>
 struct Converter<boost::python::list, std::vector<T>>
 {

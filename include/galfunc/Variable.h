@@ -7,18 +7,34 @@
 namespace gal {
 namespace func {
 
-template<typename TVal, typename TArg = TVal>
+template<typename TVal, typename... TArgs>
 struct TVariable : public Function
 {
+  static constexpr bool sIsConstructible = std::is_constructible_v<TVal, TArgs...>;
+  static constexpr bool sSingleArgument  = sizeof...(TArgs) == 1;
+
+  static_assert(sIsConstructible || sSingleArgument,
+                "Cannot create variable with these arguments.");
+
+  using TFirstArg = std::tuple_element_t<0, std::tuple<TArgs...>>;
+
 protected:
   uint64_t              mRegisterId;
   std::shared_ptr<TVal> mValuePtr;
 
 public:
-  TVariable(const TArg& value)
+  TVariable(const TArgs&... args)
   {
-    mValuePtr = Converter<TArg, TVal>::convert(value);
+    if constexpr (sIsConstructible) {
+      mValuePtr = std::make_shared<TVal>(args...);
+    }
+    else if constexpr (sSingleArgument) {
+      mValuePtr = Converter<TFirstArg, TVal>::convert(args...);
+    }
     store::useRegister(this, mRegisterId);
+    if constexpr (std::is_same_v<TVal, store::Lambda>) {
+      store::useLambdaCapturedRegisters(this, *mValuePtr);
+    }
   };
 
   virtual ~TVariable() { store::free(mRegisterId); }
@@ -29,6 +45,13 @@ public:
     mRegisterId = store::allocate(this, TypeInfo<TVal>::id, TypeInfo<TVal>::name());
     store::markDirty(this->mRegisterId);
   };
+
+  size_t numInputs() const override { return 0; }
+
+  uint64_t inputRegister(size_t index) const override
+  {
+    throw std::out_of_range("Variable has no inputs.");
+  }
 
   size_t numOutputs() const override { return 1; };
 
@@ -42,36 +65,41 @@ public:
 
   void run() override { store::set<TVal>(mRegisterId, mValuePtr); };
 
-  void set(const TArg& value)
+  void set(const TArgs&... args)
   {
-    Converter<TArg, TVal>::assign(value, *(this->mValuePtr));
+    if constexpr (sIsConstructible) {
+      *mValuePtr = TVal(args...);
+    }
+    else if constexpr (sSingleArgument) {
+      Converter<TFirstArg, TVal>::assign(args..., *(this->mValuePtr));
+    }
     store::markDirty(this->mRegisterId);
   };
 };
 
 namespace store {
 
-template<typename TVal, typename TArg = TVal>
-std::shared_ptr<Function> makeVariable(const TArg& value)
+template<typename TVal, typename... TArgs>
+std::shared_ptr<Function> makeVariable(const TArgs&... args)
 {
-  auto fn =
-    std::dynamic_pointer_cast<Function>(std::make_shared<TVariable<TVal, TArg>>(value));
+  auto fn = std::dynamic_pointer_cast<Function>(
+    std::make_shared<TVariable<TVal, TArgs...>>(args...));
   return addFunction(fn);
 };
 
 }  // namespace store
 
-template<typename TVal, typename TArg = TVal>
-types::OutputTuple<1> variable(const TArg& value)
+template<typename TVal, typename... TArgs>
+types::OutputTuple<1> variable(const TArgs&... args)
 {
-  auto fn = store::makeVariable<TVal, TArg>(value);
+  auto fn = store::makeVariable<TVal, TArgs...>(args...);
   return types::makeOutputTuple<1>(*fn);
-};
+}
 
-template<typename TVal, typename TArg = TVal>
-boost::python::tuple py_variable(const TArg& value)
+template<typename TVal, typename... TArgs>
+boost::python::tuple py_variable(const TArgs&... args)
 {
-  return pythonRegisterTuple(gal::func::variable<TVal, TArg>(value));
+  return pythonRegisterTuple(gal::func::variable<TVal, TArgs...>(args...));
 };
 
 template<typename T>

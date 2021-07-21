@@ -1,5 +1,6 @@
 #pragma once
 #include <galcore/Box.h>
+#include <galcore/Plane.h>
 #include <galcore/RTree.h>
 #include <galcore/Sphere.h>
 #include <galcore/Util.h>
@@ -68,8 +69,9 @@ private:
   using ConstVertIter = std::vector<glm::vec3>::const_iterator;
   using ConstFaceIter = std::vector<Face>::const_iterator;
 
-  std::vector<glm::vec3> mVertices;
-  std::vector<Face>      mFaces;
+  std::vector<glm::vec3>         mVertices;
+  std::vector<Face>              mFaces;
+  mutable std::vector<glm::vec3> mVertexColors;
 
   /*Maps vertex indices to indices of connected faces.*/
   std::vector<std::vector<size_t>> mVertFaces;
@@ -112,7 +114,9 @@ private:
                      float&           bestSqDist) const;
 
 public:
+  Mesh() = default;
   Mesh(const Mesh& other);
+  Mesh(Mesh&& other);
   Mesh(const glm::vec3* verts, size_t nVerts, const Face* faces, size_t nFaces);
   Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces);
   Mesh(std::vector<glm::vec3>&& verts, std::vector<Face>&& faces);
@@ -120,6 +124,9 @@ public:
        size_t        nVerts,
        const size_t* faceVertIndices,
        size_t        nFaces);
+
+  const Mesh& operator=(const Mesh& mesh);
+  const Mesh& operator=(Mesh&& mesh);
 
   size_t                        numVertices() const noexcept;
   size_t                        numFaces() const noexcept;
@@ -133,11 +140,14 @@ public:
   Mesh::ConstVertIter           vertexCEnd() const;
   Mesh::ConstFaceIter           faceCBegin() const;
   Mesh::ConstFaceIter           faceCEnd() const;
-
-  gal::Box3 bounds() const;
-  float     faceArea(size_t fi) const;
-  float     area() const;
-  gal::Box3 faceBounds(size_t fi) const;
+  gal::Box3                     bounds() const;
+  float                         faceArea(size_t fi) const;
+  float                         area() const;
+  gal::Box3                     faceBounds(size_t fi) const;
+  void                          setVertexColors(std::vector<glm::vec3> colors);
+  const std::vector<glm::vec3>& vertexColors() const;
+  const glm::vec3&              vertexColor(size_t vi) const;
+  void                          vertexColor(const glm::vec3& color, size_t vi);
 
   float     volume() const;
   bool      isSolid() const;
@@ -171,10 +181,9 @@ public:
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
 };
 
-template<>
-struct IsValueType<Mesh::Face> : public std::true_type
-{
-};
+gal::Mesh createRectangularMesh(const gal::Plane& plane,
+                                const gal::Box2&  box,
+                                float             edgeLength);
 
 template<>
 struct Serial<Mesh> : public std::true_type
@@ -182,9 +191,12 @@ struct Serial<Mesh> : public std::true_type
   static Mesh deserialize(Bytes& bytes)
   {
     std::vector<glm::vec3>  verts;
+    std::vector<glm::vec3>  vertexColors;
     std::vector<Mesh::Face> faces;
-    bytes >> verts >> faces;
-    return Mesh(verts, faces);
+    bytes >> verts >> faces >> vertexColors;
+    Mesh mesh(verts, faces);
+    mesh.setVertexColors(std::move(vertexColors));
+    return mesh;
   }
   static Bytes serialize(const Mesh& msh)
   {

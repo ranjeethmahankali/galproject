@@ -12,11 +12,11 @@ view::Panel& outputPanel();
 void         evalOutputs();
 
 template<typename T>
-struct SliderFunc : public gal::func::TVariable<T>, public gal::view::Slider<T>
+struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
 {
 public:
   SliderFunc(const std::string& label, T min, T max, T value)
-      : gal::func::TVariable<T>(value)
+      : gal::func::TVariable<T, T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
 private:
@@ -39,6 +39,8 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
 
   void     run() override;
   void     initOutputRegisters() override;
+  size_t   numInputs() const override;
+  uint64_t inputRegister(size_t index) const override;
   size_t   numOutputs() const override;
   uint64_t outputRegister(size_t index) const override;
 
@@ -65,6 +67,8 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
 
   void     run() override;
   void     initOutputRegisters() override;
+  size_t   numInputs() const override;
+  uint64_t inputRegister(size_t index) const override;
   size_t   numOutputs() const override;
   uint64_t outputRegister(size_t index) const override;
 
