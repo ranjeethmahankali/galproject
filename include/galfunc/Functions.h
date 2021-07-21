@@ -17,6 +17,8 @@ struct Function
   virtual ~Function()                                 = default;
   virtual void     run()                              = 0;
   virtual void     initOutputRegisters()              = 0;
+  virtual size_t   numInputs() const                  = 0;
+  virtual uint64_t inputRegister(size_t index) const  = 0;
   virtual size_t   numOutputs() const                 = 0;
   virtual uint64_t outputRegister(size_t index) const = 0;
 };
@@ -80,10 +82,15 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
   static_assert(gal::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
   if (TypeInfo<T>::id == reg.typeId) {
+    // Mark this and everything downstream as dirty.
+    markDirty(reg.id);
     reg.ptr = data;
+    // This register itself is not dirty.
+    reg.isDirty = false;
     return;
   }
-  std::cerr << "Type mismatch error.\n";
+  std::cerr << "Type mismatch error: Cannot assign " << TypeInfo<T>::name() << " from "
+            << reg.typeName << std::endl;
   throw std::bad_alloc();
 };
 
@@ -105,11 +112,56 @@ std::shared_ptr<T> get(uint64_t id)
     }
     return std::static_pointer_cast<T>(reg.ptr);
   }
-  std::cerr << "Type mismatch error.\n";
+  std::cerr << "Type mismatch error: Cannot retrieve " << reg.typeName << " from "
+            << TypeInfo<T>::name() << std::endl;
   throw std::bad_alloc();
 };
 
 std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
+
+struct Lambda
+{
+private:
+  std::vector<uint64_t> mInputs;
+  std::vector<uint64_t> mOutputs;
+
+public:
+  Lambda(std::vector<uint64_t> inputs, std::vector<uint64_t> outputs);
+  Lambda(const boost::python::list& inputs, const boost::python::list& outputs);
+
+  const std::vector<uint64_t>& inputs() const;
+  const std::vector<uint64_t>& outputs() const;
+
+  template<typename T>
+  void setInput(size_t i, const std::shared_ptr<T>& data) const
+  {
+    if (i < mInputs.size()) {
+      store::set<T>(mInputs[i], data);
+    }
+    else {
+      std::out_of_range("Lambda input index out of range.");
+    }
+  }
+
+  template<typename T>
+  std::shared_ptr<T> getOutput(size_t i) const
+  {
+    if (i < mOutputs.size()) {
+      return store::get<T>(mOutputs[i]);
+    }
+    else {
+      throw std::out_of_range("Lambda output index out of range.");
+    }
+  }
+};
+
+/**
+ * @brief Will create dependency between captured registers of the lambda and the given
+ * function.
+ * @param fn The function that depends on the lambda.
+ * @param lda The lambda.
+ */
+void useLambdaCapturedRegisters(const Function* fn, const Lambda& lda);
 
 };  // namespace store
 
@@ -121,99 +173,88 @@ using OutputTuple = typename TupleN<N, store::Register>::template type<>;
 template<typename... Ts>
 struct TypeList
 {
-  using SharedTupleType            = std::tuple<std::shared_ptr<Ts>...>;
   static constexpr size_t NumTypes = sizeof...(Ts);
-
-  template<typename TOut>
-  using FnType = std::function<TOut(std::shared_ptr<Ts>...)>;
+  using SharedTupleType            = std::tuple<std::shared_ptr<Ts>...>;
+  using FnType                     = std::function<void(std::shared_ptr<Ts>...)>;
 };
 
-template<typename TDataList, size_t N = 0>
+template<typename TDataList, size_t NInputs, size_t NOutputs, size_t N = 0>
 struct RegisterAccessor
 {
   static_assert(types::IsInstance<TypeList, TDataList>::value,
                 "Inputs are not a type list.");
   using SharedTupleType = typename TDataList::SharedTupleType;
   using DType = typename std::tuple_element<N, SharedTupleType>::type::element_type;
-
   static constexpr size_t NumData = TDataList::NumTypes;
-
-private:
-  static void typeCheck(const store::Register& reg)
-  {
-    static_assert(TypeInfo<DType>::value, "Unknown type");
-    if (reg.typeId != TypeInfo<DType>::id) {
-      std::cerr << "Type mismatch error\n";
-      throw std::bad_cast();
-    }
-  };
+  static_assert(NumData == NInputs + NOutputs,
+                "Number of inputs and outputs don't add up to the number of arguments");
+  using NextAccessorType = RegisterAccessor<TDataList, NInputs, NOutputs, N + 1>;
 
 public:
-  static void readRegisters(const std::array<uint64_t, NumData>& ids,
-                            SharedTupleType&                     dst)
+  static void readFromInputRegisters(const std::array<uint64_t, NumData>& ids,
+                                     SharedTupleType&                     dst)
   {
-    store::Register& reg = store::getRegister(ids[N]);
-    typeCheck(reg);
-    if (reg.isDirty) {
-      auto fn = reg.ownerFunc();
-      fn->run();
-      reg.isDirty = false;
+    if constexpr (N < NInputs) {
+      std::get<N>(dst) = store::get<DType>(ids[N]);
     }
-    std::get<N>(dst) = std::static_pointer_cast<DType>(reg.ptr);
-    if constexpr (N < TDataList::NumTypes - 1) {
+    if constexpr (N < NInputs - 1) {
       // Recurse to the next indices.
-      RegisterAccessor<TDataList, N + 1>::readRegisters(ids, dst);
+      NextAccessorType::readFromInputRegisters(ids, dst);
     }
   };
 
-  static void writeToRegisters(const std::array<uint64_t, NumData>& ids,
-                               const SharedTupleType&               src)
+  static void writeToOutputRegisters(const std::array<uint64_t, NumData>& ids,
+                                     const SharedTupleType&               src)
   {
-    store::Register& reg = store::getRegister(ids[N]);
-    typeCheck(reg);
-    reg.ptr = std::static_pointer_cast<void>(std::get<N>(src));
-    if constexpr (N < TDataList::NumTypes - 1) {
+    if constexpr (N >= NInputs && N < NumData) {
+      store::set<DType>(ids[N], std::get<N>(src));
+    }
+    if constexpr (N < NumData - 1) {
       // Recurse to the next indices.
-      RegisterAccessor<TDataList, N + 1>::writeToRegisters(ids, src);
+      NextAccessorType::writeToOutputRegisters(ids, src);
     }
   };
 
-  static void initRegisters(const Function* fn, std::array<uint64_t, NumData>& regIds)
+  static void allocateOutputs(const Function*                fn,
+                              std::array<uint64_t, NumData>& regIds,
+                              SharedTupleType&               args)
   {
     static_assert(TypeInfo<DType>::value, "Unknown type");
-    regIds[N] =
-      store::allocate(fn, TypeInfo<DType>::id, std::string(TypeInfo<DType>::name()));
+    if constexpr (N >= NInputs && N < NumData) {
+      regIds[N] =
+        store::allocate(fn, TypeInfo<DType>::id, std::string(TypeInfo<DType>::name()));
+      std::get<N>(args) = std::make_shared<DType>();
+    }
     if constexpr (N < NumData - 1) {
-      RegisterAccessor<TDataList, N + 1>::initRegisters(fn, regIds);
+      NextAccessorType::allocateOutputs(fn, regIds, args);
     }
   };
 };
 
-template<typename TInputs, typename TOutputs>
+template<size_t NInputs, typename TArgs>
 struct TFunction : public Function
 {
-  static_assert(types::IsInstance<TypeList, TInputs>::value,
-                "Inputs are not a type list.");
-  static_assert(types::IsInstance<TypeList, TOutputs>::value,
-                "Outputs are not a type list.");
-
-  using InputsType                   = typename TInputs::SharedTupleType;
-  using OutputsType                  = typename TOutputs::SharedTupleType;
-  static constexpr size_t NumInputs  = TInputs::NumTypes;
-  static constexpr size_t NumOutputs = TOutputs::NumTypes;
-
-  using FuncType = typename TInputs::template FnType<typename TOutputs::SharedTupleType>;
+  static_assert(types::IsInstance<TypeList, TArgs>::value,
+                "Argument types are not a type list.");
+  using ArgsTupleType           = typename TArgs::SharedTupleType;
+  static constexpr size_t NArgs = TArgs::NumTypes;
+  static_assert(NInputs <= NArgs,
+                "Number of inputs is larger than the number of arguments!");
+  static constexpr size_t NOutputs   = NArgs - NInputs;
+  static constexpr bool   HasOutputs = NOutputs > 0;
+  using FuncType                     = typename TArgs::FnType;
+  using RegAccessorType              = RegisterAccessor<TArgs, NInputs, NOutputs>;
 
 private:
-  std::array<uint64_t, NumOutputs> mOutputs;
-  std::array<uint64_t, NumInputs>  mInputs;
-  FuncType                         mFunc;
+  std::array<uint64_t, NArgs> mRegIds;
+  ArgsTupleType               mArgs;
+  FuncType                    mFunc;
 
 public:
-  TFunction(FuncType fn, const std::array<uint64_t, NumInputs>& inputs)
+  TFunction(FuncType fn, const std::array<uint64_t, NInputs>& inputs)
       : mFunc(std::move(fn))
-      , mInputs(inputs)
   {
+    std::copy(inputs.begin(), inputs.end(), mRegIds.begin());
     for (uint64_t id : inputs) {
       store::useRegister(this, id);
     }
@@ -221,32 +262,41 @@ public:
 
   virtual ~TFunction()
   {
-    for (auto out : mOutputs) {
-      store::free(out);
+    for (size_t i = 0; i < NOutputs; i++) {
+      store::free(mRegIds[i + NInputs]);
     }
   };
 
-  size_t numOutputs() const override { return NumOutputs; };
+  size_t numInputs() const override { return NInputs; }
+
+  uint64_t inputRegister(size_t index) const override
+  {
+    if (index < NInputs) {
+      return mRegIds[index];
+    }
+    throw std::out_of_range("Input index out of range");
+  }
+
+  size_t numOutputs() const override { return NOutputs; };
 
   uint64_t outputRegister(size_t index) const override
   {
-    if (index < NumOutputs) {
-      return mOutputs[index];
+    if (index < NOutputs) {
+      return mRegIds[index + NInputs];
     }
-    throw std::out_of_range("Index out of range");
+    throw std::out_of_range("Output index out of range");
   };
 
   void initOutputRegisters() override
   {
-    RegisterAccessor<TOutputs>::initRegisters(this, mOutputs);
+    RegAccessorType::allocateOutputs(this, mRegIds, mArgs);
   };
 
   void run() override
   {
-    InputsType inputs;
-    RegisterAccessor<TInputs>::readRegisters(mInputs, inputs);
-    OutputsType outputs = std::apply(mFunc, inputs);
-    RegisterAccessor<TOutputs>::writeToRegisters(mOutputs, outputs);
+    RegAccessorType::readFromInputRegisters(mRegIds, mArgs);
+    std::apply(mFunc, mArgs);  // Run the function.
+    RegAccessorType::writeToOutputRegisters(mRegIds, mArgs);
   };
 };
 
@@ -352,42 +402,40 @@ std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
 
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 
+#define GAL_EXPAND_ARG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
+
 #define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
 
 #define GAL_REGISTER_ID(argTuple) GAL_ARG_NAME(argTuple).id
 #define GAL_EXPAND_REGISTER_IDS(...) MAP_LIST(GAL_REGISTER_ID, __VA_ARGS__)
 
-#define GAL_FUNC_DECL(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)        \
-  gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType     \
-    GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__));          \
-  gal::func::types::OutputTuple<std::tuple_size_v<                          \
-    gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType>> \
-                       fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__));       \
-  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS(__VA_ARGS__));
+#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)       \
+  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                     \
+                                GAL_EXPAND_SHARED_ARGS outputArgs);                   \
+  gal::func::types::OutputTuple<nOutputs> fnName(GAL_EXPAND_REGISTER_ARGS inputArgs); \
+  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs);
 
-#define GAL_FUNC_DEFN(outTypes, fnName, hasArgs, nArgs, fnDesc, ...)                    \
-  gal::func::types::OutputTuple<std::tuple_size_v<                                      \
-    gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType>>             \
-    fnName(GAL_EXPAND_REGISTER_ARGS(__VA_ARGS__))                                       \
-  {                                                                                     \
-    using FunctorType =                                                                 \
-      gal::func::TFunction<gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE((__VA_ARGS__))>,   \
-                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>>;       \
-    auto fn = gal::func::store::makeFunction<FunctorType>(                              \
-      GAL_FN_IMPL_NAME(fnName),                                                         \
-      std::array<uint64_t, nArgs> {GAL_EXPAND_REGISTER_IDS(__VA_ARGS__)});              \
-    return gal::func::types::makeOutputTuple<std::tuple_size_v<                         \
-      gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType>>(*fn);     \
-  };                                                                                    \
-  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS(__VA_ARGS__))            \
-  {                                                                                     \
-    return gal::func::pythonRegisterTuple(fnName(MAP_LIST(GAL_ARG_NAME, __VA_ARGS__))); \
-  };                                                                                    \
-  gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(outTypes)>::SharedTupleType                 \
-    GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS(__VA_ARGS__))
+#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)      \
+  gal::func::types::OutputTuple<nOutputs> fnName(GAL_EXPAND_REGISTER_ARGS inputArgs) \
+  {                                                                                  \
+    using FunctorType =                                                              \
+      gal::func::TFunction<nInputs,                                                  \
+                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),     \
+                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>;  \
+    auto fn = gal::func::store::makeFunction<FunctorType>(                           \
+      GAL_FN_IMPL_NAME(fnName),                                                      \
+      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});            \
+    return gal::func::types::makeOutputTuple<nOutputs>(*fn);                         \
+  };                                                                                 \
+  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)            \
+  {                                                                                  \
+    return gal::func::pythonRegisterTuple(fnName(GAL_EXPAND_ARG_NAMES inputArgs));   \
+  };                                                                                 \
+  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                    \
+                                GAL_EXPAND_SHARED_ARGS outputArgs)
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
 
-// Forward declaration of the module initializer for embedded scripts.
-// This will be defined by boost later.
+// Forward declaration of the module initializer, which will be defined by boost later.
+// This should be called before running scripts from within C++.
 extern "C" PyObject* PyInit_pygalfunc();

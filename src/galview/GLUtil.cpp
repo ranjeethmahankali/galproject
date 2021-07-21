@@ -45,6 +45,21 @@ void DefaultVertex::initAttributes()
   GL_CALL(glEnableVertexAttribArray(1));
 }
 
+void MeshVertex::initAttributes()
+{
+  static constexpr size_t stride    = sizeof(MeshVertex);
+  static const void*      posOffset = (void*)(&(((MeshVertex*)nullptr)->position));
+  static const void*      nrmOffset = (void*)(&(((MeshVertex*)nullptr)->normal));
+  static const void*      clrOffset = (void*)(&(((MeshVertex*)nullptr)->color));
+  // Vertex position attribute.
+  GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, posOffset));
+  GL_CALL(glEnableVertexAttribArray(0));
+  GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, nrmOffset));
+  GL_CALL(glEnableVertexAttribArray(1));
+  GL_CALL(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, clrOffset));
+  GL_CALL(glEnableVertexAttribArray(2));
+}
+
 IndexBuffer::IndexBuffer(size_t nIndices)
     : std::vector<uint32_t>(nIndices) {};
 

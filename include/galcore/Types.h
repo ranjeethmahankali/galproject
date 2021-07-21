@@ -7,8 +7,17 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Sphere.h>
+#include <galcore/Line.h>
 
 namespace gal {
+
+// Forward declaration.
+namespace func {
+namespace store {
+struct Lambda;
+}
+}  // namespace func
+
 template<typename T>
 struct TypeInfo : public std::false_type
 {
@@ -50,6 +59,8 @@ GAL_TYPE_INFO(uint64_t, 0x913eb3be);
 GAL_TYPE_INFO(float, 0x32542672);
 GAL_TYPE_INFO(std::string, 0x12340989);
 
+GAL_TYPE_INFO(gal::func::store::Lambda, 0x3b07dc46);
+
 GAL_TYPE_INFO(glm::vec3, 0x33821151);
 GAL_TYPE_INFO(glm::vec2, 0xbd40c8a1);
 GAL_TYPE_INFO(gal::Sphere, 0x5e8f631c);
@@ -57,6 +68,8 @@ GAL_TYPE_INFO(gal::Plane, 0x591f323f);
 GAL_TYPE_INFO(gal::Box3, 0x8fcb9e01);
 GAL_TYPE_INFO(gal::Box2, 0xd60b396d);
 GAL_TYPE_INFO(gal::PointCloud, 0xe6e934eb);
-GAL_TYPE_INFO(gal::Circle2d, 0X3271dc29);
+GAL_TYPE_INFO(gal::Circle2d, 0x3271dc29);
+GAL_TYPE_INFO(gal::Line2d, 0x34ff4158);
+GAL_TYPE_INFO(gal::Line3d, 0x989fdbdd);
 GAL_TYPE_INFO(gal::Mesh, 0x45342367);
 GAL_TYPE_INFO(gal::Annotations, 0x901da902);

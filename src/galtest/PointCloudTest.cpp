@@ -1,3 +1,5 @@
+#include <execution>
+
 #include <gtest/gtest.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Box.h>
@@ -18,4 +20,26 @@ TEST(PointCloud, Serialization) {
 
     ASSERT_EQ(npts, cloud2.size());
     ASSERT_EQ(cloud1, cloud2);
-};
+}
+
+TEST(PointCloud, KMeansClusters)
+{
+  gal::Box3               bounds(glm::vec3(0.f), glm::vec3(10.f));
+  static constexpr size_t nPoints   = 100;
+  static constexpr size_t nClusters = 5;
+  std::vector<glm::vec3>  points(nPoints);
+  bounds.randomPoints(points.size(), points.begin());
+  std::vector<size_t> indices(points.size());
+  gal::kMeansClusters<glm::vec3>(
+    points.begin(), points.end(), nClusters, indices.begin());
+
+  for (size_t i : indices) {
+    ASSERT_TRUE(i < nClusters);
+  }
+
+  for (size_t i = 0; i < nClusters; i++) {
+    size_t clusterSize =
+      std::count(std::execution::par_unseq, indices.begin(), indices.end(), i);
+    ASSERT_TRUE(clusterSize > 0);
+  }
+}

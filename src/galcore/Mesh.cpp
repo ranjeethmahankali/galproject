@@ -309,6 +309,12 @@ Mesh::Mesh(const Mesh& other)
            other.numFaces())
 {}
 
+Mesh::Mesh(Mesh&& other)
+    : Mesh(std::move(other.mVertices), std::move(other.mFaces))
+{
+  mVertexColors = std::move(other.mVertexColors);
+}
+
 Mesh::Mesh(const std::vector<glm::vec3>& verts, const std::vector<Face>& faces)
     : Mesh(verts.data(), verts.size(), faces.data(), faces.size()) {};
 
@@ -354,6 +360,24 @@ Mesh::Mesh(const float*  vertCoords,
   }
 
   computeCache();
+}
+
+const Mesh& Mesh::operator=(const Mesh& other)
+{
+  mVertices     = other.mVertices;
+  mFaces        = other.mFaces;
+  mVertexColors = other.mVertexColors;
+  computeCache();
+  return *this;
+}
+
+const Mesh& Mesh::operator=(Mesh&& other)
+{
+  mVertices     = std::move(other.mVertices);
+  mFaces        = std::move(other.mFaces);
+  mVertexColors = std::move(other.mVertexColors);
+  computeCache();
+  return *this;
 }
 
 size_t Mesh::numVertices() const noexcept
@@ -447,6 +471,39 @@ Box3 Mesh::faceBounds(size_t fi) const
   b.inflate(mVertices[f.b]);
   b.inflate(mVertices[f.c]);
   return b;
+}
+
+void Mesh::setVertexColors(std::vector<glm::vec3> colors)
+{
+  mVertexColors = std::move(colors);
+  if (!colors.empty()) {
+    colors.resize(numVertices(), colors.back());
+  }
+}
+
+static void defaultVertexColors(std::vector<glm::vec3>& colors, size_t nVertices)
+{
+  if (colors.size() != nVertices) {
+    colors.resize(nVertices, glm::vec3 {1.f, 1.f, 1.f});
+  }
+}
+
+const std::vector<glm::vec3>& Mesh::vertexColors() const
+{
+  defaultVertexColors(mVertexColors, numVertices());
+  return mVertexColors;
+}
+
+const glm::vec3& Mesh::vertexColor(size_t vi) const
+{
+  defaultVertexColors(mVertexColors, numVertices());
+  return mVertexColors.at(vi);
+}
+
+void Mesh::vertexColor(const glm::vec3& color, size_t vi)
+{
+  defaultVertexColors(mVertexColors, numVertices());
+  mVertexColors[vi] = color;
 }
 
 float Mesh::volume() const
@@ -771,5 +828,41 @@ Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices)
 
   return Mesh(std::move(vertices), std::move(faces));
 };
+
+gal::Mesh createRectangularMesh(const gal::Plane& plane,
+                                const gal::Box2&  box,
+                                float             edgeLength)
+{
+  glm::vec2  diag = box.diagonal();
+  glm::ivec2 dims = glm::ivec2(glm::ceil(diag / float(edgeLength)));
+  glm::vec2  qsize(diag.x / float(dims.x), diag.y / float(dims.y));
+
+  std::vector<glm::vec3> vertices;
+  vertices.reserve((dims.x + 1) * (dims.y + 1));
+
+  glm::ivec2 qi;
+  for (qi.x = 0; qi.x <= dims.x; qi.x++) {
+    for (qi.y = 0; qi.y <= dims.y; qi.y++) {
+      vertices.emplace_back(plane.origin() +
+                            (plane.xaxis() * (qsize.x * float(qi.x) + box.min.x)) +
+                            (plane.yaxis() * (qsize.y * float(qi.y) + box.min.y)));
+    }
+  }
+
+  std::vector<Mesh::Face> faces;
+  faces.reserve(dims.x * dims.y * 2);
+  for (qi.x = 0; qi.x < dims.x; qi.x++) {
+    for (qi.y = 0; qi.y < dims.y; qi.y++) {
+      std::array<size_t, 4> quadIndices = {size_t(qi.x + qi.y * (dims.x + 1)),
+                                           size_t(qi.x + qi.y * (dims.x + 1) + 1),
+                                           size_t(qi.x + (qi.y + 1) * (dims.x + 1)),
+                                           size_t(qi.x + (qi.y + 1) * (dims.x + 1) + 1)};
+      faces.emplace_back(quadIndices[0], quadIndices[1], quadIndices[2]);
+      faces.emplace_back(quadIndices[1], quadIndices[3], quadIndices[2]);
+    }
+  }
+
+  return Mesh(std::move(vertices), std::move(faces));
+}
 
 }  // namespace gal
