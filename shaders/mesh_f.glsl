@@ -4,22 +4,16 @@ out vec4 FragColor;
 
 in vec4 vertNorm;
 in vec4 vertNormWorld;
+in vec3 vertColor;
 
-uniform bool  edgeMode;
-uniform bool  pointMode;
-uniform bool  orthoMode;
-uniform float shadingFactor;
-uniform vec4  faceColor;
-uniform vec4  edgeColor;
-uniform vec4  pointColor;
+uniform bool edgeMode;
+uniform vec4 edgeColor;
+uniform bool orthoMode;
 
 void main()
 {
   if (edgeMode) {
     FragColor = edgeColor;
-  }
-  else if (pointMode) {
-    FragColor = pointColor;
   }
   else {
     // lighting w.r.t eye pos.
@@ -30,15 +24,14 @@ void main()
     fdot        = 0.5 * (fdot + fdot2);
     // reduce contrast and clamp
     fdot = clamp(0.1 * (1.0 - fdot) + 1.5 * fdot, 0.0, 1.0);
-    fdot = fdot * shadingFactor + 1.0 * (1.0 - shadingFactor);
 
     if (!orthoMode) {
       fdot *= 0.7;
     }
 
-    FragColor.x = faceColor.x * fdot;
-    FragColor.y = faceColor.y * fdot;
-    FragColor.z = faceColor.z * fdot;
-    FragColor.a = faceColor.a;
+    FragColor.x = vertColor.x * fdot;
+    FragColor.y = vertColor.y * fdot;
+    FragColor.z = vertColor.z * fdot;
+    FragColor.a = 1.0;
   }
 }

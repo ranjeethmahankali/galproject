@@ -2,10 +2,14 @@
 
 namespace gal {
 
-Plane::Plane(const glm::vec3& origin, const glm::vec3& normal)
+Plane::Plane()
+    : Plane(glm::vec3(0.f), glm::vec3(0.f, 0.f, 1.f))
+{}
+
+Plane::Plane(const glm::vec3& origin, const glm::vec3& norm)
     : mOrigin(origin)
 {
-  setNormal(normal);
+  normal(norm);
 };
 
 const glm::vec3& Plane::origin() const
@@ -13,17 +17,17 @@ const glm::vec3& Plane::origin() const
   return mOrigin;
 };
 
+void Plane::origin(const glm::vec3& o)
+{
+  mOrigin = o;
+}
+
 const glm::vec3& Plane::normal() const
 {
   return mNormal;
 };
 
-void Plane::setOrigin(const glm::vec3& origin)
-{
-  mOrigin = origin;
-};
-
-void Plane::setNormal(const glm::vec3& normal)
+void Plane::normal(const glm::vec3& normal)
 {
   static constexpr glm::vec3 sXAxis = {1.0f, 0.0f, 0.0f};
   static constexpr glm::vec3 sYAxis = {0.0f, 1.0f, 0.0f};
@@ -45,7 +49,7 @@ void Plane::setNormal(const glm::vec3& normal)
     mXAxis = glm::normalize(glm::cross(mNormal, sZAxis));
     mYAxis = glm::normalize(glm::cross(mNormal, mXAxis));
   }
-};
+}
 
 const glm::vec3& Plane::xaxis() const
 {

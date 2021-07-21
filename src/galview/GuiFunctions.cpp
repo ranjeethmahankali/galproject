@@ -67,7 +67,9 @@ using dmanager = DrawableManager<gal::Box3,
                                  gal::Sphere,
                                  gal::Circle2d,
                                  gal::Mesh,
-                                 gal::Plane>;
+                                 gal::Plane,
+                                 gal::Line2d,
+                                 gal::Line3d>;
 
 ShowFunc::ShowFunc(const std::string& label, uint64_t regId)
     : mShowables(1, std::make_pair(regId, 0))
@@ -119,6 +121,19 @@ void ShowFunc::run()
     *mSuccess = false;
   }
   gal::func::store::set<bool>(mRegisterId, mSuccess);
+};
+
+size_t ShowFunc::numInputs() const
+{
+  return mShowables.size();
+};
+
+uint64_t ShowFunc::inputRegister(size_t index) const
+{
+  if (index < numInputs()) {
+    return mShowables[index].first;
+  }
+  throw std::out_of_range("Index out of range");
 };
 
 size_t ShowFunc::numOutputs() const
@@ -177,6 +192,22 @@ void TagsFunc::run()
   gal::func::store::set<bool>(mRegisterId, mSuccess);
 }
 
+size_t TagsFunc::numInputs() const
+{
+  return 2;
+}
+
+uint64_t TagsFunc::inputRegister(size_t index) const
+{
+  if (index == 0) {
+    return mLocsRegId;
+  }
+  else if (index == 1) {
+    return mWordsRegId;
+  }
+  throw std::out_of_range("Index out of range");
+}
+
 size_t TagsFunc::numOutputs() const
 {
   return 1;
@@ -212,14 +243,14 @@ struct PrintManager
       return PrintManager<TRest...>::print(typeId, ptr);
     }
     else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name
+      std::cerr << "Datatype " << gal::TypeInfo<T>::name()
                 << " is not a printable object\n";
       throw std::bad_cast();
     }
   };
 };
 
-using printmanager = PrintManager<float, int32_t, glm::vec3, std::string>;
+using printmanager = PrintManager<float, int32_t, glm::vec3, glm::vec2, std::string>;
 
 struct PrintFunc : public gal::func::Function, public gal::view::Text
 {
@@ -256,7 +287,15 @@ public:
   {
     mRegisterId = gal::func::store::allocate(
       this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
-  };
+  }
+  size_t   numInputs() const override { return 1; }
+  uint64_t inputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mObjRegId;
+    }
+    throw std::out_of_range("Index out of range");
+  }
   size_t   numOutputs() const override { return 1; };
   uint64_t outputRegister(size_t index) const override
   {
@@ -267,12 +306,12 @@ public:
   };
 };
 
-struct TextFieldFunc : public gal::func::TVariable<std::string>,
+struct TextFieldFunc : public gal::func::TVariable<std::string, std::string>,
                        public gal::view::TextInput
 {
 public:
   TextFieldFunc(const std::string& label)
-      : gal::func::TVariable<std::string>("")
+      : gal::func::TVariable<std::string, std::string>("")
       , gal::view::TextInput(label, "") {};
 
 private:

@@ -50,7 +50,7 @@ struct MakeDrawable<Circle2d> : public std::true_type
     vBuf.finalize(view->mVAO, view->mVBO);
 
     // Render settings.
-    static constexpr glm::vec4 sLineColor = {1.0, 1.0, 1.0, 1.0};
+    static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
     RenderSettings             settings;
     settings.faceColor     = sLineColor;
     settings.edgeColor     = sLineColor;
