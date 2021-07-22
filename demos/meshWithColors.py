@@ -38,8 +38,6 @@ rect, = pgf.rectangleMesh(plane, box2, edgeLen)
 
 colored, = pgf.meshWithVertexColorsFromLambda(rect, getLambda(cloud))
 
-pgf.addDependencies(colored, [cloud])
-
 circ, *_ = pgf.boundingCircle(cloud)
 
 # pgv.show("rectangle", rect)

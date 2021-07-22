@@ -425,6 +425,8 @@ BOOST_PYTHON_MODULE(pygalview)
   // Text fields for string inputs
   def("sliderf32", gal::viewfunc::py_slider<float>);
   def("slideri32", gal::viewfunc::py_slider<int32_t>);
+  def("sliderVec3", gal::viewfunc::py_slider<glm::vec3>);
+  def("sliderVec2", gal::viewfunc::py_slider<glm::vec2>);
   GAL_DEF_PY_FN(show);
   GAL_DEF_PY_FN(showAll);
   GAL_DEF_PY_FN(print);
