@@ -77,42 +77,19 @@ public:
   };
 };
 
-namespace store {
-
-template<typename TVal, typename... TArgs>
-std::shared_ptr<Function> makeVariable(const TArgs&... args)
-{
-  auto fn = std::dynamic_pointer_cast<Function>(
-    std::make_shared<TVariable<TVal, TArgs...>>(args...));
-  return addFunction(fn);
-};
-
-}  // namespace store
-
-template<typename TVal, typename... TArgs>
-types::OutputTuple<1> variable(const TArgs&... args)
-{
-  auto fn = store::makeVariable<TVal, TArgs...>(args...);
-  return types::makeOutputTuple<1>(*fn);
-}
-
 template<typename TVal, typename... TArgs>
 boost::python::tuple py_variable(const TArgs&... args)
 {
-  return pythonRegisterTuple(gal::func::variable<TVal, TArgs...>(args...));
+  auto fn = std::dynamic_pointer_cast<Function>(
+    std::make_shared<TVariable<TVal, TArgs...>>(args...));
+  fn = store::addFunction(fn);
+  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 };
 
 template<typename T>
 boost::python::tuple py_list(const boost::python::list& lst)
 {
   return py_variable<std::vector<T>, boost::python::list>(lst);
-};
-
-// Reads the data inside a variable.
-template<typename T>
-T read(gal::func::store::Register reg)
-{
-  return *gal::func::store::get<T>(reg.id);
 };
 
 boost::python::object py_read(store::Register reg);

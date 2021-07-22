@@ -409,29 +409,25 @@ std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
 #define GAL_REGISTER_ID(argTuple) GAL_ARG_NAME(argTuple).id
 #define GAL_EXPAND_REGISTER_IDS(...) MAP_LIST(GAL_REGISTER_ID, __VA_ARGS__)
 
-#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)       \
-  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                     \
-                                GAL_EXPAND_SHARED_ARGS outputArgs);                   \
-  gal::func::types::OutputTuple<nOutputs> fnName(GAL_EXPAND_REGISTER_ARGS inputArgs); \
+#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)     \
+  void                 GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,   \
+                                GAL_EXPAND_SHARED_ARGS outputArgs); \
   boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs);
 
-#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)      \
-  gal::func::types::OutputTuple<nOutputs> fnName(GAL_EXPAND_REGISTER_ARGS inputArgs) \
-  {                                                                                  \
-    using FunctorType =                                                              \
-      gal::func::TFunction<nInputs,                                                  \
-                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),     \
-                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>;  \
-    auto fn = gal::func::store::makeFunction<FunctorType>(                           \
-      GAL_FN_IMPL_NAME(fnName),                                                      \
-      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});            \
-    return gal::func::types::makeOutputTuple<nOutputs>(*fn);                         \
-  };                                                                                 \
-  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)            \
-  {                                                                                  \
-    return gal::func::pythonRegisterTuple(fnName(GAL_EXPAND_ARG_NAMES inputArgs));   \
-  };                                                                                 \
-  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                    \
+#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)     \
+  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)           \
+  {                                                                                 \
+    using FunctorType =                                                             \
+      gal::func::TFunction<nInputs,                                                 \
+                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),    \
+                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>; \
+    auto fn = gal::func::store::makeFunction<FunctorType>(                          \
+      GAL_FN_IMPL_NAME(fnName),                                                     \
+      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});           \
+    return gal::func::pythonRegisterTuple(                                          \
+      gal::func::types::makeOutputTuple<nOutputs>(*fn));                            \
+  };                                                                                \
+  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                   \
                                 GAL_EXPAND_SHARED_ARGS outputArgs)
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
