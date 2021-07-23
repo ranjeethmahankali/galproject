@@ -155,7 +155,12 @@ void Context::set2dMode(bool flag)
     useCamera({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
     setPerspective();
   }
-};
+}
+
+void Context::toggle2dMode()
+{
+  set2dMode(!s2dMode);
+}
 
 Context::Context()
     : mShaders(3)

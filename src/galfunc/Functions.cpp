@@ -102,7 +102,7 @@ Register& getRegister(uint64_t id)
 {
   auto match = sRegisterMap.find(id);
   if (match == sRegisterMap.end()) {
-    std::cerr << "Not a valid register\n";
+    std::cerr << "Cannot find a register with id: " << id << std::endl;
     throw std::bad_alloc();
   }
   return match->second;
@@ -169,6 +169,7 @@ void markDirty(uint64_t id)
 
 void unloadAllFunctions()
 {
+  std::cout << "Unloading all functions...\n";
   store::sFunctionMap.clear();
   store::sRegisterMap.clear();
   store::sRegisterUserMap.clear();

@@ -41,6 +41,7 @@ void evalOutputs()
 
 void unloadAllOutputs()
 {
+  std::cout << "Unloading all output data...\n";
   sShowFuncRegs.clear();
   sPrintFuncRegs.clear();
   sInputPanel->clear();

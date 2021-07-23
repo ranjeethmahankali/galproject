@@ -55,9 +55,12 @@ void Panel::draw()
     mWidgets.erase(std::remove_if(mWidgets.begin(),
                                   mWidgets.end(),
                                   [this](const std::shared_ptr<Widget>& w) {
-                                    return std::find(toBeRemoved.begin(),
-                                                     toBeRemoved.end(),
-                                                     w) != toBeRemoved.end();
+                                    return std::find_if(
+                                             toBeRemoved.begin(),
+                                             toBeRemoved.end(),
+                                             [&w](const std::shared_ptr<Widget>& r) {
+                                               return w.get() == r.get();
+                                             }) != toBeRemoved.end();
                                   }),
                    mWidgets.end());
     toBeRemoved.clear();
@@ -83,9 +86,8 @@ void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
 
 void Panel::clear()
 {
-  for (const auto& w : mWidgets) {
-    removeWidget(w);
-  }
+  std::cout << "Clearing all widgets...\n";
+  mWidgets.clear();
 }
 
 static std::vector<std::shared_ptr<Panel>> sPanels;
@@ -184,6 +186,7 @@ void CheckBox::draw()
 {
   ImGui::Checkbox(mLabel.c_str(), &mValue);
   checkEdited();
+  handleChanges();
 }
 
 const bool* CheckBox::checkedPtr() const
