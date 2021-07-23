@@ -17,17 +17,17 @@ void initPanels(view::Panel& inputs, view::Panel& outputs)
 {
   sInputPanel  = &inputs;
   sOutputPanel = &outputs;
-};
+}
 
 view::Panel& inputPanel()
 {
   return *sInputPanel;
-};
+}
 
 view::Panel& outputPanel()
 {
   return *sOutputPanel;
-};
+}
 
 void evalOutputs()
 {
@@ -37,7 +37,15 @@ void evalOutputs()
   for (uint64_t id : sPrintFuncRegs) {
     auto success = gal::func::store::get<bool>(id);
   }
-};
+}
+
+void unloadAllOutputs()
+{
+  sShowFuncRegs.clear();
+  sPrintFuncRegs.clear();
+  sInputPanel->clear();
+  sOutputPanel->clear();
+}
 
 template<typename T, typename... TRest>
 struct DrawableManager

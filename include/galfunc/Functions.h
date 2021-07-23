@@ -23,6 +23,8 @@ struct Function
   virtual uint64_t outputRegister(size_t index) const = 0;
 };
 
+void unloadAllFunctions();
+
 namespace types {
 
 // Can be used to check at compile time if a type is a template instantiation.

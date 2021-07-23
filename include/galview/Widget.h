@@ -48,6 +48,12 @@ public:
 
   void removeWidget(const std::shared_ptr<Widget>& widget);
 
+  /**
+   * @brief Clears all widgets / contents inside this panel.
+   * Expect the panel to be emptied.
+   */
+  void clear();
+
   template<typename T, typename... TArgs>
   std::shared_ptr<T> newWidget(const TArgs&... args)
   {

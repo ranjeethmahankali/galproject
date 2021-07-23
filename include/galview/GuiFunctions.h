@@ -14,6 +14,12 @@ view::Panel& inputPanel();
 view::Panel& outputPanel();
 void         evalOutputs();
 
+/**
+ * @brief Clears all output registers.
+ * This is meant to be called when unloading a demo.
+ */
+void unloadAllOutputs();
+
 template<typename T>
 struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
 {

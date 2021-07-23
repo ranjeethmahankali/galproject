@@ -81,6 +81,13 @@ void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
   toBeRemoved.push_back(widget);
 }
 
+void Panel::clear()
+{
+  for (const auto& w : mWidgets) {
+    removeWidget(w);
+  }
+}
+
 static std::vector<std::shared_ptr<Panel>> sPanels;
 
 Panel& newPanel(const std::string& title)
