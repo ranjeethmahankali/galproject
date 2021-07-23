@@ -45,6 +45,20 @@ struct Converter<boost::python::api::const_object_item, T>
   };
 };
 
+template<typename T>
+struct Converter<boost::python::object, T>
+{
+  static std::shared_ptr<T> convert(const boost::python::object& obj)
+  {
+    return std::make_shared<T>(boost::python::extract<T>(obj));
+  };
+
+  static void assign(const boost::python::object& src, T& dst)
+  {
+    dst = boost::python::extract<T>(src);
+  };
+};
+
 template<>
 struct Converter<glm::vec3, boost::python::object>
 {

@@ -1,14 +1,17 @@
 #pragma once
 
-#include <galview/GLUtil.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <algorithm>
 #include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <glm/glm.hpp>
+
+#include <galview/GLUtil.h>
 
 namespace gal {
 namespace view {
@@ -44,6 +47,12 @@ public:
   void addWidget(const std::shared_ptr<Widget>& widget);
 
   void removeWidget(const std::shared_ptr<Widget>& widget);
+
+  /**
+   * @brief Clears all widgets / contents inside this panel.
+   * Expect the panel to be emptied.
+   */
+  void clear();
 
   template<typename T, typename... TArgs>
   std::shared_ptr<T> newWidget(const TArgs&... args)
@@ -136,20 +145,41 @@ public:
   const T& value() const { return mValue; };
 };
 
-template<typename T>
-inline void drawSlider(const char* label, T* value, T min, T max);
-
-template<>
-inline void drawSlider<float>(const char* label, float* value, float min, float max)
+template<typename T, int N = 1>
+inline void drawSlider(const char* label, T* value, T min, T max)
 {
-  ImGui::SliderFloat(label, value, min, max);
-};
+  static_assert((N > 0 && N < 5) && (std::is_same_v<T, int> || std::is_same_v<T, float>),
+                "Slider type not supported by ImGui.");
 
-template<>
-inline void drawSlider<int>(const char* label, int* value, int min, int max)
-{
-  ImGui::SliderInt(label, value, min, max);
-};
+  if constexpr (std::is_same_v<T, float>) {
+    if constexpr (N == 1) {
+      ImGui::SliderFloat(label, value, min, max);
+    }
+    else if constexpr (N == 2) {
+      ImGui::SliderFloat2(label, value, min, max);
+    }
+    else if constexpr (N == 3) {
+      ImGui::SliderFloat3(label, value, min, max);
+    }
+    else if constexpr (N == 4) {
+      ImGui::SliderFloat4(label, value, min, max);
+    }
+  }
+  else if constexpr (std::is_same_v<T, int>) {
+    if constexpr (N == 1) {
+      ImGui::SliderInt(label, value, min, max);
+    }
+    else if constexpr (N == 2) {
+      ImGui::SliderInt2(label, value, min, max);
+    }
+    else if constexpr (N == 3) {
+      ImGui::SliderInt3(label, value, min, max);
+    }
+    else if constexpr (N == 4) {
+      ImGui::SliderInt4(label, value, min, max);
+    }
+  }
+}
 
 template<typename T>
 class Slider : public InputWidget<T>
@@ -179,41 +209,54 @@ private:
   T mRange[2];
 };
 
-template<typename T>
-inline void drawSlider3(const char* label, T (&value)[3], T min, T max);
-
-template<>
-inline void drawSlider3<float>(const char* label, float (&value)[3], float min, float max)
+/**
+ * @brief This specialization is for sliders that control glm vectors.
+ * @tparam N The length of the vector.
+ * @tparam T The type of the vector.
+ * @tparam Q Precision.
+ */
+template<int N, typename T, glm::qualifier Q>
+class Slider<glm::vec<N, T, Q>> : public InputWidget<glm::vec<N, T, Q>>
 {
-  ImGui::SliderFloat3(label, value, min, max);
-};
+  using VecType = glm::vec<N, T, Q>;
 
-template<typename T>
-class Slider3 : public InputWidget<T[3]>
-{
-  static_assert(std::is_fundamental_v<T>, "Must be a fundamental type");
   static constexpr T ZERO = T(0);
 
 public:
-  Slider3(const std::string& label, T min, T max)
-      : InputWidget<T[3]>(label)
+  /**
+   * @brief Construct a new Slider object.
+   * This constructor expects min, max, and val args of type T instead of glm vectors.
+   * This is necessary to conform to ImGui's functions for drawing multi-sliders.
+   * @param label
+   * @param min
+   * @param max
+   * @param val
+   */
+  Slider(const std::string& label, const T& min, const T& max, const T& val)
+      : InputWidget<VecType>(label)
       , mRange {min, max}
   {
-    std::fill_n(this->mValue, 3, std::clamp(ZERO, this->mRange[0], this->mRange[1]));
+    this->mValue = VecType(val);
   };
 
-  Slider3(const std::string& label, T min, T max, const T (&value)[3])
-      : InputWidget<T[3]>(label)
-      , mRange {min, max}
-  {
-    std::copy_n(value, 3, this->mValue);
-  };
+  /**
+   * @brief Construct a new Slider object
+   * This constructor expects min, and max args of type T instead of glm vectors.
+   * This is necessary to conform to ImGui's functions for drawing multi-sliders.
+   * @param label
+   * @param min
+   * @param max
+   */
+  Slider(const std::string& label, const T& min, const T& max)
+      : Slider(label, min, max, std::clamp(ZERO, min, max)) {};
 
-  virtual ~Slider3() = default;
+  virtual ~Slider() = default;
 
   void draw()
   {
-    drawSlider3<T>(this->mLabel.c_str(), this->mValue, this->mRange[0], this->mRange[1]);
+    static_assert(N < 5, "Unsupported vector length");
+    drawSlider<T, N>(
+      this->mLabel.c_str(), &(this->mValue[0]), this->mRange[0], this->mRange[1]);
     this->checkEdited();
     this->handleChanges();
   };
@@ -249,10 +292,6 @@ public:
   void        draw();
   const bool* checkedPtr() const;
 };
-
-using SliderF  = Slider<float>;
-using SliderI  = Slider<int>;
-using SliderF3 = Slider3<float>;
 
 }  // namespace view
 }  // namespace gal
