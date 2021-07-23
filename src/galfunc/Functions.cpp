@@ -3,10 +3,10 @@
 #include <galfunc/CircleFunctions.h>
 #include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
+#include <galfunc/LineFunctions.h>
 #include <galfunc/MapMacro.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/SphereFunctions.h>
-#include <galfunc/LineFunctions.h>
 #include <galfunc/UtilFunctions.h>
 #include <galfunc/Variable.h>
 
@@ -102,7 +102,7 @@ Register& getRegister(uint64_t id)
 {
   auto match = sRegisterMap.find(id);
   if (match == sRegisterMap.end()) {
-    std::cerr << "Not a valid register\n";
+    std::cerr << "Cannot find a register with id: " << id << std::endl;
     throw std::bad_alloc();
   }
   return match->second;
@@ -152,8 +152,8 @@ void markDirty(uint64_t id)
     Register& reg     = getRegister(current);
     ids.pop_back();
     if (!ids.empty() && id == current) {
-        // Cycle detected... bail out.
-        return;
+      // Cycle detected... bail out.
+      return;
     }
     reg.isDirty       = true;
     const auto& users = sRegisterUserMap[current];
@@ -166,6 +166,15 @@ void markDirty(uint64_t id)
 };
 
 }  // namespace store
+
+void unloadAllFunctions()
+{
+  std::cout << "Unloading all functions...\n";
+  store::sFunctionMap.clear();
+  store::sRegisterMap.clear();
+  store::sRegisterUserMap.clear();
+  store::sRegisterId = 0;
+}
 
 }  // namespace func
 }  // namespace gal

@@ -133,6 +133,8 @@ public:
 
   void set2dMode(bool flag);
 
+  void toggle2dMode();
+
   size_t shaderId(const std::string& name) const;
 
   void useShader(size_t shaderId);

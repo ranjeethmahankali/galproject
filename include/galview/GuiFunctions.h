@@ -1,4 +1,7 @@
 #pragma once
+
+#include <glm/glm.hpp>
+
 #include <galfunc/Functions.h>
 #include <galfunc/Variable.h>
 #include <galview/Widget.h>
@@ -10,6 +13,12 @@ void         initPanels(view::Panel& inputs, view::Panel& outputs);
 view::Panel& inputPanel();
 view::Panel& outputPanel();
 void         evalOutputs();
+
+/**
+ * @brief Clears all output registers.
+ * This is meant to be called when unloading a demo.
+ */
+void unloadAllOutputs();
 
 template<typename T>
 struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
@@ -32,75 +41,95 @@ protected:
   };
 };
 
-struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
+template<int N, typename T, glm::qualifier Q>
+struct SliderFunc<glm::vec<N, T, Q>>
+    : public gal::func::TVariable<glm::vec<N, T, Q>, glm::vec<N, T, Q>>,
+      public gal::view::Slider<glm::vec<N, T, Q>>
 {
-  ShowFunc(const std::string& label, uint64_t regId);
-  ShowFunc(const std::string& label, const std::vector<uint64_t>& regIds);
+  using VecType = glm::vec<N, T, Q>;
 
-  void     run() override;
-  void     initOutputRegisters() override;
-  size_t   numInputs() const override;
-  uint64_t inputRegister(size_t index) const override;
-  size_t   numOutputs() const override;
-  uint64_t outputRegister(size_t index) const override;
+public:
+  SliderFunc(const std::string& label, const T& min, const T& max, const T& value)
+      : gal::func::TVariable<VecType, VecType>(VecType(std::clamp(value, min, max)))
+      , gal::view::Slider<VecType>(label, min, max, value) {};
 
 private:
-  using gal::view::CheckBox::addHandler;
+  using gal::view::Slider<VecType>::addHandler;
 
-  /* The first is the reg-id of the object being shown. The second is the drawId of that
-   * same object that is tracked by the viewer. Knowing the reg-id is needed in order to
-   * get retriggered when the upstream changes, and in order to get the latest geometry.
-   * Knowing the drawId is needed in order to interact with the viewer.*/
-  using Showable = std::pair<uint64_t, size_t>;
+protected:
+  void handleChanges() override
+  {
+    if (this->isEdited())
+      this->set(this->mValue);
 
-  void useUpstreamRegisters();
-
-private:
-  std::vector<Showable> mShowables;
-  std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;  // Output
+    this->clearEdited();
+  };
 };
 
-struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
+/**
+ * @brief The whole purpose of having this struct is to do partial template
+ * specialization.
+ * @tparam T
+ */
+template<typename T>
+struct makeSlider
 {
-  TagsFunc(const std::string& label, uint64_t locRegId, uint64_t wordsRegId);
+  static boost::python::tuple make(boost::python::object pylabel,
+                                   boost::python::object pymin,
+                                   boost::python::object pymax,
+                                   boost::python::object pyvalue)
+  {
+    std::string label;
+    T           min, max, value;
+    gal::func::Converter<decltype(pylabel), std::string>::assign(pylabel, label);
+    gal::func::Converter<decltype(pymin), T>::assign(pymin, min);
+    gal::func::Converter<decltype(pymax), T>::assign(pymax, max);
+    gal::func::Converter<decltype(pyvalue), T>::assign(pyvalue, value);
 
-  void     run() override;
-  void     initOutputRegisters() override;
-  size_t   numInputs() const override;
-  uint64_t inputRegister(size_t index) const override;
-  size_t   numOutputs() const override;
-  uint64_t outputRegister(size_t index) const override;
+    auto fn = gal::func::store::makeFunction<SliderFunc<T>>(label, min, max, value);
+    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+    return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
+  }
+};
 
-private:
-  using gal::view::CheckBox::addHandler;
+/**
+ * @brief This specialization is needed for glm vectors because the constructors of the
+ * corresponding slider widgets expect args of type T for min, max and value.
+ * For example for glm::vec3 the arguments would not be glm::vec3 (as suggested by the
+ * original template), instad they are float.
+ * @tparam N The length of the vector
+ * @tparam T The type of the vector.
+ * @tparam Q precision.
+ */
+template<int N, typename T, glm::qualifier Q>
+struct makeSlider<glm::vec<N, T, Q>>
+{
+  static boost::python::tuple make(boost::python::object pylabel,
+                                   boost::python::object pymin,
+                                   boost::python::object pymax,
+                                   boost::python::object pyvalue)
+  {
+    std::string label;
+    T           min, max, value;
+    gal::func::Converter<decltype(pylabel), std::string>::assign(pylabel, label);
+    gal::func::Converter<decltype(pymin), T>::assign(pymin, min);
+    gal::func::Converter<decltype(pymax), T>::assign(pymax, max);
+    gal::func::Converter<decltype(pyvalue), T>::assign(pyvalue, value);
 
-private:
-  uint64_t              mLocsRegId;
-  uint64_t              mWordsRegId;
-  size_t                mDrawId = 0;
-  std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;
+    auto fn = gal::func::store::makeFunction<SliderFunc<glm::vec<N, T, Q>>>(
+      label, min, max, value);
+    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+    return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
+  }
 };
 
 template<typename T>
-gal::func::types::OutputTuple<1> slider(const std::string& label,
-                                        const T&           min,
-                                        const T&           max,
-                                        const T&           value)
+boost::python::tuple py_slider(boost::python::object pylabel,
+                               boost::python::object pymin,
+                               boost::python::object pymax,
+                               boost::python::object pyvalue)
 {
-  auto fn = gal::func::store::makeFunction<SliderFunc<T>>(label, min, max, value);
-  inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::types::makeOutputTuple<1>(*fn);
-};
-
-template<typename T>
-boost::python::tuple py_slider(const std::string& label,
-                               const T&           min,
-                               const T&           max,
-                               const T&           value)
-{
-  return gal::func::pythonRegisterTuple(slider<T>(label, min, max, value));
+  return makeSlider<T>::make(pylabel, pymin, pymax, pyvalue);
 };
 
 }  // namespace viewfunc

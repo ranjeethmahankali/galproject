@@ -23,9 +23,10 @@ using namespace gal;
 namespace fs  = std::filesystem;
 namespace bpo = boost::program_options;
 
-static constexpr char glslVersion[] = "#version 330 core";
+static constexpr char glslVersion[]    = "#version 330 core";
+static fs::path       sCurrentDemoPath = "";
 
-static void initPythonEnvironment()
+void initPythonEnvironment()
 {
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
   PyImport_AppendInittab("pygalview", &PyInit_pygalview);
@@ -35,12 +36,27 @@ static void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-static void glfw_error_cb(int error, const char* desc)
+int runPythonDemoFile(const fs::path& demoPath)
+{
+  try {
+    std::cout << "Running demo file: " << demoPath << std::endl;
+    boost::python::exec_file(demoPath.c_str());
+    sCurrentDemoPath = demoPath;
+    return 0;
+  }
+  catch (boost::python::error_already_set) {
+    PyErr_Print();
+    std::cerr << "Unable to load the demo... aborting...\n";
+    return 1;
+  }
+}
+
+void glfw_error_cb(int error, const char* desc)
 {
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-static int initViewer(GLFWwindow*& window)
+int initViewer(GLFWwindow*& window)
 {
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
@@ -91,14 +107,20 @@ static int initViewer(GLFWwindow*& window)
 void showSettingsPanel()
 {
   static view::Panel& panel = view::newPanel("Settings");
-  panel.newWidget<view::Button>("Toggle 2d Mode", []() {
-    static bool flag = true;
-    view::Context::get().set2dMode(flag);
-    flag = !flag;
+  panel.newWidget<view::Button>("Toggle 2d Mode",
+                                []() { view::Context::get().toggle2dMode(); });
+  panel.newWidget<view::Button>("Reload demo", []() {
+    gal::viewfunc::unloadAllOutputs();
+    gal::func::unloadAllFunctions();
+    gal::view::Context::get().clearDrawables();
+    int err = runPythonDemoFile(sCurrentDemoPath);
+    if (err != 0) {
+      std::cerr << "Unable to run the demo file. Aborting...\n";
+    }
   });
 }
 
-static void wrapUp(GLFWwindow* window)
+void wrapUp(GLFWwindow* window)
 {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
@@ -107,7 +129,7 @@ static void wrapUp(GLFWwindow* window)
   glfwTerminate();
 }
 
-static int loadDemo(const fs::path& demoPath)
+int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
@@ -121,22 +143,13 @@ static int loadDemo(const fs::path& demoPath)
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
-  try {
-    boost::python::exec_file(demoPath.c_str());
-  }
-  catch (boost::python::error_already_set) {
-    PyErr_Print();
-    std::cerr << "Unable to load the demo... aborting...\n";
-    return 1;
-  }
-
-  if (err) {
-    std::cerr << "Unable to initialize free type\n";
-    return err;
+  err = runPythonDemoFile(demoPath);
+  if (err != 0) {
+    std::cerr << "Unable to run the demo file. Aborting...\n";
   }
 
   std::cout << "Starting render loop...\n";
-
+  showSettingsPanel();
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     view::imGuiNewFrame();
@@ -156,7 +169,7 @@ static int loadDemo(const fs::path& demoPath)
   return 0;
 }
 
-static int debugSession(const fs::path& targetDir)
+int debugSession(const fs::path& targetDir)
 {
   if (!fs::is_directory(targetDir)) {
     return 1;
