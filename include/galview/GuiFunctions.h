@@ -27,6 +27,8 @@ public:
       : gal::func::TVariable<T, T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
+  virtual ~SliderFunc() = default;
+
 private:
   using gal::view::Slider<T>::addHandler;
 

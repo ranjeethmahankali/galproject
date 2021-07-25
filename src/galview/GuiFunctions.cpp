@@ -101,6 +101,8 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
     useUpstreamRegisters();
   }
 
+  virtual ~ShowFunc() = default;
+
   void run() override
   {
     try {
@@ -176,6 +178,8 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
     gal::func::store::useRegister(this, mLocsRegId);
     gal::func::store::useRegister(this, mWordsRegId);
   }
+
+  virtual ~TagsFunc() = default;
 
   void run() override
   {
@@ -288,6 +292,8 @@ public:
   {
     gal::func::store::useRegister(this, mObjRegId);
   };
+
+  virtual ~PrintFunc() = default;
 
   void run() override
   {

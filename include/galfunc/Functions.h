@@ -30,18 +30,6 @@ void unloadAllFunctions();
 
 namespace types {
 
-// Can be used to check at compile time if a type is a template instantiation.
-template<template<typename...> typename Tem, typename T>
-struct IsInstance : public std::false_type
-{
-};
-
-// Template specialization that does the magic.
-template<template<typename...> typename Tem, typename... Ts>
-struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
-{
-};
-
 template<size_t N, typename T>
 struct TupleN
 {

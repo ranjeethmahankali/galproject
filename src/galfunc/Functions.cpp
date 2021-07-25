@@ -1,6 +1,7 @@
 #include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/CircleFunctions.h>
+#include <galfunc/Dynamic.h>
 #include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/LineFunctions.h>
@@ -8,7 +9,6 @@
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/SphereFunctions.h>
 #include <galfunc/UtilFunctions.h>
-#include <galfunc/Dynamic.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)
@@ -205,6 +205,5 @@ BOOST_PYTHON_MODULE(pygalfunc)
   GAL_DEF_PY_FN_ALL(GAL_CircleFunctions)
   GAL_DEF_PY_FN_ALL(GAL_SphereFunctions)
   GAL_DEF_PY_FN_ALL(GAL_LineFunctions)
-
-  GAL_DEF_PY_FN(read);
+  GAL_DEF_PY_FN_ALL(GAL_DynamicFunctions)
 };
