@@ -8,7 +8,7 @@
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/SphereFunctions.h>
 #include <galfunc/UtilFunctions.h>
-#include <galfunc/Variable.h>
+#include <galfunc/Dynamic.h>
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg)

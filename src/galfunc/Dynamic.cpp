@@ -1,4 +1,4 @@
-#include <galfunc/Variable.h>
+#include <galfunc/Dynamic.h>
 #include <unordered_map>
 
 namespace gal {
