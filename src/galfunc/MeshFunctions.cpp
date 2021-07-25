@@ -87,6 +87,7 @@ GAL_FUNC_DEFN(meshSphereQuery,
     return int32_t(i);
   });
   *resultMesh = mesh->extractFaces(results);
+  *numFaces   = int(results.size());
 };
 
 GAL_FUNC_DEFN(closestPointsOnMesh,
