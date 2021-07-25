@@ -101,6 +101,8 @@ struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
     useUpstreamRegisters();
   }
 
+  virtual ~ShowFunc() = default;
+
   void run() override
   {
     try {
@@ -176,6 +178,8 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
     gal::func::store::useRegister(this, mLocsRegId);
     gal::func::store::useRegister(this, mWordsRegId);
   }
+
+  virtual ~TagsFunc() = default;
 
   void run() override
   {
@@ -289,6 +293,8 @@ public:
     gal::func::store::useRegister(this, mObjRegId);
   };
 
+  virtual ~PrintFunc() = default;
+
   void run() override
   {
     try {
@@ -346,7 +352,8 @@ protected:
   }
 };
 
-boost::python::tuple py_show(const std::string& label, gal::func::store::Register reg)
+gal::func::PyFnOutputType<1> py_show(const std::string&         label,
+                                     gal::func::store::Register reg)
 {
   using namespace gal::func;
   auto fn = store::makeFunction<ShowFunc>(label, reg.id);
@@ -356,8 +363,8 @@ boost::python::tuple py_show(const std::string& label, gal::func::store::Registe
   return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 };
 
-boost::python::tuple py_showAll(const std::string&         label,
-                                const boost::python::list& regsPy)
+gal::func::PyFnOutputType<1> py_showAll(const std::string&         label,
+                                        const boost::python::list& regsPy)
 {
   using namespace gal::func;
   std::vector<gal::func::store::Register> regs;
@@ -374,7 +381,8 @@ boost::python::tuple py_showAll(const std::string&         label,
   return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 };
 
-boost::python::tuple py_print(const std::string& label, gal::func::store::Register reg)
+gal::func::PyFnOutputType<1> py_print(const std::string&         label,
+                                      gal::func::store::Register reg)
 {
   using namespace gal::func;
   auto fn = store::makeFunction<PrintFunc>(label, reg.id);
@@ -400,16 +408,16 @@ void py_usePerspectiveCam()
   gal::view::Context::get().setPerspective();
 }
 
-boost::python::tuple py_textField(const std::string& label)
+gal::func::PyFnOutputType<1> py_textField(const std::string& label)
 {
   auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
 };
 
-boost::python::tuple py_tags(const std::string&         label,
-                             gal::func::store::Register locs,
-                             gal::func::store::Register words)
+gal::func::PyFnOutputType<1> py_tags(const std::string&         label,
+                                     gal::func::store::Register locs,
+                                     gal::func::store::Register words)
 {
   using namespace gal::func;
   auto fn = store::makeFunction<TagsFunc>(label, locs.id, words.id);
@@ -426,21 +434,21 @@ BOOST_PYTHON_MODULE(pygalview)
 {
   using namespace boost::python;
   using namespace gal::viewfunc;
-  //   class_<gal::func::store::Register>("Register").def(self_ns::str(self_ns::self));
-  // Bindings related to gui
-  // Views for drawables
-  // Labels for strings
   // Sliders for float input
-  // Text fields for string inputs
   def("sliderf32", gal::viewfunc::py_slider<float>);
   def("slideri32", gal::viewfunc::py_slider<int32_t>);
   def("sliderVec3", gal::viewfunc::py_slider<glm::vec3>);
   def("sliderVec2", gal::viewfunc::py_slider<glm::vec2>);
+  // Views for drawables
   GAL_DEF_PY_FN(show);
   GAL_DEF_PY_FN(showAll);
+  // Labels for printable data
   GAL_DEF_PY_FN(print);
+  // Text fields for string inputs
   GAL_DEF_PY_FN(textField);
+  // Viewer annotations
   GAL_DEF_PY_FN(tags);
+  // Viewer controls.
   GAL_DEF_PY_FN(set2dMode);
   GAL_DEF_PY_FN(useOrthoCam);
   GAL_DEF_PY_FN(usePerspectiveCam);

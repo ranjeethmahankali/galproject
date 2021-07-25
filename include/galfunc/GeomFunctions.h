@@ -35,6 +35,22 @@ GAL_FUNC_DECL(vec2FromVec3,
               ((glm::vec3, v3, "3d vector")),
               ((glm::vec2, v2, "2d vector")));
 
+GAL_FUNC_DECL(vec3Coords,
+              1,
+              3,
+              "Gets the coordinates of the vector",
+              ((glm::vec3, v, "Vector")),
+              ((float, x, "x coordinate"),
+               (float, y, "y coordinate"),
+               (float, z, "z coordinate")));
+
+GAL_FUNC_DECL(vec2Coords,
+              1,
+              3,
+              "Gets the coordinates of the vector",
+              ((glm::vec2, v, "Vector")),
+              ((float, x, "x coordinate"), (float, y, "y coordinate")));
+
 GAL_FUNC_DECL(plane,
               2,
               1,

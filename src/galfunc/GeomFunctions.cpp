@@ -54,6 +54,31 @@ GAL_FUNC_DEFN(vec2FromVec3,
   v2->y = v3->y;
 }
 
+GAL_FUNC_DEFN(vec3Coords,
+              1,
+              3,
+              "Gets the coordinates of the vector",
+              ((glm::vec3, v, "Vector")),
+              ((float, x, "x coordinate"),
+               (float, y, "y coordinate"),
+               (float, z, "z coordinate")))
+{
+  *x = v->x;
+  *y = v->y;
+  *z = v->z;
+}
+
+GAL_FUNC_DEFN(vec2Coords,
+              1,
+              3,
+              "Gets the coordinates of the vector",
+              ((glm::vec2, v, "Vector")),
+              ((float, x, "x coordinate"), (float, y, "y coordinate")))
+{
+  *x = v->x;
+  *y = v->y;
+}
+
 GAL_FUNC_DEFN(plane,
               2,
               1,
