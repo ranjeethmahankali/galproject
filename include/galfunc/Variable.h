@@ -78,7 +78,7 @@ public:
 };
 
 template<typename TVal, typename... TArgs>
-boost::python::tuple py_variable(const TArgs&... args)
+PyFnOutputType<1> py_variable(const TArgs&... args)
 {
   auto fn = std::dynamic_pointer_cast<Function>(
     std::make_shared<TVariable<TVal, TArgs...>>(args...));
@@ -87,7 +87,7 @@ boost::python::tuple py_variable(const TArgs&... args)
 };
 
 template<typename T>
-boost::python::tuple py_list(const boost::python::list& lst)
+PyFnOutputType<1> py_list(const boost::python::list& lst)
 {
   return py_variable<std::vector<T>, boost::python::list>(lst);
 };
