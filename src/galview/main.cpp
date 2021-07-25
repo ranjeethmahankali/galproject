@@ -40,8 +40,8 @@ int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
     std::cout << "Running demo file: " << demoPath << std::endl;
-    boost::python::exec_file(demoPath.c_str());
     sCurrentDemoPath = demoPath;
+    boost::python::exec_file(demoPath.c_str());
     return 0;
   }
   catch (boost::python::error_already_set) {
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
   gal::debug::enableDebugging();
 #endif
   //   return debugSession(gal::utils::absPath("../temp"));
-  //   return loadDemo(gal::utils::absPath("../demos/meshWithColors.py"));
+  //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
   //   return loadDemo(gal::utils::absPath(
   //     "/home/rnjth94/works/YouTube/GAL_BoundingCircle/scenesBoundingCircle.py"));
 

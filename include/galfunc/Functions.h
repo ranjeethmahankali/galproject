@@ -1,12 +1,15 @@
 #pragma once
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#include <galcore/Types.h>
-#include <galfunc/MapMacro.h>
 #include <string.h>
-#include <boost/python.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
+
+#include <boost/python.hpp>
+
+#include <galcore/Types.h>
+#include <galfunc/Converter.h>
+#include <galfunc/MapMacro.h>
 
 namespace gal {
 namespace func {
@@ -26,18 +29,6 @@ struct Function
 void unloadAllFunctions();
 
 namespace types {
-
-// Can be used to check at compile time if a type is a template instantiation.
-template<template<typename...> typename Tem, typename T>
-struct IsInstance : public std::false_type
-{
-};
-
-// Template specialization that does the magic.
-template<template<typename...> typename Tem, typename... Ts>
-struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
-{
-};
 
 template<size_t N, typename T>
 struct TupleN
@@ -302,6 +293,76 @@ public:
   };
 };
 
+template<typename TVal, typename... TArgs>
+struct TVariable : public Function
+{
+  static constexpr bool sIsConstructible = std::is_constructible_v<TVal, TArgs...>;
+  static constexpr bool sSingleArgument  = sizeof...(TArgs) == 1;
+
+  static_assert(sIsConstructible || sSingleArgument,
+                "Cannot create variable with these arguments.");
+
+  using TFirstArg = std::tuple_element_t<0, std::tuple<TArgs...>>;
+
+protected:
+  uint64_t              mRegisterId;
+  std::shared_ptr<TVal> mValuePtr;
+
+public:
+  TVariable(const TArgs&... args)
+  {
+    if constexpr (sIsConstructible) {
+      mValuePtr = std::make_shared<TVal>(args...);
+    }
+    else if constexpr (sSingleArgument) {
+      mValuePtr = Converter<TFirstArg, TVal>::convert(args...);
+    }
+    store::useRegister(this, mRegisterId);
+    if constexpr (std::is_same_v<TVal, store::Lambda>) {
+      store::useLambdaCapturedRegisters(this, *mValuePtr);
+    }
+  };
+
+  virtual ~TVariable() { store::free(mRegisterId); }
+
+  void initOutputRegisters() override
+  {
+    static_assert(TypeInfo<TVal>::value, "Unknown type");
+    mRegisterId = store::allocate(this, TypeInfo<TVal>::id, TypeInfo<TVal>::name());
+    store::markDirty(this->mRegisterId);
+  };
+
+  size_t numInputs() const override { return 0; }
+
+  uint64_t inputRegister(size_t index) const override
+  {
+    throw std::out_of_range("Variable has no inputs.");
+  }
+
+  size_t numOutputs() const override { return 1; };
+
+  uint64_t outputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mRegisterId;
+    }
+    throw std::out_of_range("Index out of range");
+  };
+
+  void run() override { store::set<TVal>(mRegisterId, mValuePtr); };
+
+  void set(const TArgs&... args)
+  {
+    if constexpr (sIsConstructible) {
+      *mValuePtr = TVal(args...);
+    }
+    else if constexpr (sSingleArgument) {
+      Converter<TFirstArg, TVal>::assign(args..., *(this->mValuePtr));
+    }
+    store::markDirty(this->mRegisterId);
+  };
+};
+
 namespace store {
 
 template<typename TFunc, typename... TArgs>
@@ -320,11 +381,16 @@ namespace types {
 template<size_t NMax, size_t N = 0>
 void setOutputTuple(OutputTuple<NMax>& tup, const Function& fn)
 {
-  if constexpr (N < NMax) {
-    std::get<N>(tup) = store::getRegister(fn.outputRegister(N));
+  if constexpr (NMax == 1) {
+    tup = store::getRegister(fn.outputRegister(N));
   }
-  if constexpr (N < NMax - 1) {
-    setOutputTuple<NMax, N + 1>(tup, fn);
+  else {
+    if constexpr (N < NMax) {
+      std::get<N>(tup) = store::getRegister(fn.outputRegister(N));
+    }
+    if constexpr (N < NMax - 1) {
+      setOutputTuple<NMax, N + 1>(tup, fn);
+    }
   }
 };
 
@@ -338,12 +404,19 @@ OutputTuple<N> makeOutputTuple(const Function& fn)
 
 }  // namespace types
 
+template<size_t NOutputs>
+using PyFnOutputType =
+  std::conditional_t<NOutputs == 1, store::Register, boost::python::tuple>;
+
 template<size_t N, typename CppTupleType, typename... TArgs>
-boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArgs... args)
+PyFnOutputType<std::tuple_size_v<CppTupleType>> pythonRegisterTupleInternal(
+  const CppTupleType cppTup,
+  TArgs... args)
 {
   static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
+  static_assert(tupleSize > 1,
+                "If the tuple size is 1, the register should be returned directly");
   static_assert(N <= tupleSize, "Invalid tuple accecssor");
-
   if constexpr (N < tupleSize) {
     return pythonRegisterTupleInternal<N + 1>(cppTup, args..., std::get<N>(cppTup));
   }
@@ -353,9 +426,30 @@ boost::python::tuple pythonRegisterTupleInternal(const CppTupleType cppTup, TArg
 };
 
 template<typename... Ts>
-boost::python::tuple pythonRegisterTuple(const std::tuple<Ts...>& cppTup)
+PyFnOutputType<std::tuple_size_v<std::tuple<Ts...>>> pythonRegisterTuple(
+  const std::tuple<Ts...>& cppTup)
 {
-  return pythonRegisterTupleInternal<0>(cppTup);
+  if constexpr (std::tuple_size_v<std::tuple<Ts...>> == 1) {
+    return std::get<0>(cppTup);
+  }
+  else {
+    return pythonRegisterTupleInternal<0>(cppTup);
+  }
+};
+
+template<typename TVal, typename... TArgs>
+PyFnOutputType<1> py_variable(const TArgs&... args)
+{
+  auto fn = std::dynamic_pointer_cast<Function>(
+    std::make_shared<TVariable<TVal, TArgs...>>(args...));
+  fn = store::addFunction(fn);
+  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+};
+
+template<typename T>
+PyFnOutputType<1> py_list(const boost::python::list& lst)
+{
+  return py_variable<std::vector<T>, boost::python::list>(lst);
 };
 
 }  // namespace func
@@ -411,25 +505,25 @@ std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
 #define GAL_REGISTER_ID(argTuple) GAL_ARG_NAME(argTuple).id
 #define GAL_EXPAND_REGISTER_IDS(...) MAP_LIST(GAL_REGISTER_ID, __VA_ARGS__)
 
-#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)     \
-  void                 GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,   \
-                                GAL_EXPAND_SHARED_ARGS outputArgs); \
-  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs);
+#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs) \
+  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,               \
+                                GAL_EXPAND_SHARED_ARGS outputArgs);             \
+  gal::func::PyFnOutputType<nOutputs> py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs);
 
-#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)     \
-  boost::python::tuple py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)           \
-  {                                                                                 \
-    using FunctorType =                                                             \
-      gal::func::TFunction<nInputs,                                                 \
-                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),    \
-                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>; \
-    auto fn = gal::func::store::makeFunction<FunctorType>(                          \
-      GAL_FN_IMPL_NAME(fnName),                                                     \
-      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});           \
-    return gal::func::pythonRegisterTuple(                                          \
-      gal::func::types::makeOutputTuple<nOutputs>(*fn));                            \
-  };                                                                                \
-  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                   \
+#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)          \
+  gal::func::PyFnOutputType<nOutputs> py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs) \
+  {                                                                                      \
+    using FunctorType =                                                                  \
+      gal::func::TFunction<nInputs,                                                      \
+                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),         \
+                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>;      \
+    auto fn = gal::func::store::makeFunction<FunctorType>(                               \
+      GAL_FN_IMPL_NAME(fnName),                                                          \
+      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});                \
+    return gal::func::pythonRegisterTuple(                                               \
+      gal::func::types::makeOutputTuple<nOutputs>(*fn));                                 \
+  };                                                                                     \
+  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                        \
                                 GAL_EXPAND_SHARED_ARGS outputArgs)
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);

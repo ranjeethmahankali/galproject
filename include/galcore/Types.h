@@ -3,16 +3,32 @@
 #include <galcore/Annotations.h>
 #include <galcore/Box.h>
 #include <galcore/Circle2d.h>
+#include <galcore/Line.h>
 #include <galcore/Mesh.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Sphere.h>
-#include <galcore/Line.h>
 
 namespace gal {
 
 // Forward declaration.
 namespace func {
+namespace types {
+
+// Can be used to check at compile time if a type is a template instantiation.
+template<template<typename...> typename Tem, typename T>
+struct IsInstance : public std::false_type
+{
+};
+
+// Template specialization that does the magic.
+template<template<typename...> typename Tem, typename... Ts>
+struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
+{
+};
+
+}  // namespace types
+
 namespace store {
 struct Lambda;
 }

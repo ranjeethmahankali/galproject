@@ -37,5 +37,75 @@ GAL_FUNC_DEFN(mapValueToColor,
   *color = colorScheme->at(i) * (1.f - r) + colorScheme->at(j) * r;
 }
 
+GAL_FUNC_DEFN(sin,
+              1,
+              1,
+              "Calculates the sine",
+              ((float, x, "Value for which to compute sine")),
+              ((float, result, "Sine of the input value")))
+{
+  *result = std::sin(*x);
+}
+
+GAL_FUNC_DEFN(cos,
+              1,
+              1,
+              "Calculates the cosine",
+              ((float, x, "Value for which to compute cosine")),
+              ((float, result, "Cosine of the input value")))
+{
+  *result = std::cos(*x);
+}
+
+GAL_FUNC_DEFN(tan,
+              1,
+              1,
+              "Calculates the tan",
+              ((float, x, "Value for which to compute tan")),
+              ((float, result, "Tan of the input value")))
+{
+  *result = std::tan(*x);
+}
+
+GAL_FUNC_DEFN(arcsin,
+              1,
+              1,
+              "Calculates the inverse sine",
+              ((float, x, "The value for which to compute the inverse sine")),
+              ((float, result, "The inverse sine of the input.")))
+{
+  *result = std::asin(*x);
+}
+
+GAL_FUNC_DEFN(arccos,
+              1,
+              1,
+              "Calculates the inverse cosine",
+              ((float, x, "The value for which to compute the inverse cosine")),
+              ((float, result, "The inverse cosine of the input.")))
+{
+  *result = std::acos(*x);
+}
+
+GAL_FUNC_DEFN(arctan,
+              1,
+              1,
+              "Calculates the inverse tan",
+              ((float, x, "The value for which to compute the inverse tan")),
+              ((float, result, "The inverse tan of the input.")))
+{
+  *result = std::atan(*x);
+}
+
+GAL_FUNC_DEFN(powf32,
+              2,
+              1,
+              "Raises the base to the power",
+              ((float, base, "Base"), (float, power, "Power")),
+              ((float, result, "Result")))
+{
+  *result = std::pow(*base, *power);
+}
+
 }  // namespace func
 }  // namespace gal
