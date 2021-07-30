@@ -20,9 +20,11 @@ const glm::ivec2& charsize(char c);
 uint32_t          charadvance(char c);
 const glm::vec4&  chartexcoords(char c);
 
-void bindGlyphAtlasTexture();
-void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
+void   bindGlyphAtlasTexture();
+void   loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
 size_t getGlyphIndex(const std::string& label);
+const glm::vec4& glyphtexcoords(size_t i);
+uint32_t         glyphSize();
 
 template<typename T>
 class AnnotationsView : public Drawable
@@ -77,13 +79,13 @@ struct AnnotationVertex
 
 using AnnotationVertBuffer = glutil::TVertexBuffer<AnnotationVertex>;
 
-template<typename T>
-struct MakeDrawable<Annotations<T>> : public std::true_type
+template<>
+struct MakeDrawable<TextAnnotations> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const Annotations<T>&        tags,
+  static std::shared_ptr<Drawable> get(const TextAnnotations&       tags,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    auto view = std::make_shared<AnnotationsView<T>>();
+    auto view = std::make_shared<AnnotationsView<std::string>>();
 
     AnnotationVertBuffer vBuf(
       6 * std::accumulate(tags.begin(),
@@ -118,6 +120,47 @@ struct MakeDrawable<Annotations<T>> : public std::true_type
 
         x += float(a >> 6) / 1920.f;
       }
+    }
+
+    view->mVSize = vBuf.size();
+    view->setBounds(bounds);
+    vBuf.finalize(view->mVAO, view->mVBO);
+
+    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
+    RenderSettings             settings;
+    settings.pointColor = sPointColor;
+    settings.shaderId   = Context::get().shaderId("text");
+    renderSettings.push_back(settings);
+
+    return view;
+  }
+};
+
+template<>
+struct MakeDrawable<GlyphAnnotations> : public std::true_type
+{
+  static std::shared_ptr<Drawable> get(const GlyphAnnotations&      tags,
+                                       std::vector<RenderSettings>& renderSettings)
+  {
+    auto view = std::make_shared<AnnotationsView<gal::Glyph>>();
+
+    AnnotationVertBuffer vBuf(6 * tags.size());
+
+    auto vbegin = vBuf.begin();
+    Box3 bounds;
+    for (const auto& tag : tags) {
+      float x = 0.f;
+      float y = 0.f;
+      bounds.inflate(tag.first);
+      const auto& tc   = glyphtexcoords(tag.second.mIndex);
+      glm::vec2   size = {float(glyphSize()) / 1920.f, float(glyphSize()) / 1080.f};
+
+      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+      *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
+      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+      *(vbegin++) = {tag.first, size, {tc[2], tc[1]}};
     }
 
     view->mVSize = vBuf.size();

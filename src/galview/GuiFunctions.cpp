@@ -1,9 +1,11 @@
+#include <sstream>
+
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galview/AllViews.h>
+#include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
-#include <sstream>
 
 namespace gal {
 namespace viewfunc {
@@ -185,15 +187,13 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
   {
     try {
       // Calling get triggers the upstream computations if needed.
-      gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
-      gal::func::store::get<std::vector<std::string>>(mWordsRegId);
+      auto  locs     = gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
+      auto  words    = gal::func::store::get<std::vector<std::string>>(mWordsRegId);
       auto& locsReg  = gal::func::store::getRegister(mLocsRegId);
       auto& wordsReg = gal::func::store::getRegister(mWordsRegId);
-      auto  locs     = std::static_pointer_cast<std::vector<glm::vec3>>(locsReg.ptr);
-      auto  words    = std::static_pointer_cast<std::vector<std::string>>(wordsReg.ptr);
 
-      size_t      ntags = std::min(locs->size(), words->size());
-      Annotations<std::string> tagvals;
+      size_t          ntags = std::min(locs->size(), words->size());
+      TextAnnotations tagvals;
       tagvals.reserve(ntags);
       for (size_t i = 0; i < ntags; i++) {
         tagvals.emplace_back(locs->at(i), words->at(i));
@@ -239,6 +239,78 @@ private:
 private:
   uint64_t              mLocsRegId;
   uint64_t              mWordsRegId;
+  size_t                mDrawId = 0;
+  std::shared_ptr<bool> mSuccess;
+  uint64_t              mRegisterId;
+};
+
+struct GlyphsFunc : public gal::func::Function, public gal::view::CheckBox
+{
+  GlyphsFunc(const std::string& label, uint64_t locsRegId, uint64_t glyphsRegId)
+      : mLocsRegId(locsRegId)
+      , mGlyphsRegId(glyphsRegId)
+      , mSuccess(std::make_shared<bool>(false))
+      , gal::view::CheckBox(label, true)
+  {
+    gal::func::store::useRegister(this, mLocsRegId);
+    gal::func::store::useRegister(this, mGlyphsRegId);
+  }
+
+  virtual ~GlyphsFunc() = default;
+
+  void run() override
+  {
+    try {
+      // Calling get triggers the upstream computations if needed.
+      auto  locs      = gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
+      auto  glyphs    = gal::func::store::get<std::vector<gal::Glyph>>(mGlyphsRegId);
+      auto& locsReg   = gal::func::store::getRegister(mLocsRegId);
+      auto& glyphsReg = gal::func::store::getRegister(mGlyphsRegId);
+
+      size_t           ntags = std::min(locs->size(), glyphs->size());
+      GlyphAnnotations tagvals;
+      tagvals.reserve(ntags);
+      for (size_t i = 0; i < ntags; i++) {
+        tagvals.emplace_back(locs->at(i), glyphs->at(i));
+      }
+
+      mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
+      *mSuccess = true;
+    }
+    catch (std::bad_alloc ex) {
+      *mSuccess = false;
+    }
+    gal::func::store::set<bool>(mRegisterId, mSuccess);
+  }
+
+  void initOutputRegisters() override
+  {
+    mRegisterId = gal::func::store::allocate(
+      this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
+  }
+  size_t   numInputs() const override { return 2; }
+  uint64_t inputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mLocsRegId;
+    }
+    else if (index == 1) {
+      return mGlyphsRegId;
+    }
+    throw std::out_of_range("Index out of range");
+  }
+  size_t   numOutputs() const override { return 1; }
+  uint64_t outputRegister(size_t index) const override
+  {
+    if (index == 0) {
+      return mRegisterId;
+    }
+    throw std::out_of_range("Index out of range");
+  }
+
+private:
+  uint64_t              mLocsRegId;
+  uint64_t              mGlyphsRegId;
   size_t                mDrawId = 0;
   std::shared_ptr<bool> mSuccess;
   uint64_t              mRegisterId;
@@ -422,9 +494,31 @@ gal::func::PyFnOutputType<1> py_tags(const std::string&         label,
   using namespace gal::func;
   auto fn = store::makeFunction<TagsFunc>(label, locs.id, words.id);
   sShowFuncRegs.push_back(fn->outputRegister(0));
-  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
   outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+gal::func::PyFnOutputType<1> py_glyphs(const std::string&         label,
+                                       gal::func::store::Register locs,
+                                       gal::func::store::Register glyphs)
+{
+  using namespace gal::func;
+  auto fn = store::makeFunction<GlyphsFunc>(label, locs.id, glyphs.id);
+  sShowFuncRegs.push_back(fn->outputRegister(0));
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+void py_loadGlyphs(const boost::python::list& lst)
+{
+  std::vector<std::pair<std::string, fs::path>> pairs;
+  gal::func::Converter<boost::python::list, decltype(pairs)>::assign(lst, pairs);
+  gal::view::loadGlyphs(pairs);
+}
+
+int32_t py_glyphIndex(const std::string& str)
+{
+  return int32_t(gal::view::getGlyphIndex(str));
 }
 
 }  // namespace viewfunc
@@ -448,6 +542,9 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
   GAL_DEF_PY_FN(tags);
+  GAL_DEF_PY_FN(glyphs);
+  GAL_DEF_PY_FN(loadGlyphs);
+  GAL_DEF_PY_FN(glyphIndex);
   // Viewer controls.
   GAL_DEF_PY_FN(set2dMode);
   GAL_DEF_PY_FN(useOrthoCam);

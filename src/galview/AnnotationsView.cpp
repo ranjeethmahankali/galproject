@@ -194,10 +194,13 @@ public:
 
 class GlyphAtlas
 {
+public:
+  static constexpr uint32_t GLYPHSIZE = 128;
+
+private:
   static constexpr uint32_t NX        = 1 << 4;
   static constexpr uint32_t NY        = 1 << 3;
   static constexpr size_t   NUMGLYPHS = size_t(NX * NY);
-  static constexpr uint32_t GLYPHSIZE = 128;
 
   TextureAtlas<NX, NY, uint32_t>                                   mAtlas;
   std::vector<std::pair<std::string, png::image<png::rgba_pixel>>> mImages;
@@ -340,6 +343,16 @@ uint32_t charadvance(char c)
 const glm::vec4& chartexcoords(char c)
 {
   return CharAtlas::get().atlas().mTexCoords.at(uint8_t(c));
+}
+
+const glm::vec4& glyphtexcoords(size_t i)
+{
+  return GlyphAtlas::get().atlas().mTexCoords.at(i);
+}
+
+uint32_t glyphSize()
+{
+  return GlyphAtlas::GLYPHSIZE;
 }
 
 }  // namespace view
