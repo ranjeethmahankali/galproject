@@ -263,7 +263,7 @@ struct GlyphsFunc : public gal::func::Function, public gal::view::CheckBox
     try {
       // Calling get triggers the upstream computations if needed.
       auto  locs      = gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
-      auto  glyphs    = gal::func::store::get<std::vector<gal::Glyph>>(mGlyphsRegId);
+      auto  glyphs    = gal::func::store::get<std::vector<int32_t>>(mGlyphsRegId);
       auto& locsReg   = gal::func::store::getRegister(mLocsRegId);
       auto& glyphsReg = gal::func::store::getRegister(mGlyphsRegId);
 
@@ -271,7 +271,7 @@ struct GlyphsFunc : public gal::func::Function, public gal::view::CheckBox
       GlyphAnnotations tagvals;
       tagvals.reserve(ntags);
       for (size_t i = 0; i < ntags; i++) {
-        tagvals.emplace_back(locs->at(i), glyphs->at(i));
+        tagvals.emplace_back(locs->at(i), gal::Glyph {uint32_t(glyphs->at(i))});
       }
 
       mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
@@ -511,9 +511,17 @@ gal::func::PyFnOutputType<1> py_glyphs(const std::string&         label,
 
 void py_loadGlyphs(const boost::python::list& lst)
 {
-  std::vector<std::pair<std::string, fs::path>> pairs;
+  std::vector<std::pair<std::string, std::string>> pairs;
   gal::func::Converter<boost::python::list, decltype(pairs)>::assign(lst, pairs);
-  gal::view::loadGlyphs(pairs);
+
+  std::vector<std::pair<std::string, fs::path>> pairs2(pairs.size());
+  std::transform(pairs.begin(),
+                 pairs.end(),
+                 pairs2.begin(),
+                 [](const std::pair<std::string, std::string>& p) {
+                   return std::make_pair(p.first, fs::path(p.second));
+                 });
+  gal::view::loadGlyphs(pairs2);
 }
 
 int32_t py_glyphIndex(const std::string& str)

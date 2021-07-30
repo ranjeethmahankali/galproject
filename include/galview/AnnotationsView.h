@@ -24,7 +24,7 @@ void   bindGlyphAtlasTexture();
 void   loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
 size_t getGlyphIndex(const std::string& label);
 const glm::vec4& glyphtexcoords(size_t i);
-uint32_t         glyphSize();
+glm::ivec2       glyphSize(size_t i);
 
 template<typename T>
 class AnnotationsView : public Drawable
@@ -152,8 +152,9 @@ struct MakeDrawable<GlyphAnnotations> : public std::true_type
       float x = 0.f;
       float y = 0.f;
       bounds.inflate(tag.first);
-      const auto& tc   = glyphtexcoords(tag.second.mIndex);
-      glm::vec2   size = {float(glyphSize()) / 1920.f, float(glyphSize()) / 1080.f};
+      const auto& tc    = glyphtexcoords(tag.second.mIndex);
+      auto        isize = glyphSize(tag.second.mIndex);
+      glm::vec2   size  = {float(isize.x) / 1920.f, float(isize.y) / 1080.f};
 
       *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
       *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
@@ -170,7 +171,7 @@ struct MakeDrawable<GlyphAnnotations> : public std::true_type
     static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
     RenderSettings             settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("text");
+    settings.shaderId   = Context::get().shaderId("glyph");
     renderSettings.push_back(settings);
 
     return view;

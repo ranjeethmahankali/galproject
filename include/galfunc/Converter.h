@@ -90,8 +90,8 @@ struct Converter<boost::python::api::const_object_item, glm::vec3>
   static std::shared_ptr<glm::vec3> convert(
     const boost::python::api::const_object_item& obj)
   {
-    const boost::python::list& lst = (const boost::python::list&)obj;
-    auto                       v   = std::make_shared<glm::vec3>();
+    const boost::python::list lst = boost::python::extract<boost::python::list>(obj);
+    auto                      v   = std::make_shared<glm::vec3>();
     Converter<boost::python::api::const_object_item, float>::assign(lst[0], v->x);
     Converter<boost::python::api::const_object_item, float>::assign(lst[1], v->y);
     Converter<boost::python::api::const_object_item, float>::assign(lst[2], v->z);
@@ -113,8 +113,8 @@ struct Converter<boost::python::api::const_object_item, glm::vec2>
   static std::shared_ptr<glm::vec2> convert(
     const boost::python::api::const_object_item& obj)
   {
-    const boost::python::list& lst = (const boost::python::list&)obj;
-    auto                       v   = std::make_shared<glm::vec2>();
+    const boost::python::list lst = boost::python::extract<boost::python::list>(obj);
+    auto                v   = std::make_shared<glm::vec2>();
     Converter<boost::python::api::const_object_item, float>::assign(lst[0], v->x);
     Converter<boost::python::api::const_object_item, float>::assign(lst[1], v->y);
     return v;
@@ -206,14 +206,14 @@ struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
     const boost::python::api::const_object_item& tup)
   {
     return Converter<boost::python::tuple, std::pair<T1, T2>>::convert(
-      (const boost::python::tuple&)tup);
+      boost::python::extract<boost::python::tuple>(tup));
   }
 
   static void assign(const boost::python::api::const_object_item& src,
                      std::pair<T1, T2>&                           dst)
   {
     Converter<boost::python::tuple, std::pair<T1, T2>>::assign(
-      (const boost::python::tuple&)src, dst);
+      boost::python::extract<boost::python::tuple>(src), dst);
   }
 };
 

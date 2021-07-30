@@ -194,10 +194,8 @@ public:
 
 class GlyphAtlas
 {
-public:
-  static constexpr uint32_t GLYPHSIZE = 128;
-
 private:
+  static constexpr uint32_t GLYPHSIZE = 128;
   static constexpr uint32_t NX        = 1 << 4;
   static constexpr uint32_t NY        = 1 << 3;
   static constexpr size_t   NUMGLYPHS = size_t(NX * NY);
@@ -209,8 +207,34 @@ private:
       : mAtlas(GLYPHSIZE)
   {}
 
+  /**
+   * @brief This is for debugging purposes.
+   * @param path
+   */
+  void exportAtlasAsImage(const fs::path path)
+  {
+    uint32_t                    w = mAtlas.width();
+    uint32_t                    h = mAtlas.height();
+    png::image<png::rgba_pixel> image(w, h);
+    for (uint32_t i = 0; i < mAtlas.mTexture.size(); i++) {
+      uint32_t x        = i % w;
+      uint32_t y        = i / w;
+      image[y][x].red   = mAtlas.mTexture[i] & 0x000000ff;
+      image[y][x].green = (mAtlas.mTexture[i] & 0x0000ff00) >> 8;
+      image[y][x].blue  = (mAtlas.mTexture[i] & 0x00ff0000) >> 16;
+      image[y][x].alpha = (mAtlas.mTexture[i] & 0xff000000) >> 24;
+    }
+    image.write(path);
+  }
+
 public:
   const TextureAtlas<NX, NY, uint32_t>& atlas() const { return mAtlas; }
+
+  glm::ivec2 glyphSize(size_t i)
+  {
+    const auto& image = std::get<1>(mImages[i]);
+    return {int(image.get_width()), int(image.get_height())};
+  }
 
   void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths)
   {
@@ -244,21 +268,20 @@ public:
     const float wf    = float(mAtlas.width());
     const float hf    = float(mAtlas.height());
     for (size_t i = 0; i < mImages.size(); i++) {
-      uint32_t*   dst   = mAtlas.tilestart(i);
-      const auto& image = std::get<1>(mImages[i]);
+      const auto& image     = std::get<1>(mImages[i]);
+      uint32_t*   dst       = mAtlas.tilestart(i);
+      size_t      dstoffset = std::distance(mAtlas.mTexture.data(), dst);
+      uint32_t    x1        = dstoffset % width;
+      uint32_t    y1        = dstoffset / width;
+      uint32_t    x2        = x1 + image.get_width();
+      uint32_t    y2        = y1 + image.get_height();
       for (uint32_t y = 0; y < image.get_height(); y++) {
         for (uint32_t x = 0; x < image.get_width(); x++) {
           const auto& pix = image[y][x];
           *(dst++) = pix.red | (pix.green << 8) | (pix.blue << 16) | (pix.alpha << 24);
         }
-        dst += width;
+        dst += width - image.get_width();
       }
-
-      size_t   dstoffset = std::distance(mAtlas.mTexture.data(), dst);
-      uint32_t x1        = dstoffset % width;
-      uint32_t y1        = dstoffset / width;
-      uint32_t x2        = x1 + image.get_width();
-      uint32_t y2        = y1 + image.get_height();
 
       mAtlas.mTexCoords[i] = {
         float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
@@ -350,9 +373,9 @@ const glm::vec4& glyphtexcoords(size_t i)
   return GlyphAtlas::get().atlas().mTexCoords.at(i);
 }
 
-uint32_t glyphSize()
+glm::ivec2 glyphSize(size_t i)
 {
-  return GlyphAtlas::GLYPHSIZE;
+  return GlyphAtlas::get().glyphSize(i);
 }
 
 }  // namespace view

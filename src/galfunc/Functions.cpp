@@ -196,6 +196,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
       py_variable<store::Lambda, boost::python::list, boost::python::list>);
 
   def("listf32", py_list<float>);
+  def("listi32", py_list<int32_t>);
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
 
