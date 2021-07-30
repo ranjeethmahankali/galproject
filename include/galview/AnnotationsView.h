@@ -12,9 +12,17 @@
 namespace gal {
 namespace view {
 
-void bindCharAtlasTexture();
-void bindGlyphAtlasTexture();
 void unbindTexture();
+
+void              bindCharAtlasTexture();
+const glm::ivec2& charbearing(char c);
+const glm::ivec2& charsize(char c);
+uint32_t          charadvance(char c);
+const glm::vec4&  chartexcoords(char c);
+
+void bindGlyphAtlasTexture();
+void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
+size_t getGlyphIndex(const std::string& label);
 
 template<typename T>
 class AnnotationsView : public Drawable
@@ -57,11 +65,6 @@ public:
     }
   }
 };
-
-const glm::ivec2& charbearing(char c);
-const glm::ivec2& charsize(char c);
-uint32_t          charadvance(char c);
-const glm::vec4&  chartexcoords(char c);
 
 struct AnnotationVertex
 {
