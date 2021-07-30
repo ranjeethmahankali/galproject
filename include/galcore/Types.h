@@ -88,4 +88,4 @@ GAL_TYPE_INFO(gal::Circle2d, 0x3271dc29);
 GAL_TYPE_INFO(gal::Line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Line3d, 0x989fdbdd);
 GAL_TYPE_INFO(gal::Mesh, 0x45342367);
-GAL_TYPE_INFO(gal::Annotations, 0x901da902);
+GAL_TYPE_INFO(gal::TextAnnotations, 0x901da902);

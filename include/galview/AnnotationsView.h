@@ -12,20 +12,50 @@
 namespace gal {
 namespace view {
 
+void bindCharAtlasTexture();
+void bindGlyphAtlasTexture();
+void unbindTexture();
+
+template<typename T>
 class AnnotationsView : public Drawable
 {
+  static_assert(std::is_same_v<T, std::string> || std::is_same_v<T, Glyph>,
+                "Unsupporte annotation type");
+
 public:
-  friend struct MakeDrawable<Annotations>;
-
-  AnnotationsView() = default;
-  ~AnnotationsView();
-
-  void draw() const override;
+  friend struct MakeDrawable<Annotations<T>>;
 
 private:
   uint32_t mVAO;
   uint32_t mVBO;
   uint32_t mVSize;
+
+public:
+  AnnotationsView() = default;
+  ~AnnotationsView()
+  {
+    GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    GL_CALL(glDeleteBuffers(1, &mVBO));
+  }
+
+  void draw() const override
+  {
+    if constexpr (std::is_same_v<T, std::string>) {
+      Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
+      bindCharAtlasTexture();
+    }
+    else {
+      bindGlyphAtlasTexture();
+    }
+
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+
+    if constexpr (std::is_same_v<T, std::string>) {
+      unbindTexture();
+    }
+  }
 };
 
 const glm::ivec2&           charbearing(char c);
@@ -33,7 +63,7 @@ const glm::ivec2&           charsize(char c);
 uint32_t                    charadvance(char c);
 const std::array<float, 4>& chartexcoords(char c);
 
-struct CharVertex
+struct AnnotationVertex
 {
   glm::vec3 position  = glm::vec3 {0.f, 0.f, 0.f};
   glm::vec2 offset    = glm::vec2 {0.f, 0.f};
@@ -42,15 +72,15 @@ struct CharVertex
   static void initAttributes();
 };
 
-using CharVertexBuffer = glutil::TVertexBuffer<CharVertex>;
+using CharVertexBuffer = glutil::TVertexBuffer<AnnotationVertex>;
 
-template<>
-struct MakeDrawable<Annotations> : public std::true_type
+template<typename T>
+struct MakeDrawable<Annotations<T>> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const Annotations&           tags,
+  static std::shared_ptr<Drawable> get(const Annotations<T>&        tags,
                                        std::vector<RenderSettings>& renderSettings)
   {
-    auto view = std::make_shared<AnnotationsView>();
+    auto view = std::make_shared<AnnotationsView<T>>();
 
     CharVertexBuffer vBuf(
       6 * std::accumulate(tags.begin(),

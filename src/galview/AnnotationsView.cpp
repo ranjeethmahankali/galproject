@@ -1,6 +1,6 @@
 #include <galcore/Util.h>
-#include <galview/GLUtil.h>
 #include <galview/AnnotationsView.h>
+#include <galview/GLUtil.h>
 
 #include <array>
 #include <iostream>
@@ -149,7 +149,6 @@ public:
   const std::array<float, 4>& texcoords(uint8_t c) const { return mTexCoords[c]; }
 
   void bindTexture() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId)); }
-  void unbindTexture() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); }
 
   static const CharAtlas& get()
   {
@@ -158,12 +157,22 @@ public:
   }
 };
 
-void CharVertex::initAttributes()
+void bindCharAtlasTexture()
 {
-  static constexpr size_t stride    = sizeof(CharVertex);
-  static const void*      posOffset = (void*)(&(((CharVertex*)nullptr)->position));
-  static const void*      nrmOffset = (void*)(&(((CharVertex*)nullptr)->offset));
-  static const void*      texOffset = (void*)(&(((CharVertex*)nullptr)->texCoords));
+  CharAtlas::get().bindTexture();
+}
+
+void unbindTexture()
+{
+  GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
+}
+
+void AnnotationVertex::initAttributes()
+{
+  static constexpr size_t stride    = sizeof(AnnotationVertex);
+  static const void*      posOffset = (void*)(&(((AnnotationVertex*)nullptr)->position));
+  static const void*      nrmOffset = (void*)(&(((AnnotationVertex*)nullptr)->offset));
+  static const void*      texOffset = (void*)(&(((AnnotationVertex*)nullptr)->texCoords));
   // Vertex position attribute.
   GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, posOffset));
   GL_CALL(glEnableVertexAttribArray(0));
@@ -190,22 +199,6 @@ const std::array<float, 4>& chartexcoords(char c)
 {
   return CharAtlas::get().texcoords(uint8_t(c));
 }
-
-AnnotationsView::~AnnotationsView()
-{
-  GL_CALL(glDeleteVertexArrays(1, &mVAO));
-  GL_CALL(glDeleteBuffers(1, &mVBO));
-};
-
-void AnnotationsView::draw() const
-{
-  Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
-  CharAtlas::get().bindTexture();
-  GL_CALL(glBindVertexArray(mVAO));
-  GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-  GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
-  CharAtlas::get().unbindTexture();
-};
 
 }  // namespace view
 }  // namespace gal

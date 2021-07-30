@@ -193,7 +193,7 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
       auto  words    = std::static_pointer_cast<std::vector<std::string>>(wordsReg.ptr);
 
       size_t      ntags = std::min(locs->size(), words->size());
-      Annotations tagvals;
+      Annotations<std::string> tagvals;
       tagvals.reserve(ntags);
       for (size_t i = 0; i < ntags; i++) {
         tagvals.emplace_back(locs->at(i), words->at(i));

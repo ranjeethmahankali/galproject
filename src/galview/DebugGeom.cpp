@@ -1,6 +1,6 @@
+#include <galcore/Annotations.h>
 #include <galcore/DebugProfile.h>
 #include <galcore/PointCloud.h>
-#include <galcore/Annotations.h>
 #include <galcore/Serialization.h>
 #include <galcore/Types.h>
 #include <galview/AllViews.h>
@@ -161,8 +161,13 @@ struct WatchManager
   }
 };
 
-using manager =
-  WatchManager<glm::vec2, Circle2d, Box3, Mesh, Sphere, PointCloud, Annotations>;
+using manager = WatchManager<glm::vec2,
+                             Circle2d,
+                             Box3,
+                             Mesh,
+                             Sphere,
+                             PointCloud,
+                             Annotations<std::string>>;
 
 class DebugFrame : public gal::view::Text
 {
