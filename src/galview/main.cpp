@@ -41,7 +41,10 @@ int runPythonDemoFile(const fs::path& demoPath)
   try {
     std::cout << "Running demo file: " << demoPath << std::endl;
     sCurrentDemoPath = demoPath;
-    boost::python::exec_file(demoPath.c_str());
+    boost::python::dict global;
+    global["__file__"] = demoPath.string();
+    global["__name__"] = "__main__";
+    boost::python::exec_file(demoPath.c_str(), global);
     return 0;
   }
   catch (boost::python::error_already_set) {
@@ -116,6 +119,7 @@ void showSettingsPanel()
     int err = runPythonDemoFile(sCurrentDemoPath);
     if (err != 0) {
       std::cerr << "Unable to run the demo file. Aborting...\n";
+      std::exit(err);
     }
   });
 }
@@ -146,6 +150,7 @@ int loadDemo(const fs::path& demoPath)
   err = runPythonDemoFile(demoPath);
   if (err != 0) {
     std::cerr << "Unable to run the demo file. Aborting...\n";
+    return err;
   }
 
   std::cout << "Starting render loop...\n";
@@ -216,6 +221,7 @@ int main(int argc, char** argv)
 #endif
   //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
+  //   return loadDemo(gal::utils::absPath("../demos/glyphs.py"));
   //   return loadDemo(gal::utils::absPath(
   //     "/home/rnjth94/works/YouTube/GAL_BoundingCircle/scenesBoundingCircle.py"));
 
