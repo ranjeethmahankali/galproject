@@ -9,71 +9,70 @@
 namespace gal {
 namespace view {
 
-static constexpr size_t NUMCHARS = 128;
-
-class CharAtlas
+template<uint32_t NX, uint32_t NY, typename TPixel>
+struct TextureAtlas
 {
-  static constexpr uint32_t                  NX        = 1 << 4;
-  static constexpr uint32_t                  NY        = 1 << 3;
-  uint32_t                                   mTileSize = 0;
-  std::vector<uint8_t>                       mAtlas;
-  std::array<std::array<float, 4>, NUMCHARS> mTexCoords;
-  std::array<glm::ivec2, NUMCHARS>           mBearings;
-  std::array<glm::ivec2, NUMCHARS>           mSizes;
-  std::array<uint32_t, NUMCHARS>             mAdvances;
-  uint32_t                                   mGLTextureId = 0;
+  static_assert(std::is_same_v<TPixel, uint8_t> || std::is_same_v<TPixel, uint32_t>,
+                "Unsupported pixel type");
 
-  uint8_t* tilestart(uint8_t c)
+  static constexpr TPixel        ZERO         = TPixel(0);
+  uint32_t                       mTileSize    = 0;
+  uint32_t                       mGLTextureId = 0;
+  std::vector<TPixel>            mTexture;
+  std::array<glm::vec4, NX * NY> mTexCoords;
+
+  TextureAtlas() = default;
+  TextureAtlas(uint32_t tilesize)
+      : mTileSize(tilesize)
+  {
+    allocate();
+  }
+
+  ~TextureAtlas()
+  {
+    if (mGLTextureId) {
+      glDeleteTextures(1, &mGLTextureId);
+    }
+  }
+
+  void allocate()
+  {
+    mTexture.clear();
+    mTexture.resize(mTileSize * mTileSize * NX * NY, ZERO);
+  }
+
+  void bind() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId)); }
+
+  TPixel* tilestart(size_t c)
   {
     uint32_t xi = (c % NX) * mTileSize;
     uint32_t yi = (c / NX) * mTileSize;
 
-    return mAtlas.data() + (yi * width() + xi);
+    return mTexture.data() + (yi * width() + xi);
   }
   uint32_t width() const { return NX * mTileSize; }
   uint32_t height() const { return NY * mTileSize; }
 
-  static void getFontTextureData(FT_Face                           face,
-                                 std::vector<uint8_t>&             textureData,
-                                 std::array<size_t, NUMCHARS>&     offsets,
-                                 std::array<glm::ivec2, NUMCHARS>& sizes,
-                                 std::array<glm::ivec2, NUMCHARS>& bearings,
-                                 std::array<uint32_t, NUMCHARS>&   advances,
-                                 uint32_t&                         tilesize)
-  {
-    for (unsigned char c = 0; c < 128; c++) {
-      // load character glyph
-      if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-        std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-        continue;
-      }
-
-      uint32_t width  = face->glyph->bitmap.width;
-      uint32_t height = face->glyph->bitmap.rows;
-      tilesize        = std::max(std::max(width, height), tilesize);
-      sizes[c]        = {width, height};
-      bearings[c]     = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
-      offsets[c]      = textureData.size();
-      advances[c]     = face->glyph->advance.x;
-      std::copy_n((uint8_t*)face->glyph->bitmap.buffer,
-                  width * height,
-                  std::back_inserter(textureData));
-    }
-  }
-
   void initGLTexture()
   {
+    GLint pixformat = 0;
+    if constexpr (std::is_same_v<TPixel, uint8_t>) {
+      pixformat = GL_RED;
+    }
+    else if constexpr (std::is_same_v<TPixel, uint32_t>) {
+      pixformat = GL_RGBA;
+    }
     GL_CALL(glGenTextures(1, &mGLTextureId));
     GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId));
     GL_CALL(glTexImage2D(GL_TEXTURE_2D,
                          0,
-                         GL_RED,
+                         pixformat,
                          width(),
                          height(),
                          0,
-                         GL_RED,
+                         pixformat,
                          GL_UNSIGNED_BYTE,
-                         mAtlas.data()));
+                         mTexture.data()));
     // set texture options
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
@@ -81,13 +80,47 @@ class CharAtlas
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
   }
+};
 
-  void deleteGLTexture()
-  {
-    if (mGLTextureId) {
-      glDeleteTextures(1, &mGLTextureId);
+template<size_t NUMCHARS>
+void getFontTextureData(FT_Face                           face,
+                        std::vector<uint8_t>&             textureData,
+                        std::array<size_t, NUMCHARS>&     offsets,
+                        std::array<glm::ivec2, NUMCHARS>& sizes,
+                        std::array<glm::ivec2, NUMCHARS>& bearings,
+                        std::array<uint32_t, NUMCHARS>&   advances,
+                        uint32_t&                         tilesize)
+{
+  for (unsigned char c = 0; c < 128; c++) {
+    // load character glyph
+    if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+      std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+      continue;
     }
+
+    uint32_t width  = face->glyph->bitmap.width;
+    uint32_t height = face->glyph->bitmap.rows;
+    tilesize        = std::max(std::max(width, height), tilesize);
+    sizes[c]        = {width, height};
+    bearings[c]     = glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
+    offsets[c]      = textureData.size();
+    advances[c]     = face->glyph->advance.x;
+    std::copy_n((uint8_t*)face->glyph->bitmap.buffer,
+                width * height,
+                std::back_inserter(textureData));
   }
+}
+
+class CharAtlas
+{
+  static constexpr uint32_t     NX       = 1 << 4;
+  static constexpr uint32_t     NY       = 1 << 3;
+  static constexpr size_t       NUMCHARS = size_t(NX * NY);
+  TextureAtlas<NX, NY, uint8_t> mAtlas;
+
+  std::array<glm::ivec2, NUMCHARS> mBearings;
+  std::array<glm::ivec2, NUMCHARS> mSizes;
+  std::array<uint32_t, NUMCHARS>   mAdvances;
 
   CharAtlas()
   {
@@ -106,19 +139,19 @@ class CharAtlas
     std::vector<uint8_t>         textureData;
     std::array<size_t, NUMCHARS> offsets;
     getFontTextureData(
-      face, textureData, offsets, mSizes, mBearings, mAdvances, mTileSize);
-    mAtlas.resize(mTileSize * NX * mTileSize * NY, 0);
+      face, textureData, offsets, mSizes, mBearings, mAdvances, mAtlas.mTileSize);
+    mAtlas.allocate();
 
-    const float    wf = float(width());
-    const float    hf = float(height());
-    const uint32_t w  = width();
-    const uint32_t h  = height();
+    const float    wf = float(mAtlas.width());
+    const float    hf = float(mAtlas.height());
+    const uint32_t w  = mAtlas.width();
+    const uint32_t h  = mAtlas.height();
     for (uint8_t c = 0; c < NUMCHARS; c++) {
       size_t      offset    = offsets[c];
       uint8_t*    src       = textureData.data() + offset;
       const auto& dims      = mSizes.at(c);
-      uint8_t*    dst       = tilestart(c);
-      size_t      dstoffset = std::distance(mAtlas.data(), dst);
+      uint8_t*    dst       = mAtlas.tilestart(c);
+      size_t      dstoffset = std::distance(mAtlas.mTexture.data(), dst);
 
       uint32_t x1 = dstoffset % w;
       uint32_t y1 = dstoffset / w;
@@ -128,27 +161,24 @@ class CharAtlas
       for (uint32_t r = 0; r < dims.y; r++) {
         std::copy_n(src, dims.x, dst);
         src += dims.x;
-        dst += width();
+        dst += w;
       }
 
-      mTexCoords[c] = {float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
+      mAtlas.mTexCoords[c] = {
+        float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
     }
 
     FT_Done_Face(face);
     FT_Done_FreeType(sFtLib);
 
-    initGLTexture();
+    mAtlas.initGLTexture();
   }
 
 public:
-  ~CharAtlas() { deleteGLTexture(); }
-
-  const glm::ivec2&           bearing(uint8_t c) const { return mBearings[c]; }
-  const glm::ivec2&           charsize(uint8_t c) const { return mSizes[c]; }
-  uint32_t                    advance(uint8_t c) const { return mAdvances[c]; }
-  const std::array<float, 4>& texcoords(uint8_t c) const { return mTexCoords[c]; }
-
-  void bindTexture() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId)); }
+  const glm::ivec2&                    bearing(uint8_t c) const { return mBearings[c]; }
+  const glm::ivec2&                    charsize(uint8_t c) const { return mSizes[c]; }
+  uint32_t                             advance(uint8_t c) const { return mAdvances[c]; }
+  const TextureAtlas<NX, NY, uint8_t>& atlas() const { return mAtlas; }
 
   static const CharAtlas& get()
   {
@@ -157,9 +187,20 @@ public:
   }
 };
 
+class GlyphAtlas
+{
+  static constexpr uint32_t NX        = 1 << 4;
+  static constexpr uint32_t NY        = 1 << 3;
+  static constexpr size_t   NUMGLYPHS = size_t(NX * NY);
+
+  TextureAtlas<NX, NY, uint32_t> mAtlas;
+
+public:
+};
+
 void bindCharAtlasTexture()
 {
-  CharAtlas::get().bindTexture();
+  CharAtlas::get().atlas().bind();
 }
 
 void unbindTexture()
@@ -195,9 +236,9 @@ uint32_t charadvance(char c)
   return CharAtlas::get().advance(uint8_t(c));
 }
 
-const std::array<float, 4>& chartexcoords(char c)
+const glm::vec4& chartexcoords(char c)
 {
-  return CharAtlas::get().texcoords(uint8_t(c));
+  return CharAtlas::get().atlas().mTexCoords.at(uint8_t(c));
 }
 
 }  // namespace view

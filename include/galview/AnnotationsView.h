@@ -58,10 +58,10 @@ public:
   }
 };
 
-const glm::ivec2&           charbearing(char c);
-const glm::ivec2&           charsize(char c);
-uint32_t                    charadvance(char c);
-const std::array<float, 4>& chartexcoords(char c);
+const glm::ivec2& charbearing(char c);
+const glm::ivec2& charsize(char c);
+uint32_t          charadvance(char c);
+const glm::vec4&  chartexcoords(char c);
 
 struct AnnotationVertex
 {
@@ -72,7 +72,7 @@ struct AnnotationVertex
   static void initAttributes();
 };
 
-using CharVertexBuffer = glutil::TVertexBuffer<AnnotationVertex>;
+using AnnotationVertBuffer = glutil::TVertexBuffer<AnnotationVertex>;
 
 template<typename T>
 struct MakeDrawable<Annotations<T>> : public std::true_type
@@ -82,7 +82,7 @@ struct MakeDrawable<Annotations<T>> : public std::true_type
   {
     auto view = std::make_shared<AnnotationsView<T>>();
 
-    CharVertexBuffer vBuf(
+    AnnotationVertBuffer vBuf(
       6 * std::accumulate(tags.begin(),
                           tags.end(),
                           0ULL,
