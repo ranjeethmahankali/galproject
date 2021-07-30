@@ -180,5 +180,42 @@ struct Converter<boost::python::list, std::vector<T>>
   };
 };
 
+template<typename T1, typename T2>
+struct Converter<boost::python::tuple, std::pair<T1, T2>>
+{
+  static std::shared_ptr<std::pair<T1, T2>> convert(const boost::python::tuple& tup)
+  {
+    auto dst = std::make_shared<std::pair<T1, T2>>();
+    assign(tup, *dst);
+    return dst;
+  }
+
+  static void assign(const boost::python::tuple& src, std::pair<T1, T2>& dst)
+  {
+    Converter<boost::python::api::const_object_item, T1>::assign(src[0],
+                                                                 std::get<0>(dst));
+    Converter<boost::python::api::const_object_item, T2>::assign(src[1],
+                                                                 std::get<1>(dst));
+  }
+};
+
+template<typename T1, typename T2>
+struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
+{
+  static std::shared_ptr<std::pair<T1, T2>> convert(
+    const boost::python::api::const_object_item& tup)
+  {
+    return Converter<boost::python::tuple, std::pair<T1, T2>>::convert(
+      (const boost::python::tuple&)tup);
+  }
+
+  static void assign(const boost::python::api::const_object_item& src,
+                     std::pair<T1, T2>&                           dst)
+  {
+    Converter<boost::python::tuple, std::pair<T1, T2>>::assign(
+      (const boost::python::tuple&)src, dst);
+  }
+};
+
 }  // namespace func
 }  // namespace gal
