@@ -11,7 +11,9 @@ PyFnOutputType<1> py_listItem(store::Register listReg, store::Register indexReg)
 
 PyFnOutputType<1> py_makeList(const boost::python::list& itemRegs);
 
+PyFnOutputType<1> py_makeRepeatedList(store::Register itemReg, store::Register countReg);
+
 }  // namespace func
 }  // namespace gal
 
-#define GAL_DynamicFunctions read, listItem, makeList
+#define GAL_DynamicFunctions read, listItem, makeList, makeRepeatedList

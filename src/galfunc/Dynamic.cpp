@@ -88,6 +88,27 @@ public:
   }
 };
 
+template<typename TItem>
+struct TMakeRepeatedListFn : public DynamicFunction
+{
+  TMakeRepeatedListFn(const store::Register& itemReg, const store::Register& countReg)
+      : DynamicFunction(std::vector<store::Register> {itemReg, countReg}, 1)
+  {}
+
+  virtual ~TMakeRepeatedListFn() = default;
+
+  void run() override
+  {
+    auto item  = store::get<TItem>(mInputs[0]);
+    auto count = store::get<int32_t>(mInputs[1]);
+    if ((*count) < 0) {
+      throw std::out_of_range("Cannot make a list of negative length");
+    }
+    store::set<std::vector<TItem>>(
+      mOutputs[0], std::make_shared<std::vector<TItem>>(size_t(*count), *item));
+  }
+};
+
 struct Callbacks
 {
   std::function<void(uint64_t, boost::python::object&)> readCb;
@@ -95,6 +116,8 @@ struct Callbacks
     makeListItemFnCb;
   std::function<std::shared_ptr<Function>(const std::vector<store::Register>&)>
     makeListFnCb;
+  std::function<std::shared_ptr<Function>(const store::Register&, const store::Register&)>
+    makeRepeatedListFnCb;
 };
 
 using CallbackMap = std::unordered_map<uint32_t, Callbacks>;
@@ -129,6 +152,12 @@ void insertCallbacks(CallbackMap& map)
   cb.makeListFnCb =
     [](const std::vector<store::Register>& items) -> std::shared_ptr<Function> {
     return store::makeFunction<TMakeListFn<T>>(items);
+  };
+
+  cb.makeRepeatedListFnCb =
+    [](const store::Register& itemReg,
+       const store::Register& countReg) -> std::shared_ptr<Function> {
+    return store::makeFunction<TMakeRepeatedListFn<T>>(itemReg, countReg);
   };
 
   map.emplace(TypeInfo<T>::id, std::move(cb));
@@ -206,6 +235,13 @@ PyFnOutputType<1> py_makeList(const boost::python::list& itemRegs)
   }
   const auto& cbs = CbManager::getCallbacksForReg(regs[0]);
   auto        fn  = cbs.makeListFnCb(regs);
+  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+PyFnOutputType<1> py_makeRepeatedList(store::Register itemReg, store::Register countReg)
+{
+  const auto& cbs = CbManager::getCallbacksForReg(itemReg);
+  auto        fn  = cbs.makeRepeatedListFnCb(itemReg, countReg);
   return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 }
 

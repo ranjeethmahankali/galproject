@@ -120,8 +120,8 @@ std::shared_ptr<T> get(uint64_t id)
       return std::static_pointer_cast<T>(reg.ptr);
     }
   }
-  std::cerr << "Type mismatch error: Cannot retrieve " << reg.typeName << " from "
-            << TypeInfo<T>::name() << std::endl;
+  std::cerr << "Type mismatch error: Cannot retrieve " << TypeInfo<T>::name() << " from "
+            << reg.typeName << std::endl;
   throw std::bad_alloc();
 };
 
