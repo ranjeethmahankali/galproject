@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 #endif
   //   return debugSession(gal::utils::absPath("../temp"));
   //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
-  //   return loadDemo(gal::utils::absPath("../demos/glyphs.py"));
+  //   return loadDemo(gal::utils::absPath("../demos/meshWithColors.py"));
   //   return loadDemo(gal::utils::absPath(
   //     "/home/rnjth94/works/YouTube/GAL_BoundingCircle/scenesBoundingCircle.py"));
 
