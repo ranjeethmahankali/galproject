@@ -113,7 +113,8 @@ struct ShowFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
       }
       *mSuccess = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to render the object: " << ex.what() << std::endl;
       *mSuccess = false;
     }
     gal::func::store::set<bool>(mOutputs[0], mSuccess);
@@ -156,7 +157,8 @@ struct TagsFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
       mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
       *mSuccess = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to render text tags: " << ex.what() << std::endl;
       *mSuccess = false;
     }
     gal::func::store::set<bool>(mOutputs[0], mSuccess);
@@ -199,7 +201,8 @@ struct GlyphsFunc : public gal::func::DynamicFunction, public gal::view::CheckBo
       mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
       *mSuccess = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to render glyphs: " << ex.what() << std::endl;
       *mSuccess = false;
     }
     gal::func::store::set<bool>(mOutputs[0], mSuccess);
@@ -264,7 +267,8 @@ public:
       this->mValue = mLabel + ": " + printmanager::print(reg.typeId, reg.ptr);
       *mSuccess    = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to print the data: " << ex.what() << std::endl;
       *mSuccess = false;
     }
     gal::func::store::set<bool>(mOutputs[0], mSuccess);

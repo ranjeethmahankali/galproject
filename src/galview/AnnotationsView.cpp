@@ -232,6 +232,10 @@ public:
 
   glm::ivec2 glyphSize(size_t i)
   {
+    if (i >= mImages.size()) {
+      std::cerr << "Not a valid glyph index\n";
+      throw std::out_of_range("Not a valid glyph index");
+    }
     const auto& image = std::get<1>(mImages[i]);
     return {int(image.get_width()), int(image.get_height())};
   }

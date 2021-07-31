@@ -394,6 +394,7 @@ static std::string readfile(const std::string& filepath)
   }
   catch (std::ifstream::failure e) {
     std::cout << "Error reading shader source file!" << std::endl;
+    std::cout << e.what() << std::endl;
   }
   return file_stream.str();
 };

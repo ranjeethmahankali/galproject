@@ -90,7 +90,7 @@ uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeNa
 
 uint64_t allocateDynamic(const Function* fn)
 {
-  uint64_t rid               = allocate(fn, 0, "");
+  uint64_t rid               = allocate(fn, 0, "dynamic");
   getRegister(rid).isDynamic = true;
   return rid;
 }
