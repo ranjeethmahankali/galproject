@@ -37,19 +37,19 @@ struct Lambda;
 template<typename T>
 struct TypeInfo : public std::false_type
 {
-  static constexpr uint32_t id     = 0U;
-  static constexpr char     name[] = "UnknownType";
-  static std::string        name() noexcept { return std::string(name); }
+  static constexpr uint32_t id      = 0U;
+  static constexpr char     sName[] = "UnknownType";
+  static std::string        name() noexcept { return std::string(sName); }
 };
 }  // namespace gal
 
-#define GAL_TYPE_INFO(type, idInt)                                            \
-  template<>                                                                  \
-  struct gal::TypeInfo<type> : public std::true_type                          \
-  {                                                                           \
-    static constexpr uint32_t id       = idInt;                               \
-    static constexpr char     s_name[] = #type;                               \
-    static std::string        name() noexcept { return std::string(s_name); } \
+#define GAL_TYPE_INFO(type, idInt)                                           \
+  template<>                                                                 \
+  struct gal::TypeInfo<type> : public std::true_type                         \
+  {                                                                          \
+    static constexpr uint32_t id      = idInt;                               \
+    static constexpr char     sName[] = #type;                               \
+    static std::string        name() noexcept { return std::string(sName); } \
   };
 
 namespace gal {

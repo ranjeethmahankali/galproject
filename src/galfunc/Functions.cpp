@@ -249,6 +249,7 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   def("string", py_variable<std::string, std::string>);
   def("numberf32", py_variable<float, float>);
+  def("numberi32", py_variable<int32_t, int32_t>);
   def("vec3Var", py_variable<glm::vec3, boost::python::list>);
   def("vec2Var", py_variable<glm::vec2, boost::python::list>);
   def("lambdaFromRegisters",

@@ -107,5 +107,55 @@ GAL_FUNC_DEFN(powf32,
   *result = std::pow(*base, *power);
 }
 
+GAL_FUNC_DEFN(sqrtf32,
+              1,
+              1,
+              "Square root of the given value",
+              ((float, x, "Value for which to compute the square root")),
+              ((float, result, "Square root")))
+{
+  *result = std::sqrt(*x);
+}
+
+GAL_FUNC_DEFN(addf32,
+              2,
+              1,
+              "Adds two numbers",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, sum, "The sum of two numbers")))
+{
+  *sum = *a + *b;
+}
+
+GAL_FUNC_DEFN(subf32,
+              2,
+              1,
+              "Subtracts the second number from the first",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, diff, "The difference")))
+{
+  *diff = *a - *b;
+}
+
+GAL_FUNC_DEFN(mulf32,
+              2,
+              1,
+              "Multiplies the two numbers",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, prod, "The product")))
+{
+  *prod = (*a) * (*b);
+}
+
+GAL_FUNC_DEFN(divf32,
+              2,
+              1,
+              "Divides the first number with the second.",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, quot, "The quotient")))
+{
+  *quot = (*a) / (*b);
+}
+
 }  // namespace func
 }  // namespace gal

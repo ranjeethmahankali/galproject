@@ -22,7 +22,15 @@ GAL_FUNC_DECL(line3d,
                (glm::vec3, end, "Second point of the line.")),
               ((gal::Line3d, line, "The line.")));
 
+GAL_FUNC_DECL(
+  samplePointsOnLine2d,
+  2,
+  1,
+  "Samples the given number of points evenly on the line, including the end points.",
+  ((gal::Line2d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
+  ((std::vector<glm::vec2>, points, "The sampled points")));
+
 }  // namespace func
 }  // namespace gal
 
-#define GAL_LineFunctions line2d, line3d
+#define GAL_LineFunctions line2d, line3d, samplePointsOnLine2d

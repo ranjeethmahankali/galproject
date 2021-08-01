@@ -13,6 +13,7 @@ struct Line2d
   glm::vec2 mEnd   = {0.f, 0.f};
 
   Box2 bounds() const;
+  glm::vec2 vec() const;
 };
 
 struct Line3d
@@ -21,6 +22,7 @@ struct Line3d
   glm::vec3 mEnd   = {0.f, 0.f, 0.f};
 
   Box3 bounds() const;
+  glm::vec3 vec() const;
 };
 
 template<>

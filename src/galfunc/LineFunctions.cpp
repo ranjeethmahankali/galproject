@@ -27,5 +27,27 @@ GAL_FUNC_DEFN(line3d,
   line->mEnd   = *end;
 }
 
+GAL_FUNC_DEFN(
+  samplePointsOnLine2d,
+  2,
+  1,
+  "Samples the given number of points evenly on the line, including the end points.",
+  ((gal::Line2d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
+  ((std::vector<glm::vec2>, points, "The sampled points")))
+{
+  if (*nPts < 2) {
+    throw std::out_of_range("Invalid point count");
+  }
+  points->resize(*nPts);
+  auto      pbegin = points->begin();
+  auto      pend   = points->end();
+  glm::vec2 pt     = line->mStart;
+  glm::vec2 step   = line->vec() / float((*nPts) - 1);
+  while (pbegin != pend) {
+    *(pbegin++) = pt;
+    pt += step;
+  }
+}
+
 }  // namespace func
 }  // namespace gal
