@@ -54,6 +54,7 @@ template<typename T, typename... TRest>
 struct DrawableManager
 {
   static size_t draw(uint64_t                     typeId,
+                     const std::string&           typeName,
                      const std::shared_ptr<void>& ptr,
                      size_t                       oldDrawId,
                      const bool*                  visibility)
@@ -64,11 +65,11 @@ struct DrawableManager
       return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp, visibility);
     }
     else if constexpr (sizeof...(TRest) > 0) {
-      return DrawableManager<TRest...>::draw(typeId, ptr, oldDrawId, visibility);
+      return DrawableManager<TRest...>::draw(
+        typeId, typeName, ptr, oldDrawId, visibility);
     }
     else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name()
-                << " is not a drawable object\n";
+      std::cerr << "Datatype " << typeName << " is not a drawable object\n";
       throw std::bad_cast();
     }
   };
@@ -109,7 +110,7 @@ struct ShowFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
         // Calling get triggers the upstream computations if needed.
         gal::func::store::get<void>(regId);
         auto& reg = gal::func::store::getRegister(regId);
-        drawId    = dmanager::draw(reg.typeId, reg.ptr, drawId, checkedPtr());
+        drawId = dmanager::draw(reg.typeId, reg.typeName, reg.ptr, drawId, checkedPtr());
       }
       *mSuccess = true;
     }
