@@ -618,15 +618,25 @@ Mesh Mesh::clippedWithPlane(const Plane& plane)
   const glm::vec3& normal = plane.normal();
   glm::vec3        unorm  = glm::normalize(normal);
 
-  // Calculate vertex distances.
+  // The vertices of the clipped mesh.
   std::vector<glm::vec3> verts(numVertices() + numEdges());
   verts.clear();
-  std::vector<float>  vdistances(numVertices());
-  std::vector<size_t> targetIdx(numVertices() + numEdges(), SIZE_MAX);
+  /*
+  The clipped mesh might contain the vertices from this mesh, as well as
+  points on the edges of this mesh. We will keep track of the mapping between the indices
+  of this mesh and the vertex indices of the clipped mesh in this buffer.
+  */
+  std::vector<size_t> trackedIdx(numVertices() + numEdges(), SIZE_MAX);
+
+  // Calculate vertex distances.
+  std::vector<float> vdistances(numVertices());
   for (size_t vi = 0; vi < numVertices(); vi++) {
     vdistances[vi] = glm::dot(mVertices[vi] - pt, unorm);
     if (vdistances[vi] < 0.) {
-      targetIdx[vi] = verts.size();
+      /*This is on the correct side of the plane.
+      This will go into the clipped mesh. Add it to the vertices vector and track its
+      index.*/
+      trackedIdx[vi] = verts.size();
       verts.push_back(mVertices[vi]);
     }
   }
@@ -639,8 +649,9 @@ Mesh Mesh::clippedWithPlane(const Plane& plane)
     if (d1 * d2 >= 0) {
       continue;
     }
-    float r                       = d2 / (d2 - d1);
-    targetIdx[ei + numVertices()] = verts.size();
+    float r = d2 / (d2 - d1);
+    /*Add the edge intersection point to the vertices vector and track its index.*/
+    trackedIdx[ei + numVertices()] = verts.size();
     verts.push_back((vertex(edge.p) * r) + (vertex(edge.q) * (1.0f - r)));
   }
 
@@ -675,18 +686,21 @@ Mesh Mesh::clippedWithPlane(const Plane& plane)
     std::transform(row,
                    row + s_clipVertCountTable[venum],
                    tempIndices.begin(),
-                   [this, &targetIdx, &face](const uint8_t vi) {
+                   [this, &trackedIdx, &face](const uint8_t vi) {
                      size_t ti;
                      if (vi > 2) {
                        // Indices 3, 4, 5 correspond to edges 0, 1, 2 respectively.
+                       // Find the edge index and return the tracked index for that edge.
                        auto match2 = mEdgeIndexMap.find(face.edge(vi - 3));
                        if (match2 == mEdgeIndexMap.end()) {
                          throw std::runtime_error("Cannot find mesh edge");
                        }
-                       return targetIdx[match2->second + numVertices()];
+                       return trackedIdx[match2->second + numVertices()];
                      }
                      else {
-                       return targetIdx[face.indices[vi]];
+                       // Indices 0, 1, and 2 represetn the actual vertices of the face.
+                       // Return the tracked index for this vertex.
+                       return trackedIdx[face.indices[vi]];
                      }
                    });
 
