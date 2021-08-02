@@ -84,6 +84,9 @@ void Mesh::computeTopology()
   mVertEdges.clear();
   mVertFaces.clear();
   mFaceEdges.clear();
+  mEdgeFaces.clear();
+  mEdges.clear();
+  mEdgeIndexMap.clear();
   mVertEdges.resize(numVertices());
   mVertFaces.resize(numVertices());
   mFaceEdges.resize(numFaces());
@@ -390,6 +393,11 @@ size_t Mesh::numFaces() const noexcept
   return mFaces.size();
 }
 
+size_t Mesh::numEdges() const noexcept
+{
+  return mEdges.size();
+}
+
 glm::vec3 Mesh::vertex(size_t vi) const
 {
   return vi < numVertices() ? mVertices[vi] : vec3_unset;
@@ -604,133 +612,106 @@ bool Mesh::contains(const glm::vec3& pt) const
   return count % 2;
 }
 
-void Mesh::clipWithPlane(const Plane& plane)
+Mesh Mesh::clippedWithPlane(const Plane& plane)
 {
   const glm::vec3& pt     = plane.origin();
   const glm::vec3& normal = plane.normal();
   glm::vec3        unorm  = glm::normalize(normal);
 
+  // The vertices of the clipped mesh.
+  std::vector<glm::vec3> verts(numVertices() + numEdges());
+  verts.clear();
+  /*
+  The clipped mesh might contain the vertices from this mesh, as well as
+  points on the edges of this mesh. We will keep track of the mapping between the indices
+  of this mesh and the vertex indices of the clipped mesh in this buffer.
+  */
+  std::vector<size_t> trackedIdx(numVertices() + numEdges(), SIZE_MAX);
+
   // Calculate vertex distances.
   std::vector<float> vdistances(numVertices());
-  std::transform(
-    vertexCBegin(), vertexCEnd(), vdistances.data(), [&pt, &unorm](const glm::vec3& v) {
-      return glm::dot(v - pt, unorm);
-    });
+  for (size_t vi = 0; vi < numVertices(); vi++) {
+    vdistances[vi] = glm::dot(mVertices[vi] - pt, unorm);
+    if (vdistances[vi] < 0.) {
+      /*This is on the correct side of the plane.
+      This will go into the clipped mesh. Add it to the vertices vector and track its
+      index.*/
+      trackedIdx[vi] = verts.size();
+      verts.push_back(mVertices[vi]);
+    }
+  }
 
   // Compute edge-plane intersection points.
-  std::vector<glm::vec3> edgepts(mEdges.size());
   for (size_t ei = 0; ei < mEdges.size(); ei++) {
     const EdgeType& edge = mEdges.at(ei);
     float           d1   = vdistances[edge.p];
     float           d2   = vdistances[edge.q];
-    if (d1 * d2 >= 0)
+    if (d1 * d2 >= 0) {
       continue;
-
-    float r     = d2 / (d2 - d1);
-    edgepts[ei] = (vertex(edge.p) * r) + (vertex(edge.q) * (1.0f - r));
+    }
+    float r = d2 / (d2 - d1);
+    /*Add the edge intersection point to the vertices vector and track its index.*/
+    trackedIdx[ei + numVertices()] = verts.size();
+    verts.push_back((vertex(edge.p) * r) + (vertex(edge.q) * (1.0f - r)));
   }
 
   // Compute vertex enums for all faces.
   std::vector<uint8_t> venums(numFaces());
   std::transform(
-    faceCBegin(), faceCEnd(), venums.data(), [&vdistances](const Face& face) {
+    faceCBegin(), faceCEnd(), venums.begin(), [&vdistances](const Face& face) {
       uint8_t mask = 0u;
-      if (vdistances[face.a] < 0)
+      if (vdistances[face.a] < 0.)
         mask |= 1 << 0;
-      if (vdistances[face.b] < 0)
+      if (vdistances[face.b] < 0.)
         mask |= 1 << 1;
-      if (vdistances[face.c] < 0)
+      if (vdistances[face.c] < 0.)
         mask |= 1 << 2;
       return mask;
     });
 
   // Total number of triangle indices.
-  std::vector<Face> faces;
-  size_t            nIndices = 0;
+  size_t nIndices = 0;
   for (const uint8_t venum : venums)
     nIndices += s_clipVertCountTable[venum];
   assert(nIndices % 3 == 0);
 
-  size_t nFaces = nIndices / 3;
+  std::vector<Face> faces(nIndices / 3);
+  faces.clear();
 
-  // Copy the indices and vertices.
-  std::unordered_map<size_t, size_t, CustomSizeTHash> map;
-  map.reserve(nIndices);
-  std::vector<glm::vec3> verts;
-  verts.reserve(numVertices());
-
-  faces.reserve(nFaces);
-
-  std::vector<size_t> tempIndices;
-  tempIndices.reserve(6);
+  std::array<size_t, 6> tempIndices;
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
     const Face&          face  = mFaces.at(fi);
     uint8_t              venum = venums[fi];
     const uint8_t* const row   = s_clipTriTable[venum].data();
-    tempIndices.clear();
     std::transform(row,
                    row + s_clipVertCountTable[venum],
-                   std::back_inserter(tempIndices),
-                   [this, &map, &verts, &edgepts, &face](const uint8_t vi) {
-                     decltype(mEdgeIndexMap)::const_iterator match2;
+                   tempIndices.begin(),
+                   [this, &trackedIdx, &face](const uint8_t vi) {
+                     size_t ti;
                      if (vi > 2) {
-                       match2 = mEdgeIndexMap.find(face.edge(vi - 3));
-                       if (match2 == mEdgeIndexMap.end())
-                         throw 1;
-                     }
-                     size_t key;
-                     switch (vi) {
-                     case 0:
-                       key = face.a;
-                       break;
-                     case 1:
-                       key = face.b;
-                       break;
-                     case 2:
-                       key = face.c;
-                       break;
-                     case 3:
-                     case 4:
-                     case 5:
-                       key = match2->second + numVertices();
-                       break;
-                     }
-                     auto match = map.find(key);
-                     if (match == map.end()) {
-                       size_t vi2 = verts.size();
-                       map.emplace(key, vi2);
-
-                       switch (vi) {
-                       case 0:
-                         verts.push_back(vertex(face.a));
-                         break;
-                       case 1:
-                         verts.push_back(vertex(face.b));
-                         break;
-                       case 2:
-                         verts.push_back(vertex(face.c));
-                         break;
-                       case 3:
-                       case 4:
-                       case 5:
-                         verts.push_back(edgepts[match2->second]);
-                         break;
+                       // Indices 3, 4, 5 correspond to edges 0, 1, 2 respectively.
+                       // Find the edge index and return the tracked index for that edge.
+                       auto match2 = mEdgeIndexMap.find(face.edge(vi - 3));
+                       if (match2 == mEdgeIndexMap.end()) {
+                         throw std::runtime_error("Cannot find mesh edge");
                        }
-                       return vi2;
+                       return trackedIdx[match2->second + numVertices()];
                      }
-                     return match->second;
+                     else {
+                       // Indices 0, 1, and 2 represetn the actual vertices of the face.
+                       // Return the tracked index for this vertex.
+                       return trackedIdx[face.indices[vi]];
+                     }
                    });
 
-    for (size_t fvi = 0; fvi < tempIndices.size(); fvi += 3) {
+    for (size_t fvi = 0; fvi < s_clipVertCountTable[venum]; fvi += 3) {
       faces.emplace_back(tempIndices.data() + fvi);
     }
   }
 
   assert(faces.size() * 3 == nIndices);
   // Create new mesh with the copied data.
-  mVertices = std::move(verts);
-  mFaces    = std::move(faces);
-  computeCache();
+  return Mesh(std::move(verts), std::move(faces));
 }
 
 void Mesh::transform(const glm::mat4& mat)
