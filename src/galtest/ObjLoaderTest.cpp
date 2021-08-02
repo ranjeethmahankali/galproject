@@ -1,7 +1,7 @@
 #include <galcore/ObjLoader.h>
 #include <gtest/gtest.h>
 
-#ifdef NDEBUG 
+#ifdef NDEBUG
 TEST(ObjLoader, DragonMesh)
 #else
 TEST(ObjLoader, DISABLED_DragonMesh)
