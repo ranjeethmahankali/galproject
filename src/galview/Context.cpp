@@ -163,11 +163,12 @@ void Context::toggle2dMode()
 }
 
 Context::Context()
-    : mShaders(3)
+    : mShaders(4)
 {
   mShaders[0].loadFromName("default");
-  mShaders[1].loadFromName("text");
-  mShaders[2].loadFromName("mesh");
+  mShaders[1].loadFromName("mesh");
+  mShaders[2].loadFromName("text");
+  mShaders[3].loadFromName("glyph");
 
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
@@ -393,6 +394,7 @@ static std::string readfile(const std::string& filepath)
   }
   catch (std::ifstream::failure e) {
     std::cout << "Error reading shader source file!" << std::endl;
+    std::cout << e.what() << std::endl;
   }
   return file_stream.str();
 };

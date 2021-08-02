@@ -87,6 +87,13 @@ GAL_FUNC_DECL(pointCloudConvexHull,
               ((gal::PointCloud, cloud, "Point cloud")),
               ((gal::Mesh, hull, "Convex hull")));
 
+GAL_FUNC_DECL(listVec3FromPointCloud,
+              1,
+              1,
+              "Creates a point list from a point cloud",
+              ((gal::PointCloud, cloud, "Point cloud")),
+              ((std::vector<glm::vec3>, pts, "Point list")));
+
 GAL_FUNC_DECL(pointCloud3d,
               1,
               1,
@@ -114,4 +121,5 @@ GAL_FUNC_DECL(pointCloudFarthestPt,
 // These are all the functions exposed from this translation unit.
 #define GAL_GeomFunctions                                                             \
   vec3, vec2, vec3FromVec2, vec2FromVec3, plane, box3, box2, randomPointCloudFromBox, \
-    pointCloudConvexHull, pointCloud3d, distance, pointCloudFarthestPt
+    pointCloudConvexHull, pointCloud3d, distance, pointCloudFarthestPt,               \
+    listVec3FromPointCloud

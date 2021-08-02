@@ -37,18 +37,19 @@ struct Lambda;
 template<typename T>
 struct TypeInfo : public std::false_type
 {
-  static constexpr uint32_t id     = 0U;
-  static constexpr char     name[] = "UnknownType";
+  static constexpr uint32_t id      = 0U;
+  static constexpr char     sName[] = "UnknownType";
+  static std::string        name() noexcept { return std::string(sName); }
 };
 }  // namespace gal
 
-#define GAL_TYPE_INFO(type, idInt)                                            \
-  template<>                                                                  \
-  struct gal::TypeInfo<type> : public std::true_type                          \
-  {                                                                           \
-    static constexpr uint32_t id       = idInt;                               \
-    static constexpr char     s_name[] = #type;                               \
-    static std::string        name() noexcept { return std::string(s_name); } \
+#define GAL_TYPE_INFO(type, idInt)                                           \
+  template<>                                                                 \
+  struct gal::TypeInfo<type> : public std::true_type                         \
+  {                                                                          \
+    static constexpr uint32_t id      = idInt;                               \
+    static constexpr char     sName[] = #type;                               \
+    static std::string        name() noexcept { return std::string(sName); } \
   };
 
 namespace gal {
@@ -88,4 +89,6 @@ GAL_TYPE_INFO(gal::Circle2d, 0x3271dc29);
 GAL_TYPE_INFO(gal::Line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Line3d, 0x989fdbdd);
 GAL_TYPE_INFO(gal::Mesh, 0x45342367);
-GAL_TYPE_INFO(gal::Annotations, 0x901da902);
+GAL_TYPE_INFO(gal::TextAnnotations, 0x901da902);
+GAL_TYPE_INFO(gal::Glyph, 0x71b91b77);
+GAL_TYPE_INFO(gal::GlyphAnnotations, 0x15301102);

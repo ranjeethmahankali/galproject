@@ -27,6 +27,9 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(efsw CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 
+# pngpp is a header only library
+find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
+
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 include(GoogleTest)
@@ -43,6 +46,8 @@ target_link_libraries(galcore PUBLIC
     glm::glm
     tinyobjloader::tinyobjloader
     TBB::tbb)
+
+target_include_directories(galcore PUBLIC ${PNGPP_INCLUDE_DIRS})
 #GALCORE - end
 
 #GALFUNC - begin

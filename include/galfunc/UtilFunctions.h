@@ -73,8 +73,45 @@ GAL_FUNC_DECL(powf32,
               ((float, base, "Base"), (float, power, "Power")),
               ((float, result, "Result")));
 
+GAL_FUNC_DECL(sqrtf32,
+              1,
+              1,
+              "Square root of the given value",
+              ((float, x, "Value for which to compute the square root")),
+              ((float, result, "Square root")));
+
+GAL_FUNC_DECL(addf32,
+              2,
+              1,
+              "Adds two numbers",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, sum, "The sum of two numbers")));
+
+GAL_FUNC_DECL(subf32,
+              2,
+              1,
+              "Subtracts the second number from the first",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, diff, "The difference")));
+
+GAL_FUNC_DECL(mulf32,
+              2,
+              1,
+              "Multiplies the two numbers",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, prod, "The product")));
+
+GAL_FUNC_DECL(divf32,
+              2,
+              1,
+              "Divides the first number with the second.",
+              ((float, a, "First number"), (float, b, "Second number")),
+              ((float, quot, "The quotient")));
+
 }  // namespace func
 }  // namespace gal
 
 // These are all the functions exposed from this translation unit.
-#define GAL_UtilFunctions absPath, mapValueToColor
+#define GAL_UtilFunctions                                                           \
+  absPath, mapValueToColor, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32, \
+    addf32, subf32, mulf32, divf32

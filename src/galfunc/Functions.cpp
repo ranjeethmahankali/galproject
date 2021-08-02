@@ -88,6 +88,13 @@ uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeNa
   return reg.id;
 };
 
+uint64_t allocateDynamic(const Function* fn)
+{
+  uint64_t rid               = allocate(fn, 0, "dynamic");
+  getRegister(rid).isDynamic = true;
+  return rid;
+}
+
 void free(uint64_t id)
 {
   if (!sRegisterMap.empty()) {
@@ -167,6 +174,58 @@ void markDirty(uint64_t id)
 
 }  // namespace store
 
+DynamicFunction::DynamicFunction(std::vector<uint64_t> inputs, size_t nOutputs)
+    : mInputs(std::move(inputs))
+    , mOutputs(nOutputs, 0)
+{
+  for (uint64_t i : mInputs) {
+    store::useRegister(this, i);
+  }
+}
+
+static std::vector<uint64_t> getRegisterIds(const std::vector<store::Register>& regs)
+{
+  std::vector<uint64_t> rids(regs.size());
+  std::transform(regs.begin(), regs.end(), rids.begin(), [](const store::Register& reg) {
+    return reg.id;
+  });
+  return rids;
+}
+
+DynamicFunction::DynamicFunction(const std::vector<store::Register>& inputs,
+                                 size_t                              nOutputs)
+    : DynamicFunction(getRegisterIds(inputs), nOutputs)
+{}
+
+size_t DynamicFunction::numInputs() const
+{
+  return mInputs.size();
+}
+
+uint64_t DynamicFunction::inputRegister(size_t index) const
+{
+  return mInputs[index];
+}
+
+size_t DynamicFunction::numOutputs() const
+{
+  return mOutputs.size();
+}
+
+uint64_t DynamicFunction::outputRegister(size_t index) const
+{
+  return mOutputs[index];
+}
+
+void DynamicFunction::initOutputRegisters()
+{
+  for (uint64_t& rid : mOutputs) {
+    if (rid == 0) {
+      rid = store::allocateDynamic(this);
+    }
+  }
+}
+
 void unloadAllFunctions()
 {
   std::cout << "Unloading all functions...\n";
@@ -190,12 +249,14 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   def("string", py_variable<std::string, std::string>);
   def("numberf32", py_variable<float, float>);
+  def("numberi32", py_variable<int32_t, int32_t>);
   def("vec3Var", py_variable<glm::vec3, boost::python::list>);
   def("vec2Var", py_variable<glm::vec2, boost::python::list>);
   def("lambdaFromRegisters",
       py_variable<store::Lambda, boost::python::list, boost::python::list>);
 
   def("listf32", py_list<float>);
+  def("listi32", py_list<int32_t>);
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
 

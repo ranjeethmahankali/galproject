@@ -26,6 +26,7 @@ vcpkg dependencies:
 * efsw
 * freetype
 * tbb
+* pngpp
 
 EFSW depends on `inotify`. It can be installed as follows:
 ```
