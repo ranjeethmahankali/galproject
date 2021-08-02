@@ -130,6 +130,7 @@ public:
 
   size_t                        numVertices() const noexcept;
   size_t                        numFaces() const noexcept;
+  size_t                        numEdges() const noexcept;
   glm::vec3                     vertex(size_t vi) const;
   Face                          face(size_t fi) const;
   glm::vec3                     vertexNormal(size_t vi) const;
@@ -156,7 +157,7 @@ public:
 
   bool contains(const glm::vec3& pt) const;
 
-  void clipWithPlane(const Plane& plane);
+  Mesh clippedWithPlane(const Plane& plane);
 
   void transform(const glm::mat4& mat);
 
