@@ -187,6 +187,11 @@ gal::Mesh createRectangularMesh(const gal::Plane& plane,
                                 float             edgeLength);
 
 template<>
+struct IsValueType<Mesh::Face> : public std::true_type
+{
+};
+
+template<>
 struct Serial<Mesh> : public std::true_type
 {
   static Mesh deserialize(Bytes& bytes)

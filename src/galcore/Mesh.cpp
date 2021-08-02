@@ -84,6 +84,9 @@ void Mesh::computeTopology()
   mVertEdges.clear();
   mVertFaces.clear();
   mFaceEdges.clear();
+  mEdgeFaces.clear();
+  mEdges.clear();
+  mEdgeIndexMap.clear();
   mVertEdges.resize(numVertices());
   mVertFaces.resize(numVertices());
   mFaceEdges.resize(numFaces());
