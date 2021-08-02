@@ -63,8 +63,7 @@ GAL_FUNC_DEFN(clipMesh,
                (gal::Plane, plane, "Plane to clip with")),
               ((gal::Mesh, clipped, "Clipped mesh")))
 {
-  *clipped = *mesh;
-  clipped->clipWithPlane(*plane);
+  *clipped = mesh->clippedWithPlane(*plane);
 };
 
 GAL_FUNC_DEFN(meshSphereQuery,
