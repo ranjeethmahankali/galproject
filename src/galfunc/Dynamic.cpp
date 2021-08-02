@@ -66,11 +66,58 @@ struct TListItemFn : public TFunction<2, TypeList<ListType, int32_t, ItemType>>
   virtual ~TListItemFn() = default;
 };
 
+template<typename TItem>
+struct TMakeListFn : public DynamicFunction
+{
+public:
+  TMakeListFn(const std::vector<store::Register>& itemRegs)
+      : DynamicFunction(itemRegs, 1)
+  {}
+
+  virtual ~TMakeListFn() = default;
+
+  void run() override
+  {
+    auto dst = std::make_shared<std::vector<TItem>>();
+    dst->reserve(mInputs.size());
+    for (uint64_t rid : mInputs) {
+      auto item = store::get<TItem>(rid);
+      dst->push_back(*item);
+    }
+    store::set<std::vector<TItem>>(mOutputs[0], dst);
+  }
+};
+
+template<typename TItem>
+struct TMakeRepeatedListFn : public DynamicFunction
+{
+  TMakeRepeatedListFn(const store::Register& itemReg, const store::Register& countReg)
+      : DynamicFunction(std::vector<store::Register> {itemReg, countReg}, 1)
+  {}
+
+  virtual ~TMakeRepeatedListFn() = default;
+
+  void run() override
+  {
+    auto item  = store::get<TItem>(mInputs[0]);
+    auto count = store::get<int32_t>(mInputs[1]);
+    if ((*count) < 0) {
+      throw std::out_of_range("Cannot make a list of negative length");
+    }
+    store::set<std::vector<TItem>>(
+      mOutputs[0], std::make_shared<std::vector<TItem>>(size_t(*count), *item));
+  }
+};
+
 struct Callbacks
 {
   std::function<void(uint64_t, boost::python::object&)> readCb;
   std::function<std::shared_ptr<Function>(const store::Register&, const store::Register&)>
     makeListItemFnCb;
+  std::function<std::shared_ptr<Function>(const std::vector<store::Register>&)>
+    makeListFnCb;
+  std::function<std::shared_ptr<Function>(const store::Register&, const store::Register&)>
+    makeRepeatedListFnCb;
 };
 
 using CallbackMap = std::unordered_map<uint32_t, Callbacks>;
@@ -101,6 +148,17 @@ void insertCallbacks(CallbackMap& map)
       throw std::bad_alloc();
     };
   }
+
+  cb.makeListFnCb =
+    [](const std::vector<store::Register>& items) -> std::shared_ptr<Function> {
+    return store::makeFunction<TMakeListFn<T>>(items);
+  };
+
+  cb.makeRepeatedListFnCb =
+    [](const store::Register& itemReg,
+       const store::Register& countReg) -> std::shared_ptr<Function> {
+    return store::makeFunction<TMakeRepeatedListFn<T>>(itemReg, countReg);
+  };
 
   map.emplace(TypeInfo<T>::id, std::move(cb));
 }
@@ -157,6 +215,33 @@ PyFnOutputType<1> py_listItem(store::Register listReg, store::Register indexReg)
 {
   const auto& cbs = CbManager::getCallbacksForReg(listReg);
   auto        fn  = cbs.makeListItemFnCb(listReg, indexReg);
+  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+PyFnOutputType<1> py_makeList(const boost::python::list& itemRegs)
+{
+  std::vector<store::Register> regs;
+  Converter<boost::python::list, std::vector<store::Register>>::assign(itemRegs, regs);
+  if (regs.empty()) {
+    throw std::runtime_error("Cannot make an empty list");
+  }
+  if (regs.size() > 1) {
+    for (size_t i = 1; i < regs.size(); i++) {
+      if (regs[i].typeId != regs[0].typeId || regs[i].typeName != regs[0].typeName) {
+        std::cerr << "Cannot make a heterogenous list\n";
+        throw std::bad_cast();
+      }
+    }
+  }
+  const auto& cbs = CbManager::getCallbacksForReg(regs[0]);
+  auto        fn  = cbs.makeListFnCb(regs);
+  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+PyFnOutputType<1> py_makeRepeatedList(store::Register itemReg, store::Register countReg)
+{
+  const auto& cbs = CbManager::getCallbacksForReg(itemReg);
+  auto        fn  = cbs.makeRepeatedListFnCb(itemReg, countReg);
   return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 }
 

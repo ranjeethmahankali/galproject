@@ -134,7 +134,18 @@ GAL_FUNC_DEFN(pointCloudConvexHull,
               ((gal::Mesh, hull, "Convex hull")))
 {
   *hull = std::move(gal::ConvexHull(cloud->begin(), cloud->end()).toMesh());
-};
+}
+
+GAL_FUNC_DEFN(listVec3FromPointCloud,
+              1,
+              1,
+              "Creates a point list from a point cloud",
+              ((gal::PointCloud, cloud, "Point cloud")),
+              ((std::vector<glm::vec3>, pts, "Point list")))
+{
+  pts->resize(cloud->size());
+  std::copy(cloud->begin(), cloud->end(), pts->begin());
+}
 
 GAL_FUNC_DEFN(pointCloud3d,
               1,
@@ -145,7 +156,7 @@ GAL_FUNC_DEFN(pointCloud3d,
 {
   cloud->resize(points->size());
   std::copy(points->begin(), points->end(), cloud->begin());
-};
+}
 
 GAL_FUNC_DEFN(distance,
               2,

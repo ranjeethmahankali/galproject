@@ -55,13 +55,24 @@ struct Register
   uint64_t              id;
   const Function*       owner;
   uint32_t              typeId;
-  bool                  isDirty = true;
+  bool                  isDirty   = true;
+  bool                  isDynamic = false;
 
   std::shared_ptr<Function> ownerFunc() const;
 };
 
 uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName);
-void     free(uint64_t id);
+
+uint64_t allocateDynamic(const Function* fn);
+
+template<typename T>
+uint64_t allocate(const Function* fn)
+{
+  static_assert(TypeInfo<T>::value, "Unknow type");
+  return allocate(fn, TypeInfo<T>::id, TypeInfo<T>::name());
+}
+
+void free(uint64_t id);
 
 Register& getRegister(uint64_t id);
 
@@ -74,12 +85,14 @@ void set(uint64_t id, const std::shared_ptr<T>& data)
 {
   static_assert(gal::TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (TypeInfo<T>::id == reg.typeId) {
+  if (TypeInfo<T>::id == reg.typeId || reg.isDynamic) {
     // Mark this and everything downstream as dirty.
     markDirty(reg.id);
     reg.ptr = data;
     // This register itself is not dirty.
-    reg.isDirty = false;
+    reg.isDirty  = false;
+    reg.typeName = TypeInfo<T>::name();
+    reg.typeId   = TypeInfo<T>::id;
     return;
   }
   std::cerr << "Type mismatch error: Cannot assign " << TypeInfo<T>::name() << " from "
@@ -92,7 +105,7 @@ std::shared_ptr<T> get(uint64_t id)
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
   auto& reg = getRegister(id);
-  if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
+  if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T> || reg.isDynamic) {
     if (reg.isDirty) {
       auto fn = reg.ownerFunc();
       try {
@@ -103,10 +116,12 @@ std::shared_ptr<T> get(uint64_t id)
       }
       reg.isDirty = false;
     }
-    return std::static_pointer_cast<T>(reg.ptr);
+    if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
+      return std::static_pointer_cast<T>(reg.ptr);
+    }
   }
-  std::cerr << "Type mismatch error: Cannot retrieve " << reg.typeName << " from "
-            << TypeInfo<T>::name() << std::endl;
+  std::cerr << "Type mismatch error: Cannot retrieve " << TypeInfo<T>::name() << " from "
+            << reg.typeName << std::endl;
   throw std::bad_alloc();
 };
 
@@ -214,8 +229,7 @@ public:
   {
     static_assert(TypeInfo<DType>::value, "Unknown type");
     if constexpr (N >= NInputs && N < NumData) {
-      regIds[N] =
-        store::allocate(fn, TypeInfo<DType>::id, std::string(TypeInfo<DType>::name()));
+      regIds[N]         = store::allocate<DType>(fn);
       std::get<N>(args) = std::make_shared<DType>();
     }
     if constexpr (N < NumData - 1) {
@@ -293,6 +307,24 @@ public:
   };
 };
 
+struct DynamicFunction : public Function
+{
+  virtual ~DynamicFunction() = default;
+
+protected:
+  std::vector<uint64_t> mInputs;
+  std::vector<uint64_t> mOutputs;
+
+  DynamicFunction(std::vector<uint64_t> inputs, size_t nOutputs);
+  DynamicFunction(const std::vector<store::Register>& inputs, size_t nOutputs);
+
+  size_t   numInputs() const override;
+  uint64_t inputRegister(size_t index) const override;
+  size_t   numOutputs() const override;
+  uint64_t outputRegister(size_t index) const override;
+  void     initOutputRegisters() override;
+};
+
 template<typename TVal, typename... TArgs>
 struct TVariable : public Function
 {
@@ -328,7 +360,7 @@ public:
   void initOutputRegisters() override
   {
     static_assert(TypeInfo<TVal>::value, "Unknown type");
-    mRegisterId = store::allocate(this, TypeInfo<TVal>::id, TypeInfo<TVal>::name());
+    mRegisterId = store::allocate<TVal>(this);
     store::markDirty(this->mRegisterId);
   };
 

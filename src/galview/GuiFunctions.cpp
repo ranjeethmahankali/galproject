@@ -1,9 +1,11 @@
+#include <sstream>
+
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galview/AllViews.h>
+#include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
-#include <sstream>
 
 namespace gal {
 namespace viewfunc {
@@ -52,6 +54,7 @@ template<typename T, typename... TRest>
 struct DrawableManager
 {
   static size_t draw(uint64_t                     typeId,
+                     const std::string&           typeName,
                      const std::shared_ptr<void>& ptr,
                      size_t                       oldDrawId,
                      const bool*                  visibility)
@@ -62,11 +65,11 @@ struct DrawableManager
       return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp, visibility);
     }
     else if constexpr (sizeof...(TRest) > 0) {
-      return DrawableManager<TRest...>::draw(typeId, ptr, oldDrawId, visibility);
+      return DrawableManager<TRest...>::draw(
+        typeId, typeName, ptr, oldDrawId, visibility);
     }
     else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name()
-                << " is not a drawable object\n";
+      std::cerr << "Datatype " << typeName << " is not a drawable object\n";
       throw std::bad_cast();
     }
   };
@@ -80,104 +83,59 @@ using dmanager = DrawableManager<gal::Box3,
                                  gal::Line2d,
                                  gal::Line3d>;
 
-struct ShowFunc : public gal::func::Function, public gal::view::CheckBox
+struct ShowFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
 {
   ShowFunc(const std::string& label, uint64_t regId)
-      : mShowables(1, std::make_pair(regId, 0))
-      , mSuccess(std::make_shared<bool>(false))
+      : mSuccess(std::make_shared<bool>(false))
+      , mDrawIds(1, 0)
+      , gal::func::DynamicFunction(std::vector<uint64_t> {regId}, 1)
       , gal::view::CheckBox(label, true)
-  {
-    useUpstreamRegisters();
-  }
+  {}
 
   ShowFunc(const std::string& label, const std::vector<uint64_t>& regIds)
-      : mShowables(regIds.size())
-      , mSuccess(std::make_shared<bool>(false))
+      : mSuccess(std::make_shared<bool>(false))
+      , mDrawIds(regIds.size(), 0)
+      , gal::func::DynamicFunction(regIds, 1)
       , gal::view::CheckBox(label, true)
-  {
-    std::transform(regIds.begin(), regIds.end(), mShowables.begin(), [](uint64_t reg) {
-      return std::make_pair(reg, size_t(0));
-    });
-    useUpstreamRegisters();
-  }
+  {}
 
   virtual ~ShowFunc() = default;
 
   void run() override
   {
     try {
-      for (auto& showable : mShowables) {
+      for (size_t i = 0; i < mInputs.size(); i++) {
+        uint64_t& regId  = mInputs[i];
+        uint64_t& drawId = mDrawIds[i];
         // Calling get triggers the upstream computations if needed.
-        gal::func::store::get<void>(showable.first);
-        auto& reg = gal::func::store::getRegister(showable.first);
-        showable.second =
-          dmanager::draw(reg.typeId, reg.ptr, showable.second, checkedPtr());
+        gal::func::store::get<void>(regId);
+        auto& reg = gal::func::store::getRegister(regId);
+        drawId = dmanager::draw(reg.typeId, reg.typeName, reg.ptr, drawId, checkedPtr());
       }
       *mSuccess = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to render the object: " << ex.what() << std::endl;
       *mSuccess = false;
     }
-    gal::func::store::set<bool>(mRegisterId, mSuccess);
-  }
-
-  void initOutputRegisters() override
-  {
-    mRegisterId = gal::func::store::allocate(
-      this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
-  }
-
-  size_t   numInputs() const override { return mShowables.size(); }
-  uint64_t inputRegister(size_t index) const override
-  {
-    if (index < numInputs()) {
-      return mShowables[index].first;
-    }
-    throw std::out_of_range("Index out of range");
-  }
-  size_t   numOutputs() const override { return 1; }
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
+    gal::func::store::set<bool>(mOutputs[0], mSuccess);
   }
 
 private:
   using gal::view::CheckBox::addHandler;
 
-  /* The first is the reg-id of the object being shown. The second is the drawId of that
-   * same object that is tracked by the viewer. Knowing the reg-id is needed in order to
-   * get retriggered when the upstream changes, and in order to get the latest geometry.
-   * Knowing the drawId is needed in order to interact with the viewer.*/
-  using Showable = std::pair<uint64_t, size_t>;
-
-  void useUpstreamRegisters()
-  {
-    for (size_t i = 0; i < mShowables.size(); i++) {
-      // Telling galfunc that this functor depends on this input register.
-      gal::func::store::useRegister(this, mShowables[i].first);
-    }
-  }
-
 private:
-  std::vector<Showable> mShowables;
+  std::vector<size_t>   mDrawIds;
   std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;  // Output
 };
 
-struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
+struct TagsFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
 {
   TagsFunc(const std::string& label, uint64_t locRegId, uint64_t wordsRegId)
-      : mLocsRegId(locRegId)
-      , mWordsRegId(wordsRegId)
-      , mSuccess(std::make_shared<bool>(false))
+      : mSuccess(std::make_shared<bool>(false))
+      , gal::func::DynamicFunction({locRegId, wordsRegId}, 1)
       , gal::view::CheckBox(label, true)
-  {
-    gal::func::store::useRegister(this, mLocsRegId);
-    gal::func::store::useRegister(this, mWordsRegId);
-  }
+  {}
 
   virtual ~TagsFunc() = default;
 
@@ -185,15 +143,13 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
   {
     try {
       // Calling get triggers the upstream computations if needed.
-      gal::func::store::get<std::vector<glm::vec3>>(mLocsRegId);
-      gal::func::store::get<std::vector<std::string>>(mWordsRegId);
-      auto& locsReg  = gal::func::store::getRegister(mLocsRegId);
-      auto& wordsReg = gal::func::store::getRegister(mWordsRegId);
-      auto  locs     = std::static_pointer_cast<std::vector<glm::vec3>>(locsReg.ptr);
-      auto  words    = std::static_pointer_cast<std::vector<std::string>>(wordsReg.ptr);
+      auto  locs     = gal::func::store::get<std::vector<glm::vec3>>(mInputs[0]);
+      auto& locsReg  = gal::func::store::getRegister(mInputs[0]);
+      auto  words    = gal::func::store::get<std::vector<std::string>>(mInputs[1]);
+      auto& wordsReg = gal::func::store::getRegister(mInputs[1]);
 
-      size_t      ntags = std::min(locs->size(), words->size());
-      Annotations tagvals;
+      size_t          ntags = std::min(locs->size(), words->size());
+      TextAnnotations tagvals;
       tagvals.reserve(ntags);
       for (size_t i = 0; i < ntags; i++) {
         tagvals.emplace_back(locs->at(i), words->at(i));
@@ -202,46 +158,60 @@ struct TagsFunc : public gal::func::Function, public gal::view::CheckBox
       mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
       *mSuccess = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to render text tags: " << ex.what() << std::endl;
       *mSuccess = false;
     }
-    gal::func::store::set<bool>(mRegisterId, mSuccess);
-  }
-
-  void initOutputRegisters() override
-  {
-    mRegisterId = gal::func::store::allocate(
-      this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
-  }
-  size_t   numInputs() const override { return 2; }
-  uint64_t inputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mLocsRegId;
-    }
-    else if (index == 1) {
-      return mWordsRegId;
-    }
-    throw std::out_of_range("Index out of range");
-  }
-  size_t   numOutputs() const override { return 1; }
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
+    gal::func::store::set<bool>(mOutputs[0], mSuccess);
   }
 
 private:
   using gal::view::CheckBox::addHandler;
 
 private:
-  uint64_t              mLocsRegId;
-  uint64_t              mWordsRegId;
   size_t                mDrawId = 0;
   std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;
+};
+
+struct GlyphsFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
+{
+  GlyphsFunc(const std::string& label, uint64_t locsRegId, uint64_t glyphsRegId)
+      : mSuccess(std::make_shared<bool>(false))
+      , gal::func::DynamicFunction({locsRegId, glyphsRegId}, 1)
+      , gal::view::CheckBox(label, true)
+  {}
+
+  virtual ~GlyphsFunc() = default;
+
+  void run() override
+  {
+    try {
+      // Calling get triggers the upstream computations if needed.
+      auto  locs      = gal::func::store::get<std::vector<glm::vec3>>(mInputs[0]);
+      auto& locsReg   = gal::func::store::getRegister(mInputs[0]);
+      auto  glyphs    = gal::func::store::get<std::vector<int32_t>>(mInputs[1]);
+      auto& glyphsReg = gal::func::store::getRegister(mInputs[1]);
+
+      size_t           ntags = std::min(locs->size(), glyphs->size());
+      GlyphAnnotations tagvals;
+      tagvals.reserve(ntags);
+      for (size_t i = 0; i < ntags; i++) {
+        tagvals.emplace_back(locs->at(i), gal::Glyph {uint32_t(glyphs->at(i))});
+      }
+
+      mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
+      *mSuccess = true;
+    }
+    catch (std::exception ex) {
+      std::cerr << "Unable to render glyphs: " << ex.what() << std::endl;
+      *mSuccess = false;
+    }
+    gal::func::store::set<bool>(mOutputs[0], mSuccess);
+  }
+
+private:
+  size_t                mDrawId = 0;
+  std::shared_ptr<bool> mSuccess;
 };
 
 template<typename T, typename... TRest>
@@ -275,59 +245,34 @@ struct PrintManager
 
 using printmanager = PrintManager<float, int32_t, glm::vec3, glm::vec2, std::string>;
 
-struct PrintFunc : public gal::func::Function, public gal::view::Text
+struct PrintFunc : public gal::func::DynamicFunction, public gal::view::Text
 {
 private:
   std::string           mLabel;
-  uint64_t              mObjRegId;
   std::shared_ptr<bool> mSuccess;
-  uint64_t              mRegisterId;
 
 public:
   PrintFunc(const std::string& label, uint64_t regId)
-      : gal::view::Text("")
+      : mSuccess(std::make_shared<bool>(false))
       , mLabel(label)
-      , mObjRegId(regId)
-      , mSuccess(std::make_shared<bool>(false))
-  {
-    gal::func::store::useRegister(this, mObjRegId);
-  };
+      , gal::func::DynamicFunction(std::vector<uint64_t> {regId}, 1)
+      , gal::view::Text("") {};
 
   virtual ~PrintFunc() = default;
 
   void run() override
   {
     try {
-      auto  obj    = gal::func::store::get<void>(mObjRegId);
-      auto& reg    = gal::func::store::getRegister(mObjRegId);
+      auto  obj    = gal::func::store::get<void>(mInputs[0]);
+      auto& reg    = gal::func::store::getRegister(mInputs[0]);
       this->mValue = mLabel + ": " + printmanager::print(reg.typeId, reg.ptr);
       *mSuccess    = true;
     }
-    catch (std::bad_alloc ex) {
+    catch (std::exception ex) {
+      std::cerr << "Unable to print the data: " << ex.what() << std::endl;
       *mSuccess = false;
     }
-    gal::func::store::set<bool>(mRegisterId, mSuccess);
-  };
-  void initOutputRegisters() override
-  {
-    mRegisterId = gal::func::store::allocate(
-      this, gal::TypeInfo<bool>::id, gal::TypeInfo<bool>::name());
-  }
-  size_t   numInputs() const override { return 1; }
-  uint64_t inputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mObjRegId;
-    }
-    throw std::out_of_range("Index out of range");
-  }
-  size_t   numOutputs() const override { return 1; };
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
+    gal::func::store::set<bool>(mOutputs[0], mSuccess);
   };
 };
 
@@ -422,9 +367,39 @@ gal::func::PyFnOutputType<1> py_tags(const std::string&         label,
   using namespace gal::func;
   auto fn = store::makeFunction<TagsFunc>(label, locs.id, words.id);
   sShowFuncRegs.push_back(fn->outputRegister(0));
-  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
   outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+gal::func::PyFnOutputType<1> py_glyphs(const std::string&         label,
+                                       gal::func::store::Register locs,
+                                       gal::func::store::Register glyphs)
+{
+  using namespace gal::func;
+  auto fn = store::makeFunction<GlyphsFunc>(label, locs.id, glyphs.id);
+  sShowFuncRegs.push_back(fn->outputRegister(0));
+  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+}
+
+void py_loadGlyphs(const boost::python::list& lst)
+{
+  std::vector<std::pair<std::string, std::string>> pairs;
+  gal::func::Converter<boost::python::list, decltype(pairs)>::assign(lst, pairs);
+
+  std::vector<std::pair<std::string, fs::path>> pairs2(pairs.size());
+  std::transform(pairs.begin(),
+                 pairs.end(),
+                 pairs2.begin(),
+                 [](const std::pair<std::string, std::string>& p) {
+                   return std::make_pair(p.first, fs::path(p.second));
+                 });
+  gal::view::loadGlyphs(pairs2);
+}
+
+int32_t py_glyphIndex(const std::string& str)
+{
+  return int32_t(gal::view::getGlyphIndex(str));
 }
 
 }  // namespace viewfunc
@@ -448,6 +423,9 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
   GAL_DEF_PY_FN(tags);
+  GAL_DEF_PY_FN(glyphs);
+  GAL_DEF_PY_FN(loadGlyphs);
+  GAL_DEF_PY_FN(glyphIndex);
   // Viewer controls.
   GAL_DEF_PY_FN(set2dMode);
   GAL_DEF_PY_FN(useOrthoCam);

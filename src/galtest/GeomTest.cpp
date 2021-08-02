@@ -34,7 +34,7 @@ TEST(Circle2d, MinBoundingCircle)
   for (const auto& points : pointSets) {
     auto cloud = gal::PointCloud(points);
     GALCAPTURE(cloud);
-    GALCAPTURE_WITH_NAME(gal::Annotations::createIndexedPointCloud(cloud), tags);
+    GALCAPTURE_WITH_NAME(gal::createIndexedPointCloud(cloud), tags);
     auto circ = gal::Circle2d::minBoundingCircle(points);
 
     for (const auto& pt : points) {
@@ -61,7 +61,7 @@ TEST(Sphere, MinBoundingSphere)
 
   auto cloud = gal::PointCloud(points);
   GALCAPTURE(cloud);
-  GALCAPTURE_WITH_NAME(gal::Annotations::createIndexedPointCloud(cloud), tags);
+  GALCAPTURE_WITH_NAME(gal::createIndexedPointCloud(cloud), tags);
   auto sp = gal::Sphere::minBoundingSphere(points);
 
   for (const auto& pt : points) {
