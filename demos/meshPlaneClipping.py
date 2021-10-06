@@ -5,7 +5,7 @@ import pygalview as pgv
 relpath = pgv.textField("relpath")
 path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)
-scale = pgf.numberf32(10.0)
+scale = pgf.var(10.0)
 scaled = pgf.scaleMesh(mesh, scale)
 
 pt = pgv.sliderVec3("point", 0., 1., .5)

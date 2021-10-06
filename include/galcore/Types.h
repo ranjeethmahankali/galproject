@@ -8,31 +8,9 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Sphere.h>
+#include <galcore/Traits.h>
 
 namespace gal {
-
-// Forward declaration.
-namespace func {
-namespace types {
-
-// Can be used to check at compile time if a type is a template instantiation.
-template<template<typename...> typename Tem, typename T>
-struct IsInstance : public std::false_type
-{
-};
-
-// Template specialization that does the magic.
-template<template<typename...> typename Tem, typename... Ts>
-struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
-{
-};
-
-}  // namespace types
-
-namespace store {
-struct Lambda;
-}
-}  // namespace func
 
 template<typename T>
 struct TypeInfo : public std::false_type
@@ -41,6 +19,12 @@ struct TypeInfo : public std::false_type
   static constexpr char     sName[] = "UnknownType";
   static std::string        name() noexcept { return std::string(sName); }
 };
+
+template<typename T>
+struct TypeInfo<const T> : public TypeInfo<T>
+{
+};
+
 }  // namespace gal
 
 #define GAL_TYPE_INFO(type, idInt)                                           \
@@ -75,8 +59,6 @@ GAL_TYPE_INFO(int32_t, 0x9234a3b1);
 GAL_TYPE_INFO(uint64_t, 0x913eb3be);
 GAL_TYPE_INFO(float, 0x32542672);
 GAL_TYPE_INFO(std::string, 0x12340989);
-
-GAL_TYPE_INFO(gal::func::store::Lambda, 0x3b07dc46);
 
 GAL_TYPE_INFO(glm::vec3, 0x33821151);
 GAL_TYPE_INFO(glm::vec2, 0xbd40c8a1);

@@ -168,19 +168,28 @@ private:
 
 public:
   /**
+   * @brief Removes the drawable object from the scene.
+   *
+   * @param id The id of the object to be removed.
+   */
+  void removeDrawable(size_t id);
+
+  /**
    * @brief Adds a drawable object to the scene.
    * The render data (tessellations) are generated for the object and added to the scene.
    * MakeDrawable template is used to generate the render data so the object must
    * specialize that template.
    * @tparam T The type of the object.
    * @param val The object.
+   * @param oldId This optional parameter can be used replace an old drawable object with
+   * the new one. The old rendered object will be removed from the scene.
    * @return size_t The id of the render data added. This can be used later to
    * replace the object, or to delete the object from the scene.
    */
-
   template<typename T>
-  size_t addDrawable(const T& val, const bool* visibility)
+  size_t addDrawable(const T& val, const bool* visibility, size_t oldId = 0)
   {
+    removeDrawable(oldId);  // This only deletes the old id if it is valid.
     static_assert(MakeDrawable<T>::value, "This is not a drawable type");
     std::vector<RenderSettings> settings;
     auto                        drawable = MakeDrawable<T>::get(val, settings);
@@ -192,22 +201,6 @@ public:
         return a.settings.opacityScore() > b.settings.opacityScore();
       });
     return size_t(drawable.get());
-  };
-
-  void removeDrawable(size_t id);
-
-  /**
-   * @brief Replaces the render data with the given id with the new data.
-   * @tparam T The type of the new object.
-   * @param id The old id.
-   * @param val The new object.
-   * @return size_t The id of the new render data.
-   */
-  template<typename T>
-  size_t replaceDrawable(size_t id, const T& val, const bool* visibility)
-  {
-    removeDrawable(id);
-    return addDrawable<T>(val, visibility);
   };
 
   void clearDrawables();

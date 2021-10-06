@@ -5,26 +5,13 @@
 #include <iostream>
 #include <vector>
 
+#include <galcore/Traits.h>
+
 namespace gal {
 
 class Bytes;
 
 namespace fs = std::filesystem;
-
-template<typename T>
-struct IsValueType : public std::is_fundamental<T>
-{
-};
-
-template<>
-struct IsValueType<glm::vec3> : public std::true_type
-{
-};
-
-template<>
-struct IsValueType<glm::vec2> : public std::true_type
-{
-};
 
 template<typename T>
 struct Serial : std::false_type

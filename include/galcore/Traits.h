@@ -1,0 +1,53 @@
+#pragma once
+#include <glm/glm.hpp>
+#include <ostream>
+#include <type_traits>
+
+namespace gal {
+template<typename T>
+struct IsValueType : public std::is_fundamental<T>
+{
+};
+
+template<>
+struct IsValueType<glm::vec3> : public std::true_type
+{
+};
+
+template<>
+struct IsValueType<glm::vec2> : public std::true_type
+{
+};
+
+// Can be used to check at compile time if a type is a template instantiation.
+template<template<typename...> typename Tem, typename T>
+struct IsInstance : public std::false_type
+{
+};
+
+// Template specialization that does the magic.
+template<template<typename...> typename Tem, typename... Ts>
+struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
+{
+};
+
+/**
+ * @brief Checks if the type is streamable to std::ostream.
+ *
+ * @tparam T The type to be checked.
+ */
+template<typename T>
+class IsPrintable
+{
+  template<typename SS, typename TT>
+  static auto Check(int)
+    -> decltype(std::declval<SS&>() << std::declval<TT>(), std::true_type());
+
+  template<typename, typename>
+  static auto Check(...) -> std::false_type;
+
+public:
+  static const bool value = decltype(Check<std::ostream, T>(0))::value;
+};
+
+}  // namespace gal

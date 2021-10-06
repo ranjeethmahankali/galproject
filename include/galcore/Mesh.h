@@ -157,7 +157,14 @@ public:
 
   bool contains(const glm::vec3& pt) const;
 
-  Mesh clippedWithPlane(const Plane& plane);
+  /**
+   * @brief Gets the result of clipping this mesh with the given plane. This mesh instance
+   * not modified.
+   *
+   * @param plane The plane to clip with.
+   * @return Mesh Clipped mesh.
+   */
+  Mesh clippedWithPlane(const Plane& plane) const;
 
   void transform(const glm::mat4& mat);
 
@@ -177,11 +184,19 @@ public:
     elementTree(element).queryByDistance(sphere.center, sphere.radius, inserter);
   };
 
-  Mesh extractFaces(const std::vector<size_t>& faces);
+  Mesh extractFaces(const std::vector<size_t>& faces) const;
 
   glm::vec3 closestPoint(const glm::vec3& pt, float searchDist) const;
 };
 
+/**
+ * @brief Creates a rectangular mesh surface with aligned quad faces.
+ *
+ * @param plane Plane
+ * @param box 2D box representing the interval of the rectangle in the plane.
+ * @param edgeLength The approximate size of the quad.
+ * @return gal::Mesh Surface mesh.
+ */
 gal::Mesh createRectangularMesh(const gal::Plane& plane,
                                 const gal::Box2&  box,
                                 float             edgeLength);

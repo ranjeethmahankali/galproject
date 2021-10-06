@@ -1,5 +1,7 @@
 #pragma once
 
+#include <galview/Context.h>
+#include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 
 #include <galfunc/Functions.h>
@@ -19,10 +21,17 @@ void         evalOutputs();
  */
 void unloadAllOutputs();
 
+/**
+ * @brief Function that wraps a gui slider that can be used to interactively control the
+ * output value.
+ *
+ * @tparam T The output type of the slider.
+ */
 template<typename T>
 struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
 {
 public:
+  using PyOutuptType = typename gal::func::TVariable<T, T>::PyOutputType;
   SliderFunc(const std::string& label, T min, T max, T value)
       : gal::func::TVariable<T, T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
@@ -42,6 +51,13 @@ protected:
   };
 };
 
+/**
+ * @brief Partial specialization of the slider template for vectors.
+ *
+ * @tparam N The number of components in the vector.
+ * @tparam T The datatype of the vector.
+ * @tparam Q The precision.
+ */
 template<int N, typename T, glm::qualifier Q>
 struct SliderFunc<glm::vec<N, T, Q>>
     : public gal::func::TVariable<glm::vec<N, T, Q>, glm::vec<N, T, Q>>,
@@ -75,10 +91,10 @@ protected:
 template<typename T>
 struct makeSlider
 {
-  static gal::func::PyFnOutputType<1> make(boost::python::object pylabel,
-                                           boost::python::object pymin,
-                                           boost::python::object pymax,
-                                           boost::python::object pyvalue)
+  static typename SliderFunc<T>::PyOutuptType make(boost::python::object pylabel,
+                                                   boost::python::object pymin,
+                                                   boost::python::object pymax,
+                                                   boost::python::object pyvalue)
   {
     std::string label;
     T           min, max, value;
@@ -87,9 +103,10 @@ struct makeSlider
     gal::func::Converter<decltype(pymax), T>::assign(pymax, max);
     gal::func::Converter<decltype(pyvalue), T>::assign(pyvalue, value);
 
-    auto fn = gal::func::store::makeFunction<SliderFunc<T>>(label, min, max, value);
+    std::shared_ptr<SliderFunc<T>> fn =
+      gal::func::store::makeFunction<SliderFunc<T>>(label, min, max, value);
     inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
+    return fn->pythonOutputRegs();
   }
 };
 
@@ -105,10 +122,11 @@ struct makeSlider
 template<int N, typename T, glm::qualifier Q>
 struct makeSlider<glm::vec<N, T, Q>>
 {
-  static gal::func::PyFnOutputType<1> make(boost::python::object pylabel,
-                                           boost::python::object pymin,
-                                           boost::python::object pymax,
-                                           boost::python::object pyvalue)
+  static typename SliderFunc<glm::vec<N, T, Q>>::PyOutputType make(
+    boost::python::object pylabel,
+    boost::python::object pymin,
+    boost::python::object pymax,
+    boost::python::object pyvalue)
   {
     std::string label;
     T           min, max, value;
@@ -120,15 +138,15 @@ struct makeSlider<glm::vec<N, T, Q>>
     auto fn = gal::func::store::makeFunction<SliderFunc<glm::vec<N, T, Q>>>(
       label, min, max, value);
     inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
+    return fn->pythonOutputRegs();
   }
 };
 
 template<typename T>
-gal::func::PyFnOutputType<1> py_slider(boost::python::object pylabel,
-                                       boost::python::object pymin,
-                                       boost::python::object pymax,
-                                       boost::python::object pyvalue)
+typename SliderFunc<T>::PyOutputType py_slider(boost::python::object pylabel,
+                                               boost::python::object pymin,
+                                               boost::python::object pymax,
+                                               boost::python::object pyvalue)
 {
   return makeSlider<T>::make(pylabel, pymin, pymax, pyvalue);
 };
