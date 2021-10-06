@@ -14,7 +14,7 @@ public:
   LineView() = default;
   ~LineView();
 
-  void draw() const;
+  void draw() const override;
 
 private:
   uint32_t mVAO   = 0;

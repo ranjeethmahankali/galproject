@@ -3,29 +3,19 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(sphere,
-              2,
-              1,
-              "Creates a new sphere",
-              ((glm::vec3, center, "Center"), (float, radius, "Radius")),
-              ((gal::Sphere, sphere, "Sphere")))
+GAL_FUNC_DEFN(sphere, ((glm::vec3, center), (float, radius)), ((gal::Sphere, sphere)))
 {
-  sphere->center = *center;
-  sphere->radius = *radius;
+  sphere.center = center;
+  sphere.radius = radius;
 };
 
 GAL_FUNC_DEFN(boundingSphere,
-              1,
-              3,
-              "Creates a minimum bounding sphere for the given points.",
-              ((gal::PointCloud, points, "Points")),
-              ((gal::Sphere, sphere, "Bounding sphere"),
-               (glm::vec3, center, "Center of the sphere"),
-               (float, radius, "Radius of the sphere")))
+              ((gal::PointCloud, points)),
+              ((gal::Sphere, sphere), (glm::vec3, center), (float, radius)))
 {
-  *sphere = gal::Sphere::minBoundingSphere(*points);
-  *center = sphere->center;
-  *radius = sphere->radius;
+  sphere = gal::Sphere::minBoundingSphere(points);
+  center = sphere.center;
+  radius = sphere.radius;
 };
 
 }  // namespace func

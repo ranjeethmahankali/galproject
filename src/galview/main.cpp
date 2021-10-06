@@ -114,7 +114,7 @@ void showSettingsPanel()
                                 []() { view::Context::get().toggle2dMode(); });
   panel.newWidget<view::Button>("Reload demo", []() {
     gal::viewfunc::unloadAllOutputs();
-    gal::func::unloadAllFunctions();
+    gal::func::store::unloadAllFunctions();
     gal::view::Context::get().clearDrawables();
     int err = runPythonDemoFile(sCurrentDemoPath);
     if (err != 0) {
@@ -137,7 +137,7 @@ int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if (err = initViewer(window)) {
+  if ((err = initViewer(window))) {
     std::cerr << "Failed to initialize the viewer\n";
     return err;
   }
@@ -182,7 +182,7 @@ int debugSession(const fs::path& targetDir)
 
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if (err = initViewer(window)) {
+  if ((err = initViewer(window))) {
     std::cerr << "Failed to initialize the viewer\n";
     return err;
   }

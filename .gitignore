@@ -1,7 +1,10 @@
 .vscode/
+.cache/
 build/
 imgui.ini
 scripts/__pycache__/
 Debug/
 Release/
 temp/
+compile_commands.json
+launch.json

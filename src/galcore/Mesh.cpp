@@ -612,7 +612,7 @@ bool Mesh::contains(const glm::vec3& pt) const
   return count % 2;
 }
 
-Mesh Mesh::clippedWithPlane(const Plane& plane)
+Mesh Mesh::clippedWithPlane(const Plane& plane) const
 {
   const glm::vec3& pt     = plane.origin();
   const glm::vec3& normal = plane.normal();
@@ -780,7 +780,7 @@ void Mesh::EdgeTriplet::set(size_t i)
     throw i;
 }
 
-Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices)
+Mesh Mesh::extractFaces(const std::vector<size_t>& faceIndices) const
 {
   std::vector<glm::vec3> vertices;
   std::vector<Face>      faces;

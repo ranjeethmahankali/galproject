@@ -110,7 +110,7 @@ Text::Text(const std::string& value)
 
 void Text::draw()
 {
-  ImGui::Text(mValue.c_str());
+  ImGui::Text("%s", mValue.c_str());
 };
 
 Button::Button(const std::string& label, const std::function<void()>& onClick)

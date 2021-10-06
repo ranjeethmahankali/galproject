@@ -14,7 +14,7 @@ public:
   PlaneView() = default;
   ~PlaneView();
 
-  void draw() const;
+  void draw() const override;
 
   bool opaque() const override;
 
