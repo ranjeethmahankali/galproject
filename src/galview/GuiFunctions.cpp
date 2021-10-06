@@ -1,19 +1,42 @@
-#include <sstream>
-
+#include <galcore/Types.h>
+#include <galcore/Util.h>
+#include <galfunc/Functions.h>
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
+#include <galfunc/TypeHelper.h>
 #include <galview/AllViews.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Widget.h>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <sstream>
 
 namespace gal {
 namespace viewfunc {
 
-static view::Panel*          sInputPanel  = nullptr;
-static view::Panel*          sOutputPanel = nullptr;
-static std::vector<uint64_t> sShowFuncRegs;
-static std::vector<uint64_t> sPrintFuncRegs;
+static view::Panel*                                           sInputPanel  = nullptr;
+static view::Panel*                                           sOutputPanel = nullptr;
+static std::vector<std::function<void()>>                     sOutputCallbacks;
+static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
+
+/**
+ * @brief Gets the visibility checkbox from the output panel with the given name.
+ * If a checkbox with the given name doesn't exist, one will be added.
+ * @param name the unique name that identifies the checkbox.
+ */
+static const view::CheckBox& getCheckBox(const std::string name)
+{
+  auto match = sShowCheckboxes.find(name);
+  if (match != sShowCheckboxes.end()) {
+    return match->second;
+  }
+  auto pair =
+    sShowCheckboxes.emplace(name, *(outputPanel().newWidget<view::CheckBox>(name, true)));
+  return pair.first->second;
+}
 
 void initPanels(view::Panel& inputs, view::Panel& outputs)
 {
@@ -33,253 +56,28 @@ view::Panel& outputPanel()
 
 void evalOutputs()
 {
-  for (uint64_t id : sShowFuncRegs) {
-    auto success = gal::func::store::get<bool>(id);
-  }
-  for (uint64_t id : sPrintFuncRegs) {
-    auto success = gal::func::store::get<bool>(id);
+  for (auto& cbfn : sOutputCallbacks) {
+    cbfn();
   }
 }
 
 void unloadAllOutputs()
 {
   std::cout << "Unloading all output data...\n";
-  sShowFuncRegs.clear();
-  sPrintFuncRegs.clear();
+  sOutputCallbacks.clear();
   sInputPanel->clear();
   sOutputPanel->clear();
 }
 
-template<typename T, typename... TRest>
-struct DrawableManager
-{
-  static size_t draw(uint64_t                     typeId,
-                     const std::string&           typeName,
-                     const std::shared_ptr<void>& ptr,
-                     size_t                       oldDrawId,
-                     const bool*                  visibility)
-  {
-    static_assert(gal::TypeInfo<T>::value, "Unknown type");
-    if (typeId == gal::TypeInfo<T>::id) {
-      auto castsp = std::static_pointer_cast<T>(ptr);
-      return view::Context::get().replaceDrawable<T>(oldDrawId, *castsp, visibility);
-    }
-    else if constexpr (sizeof...(TRest) > 0) {
-      return DrawableManager<TRest...>::draw(
-        typeId, typeName, ptr, oldDrawId, visibility);
-    }
-    else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << typeName << " is not a drawable object\n";
-      throw std::bad_cast();
-    }
-  };
-};
-using dmanager = DrawableManager<gal::Box3,
-                                 gal::PointCloud,
-                                 gal::Sphere,
-                                 gal::Circle2d,
-                                 gal::Mesh,
-                                 gal::Plane,
-                                 gal::Line2d,
-                                 gal::Line3d>;
-
-struct ShowFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
-{
-  ShowFunc(const std::string& label, uint64_t regId)
-      : mSuccess(std::make_shared<bool>(false))
-      , mDrawIds(1, 0)
-      , gal::func::DynamicFunction(std::vector<uint64_t> {regId}, 1)
-      , gal::view::CheckBox(label, true)
-  {}
-
-  ShowFunc(const std::string& label, const std::vector<uint64_t>& regIds)
-      : mSuccess(std::make_shared<bool>(false))
-      , mDrawIds(regIds.size(), 0)
-      , gal::func::DynamicFunction(regIds, 1)
-      , gal::view::CheckBox(label, true)
-  {}
-
-  virtual ~ShowFunc() = default;
-
-  void run() override
-  {
-    try {
-      for (size_t i = 0; i < mInputs.size(); i++) {
-        uint64_t& regId  = mInputs[i];
-        uint64_t& drawId = mDrawIds[i];
-        // Calling get triggers the upstream computations if needed.
-        gal::func::store::get<void>(regId);
-        auto& reg = gal::func::store::getRegister(regId);
-        drawId = dmanager::draw(reg.typeId, reg.typeName, reg.ptr, drawId, checkedPtr());
-      }
-      *mSuccess = true;
-    }
-    catch (std::exception ex) {
-      std::cerr << "Unable to render the object: " << ex.what() << std::endl;
-      *mSuccess = false;
-    }
-    gal::func::store::set<bool>(mOutputs[0], mSuccess);
-  }
-
-private:
-  using gal::view::CheckBox::addHandler;
-
-private:
-  std::vector<size_t>   mDrawIds;
-  std::shared_ptr<bool> mSuccess;
-};
-
-struct TagsFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
-{
-  TagsFunc(const std::string& label, uint64_t locRegId, uint64_t wordsRegId)
-      : mSuccess(std::make_shared<bool>(false))
-      , gal::func::DynamicFunction({locRegId, wordsRegId}, 1)
-      , gal::view::CheckBox(label, true)
-  {}
-
-  virtual ~TagsFunc() = default;
-
-  void run() override
-  {
-    try {
-      // Calling get triggers the upstream computations if needed.
-      auto  locs     = gal::func::store::get<std::vector<glm::vec3>>(mInputs[0]);
-      auto& locsReg  = gal::func::store::getRegister(mInputs[0]);
-      auto  words    = gal::func::store::get<std::vector<std::string>>(mInputs[1]);
-      auto& wordsReg = gal::func::store::getRegister(mInputs[1]);
-
-      size_t          ntags = std::min(locs->size(), words->size());
-      TextAnnotations tagvals;
-      tagvals.reserve(ntags);
-      for (size_t i = 0; i < ntags; i++) {
-        tagvals.emplace_back(locs->at(i), words->at(i));
-      }
-
-      mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
-      *mSuccess = true;
-    }
-    catch (std::exception ex) {
-      std::cerr << "Unable to render text tags: " << ex.what() << std::endl;
-      *mSuccess = false;
-    }
-    gal::func::store::set<bool>(mOutputs[0], mSuccess);
-  }
-
-private:
-  using gal::view::CheckBox::addHandler;
-
-private:
-  size_t                mDrawId = 0;
-  std::shared_ptr<bool> mSuccess;
-};
-
-struct GlyphsFunc : public gal::func::DynamicFunction, public gal::view::CheckBox
-{
-  GlyphsFunc(const std::string& label, uint64_t locsRegId, uint64_t glyphsRegId)
-      : mSuccess(std::make_shared<bool>(false))
-      , gal::func::DynamicFunction({locsRegId, glyphsRegId}, 1)
-      , gal::view::CheckBox(label, true)
-  {}
-
-  virtual ~GlyphsFunc() = default;
-
-  void run() override
-  {
-    try {
-      // Calling get triggers the upstream computations if needed.
-      auto  locs      = gal::func::store::get<std::vector<glm::vec3>>(mInputs[0]);
-      auto& locsReg   = gal::func::store::getRegister(mInputs[0]);
-      auto  glyphs    = gal::func::store::get<std::vector<int32_t>>(mInputs[1]);
-      auto& glyphsReg = gal::func::store::getRegister(mInputs[1]);
-
-      size_t           ntags = std::min(locs->size(), glyphs->size());
-      GlyphAnnotations tagvals;
-      tagvals.reserve(ntags);
-      for (size_t i = 0; i < ntags; i++) {
-        tagvals.emplace_back(locs->at(i), gal::Glyph {uint32_t(glyphs->at(i))});
-      }
-
-      mDrawId = gal::view::Context::get().replaceDrawable(mDrawId, tagvals, checkedPtr());
-      *mSuccess = true;
-    }
-    catch (std::exception ex) {
-      std::cerr << "Unable to render glyphs: " << ex.what() << std::endl;
-      *mSuccess = false;
-    }
-    gal::func::store::set<bool>(mOutputs[0], mSuccess);
-  }
-
-private:
-  size_t                mDrawId = 0;
-  std::shared_ptr<bool> mSuccess;
-};
-
-template<typename T, typename... TRest>
-struct PrintManager
-{
-  static std::string print(uint64_t typeId, const std::shared_ptr<void>& ptr)
-  {
-    static_assert(gal::TypeInfo<T>::value, "Unknown type");
-    if (typeId == gal::TypeInfo<T>::id) {
-      auto              castsp = std::static_pointer_cast<T>(ptr);
-      std::stringstream ss;
-      ss << *castsp;
-      return ss.str();
-    }
-    else if (typeId == gal::TypeInfo<std::vector<T>>::id) {
-      auto              castsp = std::static_pointer_cast<std::vector<T>>(ptr);
-      std::stringstream ss;
-      ss << *castsp;
-      return ss.str();
-    }
-    else if constexpr (sizeof...(TRest) > 0) {
-      return PrintManager<TRest...>::print(typeId, ptr);
-    }
-    else if constexpr (sizeof...(TRest) == 0) {
-      std::cerr << "Datatype " << gal::TypeInfo<T>::name()
-                << " is not a printable object\n";
-      throw std::bad_cast();
-    }
-  };
-};
-
-using printmanager = PrintManager<float, int32_t, glm::vec3, glm::vec2, std::string>;
-
-struct PrintFunc : public gal::func::DynamicFunction, public gal::view::Text
-{
-private:
-  std::string           mLabel;
-  std::shared_ptr<bool> mSuccess;
-
-public:
-  PrintFunc(const std::string& label, uint64_t regId)
-      : mSuccess(std::make_shared<bool>(false))
-      , mLabel(label)
-      , gal::func::DynamicFunction(std::vector<uint64_t> {regId}, 1)
-      , gal::view::Text("") {};
-
-  virtual ~PrintFunc() = default;
-
-  void run() override
-  {
-    try {
-      auto  obj    = gal::func::store::get<void>(mInputs[0]);
-      auto& reg    = gal::func::store::getRegister(mInputs[0]);
-      this->mValue = mLabel + ": " + printmanager::print(reg.typeId, reg.ptr);
-      *mSuccess    = true;
-    }
-    catch (std::exception ex) {
-      std::cerr << "Unable to print the data: " << ex.what() << std::endl;
-      *mSuccess = false;
-    }
-    gal::func::store::set<bool>(mOutputs[0], mSuccess);
-  };
-};
+// TODO: TagsFunc
+// TODO: GlyphsFunc
 
 struct TextFieldFunc : public gal::func::TVariable<std::string, std::string>,
                        public gal::view::TextInput
 {
 public:
+  using PyOutputType =
+    typename gal::func::TVariable<std::string, std::string>::PyOutputType;
   TextFieldFunc(const std::string& label)
       : gal::func::TVariable<std::string, std::string>("")
       , gal::view::TextInput(label, "") {};
@@ -295,46 +93,6 @@ protected:
 
     clearEdited();
   }
-};
-
-gal::func::PyFnOutputType<1> py_show(const std::string&         label,
-                                     gal::func::store::Register reg)
-{
-  using namespace gal::func;
-  auto fn = store::makeFunction<ShowFunc>(label, reg.id);
-  sShowFuncRegs.push_back(fn->outputRegister(0));
-  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
-  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
-};
-
-gal::func::PyFnOutputType<1> py_showAll(const std::string&         label,
-                                        const boost::python::list& regsPy)
-{
-  using namespace gal::func;
-  std::vector<gal::func::store::Register> regs;
-  gal::func::Converter<boost::python::list, decltype(regs)>::assign(regsPy, regs);
-  std::vector<uint64_t> regIds(regs.size());
-  std::transform(
-    regs.begin(), regs.end(), regIds.begin(), [](const gal::func::store::Register& reg) {
-      return reg.id;
-    });
-  auto fn = store::makeFunction<ShowFunc>(label, regIds);
-  sShowFuncRegs.push_back(fn->outputRegister(0));
-  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
-  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
-};
-
-gal::func::PyFnOutputType<1> py_print(const std::string&         label,
-                                      gal::func::store::Register reg)
-{
-  using namespace gal::func;
-  auto fn = store::makeFunction<PrintFunc>(label, reg.id);
-  sPrintFuncRegs.push_back(fn->outputRegister(0));
-  auto wfn = std::dynamic_pointer_cast<gal::view::Widget>(fn);
-  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
 };
 
 // Simple functions that are not part of the functional system.
@@ -353,34 +111,15 @@ void py_usePerspectiveCam()
   gal::view::Context::get().setPerspective();
 }
 
-gal::func::PyFnOutputType<1> py_textField(const std::string& label)
+typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
   auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(gal::func::types::makeOutputTuple<1>(*fn));
+  return fn->pythonOutputRegs();
 };
 
-gal::func::PyFnOutputType<1> py_tags(const std::string&         label,
-                                     gal::func::store::Register locs,
-                                     gal::func::store::Register words)
-{
-  using namespace gal::func;
-  auto fn = store::makeFunction<TagsFunc>(label, locs.id, words.id);
-  sShowFuncRegs.push_back(fn->outputRegister(0));
-  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
-}
-
-gal::func::PyFnOutputType<1> py_glyphs(const std::string&         label,
-                                       gal::func::store::Register locs,
-                                       gal::func::store::Register glyphs)
-{
-  using namespace gal::func;
-  auto fn = store::makeFunction<GlyphsFunc>(label, locs.id, glyphs.id);
-  sShowFuncRegs.push_back(fn->outputRegister(0));
-  outputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return gal::func::pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
-}
+// TODO: py_tags
+// TODO: py_glyphs
 
 void py_loadGlyphs(const boost::python::list& lst)
 {
@@ -402,6 +141,132 @@ int32_t py_glyphIndex(const std::string& str)
   return int32_t(gal::view::getGlyphIndex(str));
 }
 
+/**
+ * @brief Function that adds the given object to the 3d scene, if it is a drawable object.
+ * The output type of the function is the draw-id of the object added to the scene.
+ *
+ * @tparam T The object to be drawn.
+ */
+template<typename T>
+struct ShowFunc : public func::TFunction<const T, uint64_t>
+{
+  static_assert(TypeInfo<T>::value, "Unknown type");
+  using PyOutputType = typename func::TFunction<const T, uint64_t>::PyOutputType;
+
+  ShowFunc(const std::string&       label,
+           const bool*              visibilityFlag,
+           const func::Register<T>& reg)
+      : func::TFunction<const T, uint64_t>(
+          [this, visibilityFlag](const T& obj, uint64_t& id) {
+            if constexpr (view::MakeDrawable<T>::value) {
+              id = view::Context::get().addDrawable(obj, visibilityFlag, id);
+            }
+            else {
+              std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
+            }
+          },
+          std::make_tuple(reg))
+  {
+    std::get<0>(this->mOutputs) = 0;
+  }
+  virtual ~ShowFunc() = default;
+};
+
+/**
+ * @brief
+ *
+ * @tparam T The type of object to be added to the scene.
+ * @param label The name of the object. This will be the label of the checkbox that
+ * controls the visibility of the object.
+ *
+ * @param reg The register that contains the object to be drawn.
+ * @return Register that contains the draw-id of the object added to the scene.
+ */
+template<typename T>
+typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
+                                           const func::Register<T>& reg)
+{
+  std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
+    label, getCheckBox(label).checkedPtr(), reg);
+  auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
+  func::store::addFunction(fn);
+  const func::Function* ptr = fn.get();
+  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  return sfn->pythonOutputRegs();
+}
+
+/**
+ * @brief Prints the given object to the output panel.
+ *
+ * @tparam T The type of the object to be printed.
+ */
+template<typename T>
+struct PrintFunc : public func::TFunction<const T, bool>, public view::Text
+{
+  using PyOutputType = typename func::TFunction<const T, bool>::PyOutputType;
+  std::string       mLabel;
+  std::stringstream mStream;
+
+  PrintFunc(const std::string& label, const func::Register<T>& reg)
+      : mLabel(label)
+      , view::Text("")
+      , func::TFunction<const T, bool>(
+          [this](const T& obj, bool& success) {
+            if constexpr (IsPrintable<T>::value) {
+              mStream.clear();
+              mStream.str("");
+              mStream << mLabel << ": " << obj;
+              this->mValue = mStream.str();
+              success      = true;
+            }
+            else {
+              std::cerr << TypeInfo<T>::name() << " object";
+            }
+          },
+          std::make_tuple(reg)) {};
+
+  virtual ~PrintFunc() = default;
+};
+
+/**
+ * @brief Prints the object to the output panel.
+ *
+ * @tparam T The type of the object to be printed.
+ * @param label The label to be used in the output panel.
+ * @param reg The register containing the object.
+ * @return A boolean register indicating success status.
+ */
+template<typename T>
+typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
+                                             const func::Register<T>& reg)
+{
+  std::shared_ptr<PrintFunc<T>> pfn =
+    gal::func::store::makeFunction<PrintFunc<T>>(label, reg);
+  auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
+  func::store::addFunction(fn);
+  const func::Function* ptr = fn.get();
+  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
+  return pfn->pythonOutputRegs();
+}
+
+namespace python {
+using namespace boost::python;
+
+template<typename T>
+struct defOutputFuncs : public gal::func::python::defClass<T>
+{
+  using BaseType = gal::func::python::defClass<T>;
+
+  static void invoke()
+  {
+    def("show", py_show<T>);
+    def("print", py_print<T>);
+  }
+};
+
+}  // namespace python
+
 }  // namespace viewfunc
 }  // namespace gal
 
@@ -409,21 +274,25 @@ BOOST_PYTHON_MODULE(pygalview)
 {
   using namespace boost::python;
   using namespace gal::viewfunc;
+  using namespace gal::viewfunc::python;
   // Sliders for float input
   def("sliderf32", gal::viewfunc::py_slider<float>);
   def("slideri32", gal::viewfunc::py_slider<int32_t>);
   def("sliderVec3", gal::viewfunc::py_slider<glm::vec3>);
   def("sliderVec2", gal::viewfunc::py_slider<glm::vec2>);
+
+  gal::func::typemanager::invoke<defOutputFuncs>();
+
   // Views for drawables
-  GAL_DEF_PY_FN(show);
-  GAL_DEF_PY_FN(showAll);
+  // GAL_DEF_PY_FN(show);
+  // GAL_DEF_PY_FN(showAll);
   // Labels for printable data
-  GAL_DEF_PY_FN(print);
+  // GAL_DEF_PY_FN(print);
   // Text fields for string inputs
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
-  GAL_DEF_PY_FN(tags);
-  GAL_DEF_PY_FN(glyphs);
+  // GAL_DEF_PY_FN(tags);
+  // GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
   GAL_DEF_PY_FN(glyphIndex);
   // Viewer controls.

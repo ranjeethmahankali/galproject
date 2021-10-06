@@ -18,6 +18,8 @@
     delete arr;                 \
   }
 
+namespace fs = std::filesystem;
+
 namespace std {
 
 std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v)

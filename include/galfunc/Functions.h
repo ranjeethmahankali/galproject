@@ -1,4 +1,12 @@
 #pragma once
+#include <iostream>
+
+#include <boost/python/scope.hpp>
+#include <boost/python/tuple.hpp>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <string.h>
 #include <functional>
@@ -7,559 +15,615 @@
 
 #include <boost/python.hpp>
 
+#include <galcore/Traits.h>
 #include <galcore/Types.h>
+#include <galcore/Util.h>
 #include <galfunc/Converter.h>
 #include <galfunc/MapMacro.h>
 
 namespace gal {
 namespace func {
 
-// Interface.
+/**
+ * @brief Base class for all functions.
+ */
 struct Function
 {
-  virtual ~Function()                                 = default;
-  virtual void     run()                              = 0;
-  virtual void     initOutputRegisters()              = 0;
-  virtual size_t   numInputs() const                  = 0;
-  virtual uint64_t inputRegister(size_t index) const  = 0;
-  virtual size_t   numOutputs() const                 = 0;
-  virtual uint64_t outputRegister(size_t index) const = 0;
+  // Virtual destructor because of polymorphism.
+  virtual ~Function() = default;
+
+  /**
+   * @brief Ensures the output data is up to date.
+   */
+  virtual void update() const = 0;
+
+  virtual void addSubscriber(std::atomic_bool& dirtyFlag) const = 0;
 };
-
-void unloadAllFunctions();
-
-namespace types {
-
-template<size_t N, typename T>
-struct TupleN
-{
-  template<typename... Args>
-  using type = typename TupleN<N - 1, T>::template type<T, Args...>;
-};
-
-template<typename T>
-struct TupleN<0, T>
-{
-  template<typename... Args>
-  using type = std::tuple<Args...>;
-};
-
-};  // namespace types
 
 namespace store {
 
-struct Register
-{
-  std::shared_ptr<void> ptr;
-  std::string           typeName;
-  uint64_t              id;
-  const Function*       owner;
-  uint32_t              typeId;
-  bool                  isDirty   = true;
-  bool                  isDynamic = false;
-
-  std::shared_ptr<Function> ownerFunc() const;
-};
-
-uint64_t allocate(const Function* fn, uint32_t typeId, const std::string& typeName);
-
-uint64_t allocateDynamic(const Function* fn);
-
-template<typename T>
-uint64_t allocate(const Function* fn)
-{
-  static_assert(TypeInfo<T>::value, "Unknow type");
-  return allocate(fn, TypeInfo<T>::id, TypeInfo<T>::name());
-}
-
-void free(uint64_t id);
-
-Register& getRegister(uint64_t id);
-
-void markDirty(uint64_t id);
-
-void useRegister(const Function* fn, uint64_t id);
-
-template<typename T>
-void set(uint64_t id, const std::shared_ptr<T>& data)
-{
-  static_assert(gal::TypeInfo<T>::value, "Unknown type");
-  auto& reg = getRegister(id);
-  if (TypeInfo<T>::id == reg.typeId || reg.isDynamic) {
-    // Mark this and everything downstream as dirty.
-    markDirty(reg.id);
-    reg.ptr = data;
-    // This register itself is not dirty.
-    reg.isDirty  = false;
-    reg.typeName = TypeInfo<T>::name();
-    reg.typeId   = TypeInfo<T>::id;
-    return;
-  }
-  std::cerr << "Type mismatch error: Cannot assign " << TypeInfo<T>::name() << " from "
-            << reg.typeName << std::endl;
-  throw std::bad_alloc();
-};
-
-template<typename T>
-std::shared_ptr<T> get(uint64_t id)
-{
-  static_assert(TypeInfo<T>::value, "Unknown type");
-  auto& reg = getRegister(id);
-  if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T> || reg.isDynamic) {
-    if (reg.isDirty) {
-      auto fn = reg.ownerFunc();
-      try {
-        fn->run();
-      }
-      catch (std::exception e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-      }
-      reg.isDirty = false;
-    }
-    if (TypeInfo<T>::id == reg.typeId || std::is_same_v<void, T>) {
-      return std::static_pointer_cast<T>(reg.ptr);
-    }
-  }
-  std::cerr << "Type mismatch error: Cannot retrieve " << TypeInfo<T>::name() << " from "
-            << reg.typeName << std::endl;
-  throw std::bad_alloc();
-};
-
+/**
+ * @brief Adds the function instance to the list of managed functions. This is necessary
+ * because all function instances must be tracked and managed.
+ *
+ * @param fn
+ */
 std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
 
-struct Lambda
+/**
+ * @brief Unloads all loaded function instances.
+ */
+void unloadAllFunctions();
+
+/**
+ * @brief Subscribes a boolean flag to the function. When the function is dirty (not upto
+ * date), the subscribed boolean flag will be set to true. Its upto the owning function to
+ * recompute itself and set the flag back to true.
+ *
+ * @param fn The function to subscribe to.
+ * @param dirtyFlag The flag to subscribe.
+ */
+void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag);
+
+/**
+ * @brief Lets all subscribers of this function know that this function is dirty.
+ *
+ * @param fn the function to be marked dirty.
+ */
+void markDirty(const Function* fn);
+
+};  // namespace store
+
+/**
+ * @brief Wrapper that points to readonly data owned by a function. These are passed down
+ * to python to construct the function graph.
+ *
+ * @tparam T
+ */
+template<typename T>
+struct Register
 {
-private:
-  std::vector<uint64_t> mInputs;
-  std::vector<uint64_t> mOutputs;
+  const Function*      mOwner = nullptr;
+  std::add_const_t<T>* mData  = nullptr;
 
-public:
-  Lambda(std::vector<uint64_t> inputs, std::vector<uint64_t> outputs);
-  Lambda(const boost::python::list& inputs, const boost::python::list& outputs);
+  Register() = default;
 
-  const std::vector<uint64_t>& inputs() const;
-  const std::vector<uint64_t>& outputs() const;
+  Register(const Function* fn, std::add_const_t<T>* dref)
+      : mOwner(fn)
+      , mData(dref)
+  {}
 
-  template<typename T>
-  void setInput(size_t i, const std::shared_ptr<T>& data) const
+  std::add_const_t<T>& read() const
   {
-    if (i < mInputs.size()) {
-      store::set<T>(mInputs[i], data);
-    }
-    else {
-      std::out_of_range("Lambda input index out of range.");
-    }
-  }
-
-  template<typename T>
-  std::shared_ptr<T> getOutput(size_t i) const
-  {
-    if (i < mOutputs.size()) {
-      return store::get<T>(mOutputs[i]);
-    }
-    else {
-      throw std::out_of_range("Lambda output index out of range.");
-    }
+    mOwner->update();
+    return *mData;
   }
 };
 
 /**
- * @brief Will create dependency between captured registers of the lambda and the given
- * function.
- * @param fn The function that depends on the lambda.
- * @param lda The lambda.
+ * @brief Helper template to process the variadic argument type list.
+ *
+ * @tparam TArgs Argument types.
  */
-void useLambdaCapturedRegisters(const Function* fn, const Lambda& lda);
-
-};  // namespace store
-
-namespace types {
-template<size_t N>
-using OutputTuple = typename TupleN<N, store::Register>::template type<>;
-}
-
-template<typename... Ts>
+template<typename... TArgs>
 struct TypeList
 {
-  static constexpr size_t NumTypes = sizeof...(Ts);
-  using SharedTupleType            = std::tuple<std::shared_ptr<Ts>...>;
-  using FnType                     = std::function<void(std::shared_ptr<Ts>...)>;
+  /**
+   * @brief Trait that counts the number of leading const types in the parameter pack.
+   */
+  template<typename... Ts>
+  struct NumConstTypes;
+
+  // Partial specialization of the template for a single type.
+  template<typename T>
+  struct NumConstTypes<T>
+  {
+    static constexpr size_t value = std::is_const_v<T> ? 1 : 0;
+  };
+
+  // Partial specialization of the template for more than one type.
+  template<typename T, typename... Ts>
+  struct NumConstTypes<T, Ts...>
+  {
+    static constexpr size_t value =
+      std::is_const_v<T> ? (1 + NumConstTypes<Ts...>::value) : 0;
+  };
+
+  /**
+   * @brief For the argument type list to be valid, a const type
+   * should never follow a non-const type. Because outputs must follow inputs. This
+   * template checks for that.
+   *
+   * @tparam Ts
+   */
+  template<typename... Ts>
+  struct ValidConstOrder;
+
+  // Partial specialization for one type.
+  template<typename T>
+  struct ValidConstOrder<T> : std::true_type
+  {
+    static constexpr bool IsFirstConst = std::is_const_v<T>;
+  };
+
+  // Partial specialization for more than one type.
+  template<typename T, typename... Ts>
+  struct ValidConstOrder<T, Ts...>
+  {
+    static constexpr bool IsFirstConst = std::is_const_v<T>;
+    static constexpr bool value =
+      (IsFirstConst || !ValidConstOrder<Ts...>::IsFirstConst) &&
+      ValidConstOrder<Ts...>::value;
+  };
+
+  template<bool RegisterWrapped, size_t NBegin, size_t NEnd, typename... Ts>
+  struct SubTupleType
+  {
+    // static_assert(NEnd <= sizeof...(Ts) && NBegin < NEnd);
+    using T = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
+    using WrappedT =
+      typename std::conditional_t<RegisterWrapped, Register<std::remove_const_t<T>>, T>;
+
+    // Prepends the current type to the tuple.
+    template<typename... Us>
+    using AppendedT = typename SubTupleType<RegisterWrapped, NBegin + 1, NEnd, Ts...>::
+      template type<Us..., WrappedT>;
+
+    // sub tuple.
+    template<typename... Us>
+    using type =
+      typename std::conditional_t<(NBegin < NEnd), AppendedT<Us...>, std::tuple<Us...>>;
+  };
+
+  template<bool RegisterWrapped, size_t NEnd, typename... Ts>
+  struct SubTupleType<RegisterWrapped, NEnd, NEnd, Ts...>
+  {
+    template<typename... Us>
+    using type = std::tuple<Us...>;
+  };
+
+  static_assert(ValidConstOrder<TArgs...>::value);
+  static constexpr size_t NumTypes  = sizeof...(TArgs);
+  static constexpr size_t NumInputs = NumConstTypes<TArgs...>::value;
+  using TupleT                      = std::tuple<TArgs...>;
+  using RefTupleType                = std::tuple<TArgs&...>;
+  using PtrTupleType                = std::tuple<TArgs*...>;
+  using OutputTupleType =
+    typename SubTupleType<false, NumInputs, NumTypes, TArgs...>::template type<>;
+  using OutputRegTupleType =
+    typename SubTupleType<true, NumInputs, NumTypes, TArgs...>::template type<>;
+  using InputRegTupleType =
+    typename SubTupleType<true, 0, NumInputs, TArgs...>::template type<>;
+  using ImplFnType = std::function<void(TArgs&...)>;
+
+  template<size_t N>
+  using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
 };
 
-template<typename TDataList, size_t NInputs, size_t NOutputs, size_t N = 0>
-struct RegisterAccessor
+template<typename TArgList, size_t N>
+static typename TArgList::template Type<N>& getRef(
+  const typename TArgList::InputRegTupleType& inputs,
+  typename TArgList::OutputTupleType&         outputs)
 {
-  static_assert(types::IsInstance<TypeList, TDataList>::value,
-                "Inputs are not a type list.");
-  using SharedTupleType = typename TDataList::SharedTupleType;
-  using DType = typename std::tuple_element<N, SharedTupleType>::type::element_type;
-  static constexpr size_t NumData = TDataList::NumTypes;
-  static_assert(NumData == NInputs + NOutputs,
-                "Number of inputs and outputs don't add up to the number of arguments");
-  using NextAccessorType = RegisterAccessor<TDataList, NInputs, NOutputs, N + 1>;
+  using DType = typename TArgList::template Type<N>;
+  static_assert(TypeInfo<DType>::value, "Unknown type");
+  static_assert(TArgList::NumTypes > N);
+  if constexpr (N < TArgList::NumInputs) {
+    return *(std::get<N>(inputs).mData);
+  }
+  else {
+    return std::get<N - TArgList::NumInputs>(outputs);
+  }
+}
 
-public:
-  static void readFromInputRegisters(const std::array<uint64_t, NumData>& ids,
-                                     SharedTupleType&                     dst)
-  {
-    if constexpr (N < NInputs) {
-      std::get<N>(dst) = store::get<DType>(ids[N]);
-    }
-    if constexpr (N < NInputs - 1) {
-      // Recurse to the next indices.
-      NextAccessorType::readFromInputRegisters(ids, dst);
-    }
-  };
+// For internal use only from the other function.
+template<typename TArgList, size_t... Is>
+typename TArgList::RefTupleType makeArgRefTupleInternal(
+  const typename TArgList::InputRegTupleType& inputs,
+  typename TArgList::OutputTupleType&         outputs,
+  std::index_sequence<Is...>)
+{
+  return std::tie(getRef<TArgList, Is>(inputs, outputs)...);
+}
 
-  static void writeToOutputRegisters(const std::array<uint64_t, NumData>& ids,
-                                     const SharedTupleType&               src)
-  {
-    if constexpr (N >= NInputs && N < NumData) {
-      store::set<DType>(ids[N], std::get<N>(src));
-    }
-    if constexpr (N < NumData - 1) {
-      // Recurse to the next indices.
-      NextAccessorType::writeToOutputRegisters(ids, src);
-    }
-  };
+template<typename TArgList>
+typename TArgList::RefTupleType makeArgRefTuple(
+  const typename TArgList::InputRegTupleType& inputs,
+  typename TArgList::OutputTupleType&         outputs)
+{
+  return makeArgRefTupleInternal<TArgList>(
+    inputs, outputs, std::make_index_sequence<TArgList::NumTypes> {});
+}
 
-  static void allocateOutputs(const Function*                fn,
-                              std::array<uint64_t, NumData>& regIds,
-                              SharedTupleType&               args)
-  {
-    static_assert(TypeInfo<DType>::value, "Unknown type");
-    if constexpr (N >= NInputs && N < NumData) {
-      regIds[N]         = store::allocate<DType>(fn);
-      std::get<N>(args) = std::make_shared<DType>();
-    }
-    if constexpr (N < NumData - 1) {
-      NextAccessorType::allocateOutputs(fn, regIds, args);
-    }
-  };
-};
+template<typename OutputTupleT, size_t... Is>
+boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
+                                               const OutputTupleT& src,
+                                               std::index_sequence<Is...>)
+{
+  return boost::python::make_tuple(
+    Register<typename std::tuple_element<Is, OutputTupleT>::type>(
+      fn, &(std::get<Is>(src)))...);
+}
 
-template<size_t NInputs, typename TArgs>
+/**
+ * @brief Wraps the output tuple of the function in registers and returns a python tuple
+ * of registers.
+ *
+ * @tparam OutputTupleT The output tuple type.
+ * @param fn The function that owns the outputs.
+ * @param src The output tuple. It is the source of the wrapped register tuple.
+ * @return boost::python::tuple
+ */
+template<typename OutputTupleT>
+boost::python::tuple pythonOutputTuple(const Function* fn, const OutputTupleT& src)
+{
+  return pythonOutputTupleInternal(
+    fn, src, std::make_index_sequence<std::tuple_size_v<OutputTupleT>> {});
+}
+
+/**
+ * @brief Template for all non-variable functions.
+ * @tparam NInputs Number of inputs.
+ * @tparam TArgs All arguments. Inputs followed by outputs.
+ */
+template<typename... TArgs>
 struct TFunction : public Function
 {
-  static_assert(types::IsInstance<TypeList, TArgs>::value,
-                "Argument types are not a type list.");
-  using ArgsTupleType           = typename TArgs::SharedTupleType;
-  static constexpr size_t NArgs = TArgs::NumTypes;
+  using TArgList                  = TypeList<TArgs...>;
+  static constexpr size_t NInputs = TArgList::NumInputs;
+  using RefTupleT                 = typename TArgList::RefTupleType;
+  using InputRegTupleT            = typename TArgList::InputRegTupleType;
+  using OutputTupleT              = typename TArgList::OutputTupleType;
+  static constexpr size_t NArgs   = TArgList::NumTypes;
   static_assert(NInputs <= NArgs,
                 "Number of inputs is larger than the number of arguments!");
+  static constexpr bool   HasInputs  = NInputs > 0;
   static constexpr size_t NOutputs   = NArgs - NInputs;
   static constexpr bool   HasOutputs = NOutputs > 0;
-  using FuncType                     = typename TArgs::FnType;
-  using RegAccessorType              = RegisterAccessor<TArgs, NInputs, NOutputs>;
+  using ImplFuncType                 = typename TArgList::ImplFnType;
+  using PyOutputType =
+    std::conditional_t<(NOutputs > 1),
+                       boost::python::tuple,
+                       Register<typename TArgList::template Type<NInputs>>>;
 
-private:
-  std::array<uint64_t, NArgs> mRegIds;
-  ArgsTupleType               mArgs;
-  FuncType                    mFunc;
+protected:
+  /* Some fields are marked mutable because the function is considered changed only if the
+   * inputs are changed. Running the function, which changes the output, or the status of
+   * the dirty-flag, is not considered changing.
+   */
+  ImplFuncType             mFunc;
+  mutable OutputTupleT     mOutputs;
+  RefTupleT                mArgRefs;
+  InputRegTupleT           mInputs;
+  mutable std::atomic_bool mIsDirty = true;
 
-public:
-  TFunction(FuncType fn, const std::array<uint64_t, NInputs>& inputs)
-      : mFunc(std::move(fn))
+  // Runs the function.
+  inline void run() const
   {
-    std::copy(inputs.begin(), inputs.end(), mRegIds.begin());
-    for (uint64_t id : inputs) {
-      store::useRegister(this, id);
-    }
-  };
-
-  virtual ~TFunction()
-  {
-    for (size_t i = 0; i < NOutputs; i++) {
-      store::free(mRegIds[i + NInputs]);
-    }
-  };
-
-  size_t numInputs() const override { return NInputs; }
-
-  uint64_t inputRegister(size_t index) const override
-  {
-    if (index < NInputs) {
-      return mRegIds[index];
-    }
-    throw std::out_of_range("Input index out of range");
+    std::apply(mFunc, mArgRefs);  // Run the function.
   }
 
-  size_t numOutputs() const override { return NOutputs; };
-
-  uint64_t outputRegister(size_t index) const override
+private:
+  // Calls update on all the upstream functions.
+  inline void updateUpstream() const
   {
-    if (index < NOutputs) {
-      return mRegIds[index + NInputs];
+    std::apply([](const auto&... inputs) { (inputs.mOwner->update(), ...); }, mInputs);
+  }
+
+public:
+  /**
+   * @brief Creates a new instance of the function.
+   *
+   * @param fn The implementation of the function, either a function pointer or a lambda
+   * expression. It should be a void function that accepts const references of all inputs
+   * in order, followed by references of all outputs in order.
+   * @param inputs The input registers.
+   */
+  TFunction(const ImplFuncType& fn, const InputRegTupleT& inputs)
+      : mFunc(std::move(fn))
+      , mOutputs()
+      , mArgRefs(makeArgRefTuple<TArgList>(inputs, mOutputs))
+      , mInputs(inputs)
+  {
+    this->addSubscriber(mIsDirty);
+  };
+
+  virtual ~TFunction() {};
+
+  void update() const override
+  {
+    if (mIsDirty) {
+      if constexpr (HasInputs) {
+        updateUpstream();
+      }
+      else {
+        store::markDirty(this);
+      }
+      run();
+      mIsDirty = false;
     }
-    throw std::out_of_range("Output index out of range");
-  };
+  }
 
-  void initOutputRegisters() override
+  void addSubscriber(std::atomic_bool& dirtyFlag) const override
   {
-    RegAccessorType::allocateOutputs(this, mRegIds, mArgs);
-  };
+    if constexpr (HasInputs) {
+      // Propagate the flag upstream.
+      std::apply(
+        [&dirtyFlag](const auto&... inputs) {
+          (inputs.mOwner->addSubscriber(dirtyFlag), ...);
+        },
+        mInputs);
+    }
+    else {
+      store::addSubscriber(this, dirtyFlag);
+    }
+  }
 
-  void run() override
+  PyOutputType pythonOutputRegs() const
   {
-    RegAccessorType::readFromInputRegisters(mRegIds, mArgs);
-    std::apply(mFunc, mArgs);  // Run the function.
-    RegAccessorType::writeToOutputRegisters(mRegIds, mArgs);
-  };
+    if constexpr (NOutputs == 1) {
+      return Register<typename TArgList::template Type<NInputs>>(
+        dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
+    }
+    else {
+      return pythonOutputTuple(this, mOutputs);
+    }
+  }
+
+  template<size_t N>
+  Register<typename TArgList::template Type<N + NInputs>> outputRegister()
+  {
+    return Register<typename TArgList::template Type<N + NInputs>>(
+      this, &(std::get<N>(mOutputs)));
+  }
 };
 
-struct DynamicFunction : public Function
-{
-  virtual ~DynamicFunction() = default;
-
-protected:
-  std::vector<uint64_t> mInputs;
-  std::vector<uint64_t> mOutputs;
-
-  DynamicFunction(std::vector<uint64_t> inputs, size_t nOutputs);
-  DynamicFunction(const std::vector<store::Register>& inputs, size_t nOutputs);
-
-  size_t   numInputs() const override;
-  uint64_t inputRegister(size_t index) const override;
-  size_t   numOutputs() const override;
-  uint64_t outputRegister(size_t index) const override;
-  void     initOutputRegisters() override;
-};
-
+/**
+ * @brief Template for a variable functions.
+ * @tparam TVal The type of the value stored in the variable.
+ * @tparam TArgs... The type of arguments to be passed to the constructor of TVal to
+ * initialize it.
+ */
 template<typename TVal, typename... TArgs>
-struct TVariable : public Function
+struct TVariable : public TFunction<TVal>
 {
   static constexpr bool sIsConstructible = std::is_constructible_v<TVal, TArgs...>;
-  static constexpr bool sSingleArgument  = sizeof...(TArgs) == 1;
+  static constexpr bool IsSingleArgument = sizeof...(TArgs) == 1;
 
-  static_assert(sIsConstructible || sSingleArgument,
+  static_assert(sIsConstructible || IsSingleArgument,
                 "Cannot create variable with these arguments.");
 
-  using TFirstArg = std::tuple_element_t<0, std::tuple<TArgs...>>;
+  using TFirstArg    = typename std::tuple_element_t<0, std::tuple<TArgs...>>;
+  using PyOutputType = Register<TVal>;
 
 protected:
-  uint64_t              mRegisterId;
-  std::shared_ptr<TVal> mValuePtr;
+  inline uint64_t& registerId() { return this->mRegIds[0]; }
+  inline TVal&     value() { return std::get<0>(this->mOutputs); };
 
 public:
   TVariable(const TArgs&... args)
+      : TFunction<TVal>([](TVal&) -> void {}, {})
   {
     if constexpr (sIsConstructible) {
-      mValuePtr = std::make_shared<TVal>(args...);
+      value() = TVal(args...);
     }
-    else if constexpr (sSingleArgument) {
-      mValuePtr = Converter<TFirstArg, TVal>::convert(args...);
+    else if constexpr (IsSingleArgument) {
+      Converter<TFirstArg, TVal>::assign(args..., value());
     }
-    store::useRegister(this, mRegisterId);
-    if constexpr (std::is_same_v<TVal, store::Lambda>) {
-      store::useLambdaCapturedRegisters(this, *mValuePtr);
-    }
-  };
-
-  virtual ~TVariable() { store::free(mRegisterId); }
-
-  void initOutputRegisters() override
-  {
-    static_assert(TypeInfo<TVal>::value, "Unknown type");
-    mRegisterId = store::allocate<TVal>(this);
-    store::markDirty(this->mRegisterId);
-  };
-
-  size_t numInputs() const override { return 0; }
-
-  uint64_t inputRegister(size_t index) const override
-  {
-    throw std::out_of_range("Variable has no inputs.");
   }
-
-  size_t numOutputs() const override { return 1; };
-
-  uint64_t outputRegister(size_t index) const override
-  {
-    if (index == 0) {
-      return mRegisterId;
-    }
-    throw std::out_of_range("Index out of range");
-  };
-
-  void run() override { store::set<TVal>(mRegisterId, mValuePtr); };
 
   void set(const TArgs&... args)
   {
+    store::markDirty(this);
     if constexpr (sIsConstructible) {
-      *mValuePtr = TVal(args...);
+      value() = TVal(args...);
     }
-    else if constexpr (sSingleArgument) {
-      Converter<TFirstArg, TVal>::assign(args..., *(this->mValuePtr));
+    else if constexpr (IsSingleArgument) {
+      Converter<TFirstArg, TVal>::assign(args..., value());
     }
-    store::markDirty(this->mRegisterId);
-  };
+    this->mIsDirty = false;
+  }
 };
 
 namespace store {
 
+/**
+ * @brief Creates a function instance that is tracked and managed.
+ *
+ * @tparam TFunc The function type.
+ * @tparam TArgs The types of arguments to be passed to the constructor.
+ * @param args The arguments to be passed to the constructor.
+ */
 template<typename TFunc, typename... TArgs>
-std::shared_ptr<Function> makeFunction(TArgs... args)
+std::shared_ptr<TFunc> makeFunction(const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
-  auto fn = std::dynamic_pointer_cast<Function>(std::make_shared<TFunc>(args...));
-  return addFunction(fn);
+  auto fn = std::make_shared<TFunc>(args...);
+  addFunction(std::dynamic_pointer_cast<Function>(fn));
+  return fn;
 };
 
 }  // namespace store
 
-namespace types {
-
-template<size_t NMax, size_t N = 0>
-void setOutputTuple(OutputTuple<NMax>& tup, const Function& fn)
-{
-  if constexpr (NMax == 1) {
-    tup = store::getRegister(fn.outputRegister(N));
-  }
-  else {
-    if constexpr (N < NMax) {
-      std::get<N>(tup) = store::getRegister(fn.outputRegister(N));
-    }
-    if constexpr (N < NMax - 1) {
-      setOutputTuple<NMax, N + 1>(tup, fn);
-    }
-  }
-};
-
-template<size_t N>
-OutputTuple<N> makeOutputTuple(const Function& fn)
-{
-  OutputTuple<N> tup;
-  setOutputTuple<N>(tup, fn);
-  return tup;
-};
-
-}  // namespace types
-
-template<size_t NOutputs>
-using PyFnOutputType =
-  std::conditional_t<NOutputs == 1, store::Register, boost::python::tuple>;
-
-template<size_t N, typename CppTupleType, typename... TArgs>
-PyFnOutputType<std::tuple_size_v<CppTupleType>> pythonRegisterTupleInternal(
-  const CppTupleType cppTup,
-  TArgs... args)
-{
-  static constexpr size_t tupleSize = std::tuple_size_v<CppTupleType>;
-  static_assert(tupleSize > 1,
-                "If the tuple size is 1, the register should be returned directly");
-  static_assert(N <= tupleSize, "Invalid tuple accecssor");
-  if constexpr (N < tupleSize) {
-    return pythonRegisterTupleInternal<N + 1>(cppTup, args..., std::get<N>(cppTup));
-  }
-  else if constexpr (N == tupleSize) {
-    return boost::python::make_tuple(args...);
-  }
-};
-
-template<typename... Ts>
-PyFnOutputType<std::tuple_size_v<std::tuple<Ts...>>> pythonRegisterTuple(
-  const std::tuple<Ts...>& cppTup)
-{
-  if constexpr (std::tuple_size_v<std::tuple<Ts...>> == 1) {
-    return std::get<0>(cppTup);
-  }
-  else {
-    return pythonRegisterTupleInternal<0>(cppTup);
-  }
-};
-
 template<typename TVal, typename... TArgs>
-PyFnOutputType<1> py_variable(const TArgs&... args)
+typename TVariable<TVal, TArgs...>::PyOutputType py_variable(const TArgs&... args)
 {
-  auto fn = std::dynamic_pointer_cast<Function>(
-    std::make_shared<TVariable<TVal, TArgs...>>(args...));
-  fn = store::addFunction(fn);
-  return pythonRegisterTuple(types::makeOutputTuple<1>(*fn));
+  auto fn = std::make_shared<TVariable<TVal, TArgs...>>(args...);
+  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  return fn->pythonOutputRegs();
 };
 
 template<typename T>
-PyFnOutputType<1> py_list(const boost::python::list& lst)
+typename TVariable<std::vector<T>, boost::python::list>::PyOutputType py_list(
+  const boost::python::list& lst)
 {
   return py_variable<std::vector<T>, boost::python::list>(lst);
 };
 
+namespace python {
+
+fs::path getcontextpath();
+
+}  // namespace python
+
 }  // namespace func
 }  // namespace gal
 
-namespace std {
-std::ostream& operator<<(std::ostream& ostr, const gal::func::store::Register& reg);
-
-template<typename T>
-std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
-{
-  static constexpr char sep[] = ", ";
-  static constexpr char tab   = '\t';
-  ostr << "[\n";
-  auto begin = vec.cbegin();
-  while (begin != vec.cend()) {
-    ostr << tab << *(begin++) << std::endl;
-  }
-  ostr << "]";
-  return ostr;
-};
-}  // namespace std
-
 #define GAL_CONCAT(x, y) x##y
-
-#define _GAL_ARG_TYPE(type, name, desc) type
+// Get the type from an arg-tuple that has description.
+#define _GAL_ARGD_TYPE(type, name, desc) type
+#define GAL_ARGD_TYPE(argTuple) _GAL_ARGD_TYPE argTuple
+// Get the type from an arg-tuple that has no description.
+#define _GAL_ARG_TYPE(type, name) type
 #define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
-
-#define _GAL_ARG_NAME(type, name, desc) name
+// Get the const type from an arg-tuple without description.
+#define _GAL_ARG_CONST_TYPE(type, name) const type
+#define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple
+// Get the const type from an arg-tuple with description.
+#define _GAL_ARGD_CONST_TYPE(type, name, desc) const type
+#define GAL_ARGD_CONST_TYPE(argTuple) _GAL_ARGD_CONST_TYPE argTuple
+// Get the name from an arg-tuple without description.
+#define _GAL_ARG_NAME(type, name) name
 #define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple
-
+// Get the name from an arg-tuple with description.
+#define _GAL_ARGD_NAME(type, name, desc) name
+#define GAL_ARGD_NAME(argTuple) _GAL_ARGD_NAME argTuple
+// Expand types from a list of arg-tuples without description.
 #define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
-
-#define GAL_EXPAND_SHARED_ARG(argTuple) \
-  std::shared_ptr<GAL_ARG_TYPE(argTuple)> GAL_ARG_NAME(argTuple)
-
-#define GAL_EXPAND_SHARED_ARGS(...) MAP_LIST(GAL_EXPAND_SHARED_ARG, __VA_ARGS__)
-
-#define GAL_REGISTER_ARG(typeTuple) \
-  const gal::func::store::Register& GAL_ARG_NAME(typeTuple)
-
-#define GAL_PY_REGISTER_ARG(typeTuple) gal::func::store::Register GAL_ARG_NAME(typeTuple)
-
-#define GAL_EXPAND_REGISTER_ARGS(...) MAP_LIST(GAL_REGISTER_ARG, __VA_ARGS__)
-
+// Expand const types from a list of arg-tuples without description.
+#define _GAL_EXPAND_CONST_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_CONST_TYPE, __VA_ARGS__)
+#define GAL_EXPAND_CONST_TYPE_TUPLE(types) _GAL_EXPAND_CONST_TYPE_TUPLE types
+// Expand types from a list of arg-tuples with description.
+#define _GAL_EXPAND_TYPE_D_TUPLE(...) MAP_LIST(GAL_ARGD_TYPE, __VA_ARGS__)
+#define GAL_EXPAND_TYPE_D_TUPLE(types) _GAL_EXPAND_TYPE_D_TUPLE types
+// Expand const types from a list of arg-tuples with description.
+#define _GAL_EXPAND_CONST_TYPE_D_TUPLE(...) MAP_LIST(GAL_ARGD_CONST_TYPE, __VA_ARGS__)
+#define GAL_EXPAND_CONST_TYPE_D_TUPLE(types) _GAL_EXPAND_CONST_TYPE_D_TUPLE types
+// Get reference type from an arg-tuple without description.
+#define GAL_EXPAND_REF_ARG(argTuple) GAL_ARG_TYPE(argTuple) & GAL_ARG_NAME(argTuple)
+// Get reference type from an arg-tuple with description.
+#define GAL_EXPAND_REF_ARGD(argTuple) GAL_ARGD_TYPE(argTuple) & GAL_ARGD_NAME(argTuple)
+// Get const refernce type from an arg-tuple without description.
+#define GAL_EXPAND_REF_CONST_ARG(argTuple) \
+  GAL_ARG_CONST_TYPE(argTuple) & GAL_ARG_NAME(argTuple)
+// Get the const reference type from an arg-tuple with description.
+#define GAL_EXPAND_REF_CONST_ARGD(argTuple) \
+  GAL_ARGD_CONST_TYPE(argTuple) & GAL_ARGD_NAME(argTuple)
+// Expand to a list of references from arg-tuples without description.
+#define GAL_EXPAND_REF_ARGS(...) MAP_LIST(GAL_EXPAND_REF_ARG, __VA_ARGS__)
+// Expand to a list of references from arg-tuples with description.
+#define GAL_EXPAND_REF_ARGSD(...) MAP_LIST(GAL_EXPAND_REF_ARGD, __VA_ARGS__)
+// Expand to a list of const references from arg-tuples without description.
+#define GAL_EXPAND_REF_CONST_ARGS(...) MAP_LIST(GAL_EXPAND_REF_CONST_ARG, __VA_ARGS__)
+// Expand to a list of const references from arg-tuples with description.
+#define GAL_EXPAND_REF_CONST_ARGSD(...) MAP_LIST(GAL_EXPAND_REF_CONST_ARGD, __VA_ARGS__)
+// Get python register argument from an arg-tuple without description.
+#define GAL_PY_REGISTER_ARG(typeTuple) \
+  const gal::func::Register<GAL_ARG_TYPE(typeTuple)>& GAL_ARG_NAME(typeTuple)
+// Get python register argument from an arg-tuple with description.
+#define GAL_PY_REGISTER_ARGD(typeTuple) \
+  const gal::func::Register<GAL_ARGD_TYPE(typeTuple)>& GAL_ARGD_NAME(typeTuple)
+// Get python argument register list from arg-tuples without descriptions.
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
-
-#define GAL_EXPAND_ARG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
-
+// Get python argument register list from arg-tuples with descriptions.
+#define GAL_EXPAND_PY_REGISTER_ARGSD(...) MAP_LIST(GAL_PY_REGISTER_ARGD, __VA_ARGS__)
+// Name of a function implementation.
 #define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
+// Get register ids from arg-tuples without descriptions.
+#define GAL_EXPAND_REG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
+// Actual declaration of a the static implementation of the function.
+#define GAL_FN_IMPL(fnName, inputs, outputs)                             \
+  static void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_REF_CONST_ARGS inputs, \
+                                       GAL_EXPAND_REF_ARGS       outputs)
 
-#define GAL_REGISTER_ID(argTuple) GAL_ARG_NAME(argTuple).id
-#define GAL_EXPAND_REGISTER_IDS(...) MAP_LIST(GAL_REGISTER_ID, __VA_ARGS__)
+// Declartion of a gal function.
+#define GAL_FUNC_DECL(fnName, fnDesc, inputArgs, outputArgs)   \
+  TFunction<GAL_EXPAND_CONST_TYPE_D_TUPLE(inputArgs),          \
+            GAL_EXPAND_TYPE_D_TUPLE(outputArgs)>::PyOutputType \
+    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGSD inputArgs);
 
-#define GAL_FUNC_DECL(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs) \
-  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,               \
-                                GAL_EXPAND_SHARED_ARGS outputArgs);             \
-  gal::func::PyFnOutputType<nOutputs> py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs);
-
-#define GAL_FUNC_DEFN(fnName, nInputs, nOutputs, fnDesc, inputArgs, outputArgs)          \
-  gal::func::PyFnOutputType<nOutputs> py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs) \
-  {                                                                                      \
-    using FunctorType =                                                                  \
-      gal::func::TFunction<nInputs,                                                      \
-                           gal::func::TypeList<GAL_EXPAND_TYPE_TUPLE(inputArgs),         \
-                                               GAL_EXPAND_TYPE_TUPLE(outputArgs)>>;      \
-    auto fn = gal::func::store::makeFunction<FunctorType>(                               \
-      GAL_FN_IMPL_NAME(fnName),                                                          \
-      std::array<uint64_t, nInputs> {GAL_EXPAND_REGISTER_IDS inputArgs});                \
-    return gal::func::pythonRegisterTuple(                                               \
-      gal::func::types::makeOutputTuple<nOutputs>(*fn));                                 \
-  };                                                                                     \
-  void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_SHARED_ARGS inputArgs,                        \
-                                GAL_EXPAND_SHARED_ARGS outputArgs)
+// Definition of a gal function.
+#define GAL_FUNC_DEFN(fnName, inputArgs, outputArgs)                                  \
+  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                         \
+  TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                                   \
+            GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType                          \
+    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                \
+  {                                                                                   \
+    std::cout << "Creating function " << #fnName                                      \
+              << " in context: " << gal::func::python::getcontextpath() << std::endl; \
+    using namespace gal::func;                                                        \
+    using FType = TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                   \
+                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                       \
+    auto fn     = store::makeFunction<FType>(                                         \
+      GAL_FN_IMPL_NAME(fnName), std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs)); \
+    return fn->pythonOutputRegs();                                                    \
+  };                                                                                  \
+  GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
 
 // Forward declaration of the module initializer, which will be defined by boost later.
 // This should be called before running scripts from within C++.
 extern "C" PyObject* PyInit_pygalfunc();
+namespace gal {
+namespace func {
+namespace python {
+
+/**
+ * @brief Can be used from python to read the value inside a register. Only works if a
+ * converter is available for the source datatype.
+ *
+ * @tparam T The source datatype (register).
+ * @param reg The register.
+ * @return boost::python::object Converted python object.
+ */
+template<typename T>
+boost::python::object read(const Register<T>& reg)
+{
+  boost::python::object dst;
+  Converter<T, boost::python::object>::assign(reg.read(), dst);
+  return dst;
+}
+
+/**
+ * @brief Initializes the python bindings for register and other helper functions related
+ * to the type T.
+ *
+ * @tparam T
+ */
+template<typename T>
+struct defClass
+{
+  static boost::python::class_<Register<T>>& pythonType()
+  {
+    static const std::string name("r_" + TypeInfo<T>::name());
+    static auto              sType = boost::python::class_<Register<T>>(name.c_str());
+    return sType;
+  }
+  static void invoke()
+  {
+    // Defining the str function allows python to print the objects using the c++
+    // implementation of the << operator.
+    pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
+    // Read value into python if conversion is available.
+    def("read", read<T>);
+  }
+};
+
+}  // namespace python
+}  // namespace func
+}  // namespace gal
+
+namespace std {
+
+// Register printing to console
+template<typename T>
+std::ostream& operator<<(std::ostream& ostr, const gal::func::Register<T>& reg)
+{
+  ostr << "(" << gal::TypeInfo<T>::name() << " at " << reg.mData << ")";
+  return ostr;
+};
+
+}  // namespace std

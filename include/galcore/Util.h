@@ -1,6 +1,7 @@
 #pragma once
 #include <float.h>
 #include <galcore/Serialization.h>
+#include <galcore/Traits.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
@@ -26,9 +27,52 @@ static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v);
 std::ostream& operator<<(std::ostream& ostr, const glm::vec2& v);
-}  // namespace std
 
-namespace fs = std::filesystem;
+/**
+ * @brief Writes the object to the stream safely, If the stream operator exists for the
+ * type. Or else a placeholder label is printed.
+ *
+ * @tparam T
+ * @param ostr Destination stream.
+ * @param obj Object to be written.
+ */
+template<typename T>
+inline std::ostream& safeWrite(std::ostream& ostr, const T& obj)
+{
+  if constexpr (gal::IsPrintable<T>::value) {
+    ostr << obj;
+  }
+  else {
+    ostr << "Unprintable object";
+  }
+  return ostr;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& ostr, const std::vector<T>& vec)
+{
+  static constexpr char tab = '\t';
+  ostr << "[\n";
+  for (const T& v : vec) {
+    ostr << tab;
+    safeWrite(ostr, v);
+    ostr << std::endl;
+  }
+  ostr << "]";
+  return ostr;
+};
+
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& ostr, const std::pair<T1, T2>& pair)
+{
+  ostr << "(";
+  safeWrite(ostr, pair.first);
+  safeWrite(ostr, pair.second);
+  ostr << ")";
+  return ostr;
+}
+
+}  // namespace std
 
 namespace gal {
 
@@ -158,6 +202,57 @@ void random(T min, T max, size_t count, DstIter dst)
     }
   }
 };
+
+/**
+ * @brief Scans the bits of the integer and returns the position of the first set bit. By
+ * default the bits are scanned from the least significant to the most significant.
+ *
+ * @tparam T The type of the integer. Must be unsigned.
+ * @tparam Reverse If this is true, the bits are scanned from the most significant to the
+ * least.
+ * @param i The integer.
+ * @return int The position of the first set bit. -1 if i is zero.
+ */
+template<typename T, bool Reverse = false>
+inline int bitscan(T i)
+{
+  static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>,
+                "Unsupported type for bitscan");
+  if (i == 0) {
+    return -1;
+  }
+  if constexpr (std::is_same_v<T, uint32_t>) {
+    if constexpr (Reverse) {
+      return 31 - __builtin_clz(i);
+    }
+    else {
+      return __builtin_ctz(i);
+    }
+  }
+  else if constexpr (std::is_same_v<T, uint64_t>) {
+    if constexpr (Reverse) {
+      return 63 - __builtin_clzl(i);
+    }
+    else {
+      return __builtin_ctzl(i);
+    }
+  }
+  else {
+    return bitscan<uint64_t, Reverse>(uint64_t(i));
+  }
+}
+
+template<typename T>
+inline int bitscanForward(T i)
+{
+  return bitscan<T, false>(i);
+}
+
+template<typename T>
+inline int bitscanReverse(T i)
+{
+  return bitscan<T, true>(i);
+}
 
 }  // namespace utils
 }  // namespace gal
