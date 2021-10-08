@@ -31,6 +31,22 @@ struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 {
 };
 
+template<typename T>
+struct GlmVecTraits
+{
+  static constexpr bool IsGlmVec = false;
+  static constexpr int  Size     = 0;
+  using ValueType                = void;
+};
+
+template<int N, typename T, glm::qualifier Q>
+struct GlmVecTraits<glm::vec<N, T, Q>>
+{
+  static constexpr bool IsGlmVec = true;
+  static constexpr int  Size     = N;
+  using ValueType                = T;
+};
+
 /**
  * @brief Checks if the type is streamable to std::ostream.
  *

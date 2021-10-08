@@ -18,8 +18,9 @@ namespace func {
 template<typename T>
 struct DataTree
 {
-  using DepthT    = uint32_t;
-  using ValueType = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
+  using DepthT     = uint32_t;
+  using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
+  using value_type = ValueType;  // To support stl helper functions.
   struct InstanceT
   {
     ValueType mValue;
@@ -28,6 +29,10 @@ struct DataTree
     InstanceT(DepthT d, ValueType val)
         : mValue(std::move(val))
         , mDepth(d)
+    {}
+
+    InstanceT(ValueType val)
+        : InstanceT(0, std::move(val))
     {}
 
     template<typename... TArgs>
@@ -70,6 +75,8 @@ struct DataTree
     mValues.emplace_back(d, std::move(item));
   }
 
+  void push_back(T item) { push_back(0, std::move(item)); }
+
   template<typename... TArgs>
   void emplace_back(DepthT d, TArgs... args)
   {
@@ -80,6 +87,21 @@ struct DataTree
   void reserve(size_t n) { mValues.reserve(n); }
 
   size_t size() const { return mValues.size(); }
+};
+
+template<typename T, uint32_t Dim>
+struct DataView;
+
+template<typename T, size_t Dim>
+struct Dereferenced
+{
+  using Type = DataView<T, Dim>;
+};
+
+template<typename T>
+struct Dereferenced<T, 0>
+{
+  using Type = typename DataTree<T>::ValueType&;
 };
 
 template<typename T, uint32_t Dim>
@@ -114,13 +136,9 @@ struct DataView
     return Iterator<Dim - 1>(mTree, internalStorage().size());
   }
 
-  Iterator<Dim - 1> begin()
-  {
-    if (Dim > mTree.depth()) {
-      return end();
-    }
-    return Iterator<Dim - 1>(mTree, mStart);
-  }
+  Iterator<Dim - 1> begin() { return Iterator<Dim - 1>(mTree, mStart); }
+
+  typename Iterator<Dim - 1>::DereferenceT operator[](size_t i) { return *(begin() + i); }
 
   friend std::ostream& operator<<(std::ostream&                      os,
                                   const gal::func::DataView<T, Dim>& view)
@@ -128,18 +146,6 @@ struct DataView
     os << '(' << gal::TypeInfo<T>::name() << ' ' << Dim << "d view)";
     return os;
   }
-};
-
-template<typename T, size_t Dim>
-struct Dereferenced
-{
-  using Type = DataView<T, Dim>;
-};
-
-template<typename T>
-struct Dereferenced<T, 0>
-{
-  using Type = typename DataTree<T>::ValueType&;
 };
 
 template<typename T>
@@ -198,6 +204,17 @@ struct DataTree<T>::Iterator
     ++(*this);
     return result;
   }
+
+  Iterator operator+(size_t offset)
+  {
+    Iterator result = *this;
+    for (size_t i = 0; i < offset && result.mIndex < internalStorage().size(); i++) {
+      ++result;
+    }
+    return result;
+  }
+
+  Iterator operator+=(size_t offset) { *this = *this + offset; }
 
   DereferenceT operator*()
   {
