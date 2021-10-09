@@ -18,7 +18,7 @@ namespace func {
 template<typename T>
 struct DataTree
 {
-  using DepthT     = uint32_t;
+  using DepthT     = uint8_t;  // Max is 255.
   using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
   using value_type = ValueType;  // To support stl helper functions.
   struct InstanceT
@@ -150,7 +150,7 @@ struct DataTree<T>::ReadView
 };
 
 template<typename T>
-template<uint32_t Dim>
+template<typename DataTree<T>::DepthT Dim>
 struct DataTree<T>::Iterator
 {
   using DereferenceT = typename Dereferenced<T, Dim>::Type;
