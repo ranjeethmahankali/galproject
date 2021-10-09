@@ -50,6 +50,9 @@ struct DataTree
   template<DepthT Dim>
   struct Iterator;
 
+  template<uint32_t Dim>
+  struct ReadView;
+
   std::vector<InstanceT> mValues;
 
   DepthT depth() const
@@ -89,23 +92,21 @@ struct DataTree
   size_t size() const { return mValues.size(); }
 };
 
-template<typename T, uint32_t Dim>
-struct DataView;
-
 template<typename T, size_t Dim>
 struct Dereferenced
 {
-  using Type = DataView<T, Dim>;
+  using Type = const typename DataTree<T>::template ReadView<Dim>;
 };
 
 template<typename T>
 struct Dereferenced<T, 0>
 {
-  using Type = typename DataTree<T>::ValueType&;
+  using Type = const typename DataTree<T>::ValueType&;
 };
 
-template<typename T, uint32_t Dim>
-struct DataView
+template<typename T>
+template<uint32_t Dim>
+struct DataTree<T>::ReadView
 {
   using DepthT = typename DataTree<T>::DepthT;
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
@@ -113,15 +114,15 @@ struct DataView
   template<DepthT D2>
   using Iterator = typename DataTree<T>::template Iterator<D2>;
 
-  DataTree<T>& mTree;
-  size_t       mStart;
+  const DataTree<T>& mTree;
+  size_t             mStart;
 
-  DataView(DataTree<T>& src)
+  ReadView(const DataTree<T>& src)
       : mTree(src)
       , mStart(0)
   {}
 
-  DataView(Iterator<Dim>& iter)
+  ReadView(Iterator<Dim>& iter)
       : mTree(iter.mTree)
       , mStart(iter.mIndex)
   {}
@@ -136,12 +137,12 @@ struct DataView
     return Iterator<Dim - 1>(mTree, internalStorage().size());
   }
 
-  Iterator<Dim - 1> begin() { return Iterator<Dim - 1>(mTree, mStart); }
+  Iterator<Dim - 1> begin() const { return Iterator<Dim - 1>(mTree, mStart); }
 
   typename Iterator<Dim - 1>::DereferenceT operator[](size_t i) { return *(begin() + i); }
 
-  friend std::ostream& operator<<(std::ostream&                      os,
-                                  const gal::func::DataView<T, Dim>& view)
+  friend std::ostream& operator<<(std::ostream&                                os,
+                                  const gal::func::DataTree<T>::ReadView<Dim>& view)
   {
     os << '(' << gal::TypeInfo<T>::name() << ' ' << Dim << "d view)";
     return os;
@@ -154,15 +155,14 @@ struct DataTree<T>::Iterator
 {
   using DereferenceT = typename Dereferenced<T, Dim>::Type;
 
-  DataTree<T>& mTree;
-  size_t       mIndex;
+  const DataTree<T>& mTree;
+  size_t             mIndex;
 
-  Iterator(DataTree<T>& tree, size_t index)
+  Iterator(const DataTree<T>& tree, size_t index)
       : mTree(tree)
       , mIndex(index)
   {}
 
-  DataTree<T>::InternalStorageT&       internalStorage() { return mTree.mValues; }
   const DataTree<T>::InternalStorageT& internalStorage() const { return mTree.mValues; }
 
   const DataTree<T>::InternalStorageT* internalPtr() const { return &(mTree.mValues); }
@@ -222,17 +222,7 @@ struct DataTree<T>::Iterator
       return internalStorage()[mIndex].mValue;
     }
     else {
-      return DataView<T, Dim>(*this);
-    }
-  }
-
-  const DereferenceT operator*() const
-  {
-    if constexpr (Dim == 0) {
-      return internalStorage()[mIndex].mValue;
-    }
-    else {
-      return DataView<T, Dim>(*this);
+      return DataTree<T>::ReadView<Dim>(*this);
     }
   }
 };

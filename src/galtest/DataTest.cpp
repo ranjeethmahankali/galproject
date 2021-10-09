@@ -30,7 +30,7 @@ TEST(Data, ViewIterators)
 {
   auto tree = testTree();
   int  i    = 0;
-  auto v5   = DataView<int, 5>(tree);
+  auto v5   = decltype(tree)::ReadView<5>(tree);
   for (auto v4 : v5) {
     for (auto v3 : v4) {
       for (auto v2 : v3) {
@@ -62,7 +62,7 @@ TEST(Data, ReadPerformance)
     tree.mValues[i].mDepth = (i % nL2Size) == 0 ? 2 : (i % nL1Size) == 0 ? 1 : 0;
   }
 
-  DataView<glm::vec3, 3> view(tree);
+  DataTree<glm::vec3>::ReadView<3> view(tree);
 
   std::chrono::nanoseconds accessTime;
   std::chrono::nanoseconds controlTime;
