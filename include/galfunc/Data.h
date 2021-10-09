@@ -6,76 +6,60 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
 #include <galcore/Traits.h>
 #include <galcore/Types.h>
+#include <tbb/tbb.h>
 
 namespace gal {
 namespace func {
+namespace data {
+
+using DepthT = uint8_t;  // Max is 255.
 
 template<typename T>
-struct DataTree
+class DataTree
 {
-  using DepthT     = uint8_t;  // Max is 255.
+public:
   using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
   using value_type = ValueType;  // To support stl helper functions.
-  struct InstanceT
-  {
-    ValueType mValue;
-    DepthT    mDepth;
 
-    InstanceT(DepthT d, ValueType val)
-        : mValue(std::move(val))
-        , mDepth(d)
-    {}
+private:
+  using InternalStorageT = std::vector<ValueType>;
 
-    InstanceT(ValueType val)
-        : InstanceT(0, std::move(val))
-    {}
+  template<typename U, DepthT Dim>
+  friend struct Iterator;
 
-    template<typename... TArgs>
-    InstanceT(DepthT d, TArgs... args)
-        : mValue(args...)
-        , mDepth(d)
-    {}
+  template<typename U, DepthT Dim>
+  friend struct InputView;
 
-    operator T&() { return mValue; }
-    operator const T&() const { return mValue; }
-  };
+  template<typename U>
+  friend struct OutputView;
 
-  using InternalStorageT = std::vector<InstanceT>;
-
-  template<DepthT Dim>
-  struct Iterator;
-
-  template<uint32_t Dim>
-  struct ReadView;
-
-  std::vector<InstanceT> mValues;
-
-  DepthT depth() const
-  {
-    if (mValues.empty()) {
-      return 0;
-    }
-    else {
-      return mValues[0].mDepth;
-    }
-  };
+  InternalStorageT    mValues;
+  std::vector<DepthT> mDepths;
 
   void ensureDepth(DepthT d)
   {
-    if (!mValues.empty()) {
-      mValues[0].mDepth = std::max(d, mValues[0].mDepth);
+    if (!mDepths.empty()) {
+      mDepths[0] = std::max(d, mDepths[0]);
     }
+  }
+
+  void reserve(size_t n)
+  {
+    mValues.reserve(n);
+    mDepths.reserve(n);
   }
 
   void push_back(DepthT d, T item)
   {
     ensureDepth(d);
-    mValues.emplace_back(d, std::move(item));
+    mValues.emplace_back(std::move(item));
+    mDepths.push_back(d);
   }
 
   void push_back(T item) { push_back(0, std::move(item)); }
@@ -84,18 +68,65 @@ struct DataTree
   void emplace_back(DepthT d, TArgs... args)
   {
     ensureDepth(d);
-    mValues.emplace_back(d, args...);
+    mValues.emplace_back(args...);
+    mDepths.push_back(d);
   }
 
-  void reserve(size_t n) { mValues.reserve(n); }
+public:
+  DepthT maxDepth() const
+  {
+    if (mDepths.empty()) {
+      return 0;
+    }
+    else {
+      return mDepths[0];
+    }
+  };
+
+  DepthT&       depth(size_t i) { return mDepths[i]; }
+  const DepthT& depth(size_t i) const { return mDepths[i]; }
+
+  ValueType&       value(size_t i) { return mValues[i]; }
+  const ValueType& value(size_t i) const { return mValues[i]; }
 
   size_t size() const { return mValues.size(); }
+
+  friend std::ostream& operator<<(std::ostream& os, const DataTree<T>& tree)
+  {
+    using namespace gal::func::data;
+    size_t dmax = size_t(tree.maxDepth());
+    for (size_t i = 0; i < tree.size(); i++) {
+      for (uint32_t d = 0; d < dmax; d++) {
+        if (dmax - d > tree.mDepths[i]) {
+          os << ' ';
+        }
+        else {
+          os << '*';
+        }
+      }
+      os << ' ';
+      if constexpr (gal::IsPrintable<T>::value) {
+        os << tree.mValues[i];
+      }
+      else {
+        os << '<' << gal::TypeInfo<T>::name() << '>';
+      }
+      os << std::endl;
+    }
+    return os;
+  }
 };
+
+template<typename U, DepthT Dim>
+struct Iterator;
+
+template<typename U, DepthT Dim>
+struct InputView;
 
 template<typename T, size_t Dim>
 struct Dereferenced
 {
-  using Type = const typename DataTree<T>::template ReadView<Dim>;
+  using Type = InputView<T, Dim>;
 };
 
 template<typename T>
@@ -104,25 +135,20 @@ struct Dereferenced<T, 0>
   using Type = const typename DataTree<T>::ValueType&;
 };
 
-template<typename T>
-template<uint32_t Dim>
-struct DataTree<T>::ReadView
+template<typename T, DepthT Dim>
+struct InputView
 {
-  using DepthT = typename DataTree<T>::DepthT;
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
-
-  template<DepthT D2>
-  using Iterator = typename DataTree<T>::template Iterator<D2>;
 
   const DataTree<T>& mTree;
   size_t             mStart;
 
-  ReadView(const DataTree<T>& src)
+  InputView(const DataTree<T>& src)
       : mTree(src)
       , mStart(0)
   {}
 
-  ReadView(Iterator<Dim>& iter)
+  InputView(Iterator<T, Dim>& iter)
       : mTree(iter.mTree)
       , mStart(iter.mIndex)
   {}
@@ -132,17 +158,19 @@ struct DataTree<T>::ReadView
     return mTree.mValues;
   }
 
-  Iterator<Dim - 1> end() const
+  Iterator<T, Dim - 1> end() const
   {
-    return Iterator<Dim - 1>(mTree, internalStorage().size());
+    return Iterator<T, Dim - 1>(mTree, internalStorage().size());
   }
 
-  Iterator<Dim - 1> begin() const { return Iterator<Dim - 1>(mTree, mStart); }
+  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, mStart); }
 
-  typename Iterator<Dim - 1>::DereferenceT operator[](size_t i) { return *(begin() + i); }
+  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
+  {
+    return *(begin() + i);
+  }
 
-  friend std::ostream& operator<<(std::ostream&                                os,
-                                  const gal::func::DataTree<T>::ReadView<Dim>& view)
+  friend std::ostream& operator<<(std::ostream& os, const InputView<T, Dim>& view)
   {
     os << '(' << gal::TypeInfo<T>::name() << ' ' << Dim << "d view)";
     return os;
@@ -150,10 +178,36 @@ struct DataTree<T>::ReadView
 };
 
 template<typename T>
-template<typename DataTree<T>::DepthT Dim>
-struct DataTree<T>::Iterator
+struct OutputView
 {
-  using DereferenceT = typename Dereferenced<T, Dim>::Type;
+private:
+  DataTree<T>& mTree;
+  DepthT       mDepth;
+
+public:
+  using value_type = typename DataTree<T>::value_type;
+  OutputView(DataTree<T>& tree)
+      : mTree(tree) {};
+
+  ~OutputView() {}
+
+  OutputView(const OutputView&) = delete;
+  OutputView(OutputView&&)      = delete;
+  const OutputView& operator=(const OutputView&) = delete;
+  const OutputView& operator=(OutputView&&) = delete;
+
+  void push_back(DepthT depth, T item) { mTree.push_back(depth, std::move(item)); }
+
+  void push_back(T item) { push_back(0, std::move(item)); }
+
+  void reserve(size_t n) { mTree.reserve(n); }
+};
+
+template<typename T, DepthT Dim>
+struct Iterator
+{
+  using DereferenceT     = typename Dereferenced<T, Dim>::Type;
+  using InternalStorageT = typename DataTree<T>::InternalStorageT;
 
   const DataTree<T>& mTree;
   size_t             mIndex;
@@ -163,9 +217,9 @@ struct DataTree<T>::Iterator
       , mIndex(index)
   {}
 
-  const DataTree<T>::InternalStorageT& internalStorage() const { return mTree.mValues; }
-
-  const DataTree<T>::InternalStorageT* internalPtr() const { return &(mTree.mValues); }
+  const InternalStorageT&    storage() const { return mTree.mValues; }
+  const std::vector<DepthT>& depths() const { return mTree.mDepths; }
+  const InternalStorageT*    internalPtr() const { return &(mTree.mValues); }
 
   bool operator==(const Iterator& other) const
   {
@@ -173,10 +227,10 @@ struct DataTree<T>::Iterator
   }
 
   template<DepthT D2>
-  bool operator==(const DataTree<T>::Iterator<D2>& other)
+  bool operator==(const Iterator<T, D2>& other)
   {
     return internalPtr() == other.internalPtr() && mIndex == other.mIndex &&
-           (Dim == D2 || mIndex == internalStorage().size());
+           (Dim == D2 || mIndex == storage().size());
   }
 
   bool operator!=(const Iterator& other) const { return !(*this == other); }
@@ -189,11 +243,10 @@ struct DataTree<T>::Iterator
     else {
       do {
         ++mIndex;
-      } while (mIndex < internalStorage().size() &&
-               internalStorage()[mIndex].mDepth < Dim);
+      } while (mIndex < storage().size() && depths()[mIndex] < Dim);
     }
-    if (internalStorage()[mIndex].mDepth > Dim) {
-      mIndex = internalStorage().size();
+    if (depths()[mIndex] > Dim) {
+      mIndex = storage().size();
     }
     return *this;
   }
@@ -208,7 +261,7 @@ struct DataTree<T>::Iterator
   Iterator operator+(size_t offset)
   {
     Iterator result = *this;
-    for (size_t i = 0; i < offset && result.mIndex < internalStorage().size(); i++) {
+    for (size_t i = 0; i < offset && result.mIndex < storage().size(); i++) {
       ++result;
     }
     return result;
@@ -219,43 +272,14 @@ struct DataTree<T>::Iterator
   DereferenceT operator*()
   {
     if constexpr (Dim == 0) {
-      return internalStorage()[mIndex].mValue;
+      return storage()[mIndex];
     }
     else {
-      return DataTree<T>::ReadView<Dim>(*this);
+      return InputView<T, Dim>(*this);
     }
   }
 };
 
+}  // namespace data
 }  // namespace func
 }  // namespace gal
-
-namespace std {
-
-template<typename T>
-std::ostream& operator<<(std::ostream& os, const gal::func::DataTree<T>& tree)
-{
-  using namespace gal::func;
-  size_t dmax = size_t(tree.depth());
-  for (const typename DataTree<T>::InstanceT& i : tree.mValues) {
-    for (uint32_t d = 0; d < dmax; d++) {
-      if (dmax - d > i.mDepth) {
-        os << ' ';
-      }
-      else {
-        os << '*';
-      }
-    }
-    os << ' ';
-    if constexpr (gal::IsPrintable<T>::value) {
-      os << i.mValue;
-    }
-    else {
-      os << '<' << gal::TypeInfo<T>::name() << '>';
-    }
-    os << std::endl;
-  }
-  return os;
-}
-
-}  // namespace std
