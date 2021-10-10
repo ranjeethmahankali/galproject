@@ -34,13 +34,13 @@ private:
   friend struct Iterator;
 
   template<typename U, DepthT Dim>
-  friend struct InputView;
+  friend struct ReadView;
 
   template<typename U, DepthT Dim>
-  friend struct OutputViewBase;
+  friend struct WriteViewBase;
 
   template<typename U, DepthT Dim>
-  friend struct OutputView;
+  friend struct WriteView;
 
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
@@ -155,12 +155,12 @@ template<typename U, DepthT Dim>
 struct Iterator;
 
 template<typename U, DepthT Dim>
-struct InputView;
+struct ReadView;
 
 template<typename T, size_t Dim>
 struct Dereferenced
 {
-  using Type = InputView<T, Dim>;
+  using Type = ReadView<T, Dim>;
 };
 
 template<typename T>
@@ -170,19 +170,19 @@ struct Dereferenced<T, 0>
 };
 
 template<typename T, DepthT Dim>
-struct InputView
+struct ReadView
 {
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
   const DataTree<T>& mTree;
   size_t             mStart;
 
-  InputView(const DataTree<T>& src)
+  ReadView(const DataTree<T>& src)
       : mTree(src)
       , mStart(0)
   {}
 
-  InputView(Iterator<T, Dim>& iter)
+  ReadView(Iterator<T, Dim>& iter)
       : mTree(iter.mTree)
       , mStart(iter.mIndex)
   {}
@@ -204,7 +204,7 @@ struct InputView
     return *(begin() + i);
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const InputView<T, Dim>& view)
+  friend std::ostream& operator<<(std::ostream& os, const ReadView<T, Dim>& view)
   {
     os << '(' << gal::TypeInfo<T>::name() << ' ' << Dim << "d view)";
     return os;
@@ -212,44 +212,44 @@ struct InputView
 };
 
 template<typename T, DepthT Dim>
-struct OutputViewBase
+struct WriteViewBase
 {
   static_assert(Dim > 0, "Use references directly for zero dimensional data.");
 
 protected:
   DataTree<T>& mTree;
 
-  OutputViewBase(DataTree<T>& tree)
+  WriteViewBase(DataTree<T>& tree)
       : mTree(tree)
   {
     mTree.queueDepth(Dim);
   }
 
-  ~OutputViewBase() { mTree.unqueueDepth(Dim); }
+  ~WriteViewBase() { mTree.unqueueDepth(Dim); }
 
 public:
   void reserve(size_t n) { mTree.reserve(mTree.size() + n); }
 };
 
 template<typename T, DepthT Dim>
-struct OutputView : public OutputViewBase<T, Dim>
+struct WriteView : public WriteViewBase<T, Dim>
 {
   static_assert(Dim > 1, "Dim == 1 case requires a template specialization");
 
 public:
-  OutputView(DataTree<T>& tree)
-      : OutputViewBase<T, Dim>(tree) {};
+  WriteView(DataTree<T>& tree)
+      : WriteViewBase<T, Dim>(tree) {};
 
-  OutputView(const OutputView&) = delete;
-  OutputView(OutputView&&)      = delete;
-  const OutputView& operator=(const OutputView&) = delete;
-  const OutputView& operator=(OutputView&&) = delete;
+  WriteView(const WriteView&) = delete;
+  WriteView(WriteView&&)      = delete;
+  const WriteView& operator=(const WriteView&) = delete;
+  const WriteView& operator=(WriteView&&) = delete;
 
-  OutputView<T, Dim - 1> child() { return OutputView<T, Dim - 1>(this->mTree); }
+  WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(this->mTree); }
 };
 
 template<typename T>
-struct OutputView<T, 1> : public OutputViewBase<T, 1>
+struct WriteView<T, 1> : public WriteViewBase<T, 1>
 {
 private:
   size_t mStart;
@@ -258,8 +258,8 @@ public:
   using ValueType  = typename DataTree<T>::value_type;
   using value_type = ValueType;
 
-  OutputView(DataTree<T>& tree)
-      : OutputViewBase<T, 1>(tree)
+  WriteView(DataTree<T>& tree)
+      : WriteViewBase<T, 1>(tree)
       , mStart(tree.size())
   {}
 
@@ -342,7 +342,7 @@ struct Iterator
       return storage()[mIndex];
     }
     else {
-      return InputView<T, Dim>(*this);
+      return ReadView<T, Dim>(*this);
     }
   }
 };

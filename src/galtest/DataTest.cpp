@@ -31,7 +31,7 @@ TEST(Data, ViewIterators)
 {
   auto tree = testTree();
   int  i    = 0;
-  auto v5   = InputView<int, 5>(tree);
+  auto v5   = ReadView<int, 5>(tree);
   for (auto v4 : v5) {
     for (auto v3 : v4) {
       for (auto v2 : v3) {
@@ -53,7 +53,7 @@ TEST(Data, ReadPerformance)
   static constexpr size_t nL2Size = 10000;
   static constexpr size_t nL1Size = 1000;
   DataTree<glm::vec3>     tree;
-  auto                    v3 = OutputView<glm::vec3, 3>(tree);
+  auto                    v3 = WriteView<glm::vec3, 3>(tree);
   v3.reserve(nPoints);
   for (size_t i = 0; i < nPoints; i += nL2Size) {
     auto v2 = v3.child();
@@ -68,7 +68,7 @@ TEST(Data, ReadPerformance)
 
   ASSERT_EQ(tree.maxDepth(), 3);
 
-  InputView<glm::vec3, 3> view(tree);
+  ReadView<glm::vec3, 3> view(tree);
 
   std::chrono::nanoseconds accessTime;
   std::chrono::nanoseconds controlTime;
