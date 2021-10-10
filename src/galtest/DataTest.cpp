@@ -53,16 +53,18 @@ TEST(Data, ReadPerformance)
   static constexpr size_t nL2Size = 10000;
   static constexpr size_t nL1Size = 1000;
   DataTree<glm::vec3>     tree;
-  auto                    v3 = WriteView<glm::vec3, 3>(tree);
-  v3.reserve(nPoints);
-  for (size_t i = 0; i < nPoints; i += nL2Size) {
-    auto v2 = v3.child();
-    for (size_t j = 0; j < nL2Size; j += nL1Size) {
-      auto v1 = v2.child();
-      gal::utils::random(glm::vec3 {-1.f, -1.f, -1.f},
-                         glm::vec3 {1.f, 1.f, 1.f},
-                         nL1Size,
-                         std::back_inserter(v1));
+  {
+    auto v3 = WriteView<glm::vec3, 3>(tree);
+    v3.reserve(nPoints);
+    for (size_t i = 0; i < nPoints; i += nL2Size) {
+      auto v2 = v3.child();
+      for (size_t j = 0; j < nL2Size; j += nL1Size) {
+        auto v1 = v2.child();
+        gal::utils::random(glm::vec3 {-1.f, -1.f, -1.f},
+                           glm::vec3 {1.f, 1.f, 1.f},
+                           nL1Size,
+                           std::back_inserter(v1));
+      }
     }
   }
 

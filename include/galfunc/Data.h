@@ -42,9 +42,12 @@ private:
   template<typename U, DepthT Dim>
   friend struct WriteView;
 
-  InternalStorageT    mValues;
-  std::vector<DepthT> mDepths;
-  std::vector<DepthT> mQueuedDepths;
+  InternalStorageT                         mValues;
+  std::vector<DepthT>                      mDepths;
+  std::vector<DepthT>                      mQueuedDepths;
+  mutable std::vector<std::vector<size_t>> mCache;
+  mutable int32_t                          mAccessFlag   = 0;
+  mutable bool                             mIsCacheValid = false;
 
   void ensureDepth(DepthT d)
   {
@@ -83,6 +86,21 @@ private:
   {
     mQueuedDepths.erase(std::remove(mQueuedDepths.begin(), mQueuedDepths.end(), d),
                         mQueuedDepths.end());
+  }
+
+  void ensureCache() const
+  {
+    if (mIsCacheValid) {
+      return;
+    }
+    mCache.clear();
+    mCache.resize(maxDepth());
+    for (size_t i = 0; i < mValues.size(); i++) {
+      for (DepthT d = 0; d < mDepths[i]; d++) {
+        mCache[d].push_back(i);
+      }
+    }
+    mIsCacheValid = true;
   }
 
 public:
@@ -174,30 +192,61 @@ struct ReadView
 {
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
+private:
   const DataTree<T>& mTree;
-  size_t             mStart;
+  size_t             mPos;
 
+  void setReadMode()
+  {
+    if (mTree.mAccessFlag > 0) {
+      throw std::invalid_argument(
+        "Cannot create a read-view because the data-tree has at least one active "
+        "write-view");
+    }
+    mTree.ensureCache();
+    mTree.mAccessFlag--;
+  }
+
+  size_t startIndex() const
+  {
+    if constexpr (Dim == 0) {
+      return mPos;
+    }
+    else {
+      return mPos == storage().size() ? mPos : mTree.mCache[Dim - 1][mPos];
+    }
+  }
+
+public:
   ReadView(const DataTree<T>& src)
       : mTree(src)
-      , mStart(0)
-  {}
+      , mPos(0)
+  {
+    setReadMode();
+  }
 
   ReadView(Iterator<T, Dim>& iter)
       : mTree(iter.mTree)
-      , mStart(iter.mIndex)
-  {}
-
-  const typename DataTree<T>::InternalStorageT& internalStorage() const
+      , mPos(iter.mPos)
   {
-    return mTree.mValues;
+    setReadMode();
   }
+
+  ~ReadView() { mTree.mAccessFlag++; }
+
+  ReadView(const ReadView&) = delete;
+  ReadView(ReadView&&)      = delete;
+  const ReadView& operator=(const ReadView&) = delete;
+  const ReadView& operator=(ReadView&&) = delete;
+
+  const typename DataTree<T>::InternalStorageT& storage() const { return mTree.mValues; }
 
   Iterator<T, Dim - 1> end() const
   {
-    return Iterator<T, Dim - 1>(mTree, internalStorage().size());
+    return Iterator<T, Dim - 1>(mTree, storage().size());
   }
 
-  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, mStart); }
+  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, startIndex()); }
 
   typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
   {
@@ -212,6 +261,108 @@ struct ReadView
 };
 
 template<typename T, DepthT Dim>
+struct Iterator
+{
+  using DereferenceT     = typename Dereferenced<T, Dim>::Type;
+  using InternalStorageT = typename DataTree<T>::InternalStorageT;
+
+  const DataTree<T>& mTree;
+  size_t             mPos;
+
+private:
+  size_t index() const
+  {
+    if constexpr (Dim == 0) {
+      return mPos;
+    }
+    else {
+      return mPos == storage().size() ? mPos : mTree.mCache[Dim - 1][mPos];
+    }
+  }
+
+public:
+  Iterator(const DataTree<T>& tree, size_t index)
+      : mTree(tree)
+  {
+    if constexpr (Dim == 0) {
+      mPos = index;
+    }
+    else {
+      const auto& cache = mTree.mCache[Dim - 1];
+      auto        match = std::lower_bound(cache.begin(), cache.end(), index);
+      if (match == cache.end()) {
+        mPos = storage().size();
+      }
+      else {
+        mPos = std::distance(cache.begin(), match);
+      }
+    }
+  }
+
+  const InternalStorageT&    storage() const { return mTree.mValues; }
+  const std::vector<DepthT>& depths() const { return mTree.mDepths; }
+  const InternalStorageT*    internalPtr() const { return &(mTree.mValues); }
+
+  bool operator==(const Iterator& other) const
+  {
+    return internalPtr() == other.internalPtr() && index() == other.index();
+  }
+
+  template<DepthT D2>
+  bool operator==(const Iterator<T, D2>& other)
+  {
+    return internalPtr() == other.internalPtr() && index() == other.index() &&
+           (Dim == D2 || mPos == storage().size());
+  }
+
+  bool operator!=(const Iterator& other) const { return !(*this == other); }
+
+  const Iterator& operator++()
+  {
+    if constexpr (Dim == 0) {
+      ++mPos;
+    }
+    else {
+      if (++mPos == mTree.mCache[Dim - 1].size()) {
+        mPos = storage().size();
+      }
+    }
+    if (index() < storage().size() && depths()[index()] > Dim) {
+      mPos = storage().size();
+    }
+    return *this;
+  }
+
+  Iterator operator++(int)
+  {
+    Iterator result = *this;
+    ++(*this);
+    return result;
+  }
+
+  Iterator operator+(size_t offset)
+  {
+    Iterator result = *this;
+    for (size_t i = 0; i < offset && result.mPos < storage().size(); i++) {
+      ++result;
+    }
+    return result;
+  }
+
+  Iterator operator+=(size_t offset) { *this = *this + offset; }
+
+  DereferenceT operator*()
+  {
+    if constexpr (Dim == 0) {
+      return storage()[index()];
+    }
+    else {
+      return ReadView<T, Dim>(*this);
+    }
+  }
+};
+
+template<typename T, DepthT Dim>
 struct WriteViewBase
 {
   static_assert(Dim > 0, "Use references directly for zero dimensional data.");
@@ -222,10 +373,21 @@ protected:
   WriteViewBase(DataTree<T>& tree)
       : mTree(tree)
   {
+    if (mTree.mAccessFlag < 0) {
+      throw std::invalid_argument(
+        "Cannot create a write-view because the data-tree has at least one active "
+        "read-view.");
+    }
     mTree.queueDepth(Dim);
+    mTree.mAccessFlag++;
+    mTree.mIsCacheValid = false;
   }
 
-  ~WriteViewBase() { mTree.unqueueDepth(Dim); }
+  ~WriteViewBase()
+  {
+    mTree.unqueueDepth(Dim);
+    mTree.mAccessFlag--;
+  }
 
 public:
   void reserve(size_t n) { mTree.reserve(mTree.size() + n); }
@@ -267,83 +429,6 @@ public:
   {
     DepthT d = mStart == this->mTree.size() ? 1 : 0;
     this->mTree.push_back(d, std::move(val));
-  }
-};
-
-template<typename T, DepthT Dim>
-struct Iterator
-{
-  using DereferenceT     = typename Dereferenced<T, Dim>::Type;
-  using InternalStorageT = typename DataTree<T>::InternalStorageT;
-
-  const DataTree<T>& mTree;
-  size_t             mIndex;
-
-  Iterator(const DataTree<T>& tree, size_t index)
-      : mTree(tree)
-      , mIndex(index)
-  {}
-
-  const InternalStorageT&    storage() const { return mTree.mValues; }
-  const std::vector<DepthT>& depths() const { return mTree.mDepths; }
-  const InternalStorageT*    internalPtr() const { return &(mTree.mValues); }
-
-  bool operator==(const Iterator& other) const
-  {
-    return internalPtr() == other.internalPtr() && mIndex == other.mIndex;
-  }
-
-  template<DepthT D2>
-  bool operator==(const Iterator<T, D2>& other)
-  {
-    return internalPtr() == other.internalPtr() && mIndex == other.mIndex &&
-           (Dim == D2 || mIndex == storage().size());
-  }
-
-  bool operator!=(const Iterator& other) const { return !(*this == other); }
-
-  const Iterator& operator++()
-  {
-    if constexpr (Dim == 0) {
-      ++mIndex;
-    }
-    else {
-      do {
-        ++mIndex;
-      } while (mIndex < storage().size() && depths()[mIndex] < Dim);
-    }
-    if (depths()[mIndex] > Dim) {
-      mIndex = storage().size();
-    }
-    return *this;
-  }
-
-  Iterator operator++(int)
-  {
-    Iterator result = *this;
-    ++(*this);
-    return result;
-  }
-
-  Iterator operator+(size_t offset)
-  {
-    Iterator result = *this;
-    for (size_t i = 0; i < offset && result.mIndex < storage().size(); i++) {
-      ++result;
-    }
-    return result;
-  }
-
-  Iterator operator+=(size_t offset) { *this = *this + offset; }
-
-  DereferenceT operator*()
-  {
-    if constexpr (Dim == 0) {
-      return storage()[mIndex];
-    }
-    else {
-      return ReadView<T, Dim>(*this);
-    }
   }
 };
 
