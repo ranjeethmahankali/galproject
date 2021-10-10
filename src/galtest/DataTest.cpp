@@ -20,11 +20,11 @@ static DataTree<int> testTree()
 
 TEST(Data, CreateTree)
 {
-  // auto tree = testTree();
-  // for (size_t i = 0; i < tree.size(); i++) {
-  //   ASSERT_EQ(tree.mValues[i].mDepth,
-  //             DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i)))));
-  // }
+  auto tree = testTree();
+  for (size_t i = 0; i < tree.size(); i++) {
+    ASSERT_EQ(tree.depth(i),
+              DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i)))));
+  }
 }
 
 TEST(Data, ViewIterators)
