@@ -36,40 +36,53 @@ private:
   template<typename U, DepthT Dim>
   friend struct InputView;
 
-  template<typename U>
+  template<typename U, DepthT Dim>
+  friend struct OutputViewBase;
+
+  template<typename U, DepthT Dim>
   friend struct OutputView;
 
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
+  std::vector<DepthT> mQueuedDepths;
 
   void ensureDepth(DepthT d)
   {
     if (!mDepths.empty()) {
-      mDepths[0] = std::max(d, mDepths[0]);
+      mDepths[0] = std::max(++d, mDepths[0]);
     }
   }
 
-  void reserve(size_t n)
+  void pushDepth(DepthT d)
   {
-    mValues.reserve(n);
-    mDepths.reserve(n);
+    if (mQueuedDepths.empty()) {
+      mDepths.push_back(d);
+    }
+    else {
+      mDepths.push_back(mQueuedDepths.back());
+      mQueuedDepths.clear();
+    }
   }
 
-  void push_back(DepthT d, T item)
+  void queueDepth(DepthT d)
   {
-    ensureDepth(d);
-    mValues.emplace_back(std::move(item));
-    mDepths.push_back(d);
+    auto match = std::upper_bound(mQueuedDepths.begin(), mQueuedDepths.end(), d);
+    if (match == mQueuedDepths.end()) {
+      mQueuedDepths.push_back(d);
+    }
+    else if (*match == d) {
+      throw std::invalid_argument(
+        "This depth cannot be queued because it has already been queued.");
+    }
+    else {
+      mQueuedDepths.insert(match, d);
+    }
   }
 
-  void push_back(T item) { push_back(0, std::move(item)); }
-
-  template<typename... TArgs>
-  void emplace_back(DepthT d, TArgs... args)
+  void unqueueDepth(DepthT d)
   {
-    ensureDepth(d);
-    mValues.emplace_back(args...);
-    mDepths.push_back(d);
+    mQueuedDepths.erase(std::remove(mQueuedDepths.begin(), mQueuedDepths.end(), d),
+                        mQueuedDepths.end());
   }
 
 public:
@@ -90,6 +103,27 @@ public:
   const ValueType& value(size_t i) const { return mValues[i]; }
 
   size_t size() const { return mValues.size(); }
+
+  void reserve(size_t n)
+  {
+    mValues.reserve(n);
+    mDepths.reserve(n);
+  }
+
+  void push_back(DepthT d, T item)
+  {
+    ensureDepth(d);
+    mValues.emplace_back(std::move(item));
+    pushDepth(d);
+  }
+
+  template<typename... TArgs>
+  void emplace_back(DepthT d, TArgs... args)
+  {
+    ensureDepth(d);
+    mValues.emplace_back(args...);
+    pushDepth(d);
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const DataTree<T>& tree)
   {
@@ -177,30 +211,63 @@ struct InputView
   }
 };
 
-template<typename T>
-struct OutputView
+template<typename T, DepthT Dim>
+struct OutputViewBase
 {
-private:
+  static_assert(Dim > 0, "Use references directly for zero dimensional data.");
+
+protected:
   DataTree<T>& mTree;
-  DepthT       mDepth;
+
+  OutputViewBase(DataTree<T>& tree)
+      : mTree(tree)
+  {
+    mTree.queueDepth(Dim);
+  }
+
+  ~OutputViewBase() { mTree.unqueueDepth(Dim); }
 
 public:
-  using value_type = typename DataTree<T>::value_type;
-  OutputView(DataTree<T>& tree)
-      : mTree(tree) {};
+  void reserve(size_t n) { mTree.reserve(mTree.size() + n); }
+};
 
-  ~OutputView() {}
+template<typename T, DepthT Dim>
+struct OutputView : public OutputViewBase<T, Dim>
+{
+  static_assert(Dim > 1, "Dim == 1 case requires a template specialization");
+
+public:
+  OutputView(DataTree<T>& tree)
+      : OutputViewBase<T, Dim>(tree) {};
 
   OutputView(const OutputView&) = delete;
   OutputView(OutputView&&)      = delete;
   const OutputView& operator=(const OutputView&) = delete;
   const OutputView& operator=(OutputView&&) = delete;
 
-  void push_back(DepthT depth, T item) { mTree.push_back(depth, std::move(item)); }
+  OutputView<T, Dim - 1> child() { return OutputView<T, Dim - 1>(this->mTree); }
+};
 
-  void push_back(T item) { push_back(0, std::move(item)); }
+template<typename T>
+struct OutputView<T, 1> : public OutputViewBase<T, 1>
+{
+private:
+  size_t mStart;
 
-  void reserve(size_t n) { mTree.reserve(n); }
+public:
+  using ValueType  = typename DataTree<T>::value_type;
+  using value_type = ValueType;
+
+  OutputView(DataTree<T>& tree)
+      : OutputViewBase<T, 1>(tree)
+      , mStart(tree.size())
+  {}
+
+  void push_back(ValueType val)
+  {
+    DepthT d = mStart == this->mTree.size() ? 1 : 0;
+    this->mTree.push_back(d, std::move(val));
+  }
 };
 
 template<typename T, DepthT Dim>
