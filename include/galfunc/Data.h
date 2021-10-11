@@ -3,9 +3,12 @@
 #include <stdint.h>
 #include <algorithm>
 #include <cstdint>
+#include <execution>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -42,12 +45,29 @@ private:
   template<typename U, DepthT Dim>
   friend struct WriteView;
 
-  InternalStorageT                         mValues;
-  std::vector<DepthT>                      mDepths;
-  std::vector<DepthT>                      mQueuedDepths;
-  mutable std::vector<std::vector<size_t>> mCache;
-  mutable int32_t                          mAccessFlag   = 0;
-  mutable bool                             mIsCacheValid = false;
+  struct Cache
+  {
+    std::vector<size_t> mDepthScan;
+    std::vector<size_t> mOffsets;
+
+    void clear()
+    {
+      mDepthScan.clear();
+      mOffsets.clear();
+    }
+    size_t offset(size_t pos, DepthT depth) const
+    {
+      assert(depth > 0);
+      return mOffsets[mDepthScan[pos] + depth - 1];
+    }
+  };
+
+  InternalStorageT    mValues;
+  std::vector<DepthT> mDepths;
+  std::vector<DepthT> mQueuedDepths;
+  mutable Cache       mCache;
+  mutable int32_t     mAccessFlag   = 0;
+  mutable bool        mIsCacheValid = false;
 
   void ensureDepth(DepthT d)
   {
@@ -94,12 +114,33 @@ private:
       return;
     }
     mCache.clear();
-    mCache.resize(maxDepth());
-    for (size_t i = 0; i < mValues.size(); i++) {
-      for (DepthT d = 0; d < mDepths[i]; d++) {
-        mCache[d].push_back(i);
+    mCache.mDepthScan.resize(mDepths.size());
+    std::transform_exclusive_scan(std::execution::par,
+                                  mDepths.begin(),
+                                  mDepths.end(),
+                                  mCache.mDepthScan.begin(),
+                                  size_t(0),
+                                  std::plus<size_t> {},
+                                  [](DepthT d) { return size_t(d); });
+    mCache.mOffsets.resize(mCache.mDepthScan.back() + size_t(mDepths.back()));
+    DepthT              dmax = maxDepth();
+    std::vector<size_t> pegs(dmax, 0);
+
+    for (size_t i = 0; i < mDepths.size(); i++) {
+      size_t dcur = size_t(mDepths[i]);
+      if (dcur == 0) {
+        continue;
+      }
+      for (size_t d = 0; d < dcur; d++) {
+        if (i > 0) {
+          size_t& peg                                 = pegs[d];
+          mCache.mOffsets[mCache.mDepthScan[peg] + d] = i - peg;
+          peg                                         = i;
+        }
+        mCache.mOffsets[mCache.mDepthScan[i] + d] = mDepths.size() - i;
       }
     }
+
     mIsCacheValid = true;
   }
 
@@ -194,7 +235,7 @@ struct ReadView
 
 private:
   const DataTree<T>& mTree;
-  size_t             mPos;
+  size_t             mIndex;
 
   void setReadMode()
   {
@@ -207,27 +248,17 @@ private:
     mTree.mAccessFlag--;
   }
 
-  size_t startIndex() const
-  {
-    if constexpr (Dim == 0) {
-      return mPos;
-    }
-    else {
-      return mPos == storage().size() ? mPos : mTree.mCache[Dim - 1][mPos];
-    }
-  }
-
 public:
   ReadView(const DataTree<T>& src)
       : mTree(src)
-      , mPos(0)
+      , mIndex(0)
   {
     setReadMode();
   }
 
   ReadView(Iterator<T, Dim>& iter)
       : mTree(iter.mTree)
-      , mPos(iter.mPos)
+      , mIndex(iter.mIndex)
   {
     setReadMode();
   }
@@ -246,7 +277,7 @@ public:
     return Iterator<T, Dim - 1>(mTree, storage().size());
   }
 
-  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, startIndex()); }
+  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, mIndex); }
 
   typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
   {
@@ -267,37 +298,13 @@ struct Iterator
   using InternalStorageT = typename DataTree<T>::InternalStorageT;
 
   const DataTree<T>& mTree;
-  size_t             mPos;
-
-private:
-  size_t index() const
-  {
-    if constexpr (Dim == 0) {
-      return mPos;
-    }
-    else {
-      return mPos == storage().size() ? mPos : mTree.mCache[Dim - 1][mPos];
-    }
-  }
+  size_t             mIndex;
 
 public:
   Iterator(const DataTree<T>& tree, size_t index)
       : mTree(tree)
-  {
-    if constexpr (Dim == 0) {
-      mPos = index;
-    }
-    else {
-      const auto& cache = mTree.mCache[Dim - 1];
-      auto        match = std::lower_bound(cache.begin(), cache.end(), index);
-      if (match == cache.end()) {
-        mPos = storage().size();
-      }
-      else {
-        mPos = std::distance(cache.begin(), match);
-      }
-    }
-  }
+      , mIndex(index)
+  {}
 
   const InternalStorageT&    storage() const { return mTree.mValues; }
   const std::vector<DepthT>& depths() const { return mTree.mDepths; }
@@ -305,14 +312,14 @@ public:
 
   bool operator==(const Iterator& other) const
   {
-    return internalPtr() == other.internalPtr() && index() == other.index();
+    return internalPtr() == other.internalPtr() && mIndex == other.mIndex;
   }
 
   template<DepthT D2>
   bool operator==(const Iterator<T, D2>& other)
   {
-    return internalPtr() == other.internalPtr() && index() == other.index() &&
-           (Dim == D2 || mPos == storage().size());
+    return internalPtr() == other.internalPtr() && mIndex == other.mIndex &&
+           (Dim == D2 || mIndex == storage().size());
   }
 
   bool operator!=(const Iterator& other) const { return !(*this == other); }
@@ -320,15 +327,13 @@ public:
   const Iterator& operator++()
   {
     if constexpr (Dim == 0) {
-      ++mPos;
+      ++mIndex;
     }
     else {
-      if (++mPos == mTree.mCache[Dim - 1].size()) {
-        mPos = storage().size();
-      }
+      mIndex += mTree.mCache.offset(mIndex, Dim);
     }
-    if (index() < storage().size() && depths()[index()] > Dim) {
-      mPos = storage().size();
+    if (mIndex < storage().size() && depths()[mIndex] > Dim) {
+      mIndex = storage().size();
     }
     return *this;
   }
@@ -343,7 +348,7 @@ public:
   Iterator operator+(size_t offset)
   {
     Iterator result = *this;
-    for (size_t i = 0; i < offset && result.mPos < storage().size(); i++) {
+    for (size_t i = 0; i < offset && result.mIndex < storage().size(); i++) {
       ++result;
     }
     return result;
@@ -354,7 +359,7 @@ public:
   DereferenceT operator*()
   {
     if constexpr (Dim == 0) {
-      return storage()[index()];
+      return storage()[mIndex];
     }
     else {
       return ReadView<T, Dim>(*this);

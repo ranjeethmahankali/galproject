@@ -68,6 +68,7 @@ TEST(Data, ReadPerformance)
     }
   }
 
+  ASSERT_EQ(tree.size(), nPoints);
   ASSERT_EQ(tree.maxDepth(), 3);
 
   ReadView<glm::vec3, 3> view(tree);
