@@ -3,6 +3,7 @@
 #include <galcore/Timer.h>
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
+#include <glm/fwd.hpp>
 
 using namespace gal::func::data;
 
@@ -74,7 +75,6 @@ TEST(Data, ReadPerformance)
   ReadView<glm::vec3, 3> view(tree);
 
   std::chrono::nanoseconds accessTime;
-  std::chrono::nanoseconds controlTime;
   glm::vec3                sum1 {0.f, 0.f, 0.f};
   glm::vec3                sum2 {0.f, 0.f, 0.f};
   {
@@ -85,6 +85,7 @@ TEST(Data, ReadPerformance)
     }
   }
 
+  std::chrono::nanoseconds controlTime;
   {
     gal::Timer timer("control", &controlTime);
     for (size_t i = 0; i < tree.size(); i += nL1Size) {
@@ -97,5 +98,55 @@ TEST(Data, ReadPerformance)
   std::cout << "Access time: " << accessTime.count() << " ns\n";
   std::cout << "Control time: " << controlTime.count() << " ns\n";
   std::cout << "Ratio: " << float(accessTime.count()) / float(controlTime.count())
+            << std::endl;
+}
+
+TEST(Data, WritePerformance)
+{
+  static constexpr size_t nPoints = 100000;
+  static constexpr size_t nL2Size = 10000;
+  static constexpr size_t nL1Size = 1000;
+
+  std::vector<glm::vec3> points(nPoints);
+  gal::utils::random(glm::vec3 {-1.f, -1.f, -1.f},
+                     glm::vec3 {1.f, 1.f, 1.f},
+                     points.size(),
+                     points.begin());
+
+  auto                     src = points.begin();
+  std::chrono::nanoseconds writeTime;
+  {
+    DataTree<glm::vec3> tree;
+    {
+      gal::Timer timer("read-test", &writeTime);
+      auto       v3 = WriteView<glm::vec3, 3>(tree);
+      v3.reserve(nPoints);
+      for (size_t i = 0; i < nPoints; i += nL2Size) {
+        auto v2 = v3.child();
+        for (size_t j = 0; j < nL2Size; j += nL1Size) {
+          auto v1 = v2.child();
+          std::copy_n(src, nL1Size, std::back_inserter(v1));
+          src += nL1Size;
+        }
+      }
+    }
+    ASSERT_EQ(tree.values(), points);
+  }
+
+  std::chrono::nanoseconds controlTime;
+  {
+    DataTree<glm::vec3> tree;
+    {
+      gal::Timer timer("control", &controlTime);
+      auto&      dstVec = tree.values();
+      dstVec.reserve(points.size());
+      std::copy(points.begin(), points.end(), std::back_inserter(dstVec));
+    }
+    ASSERT_EQ(tree.values(), points);
+  }
+
+  std::cout << "Write time: " << writeTime.count() << " ns\n";
+  std::cout << "Control time: " << controlTime.count() << " ns\n";
+  std::cout << "Ratio: " << float(writeTime.count()) / float(controlTime.count())
             << std::endl;
 }

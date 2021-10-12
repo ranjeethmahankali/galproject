@@ -161,6 +161,11 @@ public:
   ValueType&       value(size_t i) { return mValues[i]; }
   const ValueType& value(size_t i) const { return mValues[i]; }
 
+  InternalStorageT&          values() { return mValues; }
+  const InternalStorageT&    values() const { return mValues; }
+  std::vector<DepthT>&       depths() { return mDepths; }
+  const std::vector<DepthT>& depths() const { return mDepths; }
+
   size_t size() const { return mValues.size(); }
 
   void reserve(size_t n)
