@@ -1,5 +1,6 @@
 #pragma once
 
+#include <galfunc/Data.h>
 #include <galfunc/Functions.h>
 #include <glm/glm.hpp>
 
@@ -210,6 +211,53 @@ struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
     Converter<boost::python::tuple, std::pair<T1, T2>>::assign(
       boost::python::extract<boost::python::tuple>(src), dst);
   }
+};
+
+template<typename T>
+struct Converter<data::Tree<T>, boost::python::list>
+{
+private:
+  using DepthT    = typename data::DepthT;
+  using ValIter   = typename std::vector<T>::const_iterator;
+  using DepthIter = typename std::vector<DepthT>::const_iterator;
+
+  static void copyValues(ValIter&             vbegin,
+                         const ValIter&       vend,
+                         DepthIter&           dbegin,
+                         boost::python::list& dst,
+                         DepthT               cdepth = 0)
+  {
+    if (*dbegin == cdepth) {
+      do {
+        boost::python::object obj;
+        Converter<T, boost::python::object>::assign(vbegin, obj);
+        dst.append(obj);
+        dbegin++;
+        vbegin++;
+      } while (*dbegin == 0 && vbegin != vend);
+    }
+    else if (*dbegin > cdepth) {
+      DepthT ddiff = (*dbegin) - cdepth;
+      do {
+        boost::python::list lst;
+        copyValues(vbegin, vend, dbegin, lst, cdepth + 1);
+        dst.append(lst);
+      } while ((*dbegin) - cdepth == ddiff);
+    }
+  }
+
+public:
+  static void assign(const data::Tree<T>& tree, boost::python::list& lst)
+  {
+    const auto& values = tree.values();
+    const auto& depths = tree.depths();
+    assert(values.size() == depths.size());
+    auto vbegin = values.begin();
+    auto vend   = values.end();
+    auto dbegin = depths.begin();
+    copyValues(vbegin, vend, dbegin, lst);
+    assert(vbegin == vend);
+  };
 };
 
 }  // namespace func

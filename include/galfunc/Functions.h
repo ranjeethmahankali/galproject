@@ -1,24 +1,24 @@
 #pragma once
-#include <iostream>
 
-#include <boost/python/scope.hpp>
-#include <boost/python/tuple.hpp>
-#include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <utility>
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <string.h>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
+#include <boost/python/scope.hpp>
+#include <boost/python/tuple.hpp>
 
 #include <galcore/Traits.h>
 #include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Converter.h>
+#include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
 
 namespace gal {
@@ -84,16 +84,16 @@ template<typename T>
 struct Register
 {
   const Function*      mOwner = nullptr;
-  std::add_const_t<T>* mData  = nullptr;
+  const data::Tree<T>* mData  = nullptr;
 
   Register() = default;
 
-  Register(const Function* fn, std::add_const_t<T>* dref)
+  Register(const Function* fn, const data::Tree<T>* dref)
       : mOwner(fn)
       , mData(dref)
   {}
 
-  std::add_const_t<T>& read() const
+  const data::Tree<T>& read() const
   {
     mOwner->update();
     return *mData;
@@ -156,18 +156,30 @@ struct TypeList
       ValidConstOrder<Ts...>::value;
   };
 
-  template<bool RegisterWrapped, size_t NBegin, size_t NEnd, typename... Ts>
+  enum struct TypeEnum
+  {
+    None     = 0,
+    Register = 1,
+    Tree     = 2,
+  };
+
+  template<TypeEnum TEnum, size_t NBegin, size_t NEnd, typename... Ts>
   struct SubTupleType
   {
     // static_assert(NEnd <= sizeof...(Ts) && NBegin < NEnd);
     using T = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
     using WrappedT =
-      typename std::conditional_t<RegisterWrapped, Register<std::remove_const_t<T>>, T>;
+      typename std::conditional_t<(TEnum == TypeEnum::Tree),
+                                  data::Tree<T>,
+                                  std::conditional_t<(TEnum == TypeEnum::Register),
+                                                     Register<std::remove_const_t<T>>,
+                                                     T>>;
 
     // Prepends the current type to the tuple.
     template<typename... Us>
-    using AppendedT = typename SubTupleType<RegisterWrapped, NBegin + 1, NEnd, Ts...>::
-      template type<Us..., WrappedT>;
+    using AppendedT =
+      typename SubTupleType<TEnum, NBegin + 1, NEnd, Ts...>::template type<Us...,
+                                                                           WrappedT>;
 
     // sub tuple.
     template<typename... Us>
@@ -175,8 +187,8 @@ struct TypeList
       typename std::conditional_t<(NBegin < NEnd), AppendedT<Us...>, std::tuple<Us...>>;
   };
 
-  template<bool RegisterWrapped, size_t NEnd, typename... Ts>
-  struct SubTupleType<RegisterWrapped, NEnd, NEnd, Ts...>
+  template<TypeEnum TEnum, size_t NEnd, typename... Ts>
+  struct SubTupleType<TEnum, NEnd, NEnd, Ts...>
   {
     template<typename... Us>
     using type = std::tuple<Us...>;
@@ -189,11 +201,9 @@ struct TypeList
   using RefTupleType                = std::tuple<TArgs&...>;
   using PtrTupleType                = std::tuple<TArgs*...>;
   using OutputTupleType =
-    typename SubTupleType<false, NumInputs, NumTypes, TArgs...>::template type<>;
-  using OutputRegTupleType =
-    typename SubTupleType<true, NumInputs, NumTypes, TArgs...>::template type<>;
+    typename SubTupleType<TypeEnum::Tree, NumInputs, NumTypes, TArgs...>::template type<>;
   using InputRegTupleType =
-    typename SubTupleType<true, 0, NumInputs, TArgs...>::template type<>;
+    typename SubTupleType<TypeEnum::Regsiter, 0, NumInputs, TArgs...>::template type<>;
   using ImplFnType = std::function<void(TArgs&...)>;
 
   template<size_t N>
@@ -235,6 +245,7 @@ typename TArgList::RefTupleType makeArgRefTuple(
     inputs, outputs, std::make_index_sequence<TArgList::NumTypes> {});
 }
 
+// For internal use only from the other function.
 template<typename OutputTupleT, size_t... Is>
 boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
                                                const OutputTupleT& src,
@@ -293,14 +304,14 @@ protected:
    */
   ImplFuncType             mFunc;
   mutable OutputTupleT     mOutputs;
-  RefTupleT                mArgRefs;
   InputRegTupleT           mInputs;
   mutable std::atomic_bool mIsDirty = true;
 
   // Runs the function.
   inline void run() const
   {
-    std::apply(mFunc, mArgRefs);  // Run the function.
+    // Incomplete. Get combinations of inputs and run the mFunc once for each combination.
+    // std::apply(mFunc, mArgRefs);  // Run the function.
   }
 
 private:
@@ -322,7 +333,6 @@ public:
   TFunction(const ImplFuncType& fn, const InputRegTupleT& inputs)
       : mFunc(std::move(fn))
       , mOutputs()
-      , mArgRefs(makeArgRefTuple<TArgList>(inputs, mOutputs))
       , mInputs(inputs)
   {
     this->addSubscriber(mIsDirty);
@@ -580,10 +590,10 @@ namespace python {
  * @return boost::python::object Converted python object.
  */
 template<typename T>
-boost::python::object read(const Register<T>& reg)
+boost::python::list read(const Register<T>& reg)
 {
-  boost::python::object dst;
-  Converter<T, boost::python::object>::assign(reg.read(), dst);
+  boost::python::list dst;
+  Converter<data::Tree<T>, boost::python::list>::assign(reg.read(), dst);
   return dst;
 }
 
