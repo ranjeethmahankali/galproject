@@ -24,7 +24,7 @@ namespace data {
 using DepthT = uint8_t;  // Max is 255.
 
 template<typename T>
-class DataTree
+class Tree
 {
 public:
   using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
@@ -189,7 +189,7 @@ public:
     pushDepth(d);
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const DataTree<T>& tree)
+  friend std::ostream& operator<<(std::ostream& os, const Tree<T>& tree)
   {
     using namespace gal::func::data;
     size_t dmax = size_t(tree.maxDepth());
@@ -230,7 +230,7 @@ struct Dereferenced
 template<typename T>
 struct Dereferenced<T, 0>
 {
-  using Type = const typename DataTree<T>::ValueType&;
+  using Type = const typename Tree<T>::ValueType&;
 };
 
 template<typename T, DepthT Dim>
@@ -239,8 +239,8 @@ struct ReadView
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
 private:
-  const DataTree<T>& mTree;
-  size_t             mIndex;
+  const Tree<T>& mTree;
+  size_t         mIndex;
 
   void setReadMode()
   {
@@ -254,7 +254,7 @@ private:
   }
 
 public:
-  ReadView(const DataTree<T>& src)
+  ReadView(const Tree<T>& src)
       : mTree(src)
       , mIndex(0)
   {
@@ -275,7 +275,7 @@ public:
   const ReadView& operator=(const ReadView&) = delete;
   const ReadView& operator=(ReadView&&) = delete;
 
-  const typename DataTree<T>::InternalStorageT& storage() const { return mTree.mValues; }
+  const typename Tree<T>::InternalStorageT& storage() const { return mTree.mValues; }
 
   Iterator<T, Dim - 1> end() const
   {
@@ -300,13 +300,13 @@ template<typename T, DepthT Dim>
 struct Iterator
 {
   using DereferenceT     = typename Dereferenced<T, Dim>::Type;
-  using InternalStorageT = typename DataTree<T>::InternalStorageT;
+  using InternalStorageT = typename Tree<T>::InternalStorageT;
 
-  const DataTree<T>& mTree;
-  size_t             mIndex;
+  const Tree<T>& mTree;
+  size_t         mIndex;
 
 public:
-  Iterator(const DataTree<T>& tree, size_t index)
+  Iterator(const Tree<T>& tree, size_t index)
       : mTree(tree)
       , mIndex(index)
   {}
@@ -378,9 +378,9 @@ struct WriteViewBase
   static_assert(Dim > 0, "Use references directly for zero dimensional data.");
 
 protected:
-  DataTree<T>& mTree;
+  Tree<T>& mTree;
 
-  WriteViewBase(DataTree<T>& tree)
+  WriteViewBase(Tree<T>& tree)
       : mTree(tree)
   {
     if (mTree.mAccessFlag < 0) {
@@ -409,7 +409,7 @@ struct WriteView : public WriteViewBase<T, Dim>
   static_assert(Dim > 1, "Dim == 1 case requires a template specialization");
 
 public:
-  WriteView(DataTree<T>& tree)
+  WriteView(Tree<T>& tree)
       : WriteViewBase<T, Dim>(tree) {};
 
   WriteView(const WriteView&) = delete;
@@ -427,10 +427,10 @@ private:
   size_t mStart;
 
 public:
-  using ValueType  = typename DataTree<T>::value_type;
+  using ValueType  = typename Tree<T>::value_type;
   using value_type = ValueType;
 
-  WriteView(DataTree<T>& tree)
+  WriteView(Tree<T>& tree)
       : WriteViewBase<T, 1>(tree)
       , mStart(tree.size())
   {}

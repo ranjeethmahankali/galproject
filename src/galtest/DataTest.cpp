@@ -7,9 +7,9 @@
 
 using namespace gal::func::data;
 
-static DataTree<int> testTree()
+static Tree<int> testTree()
 {
-  DataTree<int> tree;
+  Tree<int> tree;
   tree.reserve(32);
   for (size_t i = 0; i < 32; i++) {
     auto d = DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i))));
@@ -53,7 +53,7 @@ TEST(Data, ReadPerformance)
   static constexpr size_t nPoints = 100000;
   static constexpr size_t nL2Size = 10000;
   static constexpr size_t nL1Size = 1000;
-  DataTree<glm::vec3>     tree;
+  Tree<glm::vec3>         tree;
   {
     auto v3 = WriteView<glm::vec3, 3>(tree);
     v3.reserve(nPoints);
@@ -116,7 +116,7 @@ TEST(Data, WritePerformance)
   auto                     src = points.begin();
   std::chrono::nanoseconds writeTime;
   {
-    DataTree<glm::vec3> tree;
+    Tree<glm::vec3> tree;
     {
       gal::Timer timer("read-test", &writeTime);
       auto       v3 = WriteView<glm::vec3, 3>(tree);
@@ -135,7 +135,7 @@ TEST(Data, WritePerformance)
 
   std::chrono::nanoseconds controlTime;
   {
-    DataTree<glm::vec3> tree;
+    Tree<glm::vec3> tree;
     {
       gal::Timer timer("control", &controlTime);
       auto&      dstVec = tree.values();
