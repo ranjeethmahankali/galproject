@@ -155,6 +155,12 @@ public:
     }
   };
 
+  void resize(size_t n)
+  {
+    mDepths.resize(n);
+    mValues.resize(n);
+  }
+
   DepthT&       depth(size_t i) { return mDepths[i]; }
   const DepthT& depth(size_t i) const { return mDepths[i]; }
 

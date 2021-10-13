@@ -158,9 +158,9 @@ struct TypeList
 
   enum struct TypeEnum
   {
-    None     = 0,
-    Register = 1,
-    Tree     = 2,
+    eNone     = 0,
+    eRegister = 1,
+    eTree     = 2,
   };
 
   template<TypeEnum TEnum, size_t NBegin, size_t NEnd, typename... Ts>
@@ -169,9 +169,9 @@ struct TypeList
     // static_assert(NEnd <= sizeof...(Ts) && NBegin < NEnd);
     using T = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
     using WrappedT =
-      typename std::conditional_t<(TEnum == TypeEnum::Tree),
+      typename std::conditional_t<(TEnum == TypeEnum::eTree),
                                   data::Tree<T>,
-                                  std::conditional_t<(TEnum == TypeEnum::Register),
+                                  std::conditional_t<(TEnum == TypeEnum::eRegister),
                                                      Register<std::remove_const_t<T>>,
                                                      T>>;
 
@@ -201,9 +201,10 @@ struct TypeList
   using RefTupleType                = std::tuple<TArgs&...>;
   using PtrTupleType                = std::tuple<TArgs*...>;
   using OutputTupleType =
-    typename SubTupleType<TypeEnum::Tree, NumInputs, NumTypes, TArgs...>::template type<>;
+    typename SubTupleType<TypeEnum::eTree, NumInputs, NumTypes, TArgs...>::
+      template type<>;
   using InputRegTupleType =
-    typename SubTupleType<TypeEnum::Regsiter, 0, NumInputs, TArgs...>::template type<>;
+    typename SubTupleType<TypeEnum::eRegister, 0, NumInputs, TArgs...>::template type<>;
   using ImplFnType = std::function<void(TArgs&...)>;
 
   template<size_t N>
@@ -252,7 +253,7 @@ boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
                                                std::index_sequence<Is...>)
 {
   return boost::python::make_tuple(
-    Register<typename std::tuple_element<Is, OutputTupleT>::type>(
+    Register<typename std::tuple_element<Is, OutputTupleT>::type::value_type>(
       fn, &(std::get<Is>(src)))...);
 }
 
@@ -407,30 +408,31 @@ struct TVariable : public TFunction<TVal>
   using PyOutputType = Register<TVal>;
 
 protected:
-  inline uint64_t& registerId() { return this->mRegIds[0]; }
-  inline TVal&     value() { return std::get<0>(this->mOutputs); };
+  inline uint64_t&         registerId() { return this->mRegIds[0]; }
+  inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
+
+  void setInternal(const TArgs&... args)
+  {
+    if constexpr (sIsConstructible) {
+      tree().emplace_back(0, args...);
+    }
+    else if constexpr (IsSingleArgument) {
+      tree().resize(1);
+      Converter<TFirstArg, TVal>::assign(args..., tree().value(0));
+    }
+  }
 
 public:
   TVariable(const TArgs&... args)
       : TFunction<TVal>([](TVal&) -> void {}, {})
   {
-    if constexpr (sIsConstructible) {
-      value() = TVal(args...);
-    }
-    else if constexpr (IsSingleArgument) {
-      Converter<TFirstArg, TVal>::assign(args..., value());
-    }
+    setInternal(args...);
   }
 
   void set(const TArgs&... args)
   {
     store::markDirty(this);
-    if constexpr (sIsConstructible) {
-      value() = TVal(args...);
-    }
-    else if constexpr (IsSingleArgument) {
-      Converter<TFirstArg, TVal>::assign(args..., value());
-    }
+    setInternal(args...);
     this->mIsDirty = false;
   }
 };

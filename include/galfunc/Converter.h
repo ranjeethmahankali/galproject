@@ -217,7 +217,7 @@ template<typename T>
 struct Converter<data::Tree<T>, boost::python::list>
 {
 private:
-  using DepthT    = typename data::DepthT;
+  using DepthT    = data::DepthT;
   using ValIter   = typename std::vector<T>::const_iterator;
   using DepthIter = typename std::vector<DepthT>::const_iterator;
 
@@ -230,7 +230,7 @@ private:
     if (*dbegin == cdepth) {
       do {
         boost::python::object obj;
-        Converter<T, boost::python::object>::assign(vbegin, obj);
+        Converter<T, boost::python::object>::assign(*vbegin, obj);
         dst.append(obj);
         dbegin++;
         vbegin++;

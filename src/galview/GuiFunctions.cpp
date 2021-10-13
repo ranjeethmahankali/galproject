@@ -167,7 +167,9 @@ struct ShowFunc : public func::TFunction<const T, uint64_t>
           },
           std::make_tuple(reg))
   {
-    std::get<0>(this->mOutputs) = 0;
+    auto& tree = std::get<0>(this->mOutputs);
+    tree.resize(1);
+    tree.value(0) = 0;
   }
   virtual ~ShowFunc() = default;
 };
