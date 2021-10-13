@@ -150,3 +150,12 @@ TEST(Data, WritePerformance)
   std::cout << "Ratio: " << float(writeTime.count()) / float(controlTime.count())
             << std::endl;
 }
+
+TEST(Data, TreeConversion)
+{
+  auto tree = testTree();
+  // Incomplete.
+  // This should convert the tree into a python jagged list, then back to a jagged vector
+  // and verify the contents of the jagged vector.
+  ASSERT_TRUE(false);
+}
