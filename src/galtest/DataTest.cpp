@@ -156,17 +156,24 @@ TEST(Data, WritePerformance)
 TEST(Data, TreeConversion)
 {
   gal::test::initPythonEnv();
-  auto                tree = testTree();
+  auto tree = testTree();
+  // Convert tree to a jagged python list.
   boost::python::list lst;
   gal::func::Converter<decltype(tree), boost::python::list>::assign(tree, lst);
+  // Convert python jagged list to a cpp jagged vector.
   std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
   gal::func::Converter<boost::python::list, decltype(jagged)>::assign(lst, jagged);
 
   int i = 0;
+  ASSERT_EQ(jagged.size(), 2);
   for (auto v4 : jagged) {
+    ASSERT_EQ(v4.size(), 2);
     for (auto v3 : v4) {
+      ASSERT_EQ(v3.size(), 2);
       for (auto v2 : v3) {
+        ASSERT_EQ(v4.size(), 2);
         for (auto v1 : v2) {
+          ASSERT_EQ(v1.size(), 2);
           for (int v0 : v1) {
             ASSERT_EQ(v0, i++);
           }
@@ -174,4 +181,6 @@ TEST(Data, TreeConversion)
       }
     }
   }
+
+  ASSERT_EQ(i, 32);
 }
