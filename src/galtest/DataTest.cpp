@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
+#include <glm/glm.hpp>
 
 #include <galcore/Timer.h>
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
-#include <glm/fwd.hpp>
+#include <galfunc/Functions.h>
+#include <galtest/TestUtils.h>
 
 using namespace gal::func::data;
 
@@ -153,9 +155,23 @@ TEST(Data, WritePerformance)
 
 TEST(Data, TreeConversion)
 {
-  auto tree = testTree();
-  // Incomplete.
-  // This should convert the tree into a python jagged list, then back to a jagged vector
-  // and verify the contents of the jagged vector.
-  ASSERT_TRUE(false);
+  gal::test::initPythonEnv();
+  auto                tree = testTree();
+  boost::python::list lst;
+  gal::func::Converter<decltype(tree), boost::python::list>::assign(tree, lst);
+  std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
+  gal::func::Converter<boost::python::list, decltype(jagged)>::assign(lst, jagged);
+
+  int i = 0;
+  for (auto v4 : jagged) {
+    for (auto v3 : v4) {
+      for (auto v2 : v3) {
+        for (auto v1 : v2) {
+          for (int v0 : v1) {
+            ASSERT_EQ(v0, i++);
+          }
+        }
+      }
+    }
+  }
 }

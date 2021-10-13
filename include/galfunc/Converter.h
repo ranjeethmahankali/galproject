@@ -171,7 +171,14 @@ struct Converter<boost::python::list, std::vector<T>>
     size_t count = boost::python::len(src);
     dst.resize(count);
     for (size_t i = 0; i < count; i++) {
-      Converter<boost::python::api::const_object_item, T>::assign(src[i], dst.at(i));
+      if constexpr (IsInstance<std::vector, T>::value) {  // Nested vector.
+        const boost::python::list& lst =
+          boost::python::extract<boost::python::list>(src[i]);
+        Converter<boost::python::list, T>::assign(lst, dst[i]);
+      }
+      else {
+        Converter<boost::python::api::const_object_item, T>::assign(src[i], dst[i]);
+      }
     }
   };
 };
@@ -225,7 +232,7 @@ private:
                          const ValIter&       vend,
                          DepthIter&           dbegin,
                          boost::python::list& dst,
-                         DepthT               cdepth = 0)
+                         DepthT               cdepth = 1)
   {
     if (*dbegin == cdepth) {
       do {
@@ -237,12 +244,13 @@ private:
       } while (*dbegin == 0 && vbegin != vend);
     }
     else if (*dbegin > cdepth) {
-      DepthT ddiff = (*dbegin) - cdepth;
+      DepthT dcurrent = (*dbegin) - cdepth;
       do {
         boost::python::list lst;
         copyValues(vbegin, vend, dbegin, lst, cdepth + 1);
         dst.append(lst);
-      } while ((*dbegin) - cdepth == ddiff);
+        cdepth = 0;
+      } while (*dbegin == dcurrent);
     }
   }
 
