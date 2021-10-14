@@ -49,16 +49,26 @@ private:
   {
     std::vector<size_t> mDepthScan;
     std::vector<size_t> mOffsets;
+    const Tree<T>&      mTree;
+
+    Cache(const Tree<T>& tree)
+        : mTree(tree)
+    {}
 
     void clear()
     {
       mDepthScan.clear();
       mOffsets.clear();
     }
+
     size_t offset(size_t pos, DepthT depth) const
     {
-      assert(depth > 0);
-      return mOffsets[mDepthScan[pos] + depth - 1];
+      if (depth > mTree.depth(pos)) {
+        return mTree.size() - pos;
+      }
+      else {
+        return mOffsets[mDepthScan[pos] + depth - 1];
+      }
     }
   };
 
@@ -145,6 +155,10 @@ private:
   }
 
 public:
+  Tree()
+      : mCache(*this)
+  {}
+
   DepthT maxDepth() const
   {
     if (mDepths.empty()) {
@@ -296,6 +310,19 @@ public:
   typename ViewIterator<T, Dim - 1>::DereferenceT operator[](size_t i)
   {
     return *(begin() + i);
+  }
+
+  size_t advanceIndex() const { return mIndex + mTree.mCache.offset(mIndex, Dim); }
+
+  bool canAdvance() const { return advanceIndex() < mTree.size(); }
+
+  bool tryAdvance()
+  {
+    if (canAdvance()) {
+      mIndex = advanceIndex();
+      return true;
+    }
+    return false;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const ReadView<T, Dim>& view)

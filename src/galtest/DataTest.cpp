@@ -62,6 +62,23 @@ TEST(Data, ViewIterators)
   }
 
   ASSERT_EQ(i, 16);
+
+  int outer = 0;
+  i         = 0;
+  auto v3   = ReadView<int, 3>(tree);
+  while (outer++ < 4) {
+    for (auto v2 : v3) {
+      for (auto v1 : v2) {
+        for (auto v0 : v1) {
+          ASSERT_EQ(v0, i++);
+        }
+      }
+    }
+    ASSERT_EQ(i, 8 * outer);
+    if (!v3.tryAdvance()) {
+      break;
+    }
+  }
 }
 
 TEST(Data, ReadPerformance)
