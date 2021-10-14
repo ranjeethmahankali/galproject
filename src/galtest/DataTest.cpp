@@ -48,6 +48,20 @@ TEST(Data, ViewIterators)
   }
 
   ASSERT_EQ(tree.size(), size_t(i));
+
+  i       = 0;
+  auto v4 = ReadView<int, 4>(tree);
+  for (auto v3 : v4) {
+    for (auto v2 : v3) {
+      for (auto v1 : v2) {
+        for (auto v0 : v1) {
+          ASSERT_EQ(v0, i++);
+        }
+      }
+    }
+  }
+
+  ASSERT_EQ(i, 16);
 }
 
 TEST(Data, ReadPerformance)
