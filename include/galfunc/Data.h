@@ -34,7 +34,7 @@ private:
   using InternalStorageT = std::vector<ValueType>;
 
   template<typename U, DepthT Dim>
-  friend struct Iterator;
+  friend struct ViewIterator;
 
   template<typename U, DepthT Dim>
   friend struct ReadView;
@@ -222,7 +222,7 @@ public:
 };
 
 template<typename U, DepthT Dim>
-struct Iterator;
+struct ViewIterator;
 
 template<typename U, DepthT Dim>
 struct ReadView;
@@ -267,7 +267,7 @@ public:
     setReadMode();
   }
 
-  ReadView(Iterator<T, Dim>& iter)
+  ReadView(ViewIterator<T, Dim>& iter)
       : mTree(iter.mTree)
       , mIndex(iter.mIndex)
   {
@@ -283,14 +283,17 @@ public:
 
   const typename Tree<T>::InternalStorageT& storage() const { return mTree.mValues; }
 
-  Iterator<T, Dim - 1> end() const
+  ViewIterator<T, Dim - 1> end() const
   {
-    return Iterator<T, Dim - 1>(mTree, storage().size());
+    return ViewIterator<T, Dim - 1>(mTree, storage().size());
   }
 
-  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, mIndex); }
+  ViewIterator<T, Dim - 1> begin() const
+  {
+    return ViewIterator<T, Dim - 1>(mTree, mIndex);
+  }
 
-  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
+  typename ViewIterator<T, Dim - 1>::DereferenceT operator[](size_t i)
   {
     return *(begin() + i);
   }
@@ -303,7 +306,7 @@ public:
 };
 
 template<typename T, DepthT Dim>
-struct Iterator
+struct ViewIterator
 {
   using DereferenceT     = typename Dereferenced<T, Dim>::Type;
   using InternalStorageT = typename Tree<T>::InternalStorageT;
@@ -312,7 +315,7 @@ struct Iterator
   size_t         mIndex;
 
 public:
-  Iterator(const Tree<T>& tree, size_t index)
+  ViewIterator(const Tree<T>& tree, size_t index)
       : mTree(tree)
       , mIndex(index)
   {}
@@ -321,21 +324,21 @@ public:
   const std::vector<DepthT>& depths() const { return mTree.mDepths; }
   const InternalStorageT*    internalPtr() const { return &(mTree.mValues); }
 
-  bool operator==(const Iterator& other) const
+  bool operator==(const ViewIterator& other) const
   {
     return internalPtr() == other.internalPtr() && mIndex == other.mIndex;
   }
 
   template<DepthT D2>
-  bool operator==(const Iterator<T, D2>& other)
+  bool operator==(const ViewIterator<T, D2>& other)
   {
     return internalPtr() == other.internalPtr() && mIndex == other.mIndex &&
            (Dim == D2 || mIndex == storage().size());
   }
 
-  bool operator!=(const Iterator& other) const { return !(*this == other); }
+  bool operator!=(const ViewIterator& other) const { return !(*this == other); }
 
-  const Iterator& operator++()
+  const ViewIterator& operator++()
   {
     if constexpr (Dim == 0) {
       ++mIndex;
@@ -349,23 +352,23 @@ public:
     return *this;
   }
 
-  Iterator operator++(int)
+  ViewIterator operator++(int)
   {
-    Iterator result = *this;
+    ViewIterator result = *this;
     ++(*this);
     return result;
   }
 
-  Iterator operator+(size_t offset)
+  ViewIterator operator+(size_t offset)
   {
-    Iterator result = *this;
+    ViewIterator result = *this;
     for (size_t i = 0; i < offset && result.mIndex < storage().size(); i++) {
       ++result;
     }
     return result;
   }
 
-  Iterator operator+=(size_t offset) { *this = *this + offset; }
+  ViewIterator operator+=(size_t offset) { *this = *this + offset; }
 
   DereferenceT operator*()
   {
