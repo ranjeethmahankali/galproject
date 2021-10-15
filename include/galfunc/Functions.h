@@ -163,7 +163,9 @@ struct TypeList
     // static_assert(NBegin < NEnd);
 
     using T         = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
-    using TreeT     = data::Tree<std::remove_const_t<T>>;
+    using TreeT     = std::conditional_t<std::is_const_v<T>,
+                                     std::add_const_t<data::Tree<std::remove_const_t<T>>>,
+                                     data::Tree<std::remove_const_t<T>>>;
     using RegisterT = Register<std::remove_const_t<T>>;
 
     template<typename H, typename... Us>

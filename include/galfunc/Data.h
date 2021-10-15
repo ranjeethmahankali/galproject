@@ -493,11 +493,11 @@ struct IsTreeTuple<std::tuple<TreeT>>
   static constexpr bool value = IsInstance<Tree, TreeT>::value;
 };
 
-template<typename TreeTupleT, typename... TInputs>
-void combinations(const TreeTupleT& trees, std::tuple<TInputs*...>& argPtrs)
+template<typename InputTreeTupleT, typename... TArgs>
+void combinations(const InputTreeTupleT& trees, std::tuple<TArgs*...>& argPtrs)
 {
   static_assert(
-    IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
+    IsInstance<std::tuple, InputTreeTupleT>::value && IsTreeTuple<InputTreeTupleT>::value,
     "Expecting a tuple of datatrees");
   // Incomplete.
   throw std::logic_error("Not Implemented");
