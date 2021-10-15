@@ -258,6 +258,8 @@ struct ReadView
 {
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
+  static constexpr DepthT NDimensions = Dim;
+
 private:
   const Tree<T>& mTree;
   size_t         mIndex;
@@ -410,6 +412,8 @@ struct WriteViewBase
 {
   static_assert(Dim > 0, "Use references directly for zero dimensional data.");
 
+  static constexpr DepthT NDimensions = Dim;
+
 protected:
   Tree<T>& mTree;
 
@@ -476,7 +480,7 @@ public:
 };
 
 template<typename T>
-struct IsTreeTuple : std::false_type
+struct IsTreeTuple : public std::false_type
 {
 };
 
@@ -493,12 +497,65 @@ struct IsTreeTuple<std::tuple<TreeT>>
   static constexpr bool value = IsInstance<Tree, TreeT>::value;
 };
 
-template<typename InputTreeTupleT, typename... TArgs>
-void combinations(const InputTreeTupleT& trees, std::tuple<TArgs*...>& argPtrs)
+template<typename T>
+struct IsReadView : public std::false_type
+{
+};
+
+template<typename T, DepthT Dim>
+struct IsReadView<ReadView<T, Dim>> : public std::true_type
+{
+};
+
+template<typename T>
+struct IsWriteView : public std::false_type
+{
+};
+
+template<typename T, DepthT Dim>
+struct IsWriteView<WriteView<T, Dim>> : public std::true_type
+{
+};
+
+template<typename TreeTupleT, size_t N, typename TArg, typename... TArgs>
+struct TreeTupHelper
+{
+  static constexpr bool ArgIsRead  = IsReadView<TArg>::value;
+  static constexpr bool ArgIsWrite = IsWriteView<TArg>::value;
+  static constexpr bool IsInput    = std::is_const_v<TArg> || ArgIsRead;
+
+  static constexpr DepthT ArgDepth = (ArgIsRead || ArgIsWrite) ? TArg::NDimensions : 0;
+
+  static void test(const TreeTupleT& trees)
+  {
+    int32_t treeDepth = int32_t(std::get<N>(trees).maxDepth());
+    if constexpr (IsInput) {
+      int32_t offset = treeDepth - int32_t(ArgDepth);
+    }
+    else {
+      int32_t offset = int32_t(ArgDepth);
+    }
+  }
+};
+
+template<typename TreeTupleT, typename... TArgs>
+void combinations(const TreeTupleT& trees, std::tuple<TArgs*...>& argPtrs)
 {
   static_assert(
-    IsInstance<std::tuple, InputTreeTupleT>::value && IsTreeTuple<InputTreeTupleT>::value,
+    IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
     "Expecting a tuple of datatrees");
+
+  static constexpr size_t NArgs = sizeof...(TArgs);
+
+  std::array<int32_t, NArgs> offsets;
+
+  // Find max offset.
+  // for each arg, create a helper view of depth arg-depth + offset.
+  // Depth first traverse all views while making sure you stay in each level for as long
+  // as at least one view can be advanced in that level. Use recursion for the depth first
+  // traversal. at level corresponding to 0 offset, call the function on the views or
+  // references.
+
   // Incomplete.
   throw std::logic_error("Not Implemented");
 }
