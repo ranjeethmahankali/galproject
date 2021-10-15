@@ -475,6 +475,34 @@ public:
   }
 };
 
+template<typename T>
+struct IsTreeTuple : std::false_type
+{
+};
+
+template<typename TreeT, typename... TreeTs>
+struct IsTreeTuple<std::tuple<TreeT, TreeTs...>>
+{
+  static constexpr bool value =
+    IsInstance<Tree, TreeT>::value && IsTreeTuple<std::tuple<TreeTs...>>::value;
+};
+
+template<typename TreeT>
+struct IsTreeTuple<std::tuple<TreeT>>
+{
+  static constexpr bool value = IsInstance<Tree, TreeT>::value;
+};
+
+template<typename TreeTupleT, typename... TInputs>
+void combinations(const TreeTupleT& trees, std::tuple<TInputs*...>& argPtrs)
+{
+  static_assert(
+    IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
+    "Expecting a tuple of datatrees");
+  // Incomplete.
+  throw std::logic_error("Not Implemented");
+}
+
 }  // namespace data
 }  // namespace func
 }  // namespace gal
