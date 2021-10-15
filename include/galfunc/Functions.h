@@ -156,42 +156,53 @@ struct TypeList
       ValidConstOrder<Ts...>::value;
   };
 
-  enum struct TypeEnum
+  template<size_t NBegin, size_t NEnd, typename... Ts>
+  struct SubTuples
   {
-    eNone     = 0,
-    eRegister = 1,
-    eTree     = 2,
+    static_assert(NEnd <= sizeof...(Ts));
+    // static_assert(NBegin < NEnd);
+
+    using T         = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
+    using TreeT     = data::Tree<std::remove_const_t<T>>;
+    using RegisterT = Register<std::remove_const_t<T>>;
+
+    template<typename H, typename... Us>
+    using AppendedTupleT = std::conditional_t<
+      IsInstance<Register, H>::value,
+      /*appended reg tuple*/
+      typename SubTuples<NBegin + 1, NEnd, Ts...>::template RegTupleType<Us..., H>,
+      std::conditional_t<
+        IsInstance<data::Tree, H>::value,
+        /*appended tree tuple*/
+        typename SubTuples<NBegin + 1, NEnd, Ts...>::template TreeTupleType<Us..., H>,
+        /*appended tuple*/
+        typename SubTuples<NBegin + 1, NEnd, Ts...>::template TupleType<Us..., T>>>;
+
+    // sub tuple types.
+    template<typename... Us>
+    using TupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<T, Us...>, std::tuple<Us...>>;
+
+    template<typename... Us>
+    using TreeTupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<TreeT, Us...>, std::tuple<Us...>>;
+
+    template<typename... Us>
+    using RegTupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<RegisterT, Us...>, std::tuple<Us...>>;
   };
 
-  template<TypeEnum TEnum, size_t NBegin, size_t NEnd, typename... Ts>
-  struct SubTupleType
-  {
-    // static_assert(NEnd <= sizeof...(Ts) && NBegin < NEnd);
-    using T = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
-    using WrappedT =
-      typename std::conditional_t<(TEnum == TypeEnum::eTree),
-                                  data::Tree<T>,
-                                  std::conditional_t<(TEnum == TypeEnum::eRegister),
-                                                     Register<std::remove_const_t<T>>,
-                                                     T>>;
-
-    // Prepends the current type to the tuple.
-    template<typename... Us>
-    using AppendedT =
-      typename SubTupleType<TEnum, NBegin + 1, NEnd, Ts...>::template type<Us...,
-                                                                           WrappedT>;
-
-    // sub tuple.
-    template<typename... Us>
-    using type =
-      typename std::conditional_t<(NBegin < NEnd), AppendedT<Us...>, std::tuple<Us...>>;
-  };
-
-  template<TypeEnum TEnum, size_t NEnd, typename... Ts>
-  struct SubTupleType<TEnum, NEnd, NEnd, Ts...>
+  template<size_t NEnd, typename... Ts>
+  struct SubTuples<NEnd, NEnd, Ts...>
   {
     template<typename... Us>
-    using type = std::tuple<Us...>;
+    using TupleType = std::tuple<Us...>;
+
+    template<typename... Us>
+    using TreeTupleType = std::tuple<Us...>;
+
+    template<typename... Us>
+    using RegTupleType = std::tuple<Us...>;
   };
 
   static_assert(ValidConstOrder<TArgs...>::value);
@@ -201,10 +212,9 @@ struct TypeList
   using RefTupleType                = std::tuple<TArgs&...>;
   using PtrTupleType                = std::tuple<TArgs*...>;
   using OutputTupleType =
-    typename SubTupleType<TypeEnum::eTree, NumInputs, NumTypes, TArgs...>::
-      template type<>;
+    typename SubTuples<NumInputs, NumTypes, TArgs...>::template TreeTupleType<>;
   using InputRegTupleType =
-    typename SubTupleType<TypeEnum::eRegister, 0, NumInputs, TArgs...>::template type<>;
+    typename SubTuples<0, NumInputs, TArgs...>::template RegTupleType<>;
   using ImplFnType = std::function<void(TArgs&...)>;
 
   template<size_t N>
