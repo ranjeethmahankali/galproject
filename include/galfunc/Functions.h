@@ -325,6 +325,7 @@ protected:
   {
     // Incomplete. Get combinations of inputs and run the mFunc once for each combination.
     // std::apply(mFunc, mArgRefs);  // Run the function.
+    throw std::logic_error("Not Implemented");
   }
 
 private:

@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <algorithm>
-#include <cstdint>
 #include <execution>
 #include <functional>
 #include <iomanip>
@@ -11,6 +10,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <galcore/Traits.h>
@@ -27,6 +27,7 @@ template<typename T>
 class Tree
 {
 public:
+  using Type       = T;
   using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
   using value_type = ValueType;  // To support stl helper functions.
 
@@ -517,48 +518,168 @@ struct IsWriteView<WriteView<T, Dim>> : public std::true_type
 {
 };
 
-template<typename TreeTupleT, size_t N, typename TArg, typename... TArgs>
-struct TreeTupHelper
+/* Contains everything related to running the functions several times over large
+ * datatrees, including tree combinatorics.*/
+namespace repeat {
+
+template<typename T>
+struct CombiView
 {
-  static constexpr bool ArgIsRead  = IsReadView<TArg>::value;
-  static constexpr bool ArgIsWrite = IsWriteView<TArg>::value;
-  static constexpr bool IsInput    = std::is_const_v<TArg> || ArgIsRead;
+private:
+  const Tree<T>& mTree;
 
-  static constexpr DepthT ArgDepth = (ArgIsRead || ArgIsWrite) ? TArg::NDimensions : 0;
+public:
+  CombiView(const Tree<T>& tree, DepthT offset)
+      : mTree(tree)
+  {}
+};
 
-  static void test(const TreeTupleT& trees)
+template<typename T>
+struct CombiViewTuple
+{
+};
+
+template<typename... TreeTs>
+struct CombiViewTuple<std::tuple<TreeTs...>>
+{
+  template<size_t N>
+  using ValueType  = typename std::tuple_element_t<N, std::tuple<TreeTs...>>::Type;
+  using Type       = std::tuple<CombiView<typename TreeTs::Type>...>;
+  using TreeTupleT = std::tuple<TreeTs...>;
+
+  static constexpr size_t NTrees = sizeof...(TreeTs);
+
+private:
+  template<size_t... Is>
+  static Type initInternal(const TreeTupleT&                 trees,
+                           const std::array<DepthT, NTrees>& viewDepths,
+                           DepthT                            offset,
+                           std::vector<Type>&                dst,
+                           std::index_sequence<Is...>)
   {
-    int32_t treeDepth = int32_t(std::get<N>(trees).maxDepth());
-    if constexpr (IsInput) {
-      int32_t offset = treeDepth - int32_t(ArgDepth);
+    dst.clear();
+    for (size_t i = 0; i <= offset; i++) {
+      // Go as deep as possible - i.e. until zero offset.
+      dst.emplace_back(CombiView<ValueType<Is>>(std::get<Is>(trees), offset - i)...);
     }
-    else {
-      int32_t offset = int32_t(ArgDepth);
-    }
+  }
+
+public:
+  static void init(const TreeTupleT&                 trees,
+                   const std::array<DepthT, NTrees>& viewDepths,
+                   DepthT                            offset,
+                   std::vector<Type>&                dst)
+  {
+    initInternal(trees, viewDepths, offset, std::make_index_sequence<NTrees> {});
+  }
+
+  static bool tryAdvance(Type& tup)
+  {
+    // Try to advance the tuple of views.
+    // Return true if successful, false otherwise.
+
+    // Incomplete.
+    throw std::logic_error("Not Implemented");
+  }
+
+  static void goDeeper(std::vector<Type>& dst)
+  {
+    // Push_back another combiview tuple to dst, where each combiview has depth 1 less
+    // than the corresponding view in the last elemtn of dst.
+
+    // Incomplete.
+    throw std::logic_error("Not Implemented");
   }
 };
 
 template<typename TreeTupleT, typename... TArgs>
-void combinations(const TreeTupleT& trees, std::tuple<TArgs*...>& argPtrs)
+struct Combinations
 {
-  static_assert(
-    IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
-    "Expecting a tuple of datatrees");
-
   static constexpr size_t NArgs = sizeof...(TArgs);
 
-  std::array<int32_t, NArgs> offsets;
+private:
+  template<size_t N = 0>
+  static inline void getDepthData(const TreeTupleT&          trees,
+                                  std::array<DepthT, NArgs>& treeDepths,
+                                  std::array<DepthT, NArgs>& viewDepths,
+                                  std::array<DepthT, NArgs>& offsets)
+  {
+    if constexpr (N < NArgs) {
+      using TArg                       = std::tuple_element_t<N, std::tuple<TArgs...>>;
+      static constexpr bool ArgIsRead  = IsReadView<TArg>::value;
+      static constexpr bool ArgIsWrite = IsWriteView<TArg>::value;
+      // static constexpr bool   IsInput    = std::is_const_v<TArg> || ArgIsRead;
+      static constexpr DepthT ArgDepth =
+        (ArgIsRead || ArgIsWrite) ? TArg::NDimensions : 0;
 
-  // Find max offset.
-  // for each arg, create a helper view of depth arg-depth + offset.
-  // Depth first traverse all views while making sure you stay in each level for as long
-  // as at least one view can be advanced in that level. Use recursion for the depth first
-  // traversal. at level corresponding to 0 offset, call the function on the views or
-  // references.
+      treeDepths[N] = std::get<N>(trees).maxDepth();
+      viewDepths[N] = ArgDepth;
+      offsets[N]    = treeDepths[N] < ArgDepth ? 0 : treeDepths[N] - ArgDepth;
+    }
 
-  // Incomplete.
-  throw std::logic_error("Not Implemented");
-}
+    if constexpr (N + 1 < NArgs) {
+      getDepthData<N + 1>(trees, treeDepths, viewDepths, offsets);
+    }
+  }
+
+  using CVTupType = typename CombiViewTuple<TreeTupleT>::Type;
+  using HelperT   = CombiViewTuple<TreeTupleT>;
+
+  TreeTupleT&            mTrees;
+  std::vector<CVTupType> mViews;
+  DepthT                 mMaxOffset = 0;
+
+public:
+  Combinations(TreeTupleT& trees)
+      : mTrees(trees)
+  {
+    static_assert(
+      IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
+      "Expecting a tuple of datatrees");
+
+    static constexpr size_t NArgs = sizeof...(TArgs);
+
+    std::array<DepthT, NArgs> treeDepths;
+    std::array<DepthT, NArgs> viewDepths;
+    std::array<DepthT, NArgs> offsets;
+    Combinations<TreeTupleT, TArgs...>::getDepthData(
+      trees, treeDepths, viewDepths, offsets);
+
+    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
+    mViews.reserve(size_t(mMaxOffset) + 1);
+
+    HelperT::init(trees, viewDepths, mMaxOffset, mViews);
+  }
+
+  bool next()
+  {
+    // Try advance the stack.
+    while (!mViews.empty() && !HelperT::tryAdvance(mViews.back())) {
+      mViews.pop_back();
+    }
+
+    if (mViews.empty()) {
+      return false;
+    }
+
+    // Make sure we're at the leaf again.
+    while (mViews.size() < mMaxOffset + 1) {
+      HelperT::goDeeper(mViews);
+    }
+    return true;
+  }
+
+  template<typename ArgTupleT>
+  ArgTupleT current() const
+  {
+    // Get the current top of the stack and create a argument tuple out of it.
+
+    // Incomplete.
+    throw std::logic_error("Not Implemented");
+  }
+};
+
+}  // namespace repeat
 
 }  // namespace data
 }  // namespace func
