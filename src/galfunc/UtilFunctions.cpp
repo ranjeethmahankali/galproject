@@ -1,4 +1,5 @@
 #include <galcore/Util.h>
+#include <galfunc/Data.h>
 #include <galfunc/UtilFunctions.h>
 
 namespace gal {
@@ -84,10 +85,17 @@ GAL_FUNC_DEFN(divf32, ((float, a), (float, b)), ((float, quot)))
   quot = a / b;
 }
 
-// GAL_FUNC_DEFN(series,
-//               ((int32_t, start), (int32_t, step), (int32_t, count)),
-//               (((data::WriteView<int32_t, 1>), arr)))
-// {}
+GAL_FUNC_DEFN(series,
+              ((int32_t, start), (int32_t, step), (int32_t, count)),
+              (((data::WriteView<int32_t, 1>), arr)))
+{
+  throw std::logic_error("Not Implemented");
+}
+
+GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
+{
+  throw std::logic_error("Not Implemented");
+}
 
 }  // namespace func
 }  // namespace gal

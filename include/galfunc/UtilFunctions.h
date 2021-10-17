@@ -87,6 +87,11 @@ GAL_FUNC_DECL(series,
                (int32_t, count, "Count")),
               (((data::WriteView<int32_t, 1>), arr, "The series of integers")));
 
+GAL_FUNC_DECL(listSum,
+              "Sums a list of integers",
+              (((data::ReadView<int32_t, 1>), nums, "Integers to sum")),
+              ((int32_t, result, "Sum of the integers")));
+
 }  // namespace func
 }  // namespace gal
 

@@ -541,6 +541,24 @@ struct IsWriteView<WriteView<T, Dim>> : public std::true_type
 };
 
 template<typename T>
+struct UnwrapView
+{
+  using Type = T;
+};
+
+template<typename T, DepthT Dim>
+struct UnwrapView<ReadView<T, Dim>>
+{
+  using Type = T;
+};
+
+template<typename T, DepthT Dim>
+struct UnwrapView<WriteView<T, Dim>>
+{
+  using Type = T;
+};
+
+template<typename T>
 struct ViewDimensions
 {
   static constexpr DepthT value = 0;
@@ -627,7 +645,7 @@ struct CombiViewTuple<std::tuple<TreeTs...>>
 
 private:
   template<size_t... Is>
-  static void initInternal(const TreeTupleT&                 trees,
+  static void initInternal(TreeTupleT&                       trees,
                            const std::array<DepthT, NTrees>& viewDepths,
                            DepthT                            offset,
                            std::vector<Type>&                dst,
@@ -648,15 +666,15 @@ private:
   }
 
   template<typename ArgType, size_t N>
-  static ArgType getArg(const Type& view, const TreeTupleT& trees)
+  static ArgType getArg(Type& view, const TreeTupleT& trees)
   {
-    const auto& v = std::get<N>(view);
+    auto& v = std::get<N>(view);
 
     if constexpr (IsReadView<ArgType>::value) {
       return ArgType(v.tree(), v.index());
     }
     else if constexpr (IsWriteView<ArgType>::value) {
-      return ArgType(v.tree());
+      return ArgType(std::get<N>(trees));
     }
     else {
       return std::get<N>(trees).value(v.index());
@@ -664,7 +682,7 @@ private:
   }
 
   template<typename ArgsTupleT, size_t... Is>
-  static ArgsTupleT getArgsInternal(const Type&       view,
+  static ArgsTupleT getArgsInternal(Type&             view,
                                     const TreeTupleT& trees,
                                     std::index_sequence<Is...>)
   {
@@ -672,7 +690,7 @@ private:
   }
 
 public:
-  static void init(const TreeTupleT&                 trees,
+  static void init(TreeTupleT&                       trees,
                    const std::array<DepthT, NTrees>& viewDepths,
                    DepthT                            offset,
                    std::vector<Type>&                dst)
@@ -707,7 +725,7 @@ public:
   }
 
   template<typename ArgsTupleT>
-  static ArgsTupleT getArgs(const Type& view, const TreeTupleT& trees)
+  static ArgsTupleT getArgs(Type& view, const TreeTupleT& trees)
   {
     return getArgsInternal<ArgsTupleT>(view, trees, std::make_index_sequence<NTrees> {});
   }
@@ -783,7 +801,7 @@ public:
   bool empty() const { return mViews.empty(); }
 
   template<typename ArgTupleT>
-  ArgTupleT current() const
+  ArgTupleT current()
   {
     // Get the current top of the stack and create a argument tuple out of it.
     if (mViews.empty()) {
@@ -797,4 +815,15 @@ public:
 
 }  // namespace data
 }  // namespace func
+
+template<typename T, func::data::DepthT Dim>
+struct TypeInfo<func::data::WriteView<T, Dim>> : public TypeInfo<T>
+{
+};
+
+template<typename T, func::data::DepthT Dim>
+struct TypeInfo<func::data::ReadView<T, Dim>> : public TypeInfo<T>
+{
+};
+
 }  // namespace gal

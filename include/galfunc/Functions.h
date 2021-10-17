@@ -167,11 +167,13 @@ struct TypeList
     static_assert(NEnd <= sizeof...(Ts));
     // static_assert(NBegin < NEnd);
 
-    using T         = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
-    using TreeT     = std::conditional_t<std::is_const_v<T>,
-                                     std::add_const_t<data::Tree<std::remove_const_t<T>>>,
-                                     data::Tree<std::remove_const_t<T>>>;
-    using RegisterT = Register<std::remove_const_t<T>>;
+    using T          = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
+    using UnwrappedT = typename data::UnwrapView<T>::Type;
+    using TreeT =
+      std::conditional_t<std::is_const_v<UnwrappedT>,
+                         std::add_const_t<data::Tree<std::remove_const_t<UnwrappedT>>>,
+                         data::Tree<std::remove_const_t<UnwrappedT>>>;
+    using RegisterT = Register<std::remove_const_t<UnwrappedT>>;
 
     template<typename H, typename... Us>
     using AppendedTupleT = std::conditional_t<
@@ -227,13 +229,17 @@ struct TypeList
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
 
-  template<typename U>
-  using TreeType =
-    std::conditional_t<std::is_const_v<U>,
-                       std::add_const_t<data::Tree<std::remove_const_t<U>>>,
-                       data::Tree<std::remove_const_t<U>>>;
+  template<size_t N>
+  using UnwrappedType = typename data::UnwrapView<Type<N>>::Type;
 
-  using ArgTreeRefTupleT = std::tuple<TreeType<TArgs>&...>;
+  template<typename U>
+  using TreeType = std::conditional_t<
+    std::is_const_v<U>,
+    std::add_const_t<data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>,
+    data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>;
+
+  using ArgTreeRefTupleT =
+    std::tuple<TreeType<typename data::UnwrapView<TArgs>::Type>&...>;
 };
 
 template<typename TArgList, size_t N>
@@ -322,7 +328,7 @@ struct TFunction : public Function
   using PyOutputType =
     std::conditional_t<(NOutputs > 1),
                        boost::python::tuple,
-                       Register<typename TArgList::template Type<NInputs>>>;
+                       Register<typename TArgList::template UnwrappedType<NInputs>>>;
 
 protected:
   /* Some fields are marked mutable because the function is considered changed only if the
@@ -423,7 +429,7 @@ public:
   PyOutputType pythonOutputRegs() const
   {
     if constexpr (NOutputs == 1) {
-      return Register<typename TArgList::template Type<NInputs>>(
+      return Register<typename TArgList::template UnwrappedType<NInputs>>(
         dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
     }
     else {
@@ -542,7 +548,7 @@ fs::path getcontextpath();
 #define _GAL_ARGD_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)
 #define GAL_ARGD_TYPE(argTuple) _GAL_ARGD_TYPE argTuple
 // Get the type from an arg-tuple that has no description.
-#define _GAL_ARG_TYPE(type, name) type
+#define _GAL_ARG_TYPE(type, name) GAL_UNBRACED_TYPE(type)
 #define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
 // Get the const type from an arg-tuple without description.
 #define _GAL_ARG_CONST_TYPE(type, name) std::add_const_t<GAL_UNBRACED_TYPE(type)>
