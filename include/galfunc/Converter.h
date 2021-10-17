@@ -221,12 +221,17 @@ struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
 };
 
 template<typename T>
-struct Converter<data::Tree<T>, boost::python::list>
+struct Converter<data::Tree<T>, boost::python::object>
 {
 private:
   using DepthT    = data::DepthT;
   using ValIter   = typename std::vector<T>::const_iterator;
   using DepthIter = typename std::vector<DepthT>::const_iterator;
+
+  static void assignLeaf(const T& val, boost::python::object& dst)
+  {
+    Converter<T, boost::python::object>::assign(val, dst);
+  }
 
   static void copyValues(ValIter&             vbegin,
                          const ValIter&       vend,
@@ -237,7 +242,7 @@ private:
     if (*dbegin == cdepth) {
       do {
         boost::python::object obj;
-        Converter<T, boost::python::object>::assign(*vbegin, obj);
+        assignLeaf(*vbegin, obj);
         dst.append(obj);
         dbegin++;
         vbegin++;
@@ -255,16 +260,29 @@ private:
   }
 
 public:
-  static void assign(const data::Tree<T>& tree, boost::python::list& lst)
+  static void assign(const data::Tree<T>& tree, boost::python::object& dst)
   {
+    assert(tree.size() != 0 || (tree.size() == 1 && tree.depth(0) == 0));
+    if (tree.size() == 0) {
+      return;
+    }
+    if (tree.maxDepth() == 0 && tree.size() > 1) {
+      throw std::logic_error("Invalid tree");
+    }
     const auto& values = tree.values();
+    if (tree.size() == 1 && tree.maxDepth() == 0) {
+      assignLeaf(values.front(), dst);
+      return;
+    }
     const auto& depths = tree.depths();
     assert(values.size() == depths.size());
-    auto vbegin = values.begin();
-    auto vend   = values.end();
-    auto dbegin = depths.begin();
+    auto                vbegin = values.begin();
+    auto                vend   = values.end();
+    auto                dbegin = depths.begin();
+    boost::python::list lst;
     copyValues(vbegin, vend, dbegin, lst);
     assert(vbegin == vend);
+    dst = lst;
   };
 };
 

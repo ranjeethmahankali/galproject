@@ -53,6 +53,9 @@ public:
       if (depth > mTree.depth(pos)) {
         return mTree.size() - pos;
       }
+      else if (depth == 0) {
+        return 1;
+      }
       else {
         return mOffsets[mDepthScan[pos] + depth - 1];
       }
@@ -211,6 +214,15 @@ public:
     ensureDepth(d);
     mValues.emplace_back(args...);
     pushDepth(d);
+  }
+
+  void clear()
+  {
+    mValues.clear();
+    mDepths.clear();
+    mQueuedDepths.clear();
+    mCache.clear();
+    mIsCacheValid = false;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const Tree<T>& tree)
@@ -584,7 +596,8 @@ public:
 
   bool tryAdvance()
   {
-    size_t advIdx = mIndex + mTree.cache().offset(mIndex, mArgDepth + mOffset);
+    DepthT td     = mArgDepth + mOffset;
+    size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
     if (advIdx < mTree.size()) {
       mIndex = advIdx;
       return true;

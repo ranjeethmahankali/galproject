@@ -335,14 +335,31 @@ protected:
   mutable data::repeat::Combinations<ArgTreeRefTupleT, TArgs...> mCombinations;
   mutable std::atomic_bool                                       mIsDirty = true;
 
+  template<size_t N = 0>
+  inline void initOutputs() const
+  {
+    if constexpr (NInputs + N < NArgs) {
+      using TOut = std::tuple_element_t<NInputs + N, std::tuple<TArgs...>>;
+      if constexpr (data::IsWriteView<TOut>::value) {
+        std::get<N>(mOutputs).clear();
+      }
+      else {
+        std::get<N>(mOutputs).resize(1);
+      }
+    }
+    if constexpr (NInputs + N + 1 < NArgs) {
+      initOutputs<N + 1>();
+    }
+  }
+
   // Runs the function.
   inline void run() const
   {
     mCombinations.init();
-    if (mCombinations.empty()) {
+    initOutputs();
+    if (!mCombinations.empty()) {
       do {
-        auto args = mCombinations.template current<ArgTupleT>();
-        std::apply(mFunc, args);
+        std::apply(mFunc, mCombinations.template current<ArgTupleT>());
       } while (mCombinations.next());
     }
   }
@@ -447,6 +464,7 @@ protected:
   void setInternal(const TArgs&... args)
   {
     if constexpr (sIsConstructible) {
+      tree().clear();
       tree().emplace_back(0, args...);
     }
     else if constexpr (IsSingleArgument) {
@@ -454,6 +472,8 @@ protected:
       Converter<TFirstArg, TVal>::assign(args..., tree().value(0));
     }
   }
+
+  inline void run() const {/*Do Nothing.*/};
 
 public:
   TVariable(const TArgs&... args)
@@ -625,10 +645,10 @@ namespace python {
  * @return boost::python::object Converted python object.
  */
 template<typename T>
-boost::python::list read(const Register<T>& reg)
+boost::python::object read(const Register<T>& reg)
 {
-  boost::python::list dst;
-  Converter<data::Tree<T>, boost::python::list>::assign(reg.read(), dst);
+  boost::python::object dst;
+  Converter<data::Tree<T>, boost::python::object>::assign(reg.read(), dst);
   return dst;
 }
 
