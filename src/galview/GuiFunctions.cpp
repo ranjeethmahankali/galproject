@@ -203,23 +203,23 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc : public func::TFunction<const T, bool>, public view::Text
+struct PrintFunc : public func::TFunction<const T, uint8_t>, public view::Text
 {
-  using PyOutputType = typename func::TFunction<const T, bool>::PyOutputType;
+  using PyOutputType = typename func::TFunction<const T, uint8_t>::PyOutputType;
   std::string       mLabel;
   std::stringstream mStream;
 
   PrintFunc(const std::string& label, const func::Register<T>& reg)
       : mLabel(label)
       , view::Text("")
-      , func::TFunction<const T, bool>(
-          [this](const T& obj, bool& success) {
+      , func::TFunction<const T, uint8_t>(
+          [this](const T& obj, uint8_t& success) {
             if constexpr (IsPrintable<T>::value) {
               mStream.clear();
               mStream.str("");
               mStream << mLabel << ": " << obj;
               this->mValue = mStream.str();
-              success      = true;
+              success      = 1;
             }
             else {
               std::cerr << TypeInfo<T>::name() << " object";

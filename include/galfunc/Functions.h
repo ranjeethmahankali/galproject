@@ -205,17 +205,24 @@ struct TypeList
     using RegTupleType = std::tuple<Us...>;
   };
 
+  template<typename T>
+  struct ArgType
+  {
+    using Type = std::
+      conditional_t<data::IsReadView<T>::value || data::IsWriteView<T>::value, T, T&>;
+  };
+
   static_assert(ValidConstOrder<TArgs...>::value);
   static constexpr size_t NumTypes  = sizeof...(TArgs);
   static constexpr size_t NumInputs = NumConstTypes<TArgs...>::value;
   using TupleT                      = std::tuple<TArgs...>;
-  using RefTupleType                = std::tuple<TArgs&...>;
+  using ArgTupleType                = std::tuple<typename ArgType<TArgs>::Type...>;
   using PtrTupleType                = std::tuple<TArgs*...>;
   using OutputTupleType =
     typename SubTuples<NumInputs, NumTypes, TArgs...>::template TreeTupleType<>;
   using InputRegTupleType =
     typename SubTuples<0, NumInputs, TArgs...>::template RegTupleType<>;
-  using ImplFnType = std::function<void(TArgs&...)>;
+  using ImplFnType = std::function<void(typename ArgType<TArgs>::Type...)>;
 
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
@@ -301,7 +308,7 @@ struct TFunction : public Function
 {
   using TArgList                  = TypeList<TArgs...>;
   static constexpr size_t NInputs = TArgList::NumInputs;
-  using RefTupleT                 = typename TArgList::RefTupleType;
+  using ArgTupleT                 = typename TArgList::ArgTupleType;
   using ArgTreeRefTupleT          = typename TArgList::ArgTreeRefTupleT;
   using InputRegTupleT            = typename TArgList::InputRegTupleType;
   using OutputTupleT              = typename TArgList::OutputTupleType;
@@ -334,7 +341,7 @@ protected:
     mCombinations.init();
     if (mCombinations.empty()) {
       do {
-        auto args = mCombinations.current();
+        auto args = mCombinations.template current<ArgTupleT>();
         std::apply(mFunc, args);
       } while (mCombinations.next());
     }

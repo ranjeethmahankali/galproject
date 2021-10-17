@@ -32,21 +32,6 @@ public:
   using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
   using value_type = ValueType;  // To support stl helper functions.
 
-private:
-  using InternalStorageT = std::vector<ValueType>;
-
-  template<typename U, DepthT Dim>
-  friend struct Iterator;
-
-  template<typename U, DepthT Dim>
-  friend struct ReadView;
-
-  template<typename U, DepthT Dim>
-  friend struct WriteViewBase;
-
-  template<typename U, DepthT Dim>
-  friend struct WriteView;
-
   struct Cache
   {
     std::vector<size_t> mDepthScan;
@@ -73,6 +58,21 @@ private:
       }
     }
   };
+
+private:
+  using InternalStorageT = std::vector<ValueType>;
+
+  template<typename U, DepthT Dim>
+  friend struct Iterator;
+
+  template<typename U, DepthT Dim>
+  friend struct ReadView;
+
+  template<typename U, DepthT Dim>
+  friend struct WriteViewBase;
+
+  template<typename U, DepthT Dim>
+  friend struct WriteView;
 
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
@@ -160,6 +160,8 @@ public:
   Tree()
       : mCache(*this)
   {}
+
+  const Cache& cache() const { return mCache; }
 
   DepthT maxDepth() const
   {
@@ -284,6 +286,11 @@ public:
   {
     setReadMode();
   }
+
+  ReadView(const Tree<T>& src, size_t index)
+      : mTree(src)
+      , mIndex(index)
+  {}
 
   ReadView(Iterator<T, Dim>& iter)
       : mTree(iter.mTree)
@@ -550,31 +557,39 @@ private:
   const Tree<T>& mTree;
   size_t         mIndex = 0;
   DepthT         mOffset;
+  const DepthT   mArgDepth;
 
 public:
-  CombiView(const Tree<T>& tree, DepthT offset)
+  CombiView(const Tree<T>& tree, DepthT offset, DepthT argDepth)
       : mTree(tree)
       , mOffset(offset)
+      , mArgDepth(argDepth)
   {}
 
   size_t index() const { return mIndex; }
 
   DepthT offset() const { return mOffset; }
 
+  const Tree<T>& tree() const { return mTree; }
+
   CombiView<T> child() const
   {
     if (mOffset == 0) {
       throw std::logic_error("The leaf view cannot have a child view");
     }
-    auto c   = CombiView<T>(mTree, mOffset - 1);
+    auto c   = CombiView<T>(mTree, mOffset - 1, mArgDepth);
     c.mIndex = mIndex;
     return c;
   }
 
   bool tryAdvance()
   {
-    // Incomplete.
-    throw std::logic_error("Not Implemented");
+    size_t advIdx = mIndex + mTree.cache().offset(mIndex, mArgDepth + mOffset);
+    if (advIdx < mTree.size()) {
+      mIndex = advIdx;
+      return true;
+    }
+    return false;
   }
 };
 
@@ -608,7 +623,8 @@ private:
     dst.clear();
     for (size_t i = 0; i <= offset; i++) {
       // Go as deep as possible - i.e. until zero offset.
-      dst.emplace_back(CombiView<ValueType<Is>>(std::get<Is>(trees), offset - i)...);
+      dst.emplace_back(
+        CombiView<ValueType<Is>>(std::get<Is>(trees), offset - i, viewDepths[Is])...);
     }
   }
 
@@ -616,6 +632,30 @@ private:
   static Type goDeeperInternal(const Type& leaf, std::index_sequence<Is...>)
   {
     return std::make_tuple(std::get<Is>(leaf).child()...);
+  }
+
+  template<typename ArgType, size_t N>
+  static ArgType getArg(const Type& view, const TreeTupleT& trees)
+  {
+    const auto& v = std::get<N>(view);
+
+    if constexpr (IsReadView<ArgType>::value) {
+      return ArgType(v.tree(), v.index());
+    }
+    else if constexpr (IsWriteView<ArgType>::value) {
+      return ArgType(v.tree());
+    }
+    else {
+      return std::get<N>(trees).value(v.index());
+    }
+  }
+
+  template<typename ArgsTupleT, size_t... Is>
+  static ArgsTupleT getArgsInternal(const Type&       view,
+                                    const TreeTupleT& trees,
+                                    std::index_sequence<Is...>)
+  {
+    return ArgsTupleT(getArg<std::tuple_element_t<Is, ArgsTupleT>, Is>(view, trees)...);
   }
 
 public:
@@ -637,11 +677,9 @@ public:
     if constexpr (N < NTrees) {
       current = std::get<N>(tup).tryAdvance();
     }
-
     if constexpr (N < NTrees - 1) {
       next = tryAdvance<N + 1>(tup);
     }
-
     return current || next;
   }
 
@@ -655,11 +693,10 @@ public:
     goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {});
   }
 
-  template<typename ArgRefTupleT>
-  static ArgRefTupleT getArgRefs(const Type& view)
+  template<typename ArgsTupleT>
+  static ArgsTupleT getArgs(const Type& view, const TreeTupleT& trees)
   {
-    // Incomplete.
-    throw std::logic_error("Not Implemented");
+    return getArgsInternal<ArgsTupleT>(view, trees, std::make_index_sequence<NTrees> {});
   }
 };
 
@@ -667,11 +704,9 @@ template<typename TreeTupleT, typename... TArgs>
 struct Combinations
 {
   static constexpr size_t NArgs = sizeof...(TArgs);
-
-  static_assert(IsInstance<std::tuple, TreeTupleT>::value,
+  static_assert(IsInstance<std::tuple, TreeTupleT>::value &&
+                  IsTreeTuple<TreeTupleT>::value,
                 "Expecting a tuple of datatrees");
-
-  static_assert(IsTreeTuple<TreeTupleT>::value);
 
 private:
   template<size_t N = 0>
@@ -691,7 +726,6 @@ private:
       viewDepths[N] = ArgDepth;
       offsets[N]    = td < ArgDepth ? 0 : td - ArgDepth;
     }
-
     if constexpr (N + 1 < NArgs) {
       getDepthData<N + 1>(trees, viewDepths, offsets);
     }
@@ -711,7 +745,6 @@ public:
   {
     std::array<DepthT, NArgs> offsets;
     Combinations<TreeTupleT, TArgs...>::getDepthData(trees, mViewDepths, offsets);
-
     mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
     mViews.reserve(size_t(mMaxOffset) + 1);
   }
@@ -724,11 +757,9 @@ public:
     while (!mViews.empty() && !HelperT::tryAdvance(mViews.back())) {
       mViews.pop_back();
     }
-
     if (mViews.empty()) {
       return false;
     }
-
     // Make sure we're at the leaf again.
     while (mViews.size() < mMaxOffset + 1) {
       HelperT::goDeeper(mViews);
@@ -738,14 +769,14 @@ public:
 
   bool empty() const { return mViews.empty(); }
 
-  std::tuple<TArgs&...> current() const
+  template<typename ArgTupleT>
+  ArgTupleT current() const
   {
     // Get the current top of the stack and create a argument tuple out of it.
     if (mViews.empty()) {
       throw std::logic_error("No combinations letf.");
     }
-
-    return HelperT::template getArgRefs<std::tuple<TArgs&...>>(mViews.back());
+    return HelperT::template getArgs<ArgTupleT>(mViews.back(), mTrees);
   }
 };
 
