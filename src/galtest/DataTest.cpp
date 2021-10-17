@@ -190,7 +190,7 @@ TEST(Data, TreeConversion)
   auto tree = testTree();
   // Convert tree to a jagged python list.
   boost::python::list lst;
-  gal::func::Converter<decltype(tree), boost::python::list>::assign(tree, lst);
+  gal::func::Converter<decltype(tree), boost::python::object>::assign(tree, lst);
   // Convert python jagged list to a cpp jagged vector.
   std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
   gal::func::Converter<boost::python::list, decltype(jagged)>::assign(lst, jagged);
