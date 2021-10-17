@@ -302,6 +302,7 @@ struct TFunction : public Function
   using TArgList                  = TypeList<TArgs...>;
   static constexpr size_t NInputs = TArgList::NumInputs;
   using RefTupleT                 = typename TArgList::RefTupleType;
+  using ArgTreeRefTupleT          = typename TArgList::ArgTreeRefTupleT;
   using InputRegTupleT            = typename TArgList::InputRegTupleType;
   using OutputTupleT              = typename TArgList::OutputTupleType;
   static constexpr size_t NArgs   = TArgList::NumTypes;
@@ -321,20 +322,22 @@ protected:
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
    */
-  ImplFuncType             mFunc;
-  mutable OutputTupleT     mOutputs;
-  InputRegTupleT           mInputs;
-  mutable std::atomic_bool mIsDirty = true;
+  ImplFuncType                                                   mFunc;
+  mutable OutputTupleT                                           mOutputs;
+  InputRegTupleT                                                 mInputs;
+  mutable data::repeat::Combinations<ArgTreeRefTupleT, TArgs...> mCombinations;
+  mutable std::atomic_bool                                       mIsDirty = true;
 
   // Runs the function.
   inline void run() const
   {
-    auto trees = makeArgTreeRefTuple<TArgList>(mInputs, mOutputs);
-    auto combs = data::repeat::Combinations<decltype(trees), TArgs...>(trees);
-    do {
-      auto args = combs.current();
-      std::apply(mFunc, args);
-    } while (combs.next());
+    mCombinations.init();
+    if (mCombinations.empty()) {
+      do {
+        auto args = mCombinations.current();
+        std::apply(mFunc, args);
+      } while (mCombinations.next());
+    }
   }
 
 private:
@@ -357,6 +360,7 @@ public:
       : mFunc(std::move(fn))
       , mOutputs()
       , mInputs(inputs)
+      , mCombinations(makeArgTreeRefTuple<TArgList>(mInputs, mOutputs))
   {
     this->addSubscriber(mIsDirty);
   };

@@ -637,7 +637,6 @@ struct Combinations
 private:
   template<size_t N = 0>
   static inline void getDepthData(const TreeTupleT&          trees,
-                                  std::array<DepthT, NArgs>& treeDepths,
                                   std::array<DepthT, NArgs>& viewDepths,
                                   std::array<DepthT, NArgs>& offsets)
   {
@@ -649,40 +648,36 @@ private:
       static constexpr DepthT ArgDepth =
         (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
 
-      treeDepths[N] = std::get<N>(trees).maxDepth();
+      auto td       = std::get<N>(trees).maxDepth();
       viewDepths[N] = ArgDepth;
-      offsets[N]    = treeDepths[N] < ArgDepth ? 0 : treeDepths[N] - ArgDepth;
+      offsets[N]    = td < ArgDepth ? 0 : td - ArgDepth;
     }
 
     if constexpr (N + 1 < NArgs) {
-      getDepthData<N + 1>(trees, treeDepths, viewDepths, offsets);
+      getDepthData<N + 1>(trees, viewDepths, offsets);
     }
   }
 
   using CVTupType = typename CombiViewTuple<TreeTupleT>::Type;
   using HelperT   = CombiViewTuple<TreeTupleT>;
 
-  TreeTupleT&            mTrees;
-  std::vector<CVTupType> mViews;
-  DepthT                 mMaxOffset = 0;
+  TreeTupleT                mTrees;
+  std::array<DepthT, NArgs> mViewDepths;
+  std::vector<CVTupType>    mViews;
+  DepthT                    mMaxOffset = 0;
 
 public:
-  Combinations(TreeTupleT& trees)
+  Combinations(const TreeTupleT& trees)
       : mTrees(trees)
   {
-    static constexpr size_t NArgs = sizeof...(TArgs);
-
-    std::array<DepthT, NArgs> treeDepths;
-    std::array<DepthT, NArgs> viewDepths;
     std::array<DepthT, NArgs> offsets;
-    Combinations<TreeTupleT, TArgs...>::getDepthData(
-      trees, treeDepths, viewDepths, offsets);
+    Combinations<TreeTupleT, TArgs...>::getDepthData(trees, mViewDepths, offsets);
 
     mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
     mViews.reserve(size_t(mMaxOffset) + 1);
-
-    HelperT::init(trees, viewDepths, mMaxOffset, mViews);
   }
+
+  void init() { HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews); }
 
   bool next()
   {
@@ -702,11 +697,13 @@ public:
     return true;
   }
 
+  bool empty() const { return mViews.empty(); }
+
   std::tuple<TArgs&...> current() const
   {
     // Get the current top of the stack and create a argument tuple out of it.
     if (mViews.empty()) {
-      throw std::logic_error("The combination stack is empty");
+      throw std::logic_error("No combinations letf.");
     }
 
     return HelperT::template getArgRefs<std::tuple<TArgs&...>>(mViews.back());
