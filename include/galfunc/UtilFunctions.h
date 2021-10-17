@@ -80,6 +80,13 @@ GAL_FUNC_DECL(divf32,
               ((float, a, "First number"), (float, b, "Second number")),
               ((float, quot, "The quotient")));
 
+GAL_FUNC_DECL(series,
+              "Series of integers",
+              ((int32_t, start, "Start"),
+               (int32_t, step, "Step"),
+               (int32_t, count, "Count")),
+              (((data::WriteView<int32_t, 1>), arr, "The series of integers")));
+
 }  // namespace func
 }  // namespace gal
 

@@ -84,5 +84,10 @@ GAL_FUNC_DEFN(divf32, ((float, a), (float, b)), ((float, quot)))
   quot = a / b;
 }
 
+// GAL_FUNC_DEFN(series,
+//               ((int32_t, start), (int32_t, step), (int32_t, count)),
+//               (((data::WriteView<int32_t, 1>), arr)))
+// {}
+
 }  // namespace func
 }  // namespace gal

@@ -66,4 +66,12 @@ public:
   static const bool value = decltype(Check<std::ostream, T>(0))::value;
 };
 
+template<typename T>
+struct RemoveBraces;
+template<typename T, typename U>
+struct RemoveBraces<T(U)>
+{
+  using Type = U;
+};
+
 }  // namespace gal
