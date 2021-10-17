@@ -14,8 +14,6 @@
 #include <boost/python/scope.hpp>
 #include <boost/python/tuple.hpp>
 
-#include <galcore/Traits.h>
-#include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Converter.h>
 #include <galfunc/Data.h>
@@ -221,12 +219,20 @@ struct TypeList
 
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
+
+  template<typename U>
+  using TreeType =
+    std::conditional_t<std::is_const_v<U>,
+                       std::add_const_t<data::Tree<std::remove_const_t<U>>>,
+                       data::Tree<std::remove_const_t<U>>>;
+
+  using ArgTreeRefTupleT = std::tuple<TreeType<TArgs>&...>;
 };
 
 template<typename TArgList, size_t N>
-static typename TArgList::template Type<N>& getRef(
-  const typename TArgList::InputRegTupleType& inputs,
-  typename TArgList::OutputTupleType&         outputs)
+static typename TArgList::template TreeType<typename TArgList::template Type<N>>&
+getTreeRef(const typename TArgList::InputRegTupleType& inputs,
+           typename TArgList::OutputTupleType&         outputs)
 {
   using DType = typename TArgList::template Type<N>;
   static_assert(TypeInfo<DType>::value, "Unknown type");
@@ -241,20 +247,20 @@ static typename TArgList::template Type<N>& getRef(
 
 // For internal use only from the other function.
 template<typename TArgList, size_t... Is>
-typename TArgList::RefTupleType makeArgRefTupleInternal(
+typename TArgList::ArgTreeRefTupleT makeArgTreeRefTupleInternal(
   const typename TArgList::InputRegTupleType& inputs,
   typename TArgList::OutputTupleType&         outputs,
   std::index_sequence<Is...>)
 {
-  return std::tie(getRef<TArgList, Is>(inputs, outputs)...);
+  return std::tie(getTreeRef<TArgList, Is>(inputs, outputs)...);
 }
 
 template<typename TArgList>
-typename TArgList::RefTupleType makeArgRefTuple(
+typename TArgList::ArgTreeRefTupleT makeArgTreeRefTuple(
   const typename TArgList::InputRegTupleType& inputs,
   typename TArgList::OutputTupleType&         outputs)
 {
-  return makeArgRefTupleInternal<TArgList>(
+  return makeArgTreeRefTupleInternal<TArgList>(
     inputs, outputs, std::make_index_sequence<TArgList::NumTypes> {});
 }
 
@@ -323,9 +329,12 @@ protected:
   // Runs the function.
   inline void run() const
   {
-    // Incomplete. Get combinations of inputs and run the mFunc once for each combination.
-    // std::apply(mFunc, mArgRefs);  // Run the function.
-    throw std::logic_error("Not Implemented");
+    auto trees = makeArgTreeRefTuple<TArgList>(mInputs, mOutputs);
+    auto combs = data::repeat::Combinations<decltype(trees), TArgs...>(trees);
+    do {
+      auto args = combs.current();
+      std::apply(mFunc, args);
+    } while (combs.next());
   }
 
 private:

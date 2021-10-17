@@ -13,9 +13,10 @@
 #include <utility>
 #include <vector>
 
+#include <tbb/tbb.h>
+
 #include <galcore/Traits.h>
 #include <galcore/Types.h>
-#include <tbb/tbb.h>
 
 namespace gal {
 namespace func {
@@ -488,14 +489,16 @@ struct IsTreeTuple : public std::false_type
 template<typename TreeT, typename... TreeTs>
 struct IsTreeTuple<std::tuple<TreeT, TreeTs...>>
 {
+  using TreeCleanT = std::remove_const_t<std::remove_reference_t<TreeT>>;
   static constexpr bool value =
-    IsInstance<Tree, TreeT>::value && IsTreeTuple<std::tuple<TreeTs...>>::value;
+    IsInstance<Tree, TreeCleanT>::value && IsTreeTuple<std::tuple<TreeTs...>>::value;
 };
 
 template<typename TreeT>
 struct IsTreeTuple<std::tuple<TreeT>>
 {
-  static constexpr bool value = IsInstance<Tree, TreeT>::value;
+  using TreeCleanT            = std::remove_const_t<std::remove_reference_t<TreeT>>;
+  static constexpr bool value = IsInstance<Tree, TreeCleanT>::value;
 };
 
 template<typename T>
@@ -516,6 +519,24 @@ struct IsWriteView : public std::false_type
 template<typename T, DepthT Dim>
 struct IsWriteView<WriteView<T, Dim>> : public std::true_type
 {
+};
+
+template<typename T>
+struct ViewDimensions
+{
+  static constexpr DepthT value = 0;
+};
+
+template<typename T, DepthT Dim>
+struct ViewDimensions<WriteView<T, Dim>>
+{
+  static constexpr DepthT value = Dim;
+};
+
+template<typename T, DepthT Dim>
+struct ViewDimensions<ReadView<T, Dim>>
+{
+  static constexpr DepthT value = Dim;
 };
 
 /* Contains everything related to running the functions several times over large
@@ -543,15 +564,19 @@ template<typename... TreeTs>
 struct CombiViewTuple<std::tuple<TreeTs...>>
 {
   template<size_t N>
-  using ValueType  = typename std::tuple_element_t<N, std::tuple<TreeTs...>>::Type;
-  using Type       = std::tuple<CombiView<typename TreeTs::Type>...>;
+  using ValueType = typename std::tuple_element_t<
+    N,
+    std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>::Type;
+
+  using Type = std::tuple<
+    CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type>...>;
   using TreeTupleT = std::tuple<TreeTs...>;
 
   static constexpr size_t NTrees = sizeof...(TreeTs);
 
 private:
   template<size_t... Is>
-  static Type initInternal(const TreeTupleT&                 trees,
+  static void initInternal(const TreeTupleT&                 trees,
                            const std::array<DepthT, NTrees>& viewDepths,
                            DepthT                            offset,
                            std::vector<Type>&                dst,
@@ -570,7 +595,7 @@ public:
                    DepthT                            offset,
                    std::vector<Type>&                dst)
   {
-    initInternal(trees, viewDepths, offset, std::make_index_sequence<NTrees> {});
+    initInternal(trees, viewDepths, offset, dst, std::make_index_sequence<NTrees> {});
   }
 
   static bool tryAdvance(Type& tup)
@@ -590,12 +615,24 @@ public:
     // Incomplete.
     throw std::logic_error("Not Implemented");
   }
+
+  template<typename ArgRefTupleT>
+  static ArgRefTupleT getArgRefs(const Type& view)
+  {
+    // Incomplete.
+    throw std::logic_error("Not Implemented");
+  }
 };
 
 template<typename TreeTupleT, typename... TArgs>
 struct Combinations
 {
   static constexpr size_t NArgs = sizeof...(TArgs);
+
+  static_assert(IsInstance<std::tuple, TreeTupleT>::value,
+                "Expecting a tuple of datatrees");
+
+  static_assert(IsTreeTuple<TreeTupleT>::value);
 
 private:
   template<size_t N = 0>
@@ -610,7 +647,7 @@ private:
       static constexpr bool ArgIsWrite = IsWriteView<TArg>::value;
       // static constexpr bool   IsInput    = std::is_const_v<TArg> || ArgIsRead;
       static constexpr DepthT ArgDepth =
-        (ArgIsRead || ArgIsWrite) ? TArg::NDimensions : 0;
+        (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
 
       treeDepths[N] = std::get<N>(trees).maxDepth();
       viewDepths[N] = ArgDepth;
@@ -633,10 +670,6 @@ public:
   Combinations(TreeTupleT& trees)
       : mTrees(trees)
   {
-    static_assert(
-      IsInstance<std::tuple, TreeTupleT>::value && IsTreeTuple<TreeTupleT>::value,
-      "Expecting a tuple of datatrees");
-
     static constexpr size_t NArgs = sizeof...(TArgs);
 
     std::array<DepthT, NArgs> treeDepths;
@@ -669,13 +702,14 @@ public:
     return true;
   }
 
-  template<typename ArgTupleT>
-  ArgTupleT current() const
+  std::tuple<TArgs&...> current() const
   {
     // Get the current top of the stack and create a argument tuple out of it.
+    if (mViews.empty()) {
+      throw std::logic_error("The combination stack is empty");
+    }
 
-    // Incomplete.
-    throw std::logic_error("Not Implemented");
+    return HelperT::template getArgRefs<std::tuple<TArgs&...>>(mViews.back());
   }
 };
 
