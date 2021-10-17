@@ -548,11 +548,34 @@ struct CombiView
 {
 private:
   const Tree<T>& mTree;
+  size_t         mIndex = 0;
+  DepthT         mOffset;
 
 public:
   CombiView(const Tree<T>& tree, DepthT offset)
       : mTree(tree)
+      , mOffset(offset)
   {}
+
+  size_t index() const { return mIndex; }
+
+  DepthT offset() const { return mOffset; }
+
+  CombiView<T> child() const
+  {
+    if (mOffset == 0) {
+      throw std::logic_error("The leaf view cannot have a child view");
+    }
+    auto c   = CombiView<T>(mTree, mOffset - 1);
+    c.mIndex = mIndex;
+    return c;
+  }
+
+  bool tryAdvance()
+  {
+    // Incomplete.
+    throw std::logic_error("Not Implemented");
+  }
 };
 
 template<typename T>
@@ -589,6 +612,12 @@ private:
     }
   }
 
+  template<size_t... Is>
+  static Type goDeeperInternal(const Type& leaf, std::index_sequence<Is...>)
+  {
+    return std::make_tuple(std::get<Is>(leaf).child()...);
+  }
+
 public:
   static void init(const TreeTupleT&                 trees,
                    const std::array<DepthT, NTrees>& viewDepths,
@@ -598,22 +627,32 @@ public:
     initInternal(trees, viewDepths, offset, dst, std::make_index_sequence<NTrees> {});
   }
 
+  template<size_t N = 0>
   static bool tryAdvance(Type& tup)
   {
-    // Try to advance the tuple of views.
-    // Return true if successful, false otherwise.
+    // Try to advance the tuple of views. Its successful if at least one view can be
+    // advanced. Return true if successful, false otherwise.
+    bool current = false;
+    bool next    = false;
+    if constexpr (N < NTrees) {
+      current = std::get<N>(tup).tryAdvance();
+    }
 
-    // Incomplete.
-    throw std::logic_error("Not Implemented");
+    if constexpr (N < NTrees - 1) {
+      next = tryAdvance<N + 1>(tup);
+    }
+
+    return current || next;
   }
 
   static void goDeeper(std::vector<Type>& dst)
   {
     // Push_back another combiview tuple to dst, where each combiview has depth 1 less
     // than the corresponding view in the last elemtn of dst.
-
-    // Incomplete.
-    throw std::logic_error("Not Implemented");
+    if (dst.empty()) {
+      return;
+    }
+    goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {});
   }
 
   template<typename ArgRefTupleT>
