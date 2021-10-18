@@ -530,6 +530,11 @@ struct IsReadView<ReadView<T, Dim>> : public std::true_type
 {
 };
 
+template<typename T, DepthT Dim>
+struct IsReadView<const ReadView<T, Dim>> : public std::true_type
+{
+};
+
 template<typename T>
 struct IsWriteView : public std::false_type
 {
@@ -537,6 +542,11 @@ struct IsWriteView : public std::false_type
 
 template<typename T, DepthT Dim>
 struct IsWriteView<WriteView<T, Dim>> : public std::true_type
+{
+};
+
+template<typename T, DepthT Dim>
+struct IsWriteView<const WriteView<T, Dim>> : public std::true_type
 {
 };
 
@@ -554,6 +564,18 @@ struct UnwrapView<ReadView<T, Dim>>
 
 template<typename T, DepthT Dim>
 struct UnwrapView<WriteView<T, Dim>>
+{
+  using Type = T;
+};
+
+template<typename T, DepthT Dim>
+struct UnwrapView<const ReadView<T, Dim>>
+{
+  using Type = T;
+};
+
+template<typename T, DepthT Dim>
+struct UnwrapView<const WriteView<T, Dim>>
 {
   using Type = T;
 };

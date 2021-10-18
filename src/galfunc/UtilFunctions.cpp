@@ -92,10 +92,17 @@ GAL_FUNC_DEFN(series,
   throw std::logic_error("Not Implemented");
 }
 
-GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
-{
-  throw std::logic_error("Not Implemented");
-}
+// GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
+// {
+//   throw std::logic_error("Not Implemented");
+// }
+
+// GAL_FUNC_DEFN(combinations,
+//               (((data::ReadView<int32_t, 1>), items), (int32_t, count)),
+//               (((data::WriteView<int32_t, 2>), combs)))
+// {
+//   throw std::logic_error("Not Implemented");
+// }
 
 }  // namespace func
 }  // namespace gal

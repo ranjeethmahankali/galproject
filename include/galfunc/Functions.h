@@ -81,6 +81,8 @@ void markDirty(const Function* fn);
 template<typename T>
 struct Register
 {
+  static_assert(!data::IsReadView<T>::value && !data::IsWriteView<T>::value,
+                "Can't have registers of views.");
   const Function*      mOwner = nullptr;
   const data::Tree<T>* mData  = nullptr;
 
@@ -102,7 +104,9 @@ template<typename T>
 struct ImplFnArgType
 {
   using Type =
-    std::conditional_t<data::IsReadView<T>::value || data::IsWriteView<T>::value, T, T&>;
+    std::conditional_t<(data::IsReadView<T>::value || data::IsWriteView<T>::value),
+                       std::remove_const_t<T>,
+                       T&>;
 };
 
 /**
@@ -167,12 +171,14 @@ struct TypeList
     static_assert(NEnd <= sizeof...(Ts));
     // static_assert(NBegin < NEnd);
 
-    using T          = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
+    using T          = std::tuple_element_t<NBegin, std::tuple<Ts...>>;
     using UnwrappedT = typename data::UnwrapView<T>::Type;
     using TreeT =
       std::conditional_t<std::is_const_v<UnwrappedT>,
                          std::add_const_t<data::Tree<std::remove_const_t<UnwrappedT>>>,
                          data::Tree<std::remove_const_t<UnwrappedT>>>;
+    static_assert(!data::IsReadView<UnwrappedT>::value &&
+                  !data::IsWriteView<UnwrappedT>::value);
     using RegisterT = Register<std::remove_const_t<UnwrappedT>>;
 
     template<typename H, typename... Us>
@@ -238,8 +244,7 @@ struct TypeList
     std::add_const_t<data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>,
     data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>;
 
-  using ArgTreeRefTupleT =
-    std::tuple<TreeType<typename data::UnwrapView<TArgs>::Type>&...>;
+  using ArgTreeRefTupleT = std::tuple<TreeType<TArgs>&...>;
 };
 
 template<typename TArgList, size_t N>
@@ -284,7 +289,8 @@ boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
                                                std::index_sequence<Is...>)
 {
   return boost::python::make_tuple(
-    Register<typename std::tuple_element<Is, OutputTupleT>::type::value_type>(
+    Register<typename data::UnwrapView<
+      typename std::tuple_element<Is, OutputTupleT>::type::value_type>::Type>(
       fn, &(std::get<Is>(src)))...);
 }
 
@@ -438,9 +444,9 @@ public:
   }
 
   template<size_t N>
-  Register<typename TArgList::template Type<N + NInputs>> outputRegister()
+  Register<typename TArgList::template UnwrappedType<N + NInputs>> outputRegister()
   {
-    return Register<typename TArgList::template Type<N + NInputs>>(
+    return Register<typename TArgList::template UnwrappedType<N + NInputs>>(
       this, &(std::get<N>(mOutputs)));
   }
 };
@@ -461,7 +467,7 @@ struct TVariable : public TFunction<TVal>
                 "Cannot create variable with these arguments.");
 
   using TFirstArg    = typename std::tuple_element_t<0, std::tuple<TArgs...>>;
-  using PyOutputType = Register<TVal>;
+  using PyOutputType = Register<typename data::UnwrapView<TVal>::Type>;
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
@@ -582,10 +588,10 @@ fs::path getcontextpath();
   gal::func::ImplFnArgType<GAL_ARGD_TYPE(argTuple)>::Type GAL_ARGD_NAME(argTuple)
 // Get const refernce type from an arg-tuple without description.
 #define GAL_EXPAND_IMPL_CONST_ARG(argTuple) \
-  GAL_ARG_CONST_TYPE(argTuple) & GAL_ARG_NAME(argTuple)
+  gal::func::ImplFnArgType<GAL_ARG_CONST_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
 // Get the const reference type from an arg-tuple with description.
 #define GAL_EXPAND_IMPL_CONST_ARGD(argTuple) \
-  GAL_ARGD_CONST_TYPE(argTuple) & GAL_ARGD_NAME(argTuple)
+  gal::func::ImplFnArgType<GAL_ARGD_CONST_TYPE(argTuple)>::Type GAL_ARGD_NAME(argTuple)
 // Expand to a list of references from arg-tuples without description.
 #define GAL_EXPAND_IMPL_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_ARG, __VA_ARGS__)
 // Expand to a list of references from arg-tuples with description.
@@ -595,11 +601,13 @@ fs::path getcontextpath();
 // Expand to a list of const references from arg-tuples with description.
 #define GAL_EXPAND_IMPL_CONST_ARGSD(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARGD, __VA_ARGS__)
 // Get python register argument from an arg-tuple without description.
-#define GAL_PY_REGISTER_ARG(typeTuple) \
-  const gal::func::Register<GAL_ARG_TYPE(typeTuple)>& GAL_ARG_NAME(typeTuple)
+#define GAL_PY_REGISTER_ARG(typeTuple)                                                   \
+  const gal::func::Register<gal::func::data::UnwrapView<GAL_ARG_TYPE(typeTuple)>::Type>& \
+    GAL_ARG_NAME(typeTuple)
 // Get python register argument from an arg-tuple with description.
-#define GAL_PY_REGISTER_ARGD(typeTuple) \
-  const gal::func::Register<GAL_ARGD_TYPE(typeTuple)>& GAL_ARGD_NAME(typeTuple)
+#define GAL_PY_REGISTER_ARGD(typeTuple)                                \
+  const gal::func::Register<gal::func::data::UnwrapView<GAL_ARGD_TYPE( \
+    typeTuple)>::Type>& GAL_ARGD_NAME(typeTuple)
 // Get python argument register list from arg-tuples without descriptions.
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 // Get python argument register list from arg-tuples with descriptions.

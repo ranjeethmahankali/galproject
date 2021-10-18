@@ -92,6 +92,12 @@ GAL_FUNC_DECL(listSum,
               (((data::ReadView<int32_t, 1>), nums, "Integers to sum")),
               ((int32_t, result, "Sum of the integers")));
 
+GAL_FUNC_DECL(combintations,
+              "Combinations from a list of integers",
+              (((data::ReadView<int32_t, 1>), items, "Items to create combinations with"),
+               (int32_t, count, "The number of items in each combination.")),
+              (((data::WriteView<int32_t, 2>), combs, "The combinations as a 2d tree.")));
+
 }  // namespace func
 }  // namespace gal
 
