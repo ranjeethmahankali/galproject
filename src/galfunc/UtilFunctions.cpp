@@ -107,7 +107,14 @@ GAL_FUNC_DEFN(combinations,
               (((data::ReadView<int32_t, 1>), items), (int32_t, count)),
               (((data::WriteView<int32_t, 2>), combs)))
 {
-  throw std::logic_error("Not Implemented");
+  size_t k = size_t(count);
+  combs.reserve(gal::utils::numCombinations(items.size(), k));
+  std::vector<int32_t> comb(k);
+  gal::utils::combinations(
+    k, items.begin(), items.end(), comb.begin(), [&comb, &combs]() {
+      auto out = combs.child();
+      std::copy(comb.begin(), comb.end(), std::back_inserter(out));
+    });
 }
 
 }  // namespace func

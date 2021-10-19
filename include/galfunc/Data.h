@@ -337,7 +337,6 @@ public:
       : mTree(other.mTree)
       , mIndex(other.mIndex)
   {
-    other.releaseReadMode();
     other.mTree = nullptr;
   }
 
@@ -372,7 +371,9 @@ public:
     return *(begin() + i);
   }
 
-  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
+  size_t size() const { return mTree->mCache.offset(mIndex, Dim); }
+
+  size_t advanceIndex() const { return mIndex + size(); }
 
   bool canAdvance() const { return advanceIndex() < mTree->size(); }
 
@@ -516,6 +517,12 @@ struct WriteView : public WriteViewBase<T, Dim>
   using BaseT = WriteViewBase<T, Dim>;
 
 public:
+  WriteView(Tree<T>* treeptr)
+      : BaseT(treeptr)
+  {
+    this->setWriteMode();
+  }
+
   WriteView(Tree<T>& tree)
       : BaseT(&tree)
   {
@@ -550,7 +557,7 @@ public:
     other.mTree = nullptr;
   }
 
-  WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(*(this->mTree)); }
+  WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(this->mTree); }
 };
 
 template<typename T>
@@ -567,6 +574,13 @@ public:
   WriteView(Tree<T>& tree)
       : BaseT(&tree)
       , mStart(tree.size())
+  {
+    this->setWriteMode();
+  }
+
+  WriteView(Tree<T>* treeptr)
+      : BaseT(treeptr)
+      , mStart(treeptr->size())
   {
     this->setWriteMode();
   }
