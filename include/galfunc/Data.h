@@ -56,6 +56,9 @@ public:
       else if (depth == 0) {
         return 1;
       }
+      else if (pos >= mDepthScan.size()) {
+        throw std::out_of_range("Index out of range");
+      }
       else {
         return mOffsets[mDepthScan[pos] + depth - 1];
       }
@@ -277,64 +280,99 @@ struct ReadView
   static constexpr DepthT NDimensions = Dim;
 
 private:
-  const Tree<T>& mTree;
+  const Tree<T>* mTree;
   size_t         mIndex;
 
   void setReadMode()
   {
-    if (mTree.mAccessFlag > 0) {
+    if (!mTree) {
+      return;
+    }
+    if (mTree->mAccessFlag > 0) {
       throw std::invalid_argument(
         "Cannot create a read-view because the data-tree has at least one active "
         "write-view");
     }
-    mTree.ensureCache();
-    mTree.mAccessFlag--;
+    mTree->ensureCache();
+    mTree->mAccessFlag--;
+  }
+
+  void releaseReadMode()
+  {
+    if (mTree) {
+      mTree->mAccessFlag++;
+    }
   }
 
 public:
   ReadView(const Tree<T>& src)
-      : mTree(src)
+      : mTree(&src)
       , mIndex(0)
   {
     setReadMode();
   }
 
   ReadView(const Tree<T>& src, size_t index)
-      : mTree(src)
+      : mTree(&src)
       , mIndex(index)
   {}
 
   ReadView(Iterator<T, Dim>& iter)
-      : mTree(iter.mTree)
+      : mTree(&(iter.mTree))
       , mIndex(iter.mIndex)
   {
     setReadMode();
   }
 
-  ~ReadView() { mTree.mAccessFlag++; }
+  ReadView(const ReadView& other)
+      : mTree(other.mTree)
+      , mIndex(other.mIndex)
+  {
+    setReadMode();
+  }
 
-  ReadView(const ReadView&) = delete;
-  ReadView(ReadView&&)      = delete;
-  const ReadView& operator=(const ReadView&) = delete;
-  const ReadView& operator=(ReadView&&) = delete;
+  ReadView(ReadView&& other)
+      : mTree(other.mTree)
+      , mIndex(other.mIndex)
+  {
+    other.releaseReadMode();
+    other.mTree = nullptr;
+  }
 
-  const typename Tree<T>::InternalStorageT& storage() const { return mTree.mValues; }
+  ~ReadView() { releaseReadMode(); }
+
+  const ReadView& operator=(const ReadView& other)
+  {
+    releaseReadMode();
+    mTree  = other.mTree;
+    mIndex = other.mIndex;
+    setReadMode();
+  }
+  const ReadView& operator=(ReadView&& other)
+  {
+    releaseReadMode();
+    mTree       = other.mTree;
+    mIndex      = other.mIndex;
+    other.mTree = nullptr;
+  }
+
+  const typename Tree<T>::InternalStorageT& storage() const { return mTree->mValues; }
 
   Iterator<T, Dim - 1> end() const
   {
-    return Iterator<T, Dim - 1>(mTree, storage().size());
+    return Iterator<T, Dim - 1>(*mTree, storage().size());
   }
 
-  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(mTree, mIndex); }
+  Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(*mTree, mIndex); }
 
   typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
   {
     return *(begin() + i);
   }
 
-  size_t advanceIndex() const { return mIndex + mTree.mCache.offset(mIndex, Dim); }
+  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
 
-  bool canAdvance() const { return advanceIndex() < mTree.size(); }
+  bool canAdvance() const { return advanceIndex() < mTree->size(); }
 
   bool tryAdvance()
   {
@@ -436,46 +474,81 @@ struct WriteViewBase
   static constexpr DepthT NDimensions = Dim;
 
 protected:
-  Tree<T>& mTree;
+  Tree<T>* mTree;
 
-  WriteViewBase(Tree<T>& tree)
-      : mTree(tree)
+  void setWriteMode()
   {
-    if (mTree.mAccessFlag < 0) {
+    if (!mTree) {
+      return;
+    }
+    if (mTree->mAccessFlag < 0) {
       throw std::invalid_argument(
         "Cannot create a write-view because the data-tree has at least one active "
         "read-view.");
     }
-    mTree.queueDepth(Dim);
-    mTree.mAccessFlag++;
-    mTree.mIsCacheValid = false;
+    mTree->queueDepth(Dim);
+    mTree->mAccessFlag++;
+    mTree->mIsCacheValid = false;
   }
 
-  ~WriteViewBase()
+  void releaseWriteMode()
   {
-    mTree.unqueueDepth(Dim);
-    mTree.mAccessFlag--;
+    if (mTree) {
+      mTree->unqueueDepth(Dim);
+      mTree->mAccessFlag--;
+    }
   }
+
+  WriteViewBase(Tree<T>* tree)
+      : mTree(tree)
+  {}
 
 public:
-  void reserve(size_t n) { mTree.reserve(mTree.size() + n); }
+  void reserve(size_t n) { mTree->reserve(mTree->size() + n); }
 };
 
 template<typename T, DepthT Dim>
 struct WriteView : public WriteViewBase<T, Dim>
 {
   static_assert(Dim > 1, "Dim == 1 case requires a template specialization");
+  using BaseT = WriteViewBase<T, Dim>;
 
 public:
   WriteView(Tree<T>& tree)
-      : WriteViewBase<T, Dim>(tree) {};
+      : BaseT(&tree)
+  {
+    this->setWriteMode();
+  };
 
-  WriteView(const WriteView&) = delete;
-  WriteView(WriteView&&)      = delete;
-  const WriteView& operator=(const WriteView&) = delete;
-  const WriteView& operator=(WriteView&&) = delete;
+  WriteView(const WriteView& other)
+      : BaseT(other.mTree)
+  {
+    this->setWriteMode();
+  }
 
-  WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(this->mTree); }
+  WriteView(WriteView&& other)
+      : BaseT(other.mTree)
+  {
+    other.mTree = nullptr;
+  }
+
+  ~WriteView() { this->releaseWriteMode(); }
+
+  const WriteView& operator=(const WriteView& other)
+  {
+    this->releaseWriteMode();
+    this->mTree  = other.mTree;
+    this->mIndex = other.mIndex;
+    this->setWriteMode();
+  }
+
+  const WriteView& operator=(WriteView&& other)
+  {
+    this->mTree = other.mTree;
+    other.mTree = nullptr;
+  }
+
+  WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(*(this->mTree)); }
 };
 
 template<typename T>
@@ -487,16 +560,46 @@ private:
 public:
   using ValueType  = typename Tree<T>::value_type;
   using value_type = ValueType;
+  using BaseT      = WriteViewBase<T, 1>;
 
   WriteView(Tree<T>& tree)
-      : WriteViewBase<T, 1>(tree)
+      : BaseT(&tree)
       , mStart(tree.size())
+  {
+    this->setWriteMode();
+  }
+
+  WriteView(const WriteView<T, 1>& other)
+      : BaseT(other.mTree)
   {}
+
+  WriteView(WriteView<T, 1>&& other)
+      : BaseT(other.mTree)
+  {
+    other.mTree = nullptr;
+  }
+
+  ~WriteView() { this->releaseWriteMode(); }
+
+  const WriteView<T, 1>& operator=(const WriteView<T, 1>& other)
+  {
+    this->releaseWriteMode();
+    this->mTree  = other.mTree;
+    this->mIndex = other.mIndex;
+    this->setWriteMode();
+  }
+
+  const WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
+  {
+    this->mTree = other.mTree;
+    other.mTree = nullptr;
+  }
+
+  size_t size() const { return this->mTree->size() - mStart; }
 
   void push_back(ValueType val)
   {
-    DepthT d = mStart == this->mTree.size() ? 1 : 0;
-    this->mTree.push_back(d, std::move(val));
+    this->mTree->push_back(DepthT(size() == 0 ? 1 : 0), std::move(val));
   }
 };
 
@@ -646,13 +749,13 @@ public:
   }
 };
 
-template<typename T>
+template<size_t NInputs, typename T>
 struct CombiViewTuple
 {
 };
 
-template<typename... TreeTs>
-struct CombiViewTuple<std::tuple<TreeTs...>>
+template<size_t NInputs, typename... TreeTs>
+struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
 {
   template<size_t N>
   using ValueType = typename std::tuple_element_t<
@@ -723,17 +826,20 @@ public:
   template<size_t N = 0>
   static bool tryAdvance(Type& tup)
   {
-    // Try to advance the tuple of views. Its successful if at least one view can be
-    // advanced. Return true if successful, false otherwise.
-    bool current = false;
-    bool next    = false;
-    if constexpr (N < NTrees) {
-      current = std::get<N>(tup).tryAdvance();
+    if constexpr (N < NInputs) {
+      // Try to advance the tuple of views. Its successful if at least one view can be
+      // advanced. Return true if successful, false otherwise.
+      bool current = false;
+      bool next    = false;
+      current      = std::get<N>(tup).tryAdvance();
+      if constexpr (N < NInputs - 1) {
+        next = tryAdvance<N + 1>(tup);
+      }
+      return current || next;
     }
-    if constexpr (N < NTrees - 1) {
-      next = tryAdvance<N + 1>(tup);
+    else {
+      return false;
     }
-    return current || next;
   }
 
   static void goDeeper(std::vector<Type>& dst)
@@ -753,7 +859,7 @@ public:
   }
 };
 
-template<typename TreeTupleT, typename... TArgs>
+template<size_t NInputs, typename TreeTupleT, typename... TArgs>
 struct Combinations
 {
   static constexpr size_t NArgs = sizeof...(TArgs);
@@ -784,8 +890,8 @@ private:
     }
   }
 
-  using CVTupType = typename CombiViewTuple<TreeTupleT>::Type;
-  using HelperT   = CombiViewTuple<TreeTupleT>;
+  using HelperT   = CombiViewTuple<NInputs, TreeTupleT>;
+  using CVTupType = typename HelperT::Type;
 
   TreeTupleT                mTrees;
   std::array<DepthT, NArgs> mViewDepths;
@@ -797,7 +903,7 @@ public:
       : mTrees(trees)
   {
     std::array<DepthT, NArgs> offsets;
-    Combinations<TreeTupleT, TArgs...>::getDepthData(trees, mViewDepths, offsets);
+    getDepthData(trees, mViewDepths, offsets);
     mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
     mViews.reserve(size_t(mMaxOffset) + 1);
   }

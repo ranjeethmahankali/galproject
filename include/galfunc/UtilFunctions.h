@@ -104,4 +104,4 @@ GAL_FUNC_DECL(combintations,
 // These are all the functions exposed from this translation unit.
 #define GAL_UtilFunctions                                                           \
   absPath, mapValueToColor, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32, \
-    addf32, subf32, mulf32, divf32
+    addf32, subf32, mulf32, divf32, series

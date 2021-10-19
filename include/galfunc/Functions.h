@@ -341,11 +341,11 @@ protected:
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
    */
-  ImplFuncType                                                   mFunc;
-  mutable OutputTupleT                                           mOutputs;
-  InputRegTupleT                                                 mInputs;
-  mutable data::repeat::Combinations<ArgTreeRefTupleT, TArgs...> mCombinations;
-  mutable std::atomic_bool                                       mIsDirty = true;
+  ImplFuncType                                                            mFunc;
+  mutable OutputTupleT                                                    mOutputs;
+  InputRegTupleT                                                          mInputs;
+  mutable data::repeat::Combinations<NInputs, ArgTreeRefTupleT, TArgs...> mCombinations;
+  mutable std::atomic_bool                                                mIsDirty = true;
 
   template<size_t N = 0>
   inline void initOutputs() const

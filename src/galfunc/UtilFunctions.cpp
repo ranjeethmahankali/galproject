@@ -89,13 +89,15 @@ GAL_FUNC_DEFN(series,
               ((int32_t, start), (int32_t, step), (int32_t, count)),
               (((data::WriteView<int32_t, 1>), arr)))
 {
-  throw std::logic_error("Not Implemented");
+  for (int32_t i = 0, val = start; i < count; i++, val += step) {
+    arr.push_back(val);
+  }
 }
 
-// GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
-// {
-//   throw std::logic_error("Not Implemented");
-// }
+GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
+{
+  throw std::logic_error("Not Implemented");
+}
 
 // GAL_FUNC_DEFN(combinations,
 //               (((data::ReadView<int32_t, 1>), items), (int32_t, count)),
