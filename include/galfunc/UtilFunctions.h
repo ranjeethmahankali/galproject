@@ -80,28 +80,10 @@ GAL_FUNC_DECL(divf32,
               ((float, a, "First number"), (float, b, "Second number")),
               ((float, quot, "The quotient")));
 
-GAL_FUNC_DECL(series,
-              "Series of integers",
-              ((int32_t, start, "Start"),
-               (int32_t, step, "Step"),
-               (int32_t, count, "Count")),
-              (((data::WriteView<int32_t, 1>), arr, "The series of integers")));
-
-GAL_FUNC_DECL(listSum,
-              "Sums a list of integers",
-              (((data::ReadView<int32_t, 1>), nums, "Integers to sum")),
-              ((int32_t, result, "Sum of the integers")));
-
-GAL_FUNC_DECL(combinations,
-              "Combinations from a list of integers",
-              (((data::ReadView<int32_t, 1>), items, "Items to create combinations with"),
-               (int32_t, count, "The number of items in each combination.")),
-              (((data::WriteView<int32_t, 2>), combs, "The combinations as a 2d tree.")));
-
 }  // namespace func
 }  // namespace gal
 
 // These are all the functions exposed from this translation unit.
 #define GAL_UtilFunctions                                                           \
   absPath, mapValueToColor, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32, \
-    addf32, subf32, mulf32, divf32, series, listSum, combinations
+    addf32, subf32, mulf32, divf32

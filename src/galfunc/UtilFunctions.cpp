@@ -85,37 +85,5 @@ GAL_FUNC_DEFN(divf32, ((float, a), (float, b)), ((float, quot)))
   quot = a / b;
 }
 
-GAL_FUNC_DEFN(series,
-              ((int32_t, start), (int32_t, step), (int32_t, count)),
-              (((data::WriteView<int32_t, 1>), arr)))
-{
-  for (int32_t i = 0, val = start; i < count; i++, val += step) {
-    arr.push_back(val);
-  }
-}
-
-GAL_FUNC_DEFN(listSum, (((data::ReadView<int32_t, 1>), nums)), ((int32_t, result)))
-{
-  result = 0;
-  for (int i : nums) {
-    result += i;
-  }
-  // result = std::accumulate(nums.begin(), nums.end(), 0, std::plus<int> {});
-}
-
-GAL_FUNC_DEFN(combinations,
-              (((data::ReadView<int32_t, 1>), items), (int32_t, count)),
-              (((data::WriteView<int32_t, 2>), combs)))
-{
-  size_t k = size_t(count);
-  combs.reserve(gal::utils::numCombinations(items.size(), k));
-  std::vector<int32_t> comb(k);
-  gal::utils::combinations(
-    k, items.begin(), items.end(), comb.begin(), [&comb, &combs]() {
-      auto out = combs.child();
-      std::copy(comb.begin(), comb.end(), std::back_inserter(out));
-    });
-}
-
 }  // namespace func
 }  // namespace gal
