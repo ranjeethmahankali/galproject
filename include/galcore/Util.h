@@ -273,5 +273,47 @@ inline int bitscanReverse(T i)
   return bitscan<T, true>(i);
 }
 
+/**
+ * @brief Gets the number of combinations of a given length for a set of given size.
+ *
+ * @param n The size of the set.
+ * @param k The size of a single combination.
+ * @return size_t The total number of combinations.
+ */
+size_t numCombinations(size_t n, size_t k);
+
+/**
+ * @brief Generates all possible combinations of a given length
+ * from the given range of elements.
+ *
+ * @tparam TIter Iterator type.
+ * @tparam TOutIter Output iterator type.
+ * @tparam TCallable Callable type.
+ * @param k The number of elements in a single combination.
+ * @param begin The beginning of the range of elements.
+ * @param end The end of the range of elements.
+ * @param dst The k elements corresponding to a combination are written to this.
+ * @param notify Every time dst is populated with k elements corresponding to a single
+ * combination, this callback is called, which the caller can use to consume the
+ * combination.
+ */
+template<typename TIter, typename TOutIter, typename TCallable>
+void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallable& notify)
+{
+  if (begin == end || k == 0) {
+    return;
+  }
+
+  while (begin != end) {
+    *dst = *(begin++);
+    if (k > 1) {
+      combinations(k - 1, begin, end, dst + 1, notify);
+    }
+    else if (k == 1) {
+      notify();
+    }
+  }
+}
+
 }  // namespace utils
 }  // namespace gal
