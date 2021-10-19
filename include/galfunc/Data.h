@@ -315,7 +315,9 @@ public:
   ReadView(const Tree<T>& src, size_t index)
       : mTree(&src)
       , mIndex(index)
-  {}
+  {
+    setReadMode();
+  }
 
   ReadView(Iterator<T, Dim>& iter)
       : mTree(&(iter.mTree))
@@ -701,6 +703,12 @@ struct ViewDimensions<ReadView<T, Dim>>
   static constexpr DepthT value = Dim;
 };
 
+template<typename T, DepthT Dim>
+struct ViewDimensions<const ReadView<T, Dim>>
+{
+  static constexpr DepthT value = Dim;
+};
+
 /* Contains everything related to running the functions several times over large
  * datatrees, including tree combinatorics.*/
 namespace repeat {
@@ -829,13 +837,12 @@ public:
     if constexpr (N < NInputs) {
       // Try to advance the tuple of views. Its successful if at least one view can be
       // advanced. Return true if successful, false otherwise.
-      bool current = false;
-      bool next    = false;
-      current      = std::get<N>(tup).tryAdvance();
-      if constexpr (N < NInputs - 1) {
-        next = tryAdvance<N + 1>(tup);
+      if constexpr (N == NInputs - 1) {
+        return std::get<N>(tup).tryAdvance();
       }
-      return current || next;
+      else {
+        return std::get<N>(tup).tryAdvance() && tryAdvance<N + 1>(tup);
+      }
     }
     else {
       return false;
@@ -874,9 +881,10 @@ private:
                                   std::array<DepthT, NArgs>& offsets)
   {
     if constexpr (N < NArgs) {
-      using TArg                       = std::tuple_element_t<N, std::tuple<TArgs...>>;
-      static constexpr bool ArgIsRead  = IsReadView<TArg>::value;
-      static constexpr bool ArgIsWrite = IsWriteView<TArg>::value;
+      using TArg                      = std::tuple_element_t<N, std::tuple<TArgs...>>;
+      static constexpr bool ArgIsRead = IsReadView<std::remove_reference_t<TArg>>::value;
+      static constexpr bool ArgIsWrite =
+        IsWriteView<std::remove_reference_t<TArg>>::value;
       // static constexpr bool   IsInput    = std::is_const_v<TArg> || ArgIsRead;
       static constexpr DepthT ArgDepth =
         (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;

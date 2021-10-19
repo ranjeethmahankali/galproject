@@ -92,7 +92,7 @@ GAL_FUNC_DECL(listSum,
               (((data::ReadView<int32_t, 1>), nums, "Integers to sum")),
               ((int32_t, result, "Sum of the integers")));
 
-GAL_FUNC_DECL(combintations,
+GAL_FUNC_DECL(combinations,
               "Combinations from a list of integers",
               (((data::ReadView<int32_t, 1>), items, "Items to create combinations with"),
                (int32_t, count, "The number of items in each combination.")),
@@ -104,4 +104,4 @@ GAL_FUNC_DECL(combintations,
 // These are all the functions exposed from this translation unit.
 #define GAL_UtilFunctions                                                           \
   absPath, mapValueToColor, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32, \
-    addf32, subf32, mulf32, divf32, series
+    addf32, subf32, mulf32, divf32, series, listSum, combinations
