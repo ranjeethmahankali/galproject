@@ -1,6 +1,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/UtilFunctions.h>
+#include "galcore/Traits.h"
 
 namespace gal {
 namespace func {

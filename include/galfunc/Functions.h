@@ -109,6 +109,49 @@ struct ImplFnArgType
                        T&>;
 };
 
+template<typename T>
+struct ArgTree
+{
+  using Type = data::Tree<typename data::UnwrapView<T>::Type>;
+};
+
+template<typename T>
+struct ArgTree<const T>
+{
+  using Type = const typename ArgTree<T>::Type;
+};
+
+template<typename T>
+struct ArgTree<data::Tree<T>>
+{
+  using Type = data::Tree<T>;
+};
+
+template<typename T>
+using ArgTreeT = typename ArgTree<T>::Type;
+
+template<typename T>
+struct ArgRegister
+{
+  using Type = Register<std::remove_const_t<typename data::UnwrapView<T>::Type>>;
+};
+
+template<typename T>
+struct ArgRegister<const T>
+{
+  // Register always point to const trees, this type doesn't need to be const.
+  using Type = typename ArgRegister<T>::Type;
+};
+
+template<typename T>
+struct ArgRegister<data::Tree<T>>
+{
+  using Type = Register<std::remove_const_t<T>>;
+};
+
+template<typename T>
+using ArgRegisterT = typename ArgRegister<T>::Type;
+
 /**
  * @brief Helper template to process the variadic argument type list.
  *
@@ -173,13 +216,10 @@ struct TypeList
 
     using T          = std::tuple_element_t<NBegin, std::tuple<Ts...>>;
     using UnwrappedT = typename data::UnwrapView<T>::Type;
-    using TreeT =
-      std::conditional_t<std::is_const_v<UnwrappedT>,
-                         std::add_const_t<data::Tree<std::remove_const_t<UnwrappedT>>>,
-                         data::Tree<std::remove_const_t<UnwrappedT>>>;
     static_assert(!data::IsReadView<UnwrappedT>::value &&
                   !data::IsWriteView<UnwrappedT>::value);
-    using RegisterT = Register<std::remove_const_t<UnwrappedT>>;
+    using RegisterT = ArgRegisterT<T>;
+    using TreeT     = ArgTreeT<T>;
 
     template<typename H, typename... Us>
     using AppendedTupleT = std::conditional_t<
@@ -235,22 +275,13 @@ struct TypeList
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
 
-  template<size_t N>
-  using UnwrappedType = typename data::UnwrapView<Type<N>>::Type;
-
-  template<typename U>
-  using TreeType = std::conditional_t<
-    std::is_const_v<U>,
-    std::add_const_t<data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>,
-    data::Tree<typename data::UnwrapView<std::remove_const_t<U>>::Type>>;
-
-  using ArgTreeRefTupleT = std::tuple<TreeType<TArgs>&...>;
+  using ArgTreeRefTupleT = std::tuple<typename ArgTree<TArgs>::Type&...>;
 };
 
 template<typename TArgList, size_t N>
-static typename TArgList::template TreeType<typename TArgList::template Type<N>>&
-getTreeRef(const typename TArgList::InputRegTupleType& inputs,
-           typename TArgList::OutputTupleType&         outputs)
+static ArgTreeT<typename TArgList::template Type<N>>& getTreeRef(
+  const typename TArgList::InputRegTupleType& inputs,
+  typename TArgList::OutputTupleType&         outputs)
 {
   using DType = typename TArgList::template Type<N>;
   static_assert(TypeInfo<DType>::value, "Unknown type");
@@ -289,8 +320,7 @@ boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
                                                std::index_sequence<Is...>)
 {
   return boost::python::make_tuple(
-    Register<typename data::UnwrapView<
-      typename std::tuple_element<Is, OutputTupleT>::type::value_type>::Type>(
+    ArgRegisterT<typename std::tuple_element_t<Is, OutputTupleT>::Type>(
       fn, &(std::get<Is>(src)))...);
 }
 
@@ -334,7 +364,7 @@ struct TFunction : public Function
   using PyOutputType =
     std::conditional_t<(NOutputs > 1),
                        boost::python::tuple,
-                       Register<typename TArgList::template UnwrappedType<NInputs>>>;
+                       ArgRegisterT<typename TArgList::template Type<NInputs>>>;
 
 protected:
   /* Some fields are marked mutable because the function is considered changed only if the
@@ -435,7 +465,7 @@ public:
   PyOutputType pythonOutputRegs() const
   {
     if constexpr (NOutputs == 1) {
-      return Register<typename TArgList::template UnwrappedType<NInputs>>(
+      return ArgRegisterT<typename TArgList::template Type<NInputs>>(
         dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
     }
     else {
@@ -444,9 +474,9 @@ public:
   }
 
   template<size_t N>
-  Register<typename TArgList::template UnwrappedType<N + NInputs>> outputRegister()
+  ArgRegisterT<typename TArgList::template Type<N + NInputs>> outputRegister()
   {
-    return Register<typename TArgList::template UnwrappedType<N + NInputs>>(
+    return ArgRegisterT<typename TArgList::template Type<N + NInputs>>(
       this, &(std::get<N>(mOutputs)));
   }
 };
@@ -467,7 +497,7 @@ struct TVariable : public TFunction<TVal>
                 "Cannot create variable with these arguments.");
 
   using TFirstArg    = typename std::tuple_element_t<0, std::tuple<TArgs...>>;
-  using PyOutputType = Register<typename data::UnwrapView<TVal>::Type>;
+  using PyOutputType = ArgRegisterT<TVal>;
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
@@ -601,13 +631,11 @@ fs::path getcontextpath();
 // Expand to a list of const references from arg-tuples with description.
 #define GAL_EXPAND_IMPL_CONST_ARGSD(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARGD, __VA_ARGS__)
 // Get python register argument from an arg-tuple without description.
-#define GAL_PY_REGISTER_ARG(typeTuple)                                                   \
-  const gal::func::Register<gal::func::data::UnwrapView<GAL_ARG_TYPE(typeTuple)>::Type>& \
-    GAL_ARG_NAME(typeTuple)
+#define GAL_PY_REGISTER_ARG(typeTuple) \
+  const gal::func::ArgRegisterT<GAL_ARG_TYPE(typeTuple)>& GAL_ARG_NAME(typeTuple)
 // Get python register argument from an arg-tuple with description.
-#define GAL_PY_REGISTER_ARGD(typeTuple)                                \
-  const gal::func::Register<gal::func::data::UnwrapView<GAL_ARGD_TYPE( \
-    typeTuple)>::Type>& GAL_ARGD_NAME(typeTuple)
+#define GAL_PY_REGISTER_ARGD(typeTuple) \
+  const gal::func::ArgRegisterT<GAL_ARGD_TYPE(typeTuple)>& GAL_ARGD_NAME(typeTuple)
 // Get python argument register list from arg-tuples without descriptions.
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 // Get python argument register list from arg-tuples with descriptions.

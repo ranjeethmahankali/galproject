@@ -23,7 +23,8 @@ namespace gal {
 namespace func {
 namespace data {
 
-using DepthT = uint8_t;  // Max is 255.
+using DepthT                      = uint8_t;  // Max is 255.
+static constexpr DepthT DEPTH_MAX = UINT8_MAX;
 
 template<typename T>
 class Tree
@@ -127,6 +128,13 @@ private:
                         mQueuedDepths.end());
   }
 
+public:
+  Tree()
+      : mCache(*this)
+  {}
+
+  const Cache& cache() const { return mCache; }
+
   void ensureCache() const
   {
     if (mIsCacheValid) {
@@ -162,13 +170,6 @@ private:
 
     mIsCacheValid = true;
   }
-
-public:
-  Tree()
-      : mCache(*this)
-  {}
-
-  const Cache& cache() const { return mCache; }
 
   DepthT maxDepth() const
   {
@@ -819,8 +820,13 @@ private:
   static ArgType getArg(Type& view, const TreeTupleT& trees)
   {
     auto& v = std::get<N>(view);
-
-    if constexpr (IsReadView<ArgType>::value) {
+    if constexpr (IsInstance<data::Tree, std::remove_reference_t<ArgType>>::value) {
+      if constexpr (N < NInputs) {
+        std::get<N>(trees).ensureCache();
+      }
+      return std::get<N>(trees);
+    }
+    else if constexpr (IsReadView<ArgType>::value) {
       return ArgType(v.tree(), v.index());
     }
     else if constexpr (IsWriteView<ArgType>::value) {
@@ -899,16 +905,22 @@ private:
   {
     if constexpr (N < NArgs) {
       using TArg                      = std::tuple_element_t<N, std::tuple<TArgs...>>;
+      static constexpr bool ArgIsTree = IsInstance<Tree, TArg>::value;
       static constexpr bool ArgIsRead = IsReadView<std::remove_reference_t<TArg>>::value;
       static constexpr bool ArgIsWrite =
         IsWriteView<std::remove_reference_t<TArg>>::value;
-      // static constexpr bool   IsInput    = std::is_const_v<TArg> || ArgIsRead;
-      static constexpr DepthT ArgDepth =
-        (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
 
-      auto td       = std::get<N>(trees).maxDepth();
-      viewDepths[N] = ArgDepth;
-      offsets[N]    = td < ArgDepth ? 0 : td - ArgDepth;
+      auto td = std::get<N>(trees).maxDepth();
+      if constexpr (ArgIsTree) {
+        viewDepths[N] = td;
+        offsets[N]    = 0;
+      }
+      else {
+        static constexpr DepthT ArgDepth =
+          (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
+        viewDepths[N] = ArgDepth;
+        offsets[N]    = td < ArgDepth ? 0 : td - ArgDepth;
+      }
     }
     if constexpr (N + 1 < NArgs) {
       getDepthData<N + 1>(trees, viewDepths, offsets);
@@ -968,6 +980,11 @@ public:
 
 }  // namespace data
 }  // namespace func
+
+template<typename T>
+struct TypeInfo<func::data::Tree<T>> : public TypeInfo<T>
+{
+};
 
 template<typename T, func::data::DepthT Dim>
 struct TypeInfo<func::data::WriteView<T, Dim>> : public TypeInfo<T>

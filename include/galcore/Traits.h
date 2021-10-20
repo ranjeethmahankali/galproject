@@ -31,6 +31,11 @@ struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 {
 };
 
+template<template<typename...> typename Tem, typename... Ts>
+struct IsInstance<Tem, const Tem<Ts...>> : public std::true_type
+{
+};
+
 template<typename T>
 struct GlmVecTraits
 {
