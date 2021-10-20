@@ -38,27 +38,28 @@ GAL_FUNC_DEFN(clipMesh, ((gal::Mesh, mesh), (gal::Plane, plane)), ((gal::Mesh, c
 GAL_FUNC_DEFN(meshSphereQuery,
               ((gal::Mesh, mesh), (gal::Sphere, sphere)),
               ((gal::Mesh, resultMesh),
-               (std::vector<int32_t>, faceIndices),
+               ((data::WriteView<int32_t, 1>), faceIndices),
                (int32_t, numFaces)))
 {
+  // TODO: Refactor this to not require this vector (avoid allocation).
   std::vector<size_t> results;
   mesh.querySphere(sphere, std::back_inserter(results), gal::eMeshElement::face);
-  faceIndices.resize(results.size());
-  std::transform(results.begin(), results.end(), faceIndices.begin(), [](size_t i) {
-    return int32_t(i);
-  });
+  faceIndices.reserve(results.size());
+  std::transform(
+    results.begin(), results.end(), std::back_inserter(faceIndices), [](size_t i) {
+      return int32_t(i);
+    });
   resultMesh = mesh.extractFaces(results);
-  numFaces   = int(results.size());
+  numFaces   = int32_t(results.size());
 };
 
 GAL_FUNC_DEFN(closestPointsOnMesh,
-              ((gal::Mesh, mesh), (gal::PointCloud, inCloud)),
-              ((gal::PointCloud, outCloud)))
+              ((gal::Mesh, mesh), ((data::ReadView<glm::vec3, 1>), inCloud)),
+              (((data::WriteView<glm::vec3, 1>), outCloud)))
 {
-  outCloud.clear();
   outCloud.reserve(inCloud.size());
-  auto pbegin = inCloud.cbegin();
-  auto pend   = inCloud.cend();
+  auto pbegin = inCloud.begin();
+  auto pend   = inCloud.end();
   while (pbegin != pend) {
     outCloud.push_back(mesh.closestPoint(*(pbegin++), FLT_MAX));
   }

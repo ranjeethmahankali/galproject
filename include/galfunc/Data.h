@@ -6,6 +6,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <stdexcept>
@@ -977,3 +978,18 @@ struct TypeInfo<func::data::ReadView<T, Dim>> : public TypeInfo<T>
 };
 
 }  // namespace gal
+
+namespace std {
+
+// This lets STL know how to use the iterator with STL containers and functions.
+template<typename T>
+struct iterator_traits<gal::func::data::Iterator<T, 0>>
+{
+  using iterator_type     = T;
+  using iterator_category = std::input_iterator_tag;
+  using value_type        = T;
+  using pointer           = T*;
+  using reference         = T&;
+};
+
+}  // namespace std

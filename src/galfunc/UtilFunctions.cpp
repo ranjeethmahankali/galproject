@@ -10,21 +10,6 @@ GAL_FUNC_DEFN(absPath, ((std::string, relpath)), ((std::string, apath)))
   apath = gal::utils::absPath(relpath);
 }
 
-GAL_FUNC_DEFN(mapValueToColor,
-              ((float, value), (glm::vec2, range), (std::vector<glm::vec3>, colorScheme)),
-              ((glm::vec3, color)))
-{
-  float r = float(colorScheme.size() - 1) *
-            std::clamp((value - range[0]) / (range[1] - range[0]), 0.f, 1.f);
-
-  float  fi = std::floor(r);
-  size_t i  = size_t(fi);
-  size_t j  = size_t(std::ceil(r));
-  r -= fi;
-
-  color = colorScheme.at(i) * (1.f - r) + colorScheme.at(j) * r;
-}
-
 GAL_FUNC_DEFN(sin, ((float, x)), ((float, result)))
 {
   result = std::sin(x);
