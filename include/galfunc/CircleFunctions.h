@@ -8,7 +8,7 @@ namespace func {
 GAL_FUNC_DECL(boundingCircle,
               "Creates a bounding circle for the given points. The 3d points are "
               "flattened to 2d by removing the z-coordinate.",
-              ((gal::PointCloud, points, "Points")),
+              (((data::ReadView<glm::vec3, 1>), points, "Points")),
               ((gal::Circle2d, circle, "Bounding circle"),
                (glm::vec2, center, "Center of the circle"),
                (float, radius, "Radius of the circle")));

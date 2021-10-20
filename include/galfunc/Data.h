@@ -374,6 +374,8 @@ public:
 
   size_t size() const { return mTree->mCache.offset(mIndex, Dim); }
 
+  const T* data() const { return mTree->mValues.data() + mIndex; }
+
   size_t advanceIndex() const { return mIndex + size(); }
 
   bool canAdvance() const { return advanceIndex() < mTree->size(); }

@@ -10,11 +10,11 @@ scaled = pgf.scaleMesh(mesh, scale)
 
 box = pgf.meshBbox(scaled)
 npts = pgv.slideri32("Point count", 10, 1000, 100)
-cloud = pgf.randomPointCloudFromBox(box, npts)
+inpts = pgf.randomPointsInBox(box, npts)
 
-cloud2 = pgf.closestPointsOnMesh(scaled, cloud)
+outpts = pgf.closestPointsOnMesh(scaled, inpts)
 
 pgv.show("Box", box)
 pgv.show("Mesh", scaled)
-pgv.show("Query Points", cloud)
-pgv.show("Closest Points", cloud2)
+pgv.show("Query Points", pgf.pointCloud3d(inpts))
+pgv.show("Closest Points", pgf.pointCloud3d(outpts))

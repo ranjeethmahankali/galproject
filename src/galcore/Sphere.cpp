@@ -120,14 +120,14 @@ static void minBoundingSphereImpl(Sphere&          sp,
   }
 }
 
-Sphere Sphere::minBoundingSphere(const std::vector<glm::vec3>& points)
+Sphere Sphere::minBoundingSphere(const glm::vec3* pts, size_t npts)
 {
-  if (points.size() < 2) {
+  if (npts < 2) {
     throw "Cannot create minimum bounding sphere";
   }
 
   Sphere sp;
-  minBoundingSphereImpl(sp, points.data(), points.data() + points.size());
+  minBoundingSphereImpl(sp, pts, pts + npts);
   return sp;
 }
 

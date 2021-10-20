@@ -11,10 +11,10 @@ public:
   Circle2d() = default;
   Circle2d(const glm::vec2& center, float radius);
 
-/**
- * @brief 
- * @return const glm::vec2& 
- */
+  /**
+   * @brief
+   * @return const glm::vec2&
+   */
   const glm::vec2& center() const;
   void             center(const glm::vec2& newCenter);
   float            radius() const;
@@ -27,7 +27,29 @@ public:
                                      const glm::vec2& b,
                                      const glm::vec2& c);
   static Circle2d createFromDiameter(const glm::vec2& a, const glm::vec2& b);
-  static Circle2d minBoundingCircle(const std::vector<glm::vec2>& points);
+
+  /**
+   * @brief Computes the minimum bounding circle for the given points.
+   *
+   * @param pts Pointer to the range of points.
+   * @param npts The number of points.
+   * @return Circle2d The result.
+   */
+  static Circle2d minBoundingCircle(const glm::vec2* pts, size_t npts);
+
+  /**
+   * @brief Computes the minimum bounding circle for the given points.
+   *
+   * @tparam VectorT Container type of glm::vec2 instances. Must use contiguous storage,
+   * and have member functions data() and size().
+   * @param points The container of points.
+   * @return Circle2d result.
+   */
+  template<typename VectorT>
+  inline static Circle2d minBoundingCircle(const VectorT& points)
+  {
+    return minBoundingCircle(points.data(), points.size());
+  }
 
 private:
   glm::vec2 mCenter = {0.f, 0.f};

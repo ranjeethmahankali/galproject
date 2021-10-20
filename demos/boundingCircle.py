@@ -3,17 +3,17 @@ import pygalview as pgv
 
 pgv.set2dMode(True)
 
-minCoord = pgf.numberf32(-1.)
-maxCoord = pgf.numberf32(1.)
-zero = pgf.numberf32(0.)
+minCoord = pgf.var(-1.)
+maxCoord = pgf.var(1.)
+zero = pgf.var(0.)
 minpt = pgf.vec3(minCoord, minCoord, zero)
 maxpt = pgf.vec3(maxCoord, maxCoord, zero)
 box = pgf.box3(minpt, maxpt)
 
 npts = pgv.slideri32("Point count", 5, 50, 25)
 
-cloud = pgf.randomPointCloudFromBox(box, npts)
+cloud = pgf.randomPointsInBox(box, npts)
 circ, *_ = pgf.boundingCircle(cloud)
 
-pgv.show("cloud", cloud)
+pgv.show("cloud", pgf.pointCloud3d(cloud))
 pgv.show("circ", circ)
