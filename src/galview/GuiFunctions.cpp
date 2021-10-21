@@ -157,7 +157,7 @@ struct ShowFunc : public func::TFunction<const T, uint64_t>
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : func::TFunction<const T, uint64_t>(
-          [this, visibilityFlag](const T& obj, uint64_t& id) {
+          [visibilityFlag](const T& obj, uint64_t& id) {
             if constexpr (view::MakeDrawable<T>::value) {
               id = view::Context::get().addDrawable(obj, visibilityFlag, id);
             }
