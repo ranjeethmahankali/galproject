@@ -8,43 +8,33 @@
 namespace gal {
 namespace view {
 
-class MeshView : public Drawable
+template<>
+struct Drawable<Mesh> : public std::true_type
 {
-  friend struct MakeDrawable<gal::Mesh>;
-
-public:
-  MeshView() = default;
-  ~MeshView();
-
-  void draw() const;
-
 private:
-  MeshView(const MeshView&) = delete;
-  const MeshView& operator=(const MeshView&) = delete;
-
-  MeshView(MeshView&&) = default;
-
-  void drawInternal() const;
-
-private:
+  Box3 mBounds;
   uint mVAO   = 0;  // vertex array object.
   uint mVBO   = 0;  // vertex buffer object.
   uint mIBO   = 0;  // index buffer object.a
   uint mVSize = 0;  // vertex buffer size.
   uint mISize = 0;  // index buffer size.
-};
 
-template<>
-struct MakeDrawable<gal::Mesh> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const gal::Mesh&             mesh,
-                                       std::vector<RenderSettings>& renderSettings)
+  static RenderSettings settings()
   {
     static constexpr glm::vec4 sFaceColor = {1.f, 1.f, 1.f, 1.f};
     static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, 1.f};
+    RenderSettings             settings;
+    settings.shaderId    = Context::get().shaderId("default");
+    settings.faceColor   = sFaceColor;
+    settings.edgeColor   = sEdgeColor;
+    settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
+    settings.shaderId    = Context::get().shaderId("mesh");
+    return settings;
+  }
 
-    std::shared_ptr<MeshView> view = std::make_shared<MeshView>();
-
+public:
+  Drawable<Mesh>(const Mesh& mesh)
+  {
     // Position and Normal for each vertex.
     glutil::MeshVertexBuffer vBuf(mesh.numVertices());
     auto                     vbegin  = vBuf.begin();
@@ -53,8 +43,8 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
     for (size_t i = 0; i < nVerts; i++) {
       *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i), vColors[i]};
     }
-    view->mVSize = (uint32_t)vBuf.size();
-    view->setBounds(mesh.bounds());
+    mVSize  = (uint32_t)vBuf.size();
+    mBounds = mesh.bounds();
 
     // 3 indices per face and nothing else.
     glutil::IndexBuffer iBuf(3 * mesh.numFaces());
@@ -67,26 +57,57 @@ struct MakeDrawable<gal::Mesh> : public std::true_type
       *(dsti++)              = uint32_t(face.b);
       *(dsti++)              = uint32_t(face.c);
     }
-    view->mISize = (uint32_t)iBuf.size();
+    mISize = (uint32_t)iBuf.size();
 
-    vBuf.finalize(view->mVAO, view->mVBO);
-    iBuf.finalize(view->mIBO);
+    vBuf.finalize(mVAO, mVBO);
+    iBuf.finalize(mIBO);
+  }
 
-    // Render settings
-    RenderSettings settings;
-    settings.faceColor   = sFaceColor;
-    settings.edgeColor   = sEdgeColor;
-    settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
-    settings.shaderId    = Context::get().shaderId("mesh");
-    renderSettings.push_back(settings);
-    if (Context::get().wireframeMode()) {
-      settings.edgeColor   = {0.f, 0.f, 0.f, 1.f};
-      settings.faceColor   = {0.f, 0.f, 0.f, 1.f};
-      settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_LINE);
-      renderSettings.push_back(settings);
+  ~Drawable<Mesh>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
     }
-    return view;
-  };
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+    if (mIBO) {
+      GL_CALL(glDeleteBuffers(1, &mIBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    mIBO = std::exchange(other.mIBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  void draw() const
+  {
+    static RenderSettings rsettings = settings();
+    rsettings.apply();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
+    GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+
+    if (Context::get().wireframeMode()) {
+      rsettings.edgeColor   = {0.f, 0.f, 0.f, 1.f};
+      rsettings.faceColor   = {0.f, 0.f, 0.f, 1.f};
+      rsettings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_LINE);
+      rsettings.apply();
+      GL_CALL(glBindVertexArray(mVAO));
+      GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
+      GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+    }
+  }
 };
 
 }  // namespace view

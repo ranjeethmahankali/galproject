@@ -3673,35 +3673,21 @@ static constexpr std::array<uint32_t, 15360> sIndices = {
    2561, 2548, 2561, 2555, 640,  2560, 2559, 641,  2561, 2560, 639,  2559, 2561, 2560,
    2561, 2559}};
 
-class SphereView : public Drawable
+template<>
+struct Drawable<Sphere> : public std::true_type
 {
-  friend struct MakeDrawable<gal::Sphere>;
-
-public:
-  SphereView() = default;
-  ~SphereView();
-
-  void draw() const override;
-
 private:
-  SphereView(const SphereView&) = delete;
-  const SphereView& operator=(const SphereView&) = delete;
-
+  Box3 mBounds;
   uint mVAO   = 0;  // vertex array object.
   uint mVBO   = 0;  // vertex buffer object.
   uint mIBO   = 0;  // index buffer object.a
   uint mVSize = 0;  // vertex buffer size.
   uint mISize = 0;  // index buffer size.
-};
 
-template<>
-struct MakeDrawable<gal::Sphere> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const gal::Sphere&           sphere,
-                                       std::vector<RenderSettings>& renderSettings)
+public:
+  Drawable<Sphere>(const Sphere& sphere)
+      : mBounds(sphere.bounds())
   {
-    auto view = std::make_shared<SphereView>();
-
     // Position and Normal for each vertex.
     glutil::VertexBuffer vBuf(sVertices.size());
 
@@ -3710,26 +3696,70 @@ struct MakeDrawable<gal::Sphere> : public std::true_type
       *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
     }
 
-    view->mVSize = (uint32_t)vBuf.size();
-    view->setBounds(sphere.bounds());
+    mVSize = (uint32_t)vBuf.size();
 
     glutil::IndexBuffer iBuf(sIndices.size());
-    view->mISize = (uint32_t)iBuf.size();
+    mISize = (uint32_t)iBuf.size();
     std::copy(sIndices.begin(), sIndices.end(), iBuf.begin());
 
-    vBuf.finalize(view->mVAO, view->mVBO);
-    iBuf.finalize(view->mIBO);
+    vBuf.finalize(mVAO, mVBO);
+    iBuf.finalize(mIBO);
+  }
 
-    // Render settings.
+  ~Drawable<Sphere>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+    if (mIBO) {
+      GL_CALL(glDeleteBuffers(1, &mIBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    mIBO = std::exchange(other.mIBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  static RenderSettings settings()
+  {
     static constexpr glm::vec4 sFaceColor = {.5f, 1.f, .5f, .5f};
     static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, .5f};
     RenderSettings             settings;
+    settings.shaderId      = Context::get().shaderId("default");
     settings.faceColor     = sFaceColor;
     settings.edgeColor     = sEdgeColor;
     settings.shadingFactor = 0.9f;
-    renderSettings.push_back(settings);
-    return view;
-  };
+    return settings;
+  }
+
+  Box3 bounds() const { return mBounds; }
+
+  void draw() const
+  {
+    static auto rsettings = settings();
+    rsettings.apply();
+
+    GL_CALL(glEnable(GL_CULL_FACE));
+    GL_CALL(glCullFace(GL_BACK));
+    GL_CALL(glFrontFace(GL_CW));
+
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
+    GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+
+    GL_CALL(glDisable(GL_CULL_FACE));
+  }
 };
 
 }  // namespace view

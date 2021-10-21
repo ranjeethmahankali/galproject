@@ -6,59 +6,117 @@
 namespace gal {
 namespace view {
 
-class LineView : public Drawable
+template<>
+struct Drawable<Line2d> : public std::true_type
 {
-  friend struct MakeDrawable<Line3d>;
-
-public:
-  LineView() = default;
-  ~LineView();
-
-  void draw() const override;
-
 private:
+  Box3     mBounds;
   uint32_t mVAO   = 0;
   uint32_t mVBO   = 0;
   uint32_t mVSize = 0;
+
+public:
+  Drawable<Line2d>(const Line2d& line)
+      : mBounds(line.bounds())
+  {
+    static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
+    glutil::VertexBuffer       vBuf(2);
+    vBuf[0] = {glm::vec3(line.mStart, 0.f), sZero};
+    vBuf[1] = {glm::vec3(line.mEnd, 0.f), sZero};
+    mVSize  = 2;
+    vBuf.finalize(mVAO, mVBO);
+  }
+
+  ~Drawable<Line2d>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  static RenderSettings settings()
+  {
+    static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
+    RenderSettings             settings;
+    settings.shaderId      = Context::get().shaderId("default");
+    settings.faceColor     = sLineColor;
+    settings.edgeColor     = sLineColor;
+    settings.shadingFactor = 0.f;
+    return settings;
+  }
+
+  void draw() const
+  {
+    static auto rsettings = settings();
+    rsettings.apply();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_LINES, 0, mVSize));
+  }
 };
 
 template<>
-struct MakeDrawable<Line3d> : public std::true_type
+struct Drawable<Line3d> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const Line3d&                line,
-                                       std::vector<RenderSettings>& renderSettings)
+private:
+  Box3     mBounds;
+  uint32_t mVAO   = 0;
+  uint32_t mVBO   = 0;
+  uint32_t mVSize = 0;
+
+public:
+  Drawable<Line3d>(const Line3d& line)
+      : mBounds(line.bounds())
   {
     static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
     glutil::VertexBuffer       vBuf(2);
     vBuf[0] = {line.mStart, sZero};
     vBuf[1] = {line.mEnd, sZero};
+    mVSize  = 2;
+    vBuf.finalize(mVAO, mVBO);
+  }
 
-    auto view = std::make_shared<LineView>();
-    view->setBounds(Box3(line.bounds()));
-    view->mVSize = 2;
-    vBuf.finalize(view->mVAO, view->mVBO);
+  ~Drawable<Line3d>()
+  {
+    GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    GL_CALL(glDeleteBuffers(1, &mVBO));
+  }
 
-    // Render settings.
+  static RenderSettings settings()
+  {
     static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
     RenderSettings             settings;
     settings.faceColor     = sLineColor;
     settings.edgeColor     = sLineColor;
     settings.shadingFactor = 0.f;
-    renderSettings.push_back(settings);
-
-    return view;
+    return settings;
   }
-};
 
-template<>
-struct MakeDrawable<Line2d> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const Line2d&                line,
-                                       std::vector<RenderSettings>& renderSettings)
+  Box3 bounds() const { return mBounds; }
+
+  void draw() const
   {
-    return MakeDrawable<Line3d>::get(Line3d {glm::vec3(line.mStart.x, line.mStart.y, 0.f),
-                                             glm::vec3(line.mEnd.x, line.mEnd.y, 0.f)},
-                                     renderSettings);
+    static auto rsettings = settings();
+    rsettings.apply();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_LINES, 0, mVSize));
   }
 };
 

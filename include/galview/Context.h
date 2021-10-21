@@ -31,33 +31,9 @@ struct RenderSettings
   size_t opacityScore() const;
 };
 
-class Drawable
-{
-public:
-  Drawable()          = default;
-  virtual ~Drawable() = default;
-
-  virtual void draw() const = 0;
-  virtual bool opaque() const;
-  const Box3&  bounds() const;
-
-protected:
-  void setBounds(const Box3& bounds);
-
-private:
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-  Drawable(Drawable&&)                       = default;
-
-  Box3 mBounds;
-};
-
-// Template specialization needed.
 template<typename T>
-struct MakeDrawable : public std::false_type
+struct Drawable : public std::false_type
 {
-  static std::shared_ptr<Drawable> get(const T&                     geom,
-                                       std::vector<RenderSettings>& renderSettings);
 };
 
 class Context
@@ -82,21 +58,6 @@ class Context
   };
 
 public:
-  struct RenderData
-  {
-    std::shared_ptr<Drawable> drawable;
-    RenderSettings            settings;
-    /**
-     * @brief Before drawing the drawable, the boolean value stored at this pointer will
-     * be checked. The drawable will be drawn only if it is set to true.
-     * Who ever created this drawable is responsible for the lifetime of this boolean
-     * pointer.
-     */
-    const bool* visibilityFlag;
-
-    bool isVisible() const;
-  };
-
   static Context& get();
 
   static void registerCallbacks(GLFWwindow* window);
@@ -139,20 +100,15 @@ public:
 
   void useShader(size_t shaderId);
 
-  void render() const;
-
 private:
   Context();
 
   std::vector<Shader> mShaders;
 
-  std::vector<RenderData> mDrawables;
-  std::vector<size_t>     mRenderOrder;
-
   glm::mat4 mProj;
   glm::mat4 mView;
 
-  int32_t mShaderIndex = -1;
+  size_t mShaderIndex = SIZE_MAX;
 
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
@@ -165,45 +121,6 @@ private:
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
-
-public:
-  /**
-   * @brief Removes the drawable object from the scene.
-   *
-   * @param id The id of the object to be removed.
-   */
-  void removeDrawable(size_t id);
-
-  /**
-   * @brief Adds a drawable object to the scene.
-   * The render data (tessellations) are generated for the object and added to the scene.
-   * MakeDrawable template is used to generate the render data so the object must
-   * specialize that template.
-   * @tparam T The type of the object.
-   * @param val The object.
-   * @param oldId This optional parameter can be used replace an old drawable object with
-   * the new one. The old rendered object will be removed from the scene.
-   * @return size_t The id of the render data added. This can be used later to
-   * replace the object, or to delete the object from the scene.
-   */
-  template<typename T>
-  size_t addDrawable(const T& val, const bool* visibility, size_t oldId = 0)
-  {
-    removeDrawable(oldId);  // This only deletes the old id if it is valid.
-    static_assert(MakeDrawable<T>::value, "This is not a drawable type");
-    std::vector<RenderSettings> settings;
-    auto                        drawable = MakeDrawable<T>::get(val, settings);
-    for (const auto& s : settings) {
-      mDrawables.push_back({drawable, s, visibility});
-    }
-    std::sort(
-      mDrawables.begin(), mDrawables.end(), [](const RenderData& a, const RenderData& b) {
-        return a.settings.opacityScore() > b.settings.opacityScore();
-      });
-    return size_t(drawable.get());
-  };
-
-  void clearDrawables();
 };
 
 }  // namespace view

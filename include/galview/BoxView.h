@@ -4,32 +4,20 @@
 namespace gal {
 namespace view {
 
-class BoxView : public Drawable
+template<>
+struct Drawable<Box3> : public std::true_type
 {
-  friend struct MakeDrawable<gal::Box3>;
-
-public:
-  BoxView() = default;
-  ~BoxView();
-
-  void draw() const override;
-
 private:
-  BoxView(const BoxView&) = delete;
-  const BoxView& operator=(const BoxView&) = delete;
-
+  Box3 mBounds;
   uint mVAO   = 0;  // vertex array object.
   uint mVBO   = 0;  // vertex buffer object.
   uint mIBO   = 0;  // index buffer object.a
   uint mVSize = 0;  // vertex buffer size.
   uint mISize = 0;  // index buffer size.
-};
 
-template<>
-struct MakeDrawable<gal::Box3> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const gal::Box3&             box,
-                                       std::vector<RenderSettings>& renderSettings)
+public:
+  Drawable<Box3>(const Box3& box)
+      : mBounds(box)
   {
     glutil::VertexBuffer vBuf(8);
 
@@ -50,21 +38,57 @@ struct MakeDrawable<gal::Box3> : public std::true_type
     glutil::IndexBuffer iBuf(sIBuf.size());
     std::copy(sIBuf.begin(), sIBuf.end(), iBuf.begin());
 
-    auto view = std::make_shared<BoxView>();
-    view->setBounds(box);
-    view->mVSize = (uint32_t)vBuf.size();
-    view->mISize = (uint32_t)iBuf.size();
-    vBuf.finalize(view->mVAO, view->mVBO);
-    iBuf.finalize(view->mIBO);
+    mVSize = (uint32_t)vBuf.size();
+    mISize = (uint32_t)iBuf.size();
+    vBuf.finalize(mVAO, mVBO);
+    iBuf.finalize(mIBO);
+  }
 
-    // Render settings.
+  ~Drawable<Box3>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+    if (mIBO) {
+      GL_CALL(glDeleteBuffers(1, &mIBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    mIBO = std::exchange(other.mIBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  static RenderSettings settings()
+  {
     static constexpr glm::vec4 sLineColor = {1.0, 1.0, 1.0, 1.0};
     RenderSettings             settings;
+    settings.shaderId      = Context::get().shaderId("default");
     settings.faceColor     = sLineColor;
     settings.edgeColor     = sLineColor;
     settings.shadingFactor = 0.0f;
-    renderSettings.push_back(settings);
-    return view;
+    return settings;
+  }
+
+  void draw() const
+  {
+    static auto rsettings = settings();
+    rsettings.apply();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
+    GL_CALL(glDrawElements(GL_LINES, mISize, GL_UNSIGNED_INT, nullptr));
   }
 };
 

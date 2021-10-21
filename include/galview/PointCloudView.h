@@ -4,30 +4,19 @@
 
 namespace gal {
 namespace view {
-class PointCloudView : public Drawable
+
+template<>
+struct Drawable<PointCloud> : public std::true_type
 {
-  friend struct MakeDrawable<PointCloud>;
-
-public:
-  PointCloudView() = default;
-  ~PointCloudView();
-
-  void draw() const override;
-
 private:
-  PointCloudView(const PointCloudView&) = delete;
-  const PointCloudView& operator=(const PointCloudView&) = delete;
-
+  Box3     mBounds;
   uint32_t mVAO   = 0;
   uint32_t mVBO   = 0;
   uint32_t mVSize = 0;
-};
 
-template<>
-struct MakeDrawable<PointCloud> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const PointCloud&            cloud,
-                                       std::vector<RenderSettings>& renderSettings)
+public:
+  Drawable<PointCloud>(const PointCloud& cloud)
+      : mBounds(cloud.bounds())
   {
     glutil::VertexBuffer vBuf(cloud.size());
     std::transform(
@@ -35,21 +24,51 @@ struct MakeDrawable<PointCloud> : public std::true_type
       cloud.cend(),
       vBuf.begin(),
       [](const glm::vec3& pt) -> glutil::VertexBuffer::VertexType { return {pt}; });
+    mVSize = vBuf.size();
+    vBuf.finalize(mVAO, mVBO);
+  }
 
-    auto view    = std::make_shared<PointCloudView>();
-    view->mVSize = vBuf.size();
-    view->setBounds(cloud.bounds());
+  ~Drawable<PointCloud>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+  }
 
-    vBuf.finalize(view->mVAO, view->mVBO);
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
 
-    // Render Settings.
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  static RenderSettings settings()
+  {
     static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
     RenderSettings             settings;
+    settings.shaderId   = Context::get().shaderId("default");
     settings.pointColor = sPointColor;
     settings.pointMode  = true;
-    renderSettings.push_back(settings);
-    return view;
-  };
+    return settings;
+  }
+
+  void draw() const
+  {
+    static auto rsettings = settings();
+    rsettings.apply();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_POINTS, 0, mVSize));
+  }
 };
 
 }  // namespace view

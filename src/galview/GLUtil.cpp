@@ -9,7 +9,7 @@ bool log_errors(const char* function, const char* file, uint line)
   static bool found_error = false;
   while (GLenum error = glGetError()) {
     std::cout << "[OpenGL Error] (0x" << std::hex << error << std::dec << ")";
-#ifdef _DEBUG
+#ifndef NDEBUG
     std::cout << " in " << function << " at " << file << ":" << line;
 #endif  // NDEBUG
     std::cout << std::endl;

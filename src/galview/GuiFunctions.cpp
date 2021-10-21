@@ -4,10 +4,10 @@
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/TypeHelper.h>
-#include <galview/AllViews.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Views.h>
 #include <galview/Widget.h>
 #include <cstdint>
 #include <iostream>
@@ -158,8 +158,8 @@ struct ShowFunc : public func::TFunction<const T, uint64_t>
            const func::Register<T>& reg)
       : func::TFunction<const T, uint64_t>(
           [visibilityFlag](const T& obj, uint64_t& id) {
-            if constexpr (view::MakeDrawable<T>::value) {
-              id = view::Context::get().addDrawable(obj, visibilityFlag, id);
+            if constexpr (view::Drawable<T>::value) {
+              id = view::Views::add(obj, visibilityFlag, id);
             }
             else {
               std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";

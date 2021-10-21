@@ -1,3 +1,6 @@
+#include <fstream>
+#include <sstream>
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -5,11 +8,10 @@
 #include <galcore/Mesh.h>
 #include <galcore/Util.h>
 #include <galview/Context.h>
-#include <fstream>
+#include <galview/Views.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-#include <sstream>
 
 namespace gal {
 namespace view {
@@ -43,26 +45,6 @@ size_t RenderSettings::opacityScore() const
   return score;
 };
 
-bool Context::RenderData::isVisible() const
-{
-  return visibilityFlag == nullptr ? false : *visibilityFlag;
-}
-
-bool Drawable::opaque() const
-{
-  return true;  // Everything is assumed to be opaque by default, unless overriden.
-}
-
-void Drawable::setBounds(const Box3& bounds)
-{
-  mBounds = bounds;
-}
-
-const Box3& Drawable::bounds() const
-{
-  return mBounds;
-}
-
 static bool       sRightDown  = false;
 static bool       sLeftDown   = false;
 static glm::dvec2 sMousePos   = {0.0f, 0.0f};
@@ -86,14 +68,7 @@ void Context::cameraChanged()
 
 void Context::zoomExtents()
 {
-  Box3 bounds;
-  for (auto& d : mDrawables) {
-    if (d.isVisible()) {
-      const Box3& b = d.drawable->bounds();
-      bounds.inflate(b.min);
-      bounds.inflate(b.max);
-    }
-  }
+  auto bounds = Views::visibleBounds();
   if (!bounds.valid())
     return;
   glm::vec3 target = bounds.center();
@@ -445,38 +420,5 @@ Context::Shader::~Shader()
 {
   GL_CALL(glDeleteProgram(mId));
 };
-
-void Context::render() const
-{
-  for (const auto& data : mDrawables) {
-    if (!data.isVisible()) {
-      continue;
-    }
-    data.settings.apply();
-    data.drawable->draw();
-  }
-};
-
-void Context::removeDrawable(size_t id)
-{
-  for (size_t i = 0; i < mDrawables.size(); i++) {
-    auto& data = mDrawables.at(i);
-    if (size_t(data.drawable.get()) == id) {
-      data.drawable = nullptr;
-    }
-  }
-
-  mDrawables.erase(
-    std::remove_if(mDrawables.begin(),
-                   mDrawables.end(),
-                   [](const RenderData& data) { return data.drawable.get() == nullptr; }),
-    mDrawables.end());
-}
-
-void Context::clearDrawables()
-{
-  mDrawables.clear();
-}
-
 }  // namespace view
 }  // namespace gal
