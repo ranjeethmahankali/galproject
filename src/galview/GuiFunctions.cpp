@@ -204,27 +204,25 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc : public func::TFunction<const T, uint8_t>, public view::Text
+struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
+                   public view::Text
 {
-  using PyOutputType = typename func::TFunction<const T, uint8_t>::PyOutputType;
+  using BaseT        = func::TFunction<const func::data::Tree<T>, uint8_t>;
+  using PyOutputType = typename BaseT::PyOutputType;
+
   std::string       mLabel;
   std::stringstream mStream;
 
   PrintFunc(const std::string& label, const func::Register<T>& reg)
       : mLabel(label)
       , view::Text("")
-      , func::TFunction<const T, uint8_t>(
-          [this](const T& obj, uint8_t& success) {
-            if constexpr (IsPrintable<T>::value) {
-              mStream.clear();
-              mStream.str("");
-              mStream << mLabel << ": " << obj;
-              this->mValue = mStream.str();
-              success      = 1;
-            }
-            else {
-              std::cerr << TypeInfo<T>::name() << " object";
-            }
+      , BaseT(
+          [this](const func::data::Tree<T>& obj, uint8_t& success) {
+            mStream.clear();
+            mStream.str("");
+            mStream << mLabel << ": \n" << obj;
+            this->mValue = mStream.str();
+            success      = 1;
           },
           std::make_tuple(reg)) {};
 

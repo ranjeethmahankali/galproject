@@ -17,3 +17,4 @@ circ, *_ = pgf.boundingCircle(cloud)
 
 pgv.show("cloud", pgf.pointCloud3d(cloud))
 pgv.show("circ", circ)
+pgv.print("Circle", circ)
