@@ -18,25 +18,33 @@ private:
   uint mVSize = 0;  // vertex buffer size.
 
 public:
-  Drawable<Plane>(const Plane& plane)
+  Drawable<Plane>(const std::vector<Plane>& planes)
   {
     static constexpr float sHalfSize = 2.0f;
-    glm::vec3              x = plane.xaxis(), y = plane.yaxis();
+    glutil::VertexBuffer   vBuf(6 * planes.size());
+    auto                   vbegin = vBuf.begin();
 
-    glutil::VertexBuffer vBuf(4);
-    auto                 vbegin = vBuf.begin();
-    *(vbegin++) = {plane.origin() - (x * sHalfSize) - (y * sHalfSize), plane.normal()};
-    *(vbegin++) = {plane.origin() + (x * sHalfSize) - (y * sHalfSize), plane.normal()};
-    *(vbegin++) = {plane.origin() - (x * sHalfSize) + (y * sHalfSize), plane.normal()};
-    *(vbegin++) = {plane.origin() + (x * sHalfSize) + (y * sHalfSize), plane.normal()};
-    mVSize      = vBuf.size();
+    for (const auto& plane : planes) {
+      glm::vec3             x = plane.xaxis(), y = plane.yaxis();
+      glutil::DefaultVertex a = {plane.origin() - (x * sHalfSize) - (y * sHalfSize),
+                                 plane.normal()};
+      glutil::DefaultVertex b = {plane.origin() + (x * sHalfSize) + (y * sHalfSize),
+                                 plane.normal()};
 
-    vbegin = vBuf.begin();
-    while (vbegin != vBuf.end()) {
-      mBounds.inflate(vbegin->position);
-      vbegin++;
+      *(vbegin++) = a;
+      *(vbegin++) = {plane.origin() + (x * sHalfSize) - (y * sHalfSize), plane.normal()};
+      *(vbegin++) = b;
+
+      *(vbegin++) = a;
+      *(vbegin++) = b;
+      *(vbegin++) = {plane.origin() - (x * sHalfSize) + (y * sHalfSize), plane.normal()};
     }
 
+    for (const auto& v : vBuf) {
+      mBounds.inflate(v.position);
+    }
+
+    mVSize = vBuf.size();
     vBuf.finalize(mVAO, mVBO);
   }
 
@@ -65,8 +73,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx =
-      uint64_t(0x00ffff) | (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
+    static const uint64_t sIdx = (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
     return sIdx;
   }
 
@@ -88,7 +95,7 @@ public:
     rsettings.apply();
     GL_CALL(glBindVertexArray(mVAO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, mVSize));
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
   }
 };
 

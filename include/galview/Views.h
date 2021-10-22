@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #include <galview/MeshView.h>
 #include <galview/PlaneView.h>
 #include <galview/PointCloudView.h>
+#include <galview/PointView.h>
 #include <galview/SphereView.h>
 
 namespace gal {
@@ -43,6 +45,7 @@ using ViewManager = TViewManager<TextAnnotations,
                                  Line2d,
                                  Line3d,
                                  Mesh,
+                                 glm::vec3,
                                  Plane,
                                  PointCloud,
                                  Sphere>;
@@ -68,11 +71,13 @@ private:
 
 public:
   template<typename T>
-  static size_t add(const T& obj, const bool* visibility, size_t oldId = 0)
+  static size_t add(const std::vector<SafeInstanceType<T>>& objs,
+                    const bool*                             visibility,
+                    size_t                                  oldId = 0)
   {
     if constexpr (Drawable<T>::value && ViewManager::IsManagedType<T>) {
       remove(oldId);
-      return addInternal(Drawable<T>(obj), visibility);
+      return addInternal(Drawable<T>(objs), visibility);
     }
     else {
       return 0;

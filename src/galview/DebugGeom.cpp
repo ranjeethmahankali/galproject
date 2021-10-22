@@ -133,8 +133,8 @@ struct WatchManager
       if (typeId == TypeInfo<T>::id) {
         if constexpr (view::Drawable<T>::value) {
           auto checkBox = outputsPanel().newWidget<view::CheckBox>(geomKey, true);
-          drawId =
-            view::Views::add(Serial<T>::deserialize(bytes), checkBox->checkedPtr());
+          drawId = view::Views::add<T>(std::vector<T> {Serial<T>::deserialize(bytes)},
+                                       checkBox->checkedPtr());
           widget = checkBox;
         }
         else {

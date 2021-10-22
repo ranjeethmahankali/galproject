@@ -43,6 +43,8 @@ struct Drawable<Annotations<std::string>> : public std::true_type
 {
   static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
+  using AnnotationsT = SafeInstanceType<Annotations<std::string>>;
+
 private:
   Box3     mBounds;
   uint32_t mVAO;
@@ -50,39 +52,45 @@ private:
   uint32_t mVSize;
 
 public:
-  Drawable(const Annotations<std::string>& tags)
+  Drawable(const std::vector<AnnotationsT>& tags)
   {
-    AnnotationVertBuffer vBuf(
-      6 * std::accumulate(tags.begin(),
-                          tags.end(),
-                          0ULL,
-                          [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
-                            return total + tag.second.size();
-                          }));
+    AnnotationVertBuffer vBuf(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total0, const AnnotationsT& t) {
+        return total0 +
+               6 * std::accumulate(
+                     t.begin(),
+                     t.end(),
+                     size_t(0),
+                     [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
+                       return total + tag.second.size();
+                     });
+      }));
 
     auto vbegin = vBuf.begin();
-    for (const auto& tag : tags) {
-      float x = 0.f;
-      float y = 0.f;
-      mBounds.inflate(tag.first);
-      for (char c : tag.second) {
-        const auto& b    = charbearing(c);
-        const auto& s    = charsize(c);
-        const auto& a    = charadvance(c);
-        const auto& tc   = chartexcoords(c);
-        float       xpos = x + (float(b.x) / 1920.f);
-        float       ypos = y - (float(s.y - b.y) / 1080.f);
-        float       w    = float(s.x) / 1920.f;
-        float       h    = float(s.y) / 1080.f;
+    for (const auto& ann : tags) {
+      for (const auto& tag : ann) {
+        float x = 0.f;
+        float y = 0.f;
+        mBounds.inflate(tag.first);
+        for (char c : tag.second) {
+          const auto& b    = charbearing(c);
+          const auto& s    = charsize(c);
+          const auto& a    = charadvance(c);
+          const auto& tc   = chartexcoords(c);
+          float       xpos = x + (float(b.x) / 1920.f);
+          float       ypos = y - (float(s.y - b.y) / 1080.f);
+          float       w    = float(s.x) / 1920.f;
+          float       h    = float(s.y) / 1080.f;
 
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[2], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[2], tc[1]}};
 
-        x += float(a >> 6) / 1920.f;
+          x += float(a >> 6) / 1920.f;
+        }
       }
     }
 
@@ -117,8 +125,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx =
-      uint64_t(0xffff00) | uint64_t((1.f - sPointColor.a) * 255.f);
+    static const uint64_t sIdx = uint64_t((1.f - sPointColor.a) * 255.f);
     return sIdx;
   }
 
@@ -147,6 +154,8 @@ class Drawable<Annotations<Glyph>> : public std::true_type
 {
   static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
+  using AnnotationsT = SafeInstanceType<Annotations<Glyph>>;
+
 private:
   Box3     mBounds;
   uint32_t mVAO;
@@ -154,25 +163,30 @@ private:
   uint32_t mVSize;
 
 public:
-  Drawable(const Annotations<Glyph>& tags)
+  Drawable(const std::vector<AnnotationsT>& tags)
   {
-    AnnotationVertBuffer vBuf(6 * tags.size());
+    AnnotationVertBuffer vBuf(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total, const AnnotationsT& t) {
+        return total + 6 * t.size();
+      }));
 
     auto vbegin = vBuf.begin();
-    for (const auto& tag : tags) {
-      float x = 0.f;
-      float y = 0.f;
-      mBounds.inflate(tag.first);
-      const auto& tc    = glyphtexcoords(tag.second.mIndex);
-      auto        isize = glyphSize(tag.second.mIndex);
-      glm::vec2   size  = {float(isize.x) / 1920.f, float(isize.y) / 1080.f};
+    for (const auto& ann : tags) {
+      for (const auto& tag : ann) {
+        float x = 0.f;
+        float y = 0.f;
+        mBounds.inflate(tag.first);
+        const auto& tc    = glyphtexcoords(tag.second.mIndex);
+        auto        isize = glyphSize(tag.second.mIndex);
+        glm::vec2   size  = {float(isize.x) / 1920.f, float(isize.y) / 1080.f};
 
-      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
-      *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
-      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
-      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
-      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
-      *(vbegin++) = {tag.first, size, {tc[2], tc[1]}};
+        *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
+        *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, size, {tc[2], tc[1]}};
+      }
     }
 
     mVSize = vBuf.size();
@@ -204,8 +218,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx =
-      uint64_t(0xffff00) | uint64_t((1.f - sPointColor.a) * 255.f);
+    static const uint64_t sIdx = uint64_t((1.f - sPointColor.a) * 255.f);
     return sIdx;
   }
 

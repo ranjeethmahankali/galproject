@@ -7,7 +7,7 @@ namespace gal {
 namespace view {
 
 template<>
-struct Drawable<PointCloud> : public std::true_type
+struct Drawable<glm::vec3> : public std::true_type
 {
   static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
@@ -18,27 +18,25 @@ private:
   uint32_t mVSize = 0;
 
 public:
-  Drawable<PointCloud>(const std::vector<PointCloud>& clouds)
+  Drawable<glm::vec3>(const std::vector<glm::vec3>& points)
   {
-    glutil::VertexBuffer vBuf(std::accumulate(
-      clouds.begin(), clouds.end(), size_t(0), [](size_t total, const PointCloud& cloud) {
-        return total + cloud.size();
-      }));
+    glutil::VertexBuffer vBuf(points.size());
 
-    for (const auto& cloud : clouds) {
-      std::transform(
-        cloud.cbegin(),
-        cloud.cend(),
-        vBuf.begin(),
-        [](const glm::vec3& pt) -> glutil::VertexBuffer::VertexType { return {pt}; });
-      mBounds.inflate(cloud.bounds());
+    std::transform(
+      points.cbegin(),
+      points.cend(),
+      vBuf.begin(),
+      [](const glm::vec3& pt) -> glutil::VertexBuffer::VertexType { return {pt}; });
+
+    for (const auto& pt : points) {
+      mBounds.inflate(pt);
     }
 
     mVSize = vBuf.size();
     vBuf.finalize(mVAO, mVBO);
   }
 
-  ~Drawable<PointCloud>()
+  ~Drawable<glm::vec3>()
   {
     if (mVAO) {
       GL_CALL(glDeleteVertexArrays(1, &mVAO));

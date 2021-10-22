@@ -45,6 +45,12 @@ void Box3::inflate(const glm::vec3& pt)
   max = max_coords(pt, max);
 }
 
+void Box3::inflate(const Box3& b)
+{
+  inflate(b.min);
+  inflate(b.max);
+}
+
 void Box3::inflate(float d)
 {
   glm::vec3 v(d, d, d);

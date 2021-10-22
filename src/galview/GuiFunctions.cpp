@@ -148,18 +148,19 @@ int32_t py_glyphIndex(const std::string& str)
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc : public func::TFunction<const T, uint64_t>
+struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using PyOutputType = typename func::TFunction<const T, uint64_t>::PyOutputType;
+  using BaseT        = func::TFunction<const func::data::Tree<T>, uint64_t>;
+  using PyOutputType = typename BaseT::PyOutputType;
 
   ShowFunc(const std::string&       label,
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
-      : func::TFunction<const T, uint64_t>(
-          [visibilityFlag](const T& obj, uint64_t& id) {
+      : BaseT(
+          [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
             if constexpr (view::Drawable<T>::value) {
-              id = view::Views::add(obj, visibilityFlag, id);
+              id = view::Views::add<T>(objs.values(), visibilityFlag, id);
             }
             else {
               std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";

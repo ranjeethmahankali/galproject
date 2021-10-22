@@ -4,6 +4,7 @@
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <array>
+#include <numeric>
 
 namespace gal {
 namespace view {
@@ -23,30 +24,42 @@ private:
   uint mISize = 0;  // index buffer size.
 
 public:
-  Drawable<Mesh>(const Mesh& mesh)
+  Drawable<Mesh>(const std::vector<Mesh>& meshes)
   {
     // Position and Normal for each vertex.
-    glutil::MeshVertexBuffer vBuf(mesh.numVertices());
-    auto                     vbegin  = vBuf.begin();
-    size_t                   nVerts  = mesh.numVertices();
-    const auto&              vColors = mesh.vertexColors();
-    for (size_t i = 0; i < nVerts; i++) {
-      *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i), vColors[i]};
-    }
-    mVSize  = (uint32_t)vBuf.size();
-    mBounds = mesh.bounds();
+    glutil::MeshVertexBuffer vBuf(std::accumulate(
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
+        return total + mesh.numVertices();
+      }));
+    auto                     vbegin = vBuf.begin();
+    glutil::IndexBuffer      iBuf(std::accumulate(
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
+        return total + 3 * mesh.numFaces();
+      }));
+    uint32_t*                dsti = iBuf.data();
 
-    // 3 indices per face and nothing else.
-    glutil::IndexBuffer iBuf(3 * mesh.numFaces());
-    uint32_t*           dsti   = iBuf.data();
-    auto                fbegin = mesh.faceCBegin();
-    auto                fend   = mesh.faceCEnd();
-    while (fbegin != fend) {
-      const Mesh::Face& face = *(fbegin++);
-      *(dsti++)              = uint32_t(face.a);
-      *(dsti++)              = uint32_t(face.b);
-      *(dsti++)              = uint32_t(face.c);
+    uint32_t off = 0;
+    for (const auto& mesh : meshes) {
+      size_t      nVerts  = mesh.numVertices();
+      const auto& vColors = mesh.vertexColors();
+      for (size_t i = 0; i < nVerts; i++) {
+        *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i), vColors[i]};
+      }
+
+      // 3 indices per face and nothing else.
+      auto fbegin = mesh.faceCBegin();
+      auto fend   = mesh.faceCEnd();
+      while (fbegin != fend) {
+        const Mesh::Face& face = *(fbegin++);
+        *(dsti++)              = off + uint32_t(face.a);
+        *(dsti++)              = off + uint32_t(face.b);
+        *(dsti++)              = off + uint32_t(face.c);
+      }
+      off += uint32_t(mesh.numVertices());
+
+      mBounds.inflate(mesh.bounds());
     }
+    mVSize = (uint32_t)vBuf.size();
     mISize = (uint32_t)iBuf.size();
 
     vBuf.finalize(mVAO, mVBO);
@@ -85,8 +98,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx = uint64_t(0x0000ff) |
-                                 (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
+    static const uint64_t sIdx = (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
                                  (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
     return sIdx;
   }

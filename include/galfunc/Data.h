@@ -31,7 +31,7 @@ class Tree
 {
 public:
   using Type       = T;
-  using ValueType  = std::conditional_t<std::is_polymorphic_v<T>, std::shared_ptr<T>, T>;
+  using ValueType  = SafeInstanceType<T>;
   using value_type = ValueType;  // To support stl helper functions.
 
   struct Cache
@@ -550,8 +550,7 @@ public:
   const WriteView& operator=(const WriteView& other)
   {
     this->releaseWriteMode();
-    this->mTree  = other.mTree;
-    this->mIndex = other.mIndex;
+    this->mTree = other.mTree;
     this->setWriteMode();
   }
 
@@ -591,10 +590,14 @@ public:
 
   WriteView(const WriteView<T, 1>& other)
       : BaseT(other.mTree)
-  {}
+      , mStart(other.mStart)
+  {
+    this->setWriteMode();
+  }
 
   WriteView(WriteView<T, 1>&& other)
       : BaseT(other.mTree)
+      , mStart(other.mStart)
   {
     other.mTree = nullptr;
   }
@@ -605,7 +608,7 @@ public:
   {
     this->releaseWriteMode();
     this->mTree  = other.mTree;
-    this->mIndex = other.mIndex;
+    this->mStart = other.mStart;
     this->setWriteMode();
   }
 
@@ -621,6 +624,11 @@ public:
   {
     this->mTree->push_back(DepthT(size() == 0 ? 1 : 0), std::move(val));
   }
+
+  void resize(size_t n) { this->mTree->resize(n + this->mTree->size()); }
+
+  ValueType&       operator[](size_t i) { return this->mTree->value(mStart + i); }
+  const ValueType& operator[](size_t i) const { return this->mTree->value(mStart + i); }
 };
 
 template<typename T>

@@ -3688,23 +3688,27 @@ private:
   uint mISize = 0;  // index buffer size.
 
 public:
-  Drawable<Sphere>(const Sphere& sphere)
-      : mBounds(sphere.bounds())
+  Drawable<Sphere>(const std::vector<Sphere>& spheres)
   {
     // Position and Normal for each vertex.
-    glutil::VertexBuffer vBuf(sVertices.size());
-
-    auto vbegin = vBuf.begin();
-    for (const auto& v : sVertices) {
-      *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
+    glutil::VertexBuffer vBuf(spheres.size() * sVertices.size());
+    glutil::IndexBuffer  iBuf(spheres.size() * sIndices.size());
+    auto                 vbegin = vBuf.begin();
+    auto                 ibegin = iBuf.begin();
+    uint32_t             off    = 0;
+    for (const auto& sphere : spheres) {
+      for (const auto& v : sVertices) {
+        *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
+      }
+      for (auto i : sIndices) {
+        *(ibegin++) = off + i;
+      }
+      off += uint32_t(sIndices.size());
+      mBounds.inflate(sphere.bounds());
     }
 
-    mVSize = (uint32_t)vBuf.size();
-
-    glutil::IndexBuffer iBuf(sIndices.size());
     mISize = (uint32_t)iBuf.size();
-    std::copy(sIndices.begin(), sIndices.end(), iBuf.begin());
-
+    mVSize = (uint32_t)vBuf.size();
     vBuf.finalize(mVAO, mVBO);
     iBuf.finalize(mIBO);
   }
@@ -3739,8 +3743,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx = uint64_t(0x0000ff) |
-                                 (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
+    static const uint64_t sIdx = (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
                                  (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
     return sIdx;
   }

@@ -18,27 +18,33 @@ private:
   uint mISize = 0;  // index buffer size.
 
 public:
-  Drawable<Box3>(const Box3& box)
-      : mBounds(box)
+  Drawable<Box3>(const std::vector<Box3>& boxes)
   {
-    glutil::VertexBuffer vBuf(8);
-
-    auto vbegin = vBuf.begin();
-    *(vbegin++) = {{box.min.x, box.min.y, box.min.z}};
-    *(vbegin++) = {{box.max.x, box.min.y, box.min.z}};
-    *(vbegin++) = {{box.max.x, box.max.y, box.min.z}};
-    *(vbegin++) = {{box.min.x, box.max.y, box.min.z}};
-    *(vbegin++) = {{box.min.x, box.min.y, box.max.z}};
-    *(vbegin++) = {{box.max.x, box.min.y, box.max.z}};
-    *(vbegin++) = {{box.max.x, box.max.y, box.max.z}};
-    *(vbegin++) = {{box.min.x, box.max.y, box.max.z}};
-
     static constexpr std::array<uint32_t, 24> sIBuf = {{
       0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
     }};
 
-    glutil::IndexBuffer iBuf(sIBuf.size());
-    std::copy(sIBuf.begin(), sIBuf.end(), iBuf.begin());
+    glutil::VertexBuffer vBuf(8 * boxes.size());
+    glutil::IndexBuffer  iBuf(sIBuf.size() * boxes.size());
+
+    auto   vbegin = vBuf.begin();
+    auto   ibegin = iBuf.begin();
+    size_t off    = 0;
+    for (const auto& box : boxes) {
+      *(vbegin++) = {{box.min.x, box.min.y, box.min.z}};
+      *(vbegin++) = {{box.max.x, box.min.y, box.min.z}};
+      *(vbegin++) = {{box.max.x, box.max.y, box.min.z}};
+      *(vbegin++) = {{box.min.x, box.max.y, box.min.z}};
+      *(vbegin++) = {{box.min.x, box.min.y, box.max.z}};
+      *(vbegin++) = {{box.max.x, box.min.y, box.max.z}};
+      *(vbegin++) = {{box.max.x, box.max.y, box.max.z}};
+      *(vbegin++) = {{box.min.x, box.max.y, box.max.z}};
+      for (auto i : sIBuf) {
+        *(ibegin++) = off + i;
+      }
+      off += 8;
+      mBounds.inflate(box);
+    }
 
     mVSize = (uint32_t)vBuf.size();
     mISize = (uint32_t)iBuf.size();
@@ -78,8 +84,7 @@ public:
 
   uint64_t drawOrderIndex() const
   {
-    static const uint64_t sIdx = uint64_t(0x0000ff) |
-                                 (uint64_t((1.f - sLineColor.a) * 255.f) << 8) |
+    static const uint64_t sIdx = (uint64_t((1.f - sLineColor.a) * 255.f) << 8) |
                                  (uint64_t((1.f - sLineColor.a) * 255.f) << 16);
     return sIdx;
   }

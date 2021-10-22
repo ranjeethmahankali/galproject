@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <memory>
 #include <ostream>
 #include <type_traits>
 
@@ -78,5 +79,9 @@ struct RemoveBraces<T(U)>
 {
   using Type = U;
 };
+
+template<typename U>
+using SafeInstanceType =
+  std::conditional_t<std::is_polymorphic_v<U>, std::shared_ptr<U>, U>;
 
 }  // namespace gal

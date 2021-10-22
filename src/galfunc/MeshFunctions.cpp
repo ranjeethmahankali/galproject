@@ -1,4 +1,5 @@
 #include <galfunc/MeshFunctions.h>
+#include <tbb/parallel_for.h>
 #include <glm/gtx/transform.hpp>
 
 namespace gal {
@@ -57,12 +58,11 @@ GAL_FUNC_DEFN(closestPointsOnMesh,
               ((gal::Mesh, mesh), ((data::ReadView<glm::vec3, 1>), inCloud)),
               (((data::WriteView<glm::vec3, 1>), outCloud)))
 {
-  outCloud.reserve(inCloud.size());
-  auto pbegin = inCloud.begin();
-  auto pend   = inCloud.end();
-  while (pbegin != pend) {
-    outCloud.push_back(mesh.closestPoint(*(pbegin++), FLT_MAX));
-  }
+  outCloud.resize(inCloud.size());
+  tbb::parallel_for(size_t(0), inCloud.size(), [&](size_t i) {
+    glm::vec3 pt = inCloud[i];
+    outCloud[i]  = mesh.closestPoint(pt, FLT_MAX);
+  });
 };
 
 GAL_FUNC_DEFN(meshBbox, ((gal::Mesh, mesh)), ((gal::Box3, bounds)))
