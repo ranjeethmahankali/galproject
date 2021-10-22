@@ -99,6 +99,7 @@ struct Box2
   glm::vec2 diagonal() const;
   void      inflate(const glm::vec2&);
   void      inflate(float);
+  void      inflate(const Box2& b);
   void      deflate(float);
   bool      contains(const glm::vec2&) const;
   bool      contains(const Box2&) const;

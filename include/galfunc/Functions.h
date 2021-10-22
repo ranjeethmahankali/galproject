@@ -100,6 +100,10 @@ struct Register
   }
 };
 
+/**
+ * Helper templates to wrangle various types at compile time.
+ */
+
 template<typename T>
 struct ImplFnArgType
 {

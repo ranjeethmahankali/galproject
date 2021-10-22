@@ -8,6 +8,10 @@
 
 namespace gal {
 
+/**
+ * @brief RAII timer for measuring execution times.
+ *
+ */
 class Timer
 {
   using InternalClockT    = std::chrono::high_resolution_clock;
@@ -20,6 +24,14 @@ class Timer
 public:
   inline void start() { mStart = InternalClockT::now(); }
 
+  /**
+   * @brief Create a new timer instance that assigns the time elapsed to the given
+   * duration pointer.
+   *
+   * @tparam DurationT duration type.
+   * @param name Name of the timer.
+   * @param dptr Pointer to the duration. Elapsed time will be written to this address.
+   */
   template<typename DurationT>
   Timer(const std::string& name, DurationT* dptr)
       : mName(name)
@@ -33,6 +45,12 @@ public:
     start();
   }
 
+  /**
+   * @brief Create a new timer that prints the elapsed time to the given output stream.
+   *
+   * @param name Name of the timer.
+   * @param out Output stream.
+   */
   Timer(const std::string& name, std::ostream& out);
 
   ~Timer();

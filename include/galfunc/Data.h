@@ -26,6 +26,14 @@ namespace data {
 using DepthT                      = uint8_t;  // Max is 255.
 static constexpr DepthT DEPTH_MAX = UINT8_MAX;
 
+/**
+ * @brief Datastructure to store arbitrary dimensional trees of a datatype. The tree uses
+ * contiguous storage to store the leaf elements. The nested vectors are divided up a bit
+ * like the graduations on a measuring tape, where the finest graduations represent leaf
+ * nodes, the coarser graduations represent the parent nodes, and so on.
+ *
+ * @tparam T The type of data stored in the leaf nodes of the tree.
+ */
 template<typename T>
 class Tree
 {
@@ -206,6 +214,13 @@ public:
     mDepths.reserve(n);
   }
 
+  /**
+   * @brief Pushes an element into the tree.
+   *
+   * @param d The depth of the new element. The higher the depth, the coarser the
+   * graduation in the measuring tape analogy.
+   * @param item
+   */
   void push_back(DepthT d, T item)
   {
     ensureDepth(d);
@@ -265,15 +280,25 @@ struct ReadView;
 template<typename T, size_t Dim>
 struct Dereferenced
 {
+  // Dereferncing an iterator of an arbitrary dimension should give you a view.
   using Type = ReadView<T, Dim>;
 };
 
 template<typename T>
 struct Dereferenced<T, 0>
 {
+  // Dereferencing an iterator of 0 dimensions should return a reference to actual data
+  // stored in the tree.
   using Type = const typename Tree<T>::ValueType&;
 };
 
+/**
+ * @brief A read-only view into the tree, pointing to a single node.
+ *
+ * @tparam T The type of the data stored in the tree.
+ * @tparam Dim The dimensionality of the data in this view, i.e. the height of the node
+ * that is being accessed w.r.t. the leaf nodes.
+ */
 template<typename T, DepthT Dim>
 struct ReadView
 {
@@ -377,10 +402,27 @@ public:
 
   const T* data() const { return mTree->mValues.data() + mIndex; }
 
+  /**
+   * @brief Index at which the sibling of this node begins.
+   *
+   * @return size_t
+   */
   size_t advanceIndex() const { return mIndex + size(); }
 
+  /**
+   * @brief Checks whether this tree can advance into its sibling's position. If this node
+   * is the last child of its parent (hence no siblings after it), it returns false.
+   *
+   * @return bool
+   */
   bool canAdvance() const { return advanceIndex() < mTree->size(); }
 
+  /**
+   * @brief Advances this tree to its sibling's position if possible. If this node is the
+   * last child of its parent (canAdvance() returns false), nothing will happen.
+   *
+   * @return bool True if the tree was advanced, false otherwise.
+   */
   bool tryAdvance()
   {
     if (canAdvance()) {
@@ -397,6 +439,12 @@ public:
   }
 };
 
+/**
+ * @brief Iterator that points to a node in the tree.
+ *
+ * @tparam T The type of the data in the tree.
+ * @tparam Dim The dimensionality of the node.
+ */
 template<typename T, DepthT Dim>
 struct Iterator
 {
@@ -473,6 +521,12 @@ public:
   }
 };
 
+/**
+ * @brief Base class for a write-only view into a single node of the tree.
+ *
+ * @tparam T The type of data in the tree.
+ * @tparam Dim The dimensionality of the node.
+ */
 template<typename T, DepthT Dim>
 struct WriteViewBase
 {
@@ -514,6 +568,12 @@ public:
   void reserve(size_t n) { mTree->reserve(mTree->size() + n); }
 };
 
+/**
+ * @brief A write-only view into a node of the tree.
+ *
+ * @tparam T The type of the data in the tree.
+ * @tparam Dim The dimensionality of the node.
+ */
 template<typename T, DepthT Dim>
 struct WriteView : public WriteViewBase<T, Dim>
 {
@@ -560,9 +620,19 @@ public:
     other.mTree = nullptr;
   }
 
+  /**
+   * @brief Returns a write-only view into the child node of this node.
+   *
+   */
   WriteView<T, Dim - 1> child() { return WriteView<T, Dim - 1>(this->mTree); }
 };
 
+/**
+ * @brief Specialization for 1 dimensional write-only views. This is needed because
+ * 1-dimensional write-onyl views need to behave like std::vectors.
+ *
+ * @tparam T Type of data.
+ */
 template<typename T>
 struct WriteView<T, 1> : public WriteViewBase<T, 1>
 {
@@ -618,6 +688,12 @@ public:
     other.mTree = nullptr;
   }
 
+  /**
+   * @brief Current size of view, i.e. the number of elements written into this tree-node
+   * so far.
+   *
+   * @return size_t
+   */
   size_t size() const { return this->mTree->size() - mStart; }
 
   void push_back(ValueType val)
@@ -631,6 +707,11 @@ public:
   const ValueType& operator[](size_t i) const { return this->mTree->value(mStart + i); }
 };
 
+/**
+ * @brief Template to check for tuples of data trees at compile time.
+ *
+ * @tparam T
+ */
 template<typename T>
 struct IsTreeTuple : public std::false_type
 {
@@ -650,6 +731,10 @@ struct IsTreeTuple<std::tuple<TreeT>>
   using TreeCleanT            = std::remove_const_t<std::remove_reference_t<TreeT>>;
   static constexpr bool value = IsInstance<Tree, TreeCleanT>::value;
 };
+
+/**
+ * Templates to check for various view types for the sake of compile time decision making.
+ */
 
 template<typename T>
 struct IsReadView : public std::false_type
@@ -680,6 +765,11 @@ template<typename T, DepthT Dim>
 struct IsWriteView<const WriteView<T, Dim>> : public std::true_type
 {
 };
+
+/**
+ * More helper templates to help with metaprogramming neeeded to get the combinatorics
+ * etc. working.
+ */
 
 template<typename T>
 struct UnwrapView
@@ -739,6 +829,13 @@ struct ViewDimensions<const ReadView<T, Dim>>
  * datatrees, including tree combinatorics.*/
 namespace repeat {
 
+/**
+ * @brief A read-only view into a single node of a tree. This is intended neither for
+ * reading nor writing data from / into the tree. Its only for traversing the tree during
+ * combinatorics.
+ *
+ * @tparam T
+ */
 template<typename T>
 struct CombiView
 {
@@ -761,6 +858,11 @@ public:
 
   const Tree<T>& tree() const { return mTree; }
 
+  /**
+   * @brief Gets the child view of this view, i.e. a view that points to the child node of
+   * the node that this view points to.
+   *
+   */
   CombiView<T> child() const
   {
     if (mOffset == 0) {
@@ -771,6 +873,12 @@ public:
     return c;
   }
 
+  /**
+   * @brief Tries to advance this view to its sibling's position.
+   *
+   * @return bool True if the view was advanced, false otherwise. The tree will not be
+   * advanced if this node is the last node if its parent.
+   */
   bool tryAdvance()
   {
     DepthT td     = mArgDepth + mOffset;
@@ -783,11 +891,19 @@ public:
   }
 };
 
+// Base template - dummy.
 template<size_t NInputs, typename T>
 struct CombiViewTuple
 {
 };
 
+/**
+ * @brief Helper class for managing simultaneous views into several trees while doing
+ * combinatorics.
+ *
+ * @tparam NInputs The number of input arguments.
+ * @tparam TreeTs The data trees corresponding to all arguments.
+ */
 template<size_t NInputs, typename... TreeTs>
 struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
 {
@@ -796,8 +912,16 @@ struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
     N,
     std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>::Type;
 
+  /**
+   * Tuple of combi-views, one each into the data trees corresponding to the function
+   * arguments.
+   */
   using Type = std::tuple<
     CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type>...>;
+
+  /**
+   * Tuple of the trees corresponding to the function arguments.
+   */
   using TreeTupleT = std::tuple<TreeTs...>;
 
   static constexpr size_t NTrees = sizeof...(TreeTs);
@@ -854,6 +978,15 @@ private:
   }
 
 public:
+  /**
+   * @brief Initializes the combination stack.
+   *
+   * @param trees Tuple of datatrees.
+   * @param viewDepths Depths of the views requesteed by the function (as arguments).
+   * @param offset Maximum offset among all trees. Offset of a tree is the difference
+   * between the depth of the tree, and the depth of the view requested by the function.
+   * @param dst The combination stack. This will be populated with tuples of combi-views.
+   */
   static void init(TreeTupleT&                       trees,
                    const std::array<DepthT, NTrees>& viewDepths,
                    DepthT                            offset,
@@ -862,6 +995,14 @@ public:
     initInternal(trees, viewDepths, offset, dst, std::make_index_sequence<NTrees> {});
   }
 
+  /**
+   * @brief Tries to advance all the combiviews int the tuple.
+   *
+   * @tparam N the index of the tuple member to be advanced, used in recursive calls.
+   * @param tup The tuple of combiviews.
+   * @return bool True if at least one combiview in the tuple was successfully advanced.
+   * This means the function has to run at least once more.
+   */
   template<size_t N = 0>
   static bool tryAdvance(Type& tup)
   {
@@ -880,6 +1021,13 @@ public:
     }
   }
 
+  /**
+   * @brief For the last element of the given combination stack, appends another tuple of
+   * combiviews, where each tuple member is the child view of the corresponding member the
+   * tuple before.
+   *
+   * @param dst combination stack.
+   */
   static void goDeeper(std::vector<Type>& dst)
   {
     // Push_back another combiview tuple to dst, where each combiview has depth 1 less
@@ -890,6 +1038,14 @@ public:
     goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {});
   }
 
+  /**
+   * @brief Converts the tuple of combiviews into a tuple of arguments for the function.
+   *
+   * @tparam ArgsTupleT Tuple of arguments type.
+   * @param view The current view.
+   * @param trees The data trees.
+   * @return ArgsTupleT tuple of arguments.
+   */
   template<typename ArgsTupleT>
   static ArgsTupleT getArgs(Type& view, const TreeTupleT& trees)
   {
@@ -897,6 +1053,14 @@ public:
   }
 };
 
+/**
+ * @brief Represents (conceptually) the collection of all combinations of input arguments
+ * for a given set of data-trees and a function that needs to run using those datatrees.
+ *
+ * @tparam NInputs Number of input arguments.
+ * @tparam TreeTupleT Tuple of data trees corresponding to all arguments of the function.
+ * @tparam TArgs The types of all arguments of the function.
+ */
 template<size_t NInputs, typename TreeTupleT, typename... TArgs>
 struct Combinations
 {
@@ -918,16 +1082,19 @@ private:
       static constexpr bool ArgIsWrite =
         IsWriteView<std::remove_reference_t<TArg>>::value;
 
-      auto td = std::get<N>(trees).maxDepth();
+      auto treeDepth = std::get<N>(trees).maxDepth();
       if constexpr (ArgIsTree) {
-        viewDepths[N] = td;
+        // The function is requesting the whole tree at once, so the view depth must be
+        // the same as the depth of the tree. Hence the offset is 0.
+        viewDepths[N] = treeDepth;
         offsets[N]    = 0;
       }
       else {
         static constexpr DepthT ArgDepth =
           (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
         viewDepths[N] = ArgDepth;
-        offsets[N]    = td < ArgDepth ? 0 : td - ArgDepth;
+        // Prevent unsigned integer underflow.
+        offsets[N] = treeDepth < ArgDepth ? 0 : treeDepth - ArgDepth;
       }
     }
     if constexpr (N + 1 < NArgs) {
@@ -944,6 +1111,13 @@ private:
   DepthT                    mMaxOffset = 0;
 
 public:
+  /**
+   * @brief Create a new set of combinations for the trees. A reference to the datatrees
+   * is stored inside this object, so a single instance of this should be created and
+   * owned by a function.
+   *
+   * @param trees Data trees corresponding to the arguments of the function.
+   */
   Combinations(const TreeTupleT& trees)
       : mTrees(trees)
   {
@@ -953,15 +1127,27 @@ public:
     mViews.reserve(size_t(mMaxOffset) + 1);
   }
 
+  /**
+   * @brief Initializes a new set of combinations for a new run of the function.
+   *
+   */
   void init() { HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews); }
 
+  bool empty() const { return mViews.empty(); }
+
+  /**
+   * @brief Checks if another combination of inputs is available. If available, the
+   * current combination is updated.
+   *
+   * @return bool True if another combination is available, false otherwise.
+   */
   bool next()
   {
     // Try advance the stack.
     while (!mViews.empty() && !HelperT::tryAdvance(mViews.back())) {
       mViews.pop_back();
     }
-    if (mViews.empty()) {
+    if (empty()) {
       return false;
     }
     // Make sure we're at the leaf again.
@@ -971,8 +1157,12 @@ public:
     return true;
   }
 
-  bool empty() const { return mViews.empty(); }
-
+  /**
+   * @brief Gets a tuple of arguments corresponding to the current combination of inputs.
+   *
+   * @tparam ArgTupleT Argument tuple type.
+   * @return ArgTupleT
+   */
   template<typename ArgTupleT>
   ArgTupleT current()
   {
@@ -988,6 +1178,10 @@ public:
 
 }  // namespace data
 }  // namespace func
+
+/**
+ * Make data-trees and views compatible with managed types by specializing TypeInfo.
+ */
 
 template<typename T>
 struct TypeInfo<func::data::Tree<T>> : public TypeInfo<T>

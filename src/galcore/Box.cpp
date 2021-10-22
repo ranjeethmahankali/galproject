@@ -176,6 +176,12 @@ void Box2::inflate(float d)
   max += v;
 }
 
+void Box2::inflate(const Box2& b)
+{
+  inflate(b.min);
+  inflate(b.max);
+}
+
 void Box2::deflate(float d)
 {
   inflate(-d);

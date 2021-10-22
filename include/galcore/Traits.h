@@ -80,6 +80,10 @@ struct RemoveBraces<T(U)>
   using Type = U;
 };
 
+/** You can't have polymorphic instances on the stack. Its inefficient to have
+ * non-polymorphic instances on the heap. This helper template can decide where to put
+ * what.
+ */
 template<typename U>
 using SafeInstanceType =
   std::conditional_t<std::is_polymorphic_v<U>, std::shared_ptr<U>, U>;
