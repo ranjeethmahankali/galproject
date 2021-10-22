@@ -37,14 +37,6 @@ void RenderSettings::apply() const
   GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
 };
 
-size_t RenderSettings::opacityScore() const
-{
-  size_t score = 100 * size_t(float(UINT8_MAX) * std::clamp(faceColor.a, 0.f, 1.f));
-  score += 10 * size_t(float(UINT8_MAX) * std::clamp(edgeColor.a, 0.f, 1.f));
-  score += size_t(float(UINT8_MAX) * std::clamp(pointColor.a, 0.f, 1.f));
-  return score;
-};
-
 static bool       sRightDown  = false;
 static bool       sLeftDown   = false;
 static glm::dvec2 sMousePos   = {0.0f, 0.0f};

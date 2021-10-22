@@ -11,6 +11,9 @@ namespace view {
 template<>
 struct Drawable<Mesh> : public std::true_type
 {
+  static constexpr glm::vec4 sFaceColor = {1.f, 1.f, 1.f, 1.f};
+  static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, 1.f};
+
 private:
   Box3 mBounds;
   uint mVAO   = 0;  // vertex array object.
@@ -18,19 +21,6 @@ private:
   uint mIBO   = 0;  // index buffer object.a
   uint mVSize = 0;  // vertex buffer size.
   uint mISize = 0;  // index buffer size.
-
-  static RenderSettings settings()
-  {
-    static constexpr glm::vec4 sFaceColor = {1.f, 1.f, 1.f, 1.f};
-    static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
-    settings.shaderId    = Context::get().shaderId("default");
-    settings.faceColor   = sFaceColor;
-    settings.edgeColor   = sEdgeColor;
-    settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
-    settings.shaderId    = Context::get().shaderId("mesh");
-    return settings;
-  }
 
 public:
   Drawable<Mesh>(const Mesh& mesh)
@@ -81,18 +71,39 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
-    mIBO = std::exchange(other.mIBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mIBO    = std::exchange(other.mIBO, 0);
+    mVSize  = other.mVSize;
+    mISize  = other.mISize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
+  uint64_t drawOrderIndex() const
+  {
+    static const uint64_t sIdx = uint64_t(0x0000ff) |
+                                 (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
+                                 (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
+    settings.shaderId    = Context::get().shaderId("mesh");
+    settings.faceColor   = sFaceColor;
+    settings.edgeColor   = sEdgeColor;
+    settings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_FILL);
+    return settings;
+  }
+
   void draw() const
   {
-    static RenderSettings rsettings = settings();
+    static RenderSettings rsettings = renderSettings();
     rsettings.apply();
     GL_CALL(glBindVertexArray(mVAO));
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));

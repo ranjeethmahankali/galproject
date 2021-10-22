@@ -41,6 +41,8 @@ using AnnotationVertBuffer = glutil::TVertexBuffer<AnnotationVertex>;
 template<>
 struct Drawable<Annotations<std::string>> : public std::true_type
 {
+  static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
+
 private:
   Box3     mBounds;
   uint32_t mVAO;
@@ -103,18 +105,26 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
-  static RenderSettings settings()
+  uint64_t drawOrderIndex() const
   {
-    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
+    static const uint64_t sIdx =
+      uint64_t(0xffff00) | uint64_t((1.f - sPointColor.a) * 255.f);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.pointColor = sPointColor;
     settings.shaderId   = Context::get().shaderId("glyph");
     return settings;
@@ -122,7 +132,7 @@ public:
 
   void draw() const
   {
-    static RenderSettings rsettings = settings();
+    static RenderSettings rsettings = renderSettings();
     Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
     bindCharAtlasTexture();
     GL_CALL(glBindVertexArray(mVAO));
@@ -135,6 +145,8 @@ public:
 template<>
 class Drawable<Annotations<Glyph>> : public std::true_type
 {
+  static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
+
 private:
   Box3     mBounds;
   uint32_t mVAO;
@@ -190,10 +202,16 @@ public:
 
   Box3 bounds() const { return mBounds; }
 
-  static RenderSettings settings()
+  uint64_t drawOrderIndex() const
   {
-    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
+    static const uint64_t sIdx =
+      uint64_t(0xffff00) | uint64_t((1.f - sPointColor.a) * 255.f);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.pointColor = sPointColor;
     settings.shaderId   = Context::get().shaderId("text");
     return settings;
@@ -201,7 +219,7 @@ public:
 
   void draw() const
   {
-    static RenderSettings rsettings = settings();
+    static RenderSettings rsettings = renderSettings();
     rsettings.apply();
     bindGlyphAtlasTexture();
     GL_CALL(glBindVertexArray(mVAO));

@@ -8,6 +8,8 @@ namespace view {
 template<>
 struct Drawable<PointCloud> : public std::true_type
 {
+  static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
+
 private:
   Box3     mBounds;
   uint32_t mVAO   = 0;
@@ -43,18 +45,26 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
-  static RenderSettings settings()
+  uint64_t drawOrderIndex() const
   {
-    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
+    static const uint64_t sIdx =
+      uint64_t(0xffff00) | uint64_t((1.f - sPointColor.a) * 255.f);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.shaderId   = Context::get().shaderId("default");
     settings.pointColor = sPointColor;
     settings.pointMode  = true;
@@ -63,7 +73,7 @@ public:
 
   void draw() const
   {
-    static auto rsettings = settings();
+    static auto rsettings = renderSettings();
     rsettings.apply();
     GL_CALL(glBindVertexArray(mVAO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));

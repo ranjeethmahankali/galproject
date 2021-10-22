@@ -11,7 +11,7 @@
 #define DEBUG_BREAK __builtin_trap()
 #endif
 
-#define GAL_GL_LOG
+// #define GAL_GL_LOG
 #if defined GAL_GL_LOG
 #define GL_CALL(fncall)                                       \
   {                                                           \

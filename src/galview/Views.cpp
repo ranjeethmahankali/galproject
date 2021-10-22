@@ -55,10 +55,20 @@ static size_t newViewId()
   return sId++;
 }
 
+static uint64_t drawOrderIndex(const Views::VariantT& view)
+{
+  return std::visit([](const auto& v) { return v.drawOrderIndex(); }, view);
+}
+
 size_t Views::addInternal(VariantT&& view, const bool* visibility)
 {
-  mDrawables.emplace_back(std::move(view), visibility, newViewId());
-  return std::get<2>(mDrawables.back());
+  size_t id = newViewId();
+  mDrawables.emplace_back(std::move(view), visibility, id);
+  std::sort(
+    mDrawables.begin(), mDrawables.end(), [](const RenderData& a, const RenderData& b) {
+      return drawOrderIndex(std::get<0>(a)) < drawOrderIndex(std::get<0>(b));
+    });
+  return id;
 }
 
 }  // namespace view

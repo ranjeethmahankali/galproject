@@ -9,6 +9,8 @@ namespace view {
 template<>
 struct Drawable<Circle2d> : public std::true_type
 {
+  static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
+
 private:
   Box3     mBounds;
   uint32_t mVAO   = 0;
@@ -51,16 +53,25 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
 
-  static RenderSettings settings()
+  uint64_t drawOrderIndex() const
   {
-    static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
-    RenderSettings             settings;
+    static const uint64_t sIdx = uint64_t(0x0000ff) |
+                                 (uint64_t((1.f - sLineColor.a) * 255.f) << 8) |
+                                 (uint64_t((1.f - sLineColor.a) * 255.f) << 16);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.shaderId      = Context::get().shaderId("default");
     settings.faceColor     = sLineColor;
     settings.edgeColor     = sLineColor;
@@ -72,7 +83,7 @@ public:
 
   void draw() const
   {
-    static auto rsettings = settings();
+    static auto rsettings = renderSettings();
     rsettings.apply();
     GL_CALL(glBindVertexArray(mVAO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
