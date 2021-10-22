@@ -29,6 +29,7 @@ struct Box3
 
   glm::vec3 diagonal() const;
   void      inflate(const glm::vec3&);
+  void      inflate(const Box3& b);
   void      inflate(float);
   void      deflate(float);
   bool      contains(const glm::vec3&) const;
@@ -98,6 +99,7 @@ struct Box2
   glm::vec2 diagonal() const;
   void      inflate(const glm::vec2&);
   void      inflate(float);
+  void      inflate(const Box2& b);
   void      deflate(float);
   bool      contains(const glm::vec2&) const;
   bool      contains(const Box2&) const;

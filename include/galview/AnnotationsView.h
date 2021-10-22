@@ -1,6 +1,7 @@
 #pragma once
 
 #include <numeric>
+#include <type_traits>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -26,48 +27,6 @@ size_t getGlyphIndex(const std::string& label);
 const glm::vec4& glyphtexcoords(size_t i);
 glm::ivec2       glyphSize(size_t i);
 
-template<typename T>
-class AnnotationsView : public Drawable
-{
-  static_assert(std::is_same_v<T, std::string> || std::is_same_v<T, Glyph>,
-                "Unsupporte annotation type");
-
-public:
-  friend struct MakeDrawable<Annotations<T>>;
-
-private:
-  uint32_t mVAO;
-  uint32_t mVBO;
-  uint32_t mVSize;
-
-public:
-  AnnotationsView() = default;
-  ~AnnotationsView()
-  {
-    GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    GL_CALL(glDeleteBuffers(1, &mVBO));
-  }
-
-  void draw() const override
-  {
-    if constexpr (std::is_same_v<T, std::string>) {
-      Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
-      bindCharAtlasTexture();
-    }
-    else {
-      bindGlyphAtlasTexture();
-    }
-
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
-
-    if constexpr (std::is_same_v<T, std::string>) {
-      unbindTexture();
-    }
-  }
-};
-
 struct AnnotationVertex
 {
   glm::vec3 position  = glm::vec3 {0.f, 0.f, 0.f};
@@ -80,101 +39,206 @@ struct AnnotationVertex
 using AnnotationVertBuffer = glutil::TVertexBuffer<AnnotationVertex>;
 
 template<>
-struct MakeDrawable<TextAnnotations> : public std::true_type
+struct Drawable<Annotations<std::string>> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const TextAnnotations&       tags,
-                                       std::vector<RenderSettings>& renderSettings)
-  {
-    auto view = std::make_shared<AnnotationsView<std::string>>();
+  static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
-    AnnotationVertBuffer vBuf(
-      6 * std::accumulate(tags.begin(),
-                          tags.end(),
-                          0ULL,
-                          [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
-                            return total + tag.second.size();
-                          }));
+  using AnnotationsT = SafeInstanceType<Annotations<std::string>>;
+
+private:
+  Box3     mBounds;
+  uint32_t mVAO;
+  uint32_t mVBO;
+  uint32_t mVSize;
+
+public:
+  Drawable(const std::vector<AnnotationsT>& tags)
+  {
+    AnnotationVertBuffer vBuf(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total0, const AnnotationsT& t) {
+        return total0 +
+               6 * std::accumulate(
+                     t.begin(),
+                     t.end(),
+                     size_t(0),
+                     [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
+                       return total + tag.second.size();
+                     });
+      }));
 
     auto vbegin = vBuf.begin();
-    Box3 bounds;
-    for (const auto& tag : tags) {
-      float x = 0.f;
-      float y = 0.f;
-      bounds.inflate(tag.first);
-      for (char c : tag.second) {
-        const auto& b    = charbearing(c);
-        const auto& s    = charsize(c);
-        const auto& a    = charadvance(c);
-        const auto& tc   = chartexcoords(c);
-        float       xpos = x + (float(b.x) / 1920.f);
-        float       ypos = y - (float(s.y - b.y) / 1080.f);
-        float       w    = float(s.x) / 1920.f;
-        float       h    = float(s.y) / 1080.f;
+    for (const auto& ann : tags) {
+      for (const auto& tag : ann) {
+        float x = 0.f;
+        float y = 0.f;
+        mBounds.inflate(tag.first);
+        for (char c : tag.second) {
+          const auto& b    = charbearing(c);
+          const auto& s    = charsize(c);
+          const auto& a    = charadvance(c);
+          const auto& tc   = chartexcoords(c);
+          float       xpos = x + (float(b.x) / 1920.f);
+          float       ypos = y - (float(s.y - b.y) / 1080.f);
+          float       w    = float(s.x) / 1920.f;
+          float       h    = float(s.y) / 1080.f;
 
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
-        *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[2], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos, ypos}, {tc[0], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos, ypos + h}, {tc[0], tc[1]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos}, {tc[2], tc[3]}};
+          *(vbegin++) = {tag.first, {xpos + w, ypos + h}, {tc[2], tc[1]}};
 
-        x += float(a >> 6) / 1920.f;
+          x += float(a >> 6) / 1920.f;
+        }
       }
     }
 
-    view->mVSize = vBuf.size();
-    view->setBounds(bounds);
-    vBuf.finalize(view->mVAO, view->mVBO);
+    mVSize = vBuf.size();
+    vBuf.finalize(mVAO, mVBO);
+  }
 
-    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
+  ~Drawable<Annotations<std::string>>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  uint64_t drawOrderIndex() const
+  {
+    static const uint64_t sIdx = uint64_t((1.f - sPointColor.a) * 255.f);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("text");
-    renderSettings.push_back(settings);
+    settings.shaderId   = Context::get().shaderId("glyph");
+    return settings;
+  }
 
-    return view;
+  void draw() const
+  {
+    static RenderSettings rsettings = renderSettings();
+    Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
+    bindCharAtlasTexture();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+    unbindTexture();
   }
 };
 
 template<>
-struct MakeDrawable<GlyphAnnotations> : public std::true_type
+class Drawable<Annotations<Glyph>> : public std::true_type
 {
-  static std::shared_ptr<Drawable> get(const GlyphAnnotations&      tags,
-                                       std::vector<RenderSettings>& renderSettings)
-  {
-    auto view = std::make_shared<AnnotationsView<gal::Glyph>>();
+  static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
-    AnnotationVertBuffer vBuf(6 * tags.size());
+  using AnnotationsT = SafeInstanceType<Annotations<Glyph>>;
+
+private:
+  Box3     mBounds;
+  uint32_t mVAO;
+  uint32_t mVBO;
+  uint32_t mVSize;
+
+public:
+  Drawable(const std::vector<AnnotationsT>& tags)
+  {
+    AnnotationVertBuffer vBuf(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total, const AnnotationsT& t) {
+        return total + 6 * t.size();
+      }));
 
     auto vbegin = vBuf.begin();
-    Box3 bounds;
-    for (const auto& tag : tags) {
-      float x = 0.f;
-      float y = 0.f;
-      bounds.inflate(tag.first);
-      const auto& tc    = glyphtexcoords(tag.second.mIndex);
-      auto        isize = glyphSize(tag.second.mIndex);
-      glm::vec2   size  = {float(isize.x) / 1920.f, float(isize.y) / 1080.f};
+    for (const auto& ann : tags) {
+      for (const auto& tag : ann) {
+        float x = 0.f;
+        float y = 0.f;
+        mBounds.inflate(tag.first);
+        const auto& tc    = glyphtexcoords(tag.second.mIndex);
+        auto        isize = glyphSize(tag.second.mIndex);
+        glm::vec2   size  = {float(isize.x) / 1920.f, float(isize.y) / 1080.f};
 
-      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
-      *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
-      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
-      *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
-      *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
-      *(vbegin++) = {tag.first, size, {tc[2], tc[1]}};
+        *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {0.f, 0.f}, {tc[0], tc[3]}};
+        *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, {0.f, size.y}, {tc[0], tc[1]}};
+        *(vbegin++) = {tag.first, {size.x, 0.f}, {tc[2], tc[3]}};
+        *(vbegin++) = {tag.first, size, {tc[2], tc[1]}};
+      }
     }
 
-    view->mVSize = vBuf.size();
-    view->setBounds(bounds);
-    vBuf.finalize(view->mVAO, view->mVBO);
+    mVSize = vBuf.size();
+    vBuf.finalize(mVAO, mVBO);
+  }
 
-    static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
-    RenderSettings             settings;
+  ~Drawable<Annotations<Glyph>>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+  }
+
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mVAO = std::exchange(other.mVAO, 0);
+    mVBO = std::exchange(other.mVBO, 0);
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  Box3 bounds() const { return mBounds; }
+
+  uint64_t drawOrderIndex() const
+  {
+    static const uint64_t sIdx = uint64_t((1.f - sPointColor.a) * 255.f);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("glyph");
-    renderSettings.push_back(settings);
+    settings.shaderId   = Context::get().shaderId("text");
+    return settings;
+  }
 
-    return view;
+  void draw() const
+  {
+    static RenderSettings rsettings = renderSettings();
+    rsettings.apply();
+    bindGlyphAtlasTexture();
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+    unbindTexture();
   }
 };
 

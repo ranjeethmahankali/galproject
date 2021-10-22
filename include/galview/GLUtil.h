@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <vector>
 
 #ifdef _MSVC
@@ -10,8 +11,19 @@
 #define DEBUG_BREAK __builtin_trap()
 #endif
 
-#define _DEBUG
-#ifdef _DEBUG
+// #define GAL_GL_LOG
+#if defined GAL_GL_LOG
+#define GL_CALL(fncall)                                       \
+  {                                                           \
+    gal::glutil::clear_errors();                              \
+    fncall;                                                   \
+    if (gal::glutil::log_errors(#fncall, __FILE__, __LINE__)) \
+      DEBUG_BREAK;                                            \
+    std::cout << #fncall << ": " << __FILE__ << std::endl;    \
+  }
+#elif defined NDEBUG
+#define GL_CALL(fncall) fncall
+#else
 #define GL_CALL(fncall)                                       \
   {                                                           \
     gal::glutil::clear_errors();                              \
@@ -19,8 +31,6 @@
     if (gal::glutil::log_errors(#fncall, __FILE__, __LINE__)) \
       DEBUG_BREAK;                                            \
   }
-#else
-#define GL_CALL(fncall) fncall
 #endif  // DEBUG
 
 using uint = GLuint;

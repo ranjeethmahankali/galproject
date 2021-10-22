@@ -10,10 +10,10 @@ GAL_FUNC_DEFN(sphere, ((glm::vec3, center), (float, radius)), ((gal::Sphere, sph
 };
 
 GAL_FUNC_DEFN(boundingSphere,
-              ((gal::PointCloud, points)),
+              (((data::ReadView<glm::vec3, 1>), points)),
               ((gal::Sphere, sphere), (glm::vec3, center), (float, radius)))
 {
-  sphere = gal::Sphere::minBoundingSphere(points);
+  sphere = gal::Sphere::minBoundingSphere(points.data(), points.size());
   center = sphere.center;
   radius = sphere.radius;
 };

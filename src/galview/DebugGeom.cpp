@@ -3,9 +3,9 @@
 #include <galcore/PointCloud.h>
 #include <galcore/Serialization.h>
 #include <galcore/Types.h>
-#include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
+#include <galview/Views.h>
 #include <galview/Widget.h>
 #include <atomic>
 #include <chrono>
@@ -104,7 +104,7 @@ static void removeVarDrawable(const std::string& varname)
   if (match == sVarDrawIdMap.end()) {
     return;
   }
-  view::Context::get().removeDrawable(match->second);
+  view::Views::remove(match->second);
   sVarDrawIdMap.erase(varname);
 }
 
@@ -131,11 +131,11 @@ struct WatchManager
   {
     try {
       if (typeId == TypeInfo<T>::id) {
-        if constexpr (view::MakeDrawable<T>::value) {
+        if constexpr (view::Drawable<T>::value) {
           auto checkBox = outputsPanel().newWidget<view::CheckBox>(geomKey, true);
-          drawId        = view::Context::get().addDrawable(Serial<T>::deserialize(bytes),
-                                                    checkBox->checkedPtr());
-          widget        = checkBox;
+          drawId = view::Views::add<T>(std::vector<T> {Serial<T>::deserialize(bytes)},
+                                       checkBox->checkedPtr());
+          widget = checkBox;
         }
         else {
           T instance;

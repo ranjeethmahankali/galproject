@@ -4,9 +4,10 @@ namespace gal {
 namespace func {
 
 GAL_FUNC_DEFN(boundingCircle,
-              ((gal::PointCloud, points)),
+              (((data::ReadView<glm::vec3, 1>), points)),
               ((gal::Circle2d, circle), (glm::vec2, center), (float, radius)))
 {
+  // TODO: Clean this up to consume 2d points as inputs directly.
   std::vector<glm::vec2> pts2d;
   pts2d.reserve(points.size());
   std::transform(
