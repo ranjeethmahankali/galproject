@@ -1,4 +1,5 @@
 #include <galfunc/MeshFunctions.h>
+#include <tbb/parallel_for.h>
 #include <glm/gtx/transform.hpp>
 
 namespace gal {
@@ -38,30 +39,30 @@ GAL_FUNC_DEFN(clipMesh, ((gal::Mesh, mesh), (gal::Plane, plane)), ((gal::Mesh, c
 GAL_FUNC_DEFN(meshSphereQuery,
               ((gal::Mesh, mesh), (gal::Sphere, sphere)),
               ((gal::Mesh, resultMesh),
-               (std::vector<int32_t>, faceIndices),
+               ((data::WriteView<int32_t, 1>), faceIndices),
                (int32_t, numFaces)))
 {
+  // TODO: Refactor this to not require this vector (avoid allocation).
   std::vector<size_t> results;
   mesh.querySphere(sphere, std::back_inserter(results), gal::eMeshElement::face);
-  faceIndices.resize(results.size());
-  std::transform(results.begin(), results.end(), faceIndices.begin(), [](size_t i) {
-    return int32_t(i);
-  });
+  faceIndices.reserve(results.size());
+  std::transform(
+    results.begin(), results.end(), std::back_inserter(faceIndices), [](size_t i) {
+      return int32_t(i);
+    });
   resultMesh = mesh.extractFaces(results);
-  numFaces   = int(results.size());
+  numFaces   = int32_t(results.size());
 };
 
 GAL_FUNC_DEFN(closestPointsOnMesh,
-              ((gal::Mesh, mesh), (gal::PointCloud, inCloud)),
-              ((gal::PointCloud, outCloud)))
+              ((gal::Mesh, mesh), ((data::ReadView<glm::vec3, 1>), inCloud)),
+              (((data::WriteView<glm::vec3, 1>), outCloud)))
 {
-  outCloud.clear();
-  outCloud.reserve(inCloud.size());
-  auto pbegin = inCloud.cbegin();
-  auto pend   = inCloud.cend();
-  while (pbegin != pend) {
-    outCloud.push_back(mesh.closestPoint(*(pbegin++), FLT_MAX));
-  }
+  outCloud.resize(inCloud.size());
+  tbb::parallel_for(size_t(0), inCloud.size(), [&](size_t i) {
+    glm::vec3 pt = inCloud[i];
+    outCloud[i]  = mesh.closestPoint(pt, FLT_MAX);
+  });
 };
 
 GAL_FUNC_DEFN(meshBbox, ((gal::Mesh, mesh)), ((gal::Box3, bounds)))

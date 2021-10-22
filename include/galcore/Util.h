@@ -1,17 +1,20 @@
 #pragma once
+
 #include <float.h>
-#include <galcore/Serialization.h>
-#include <galcore/Traits.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <limits>
 #include <type_traits>
 #include <vector>
+
+#include <galcore/Serialization.h>
+#include <galcore/Traits.h>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
@@ -186,19 +189,35 @@ fs::path absPath(const fs::path& relPath);
 template<typename T, typename DstIter>
 void random(T min, T max, size_t count, DstIter dst)
 {
+  static constexpr char sErrorMsg[] = "Cannot generate random values of given type!\n";
   for (size_t i = 0; i < count; i++) {
     if constexpr (std::is_integral_v<T>) {
-      T span   = max - min;
-      *(dst++) = min + (static_cast<T>(rand()) % span);
+      *(dst++) = min + (static_cast<T>(std::rand()) % (max - min));
     }
     else if constexpr (std::is_floating_point_v<T>) {
       static constexpr T TMax = static_cast<T>(RAND_MAX);
-      T                  span = max - min;
-      T                  val  = static_cast<T>(rand());
-      *(dst++)                = min + span * (val / TMax);
+      *(dst++)                = min + (max - min) * (static_cast<T>(std::rand()) / TMax);
+    }
+    else if constexpr (GlmVecTraits<T>::IsGlmVec) {
+      using TVal = typename GlmVecTraits<T>::ValueType;
+      T v;
+      for (int i = 0; i < GlmVecTraits<T>::Size; i++) {
+        if constexpr (std::is_integral_v<TVal>) {
+          v[i] = min[i] + (static_cast<TVal>(std::rand()) % (max[i] - min[i]));
+        }
+        else if constexpr (std::is_floating_point_v<TVal>) {
+          static constexpr TVal TValMax = static_cast<TVal>(RAND_MAX);
+          v[i] = min[i] + (max[i] - min[i]) * (static_cast<TVal>(std::rand()) / TValMax);
+        }
+        else {
+          std::cerr << sErrorMsg;
+          return;
+        }
+      }
+      *(dst++) = v;
     }
     else {
-      std::cerr << "Cannot generate random numbers of given type!\n";
+      std::cerr << sErrorMsg;
     }
   }
 };
@@ -252,6 +271,48 @@ template<typename T>
 inline int bitscanReverse(T i)
 {
   return bitscan<T, true>(i);
+}
+
+/**
+ * @brief Gets the number of combinations of a given length for a set of given size.
+ *
+ * @param n The size of the set.
+ * @param k The size of a single combination.
+ * @return size_t The total number of combinations.
+ */
+size_t numCombinations(size_t n, size_t k);
+
+/**
+ * @brief Generates all possible combinations of a given length
+ * from the given range of elements.
+ *
+ * @tparam TIter Iterator type.
+ * @tparam TOutIter Output iterator type.
+ * @tparam TCallable Callable type.
+ * @param k The number of elements in a single combination.
+ * @param begin The beginning of the range of elements.
+ * @param end The end of the range of elements.
+ * @param dst The k elements corresponding to a combination are written to this.
+ * @param notify Every time dst is populated with k elements corresponding to a single
+ * combination, this callback is called, which the caller can use to consume the
+ * combination.
+ */
+template<typename TIter, typename TOutIter, typename TCallable>
+void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallable& notify)
+{
+  if (begin == end || k == 0) {
+    return;
+  }
+
+  while (begin != end) {
+    *dst = *(begin++);
+    if (k > 1) {
+      combinations(k - 1, begin, end, dst + 1, notify);
+    }
+    else if (k == 1) {
+      notify();
+    }
+  }
 }
 
 }  // namespace utils

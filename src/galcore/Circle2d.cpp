@@ -105,15 +105,15 @@ static void minBoundingCircleImpl(Circle2d&        circ,
   }
 }
 
-Circle2d Circle2d::minBoundingCircle(const std::vector<glm::vec2>& points)
+Circle2d Circle2d::minBoundingCircle(const glm::vec2* pts, size_t npts)
 {
   GALSCOPE(__func__);
-  if (points.size() < 2) {
+  if (npts < 2) {
     throw "Cannot compute circle";
   }
 
   Circle2d circ;
-  minBoundingCircleImpl(circ, points.data(), points.data() + points.size());
+  minBoundingCircleImpl(circ, pts, pts + npts);
   GALCAPTURE(circ);
   return circ;
 };

@@ -21,7 +21,29 @@ struct Sphere
                                    const glm::vec3& c,
                                    const glm::vec3& d);
   static Sphere createFromDiameter(const glm::vec3& a, const glm::vec3& b);
-  static Sphere minBoundingSphere(const std::vector<glm::vec3>& points);
+
+  /**
+   * @brief Computes the minimum bounding circle for the given points.
+   *
+   * @param pts Pointer to the range of points.
+   * @param nPts The number of points.
+   * @return Sphere Minimum bounding sphere.
+   */
+  static Sphere minBoundingSphere(const glm::vec3* pts, size_t nPts);
+
+  /**
+   * @brief Computes the minimum bounding circle for the given points.
+   *
+   * @tparam VectorT The container type of glm::vec2. Must use contiguous storage and have
+   * member functions data() and size().
+   * @param points container of points.
+   * @return Sphere result.
+   */
+  template<typename VectorT>
+  inline static Sphere minBoundingSphere(const VectorT& points)
+  {
+    return minBoundingSphere(points.data(), points.size());
+  }
 };
 
 template<>

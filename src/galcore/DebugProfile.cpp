@@ -53,8 +53,9 @@ ContextNode::ContextNode(const std::string& name, ContextNode* parent)
   std::ofstream stackFile;
   if (!mParent) {
     // This means we initialized the root scope.
-    std::filesystem::create_directory(sDebugDir);
-    deleteDirContent(sDebugDir);
+    static auto dirpath = utils::absPath(fs::path(sDebugDir));
+    std::filesystem::create_directory(dirpath);
+    deleteDirContent(dirpath);
 
     indexFile.open(indexFilePath(), std::ios::out | std::ios::trunc);
     stackFile.open(callStackPath(), std::ios::out | std::ios::trunc);

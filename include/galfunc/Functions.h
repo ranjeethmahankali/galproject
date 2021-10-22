@@ -1,24 +1,22 @@
 #pragma once
-#include <iostream>
 
-#include <boost/python/scope.hpp>
-#include <boost/python/tuple.hpp>
-#include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <utility>
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <string.h>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
+#include <boost/python/scope.hpp>
+#include <boost/python/tuple.hpp>
 
-#include <galcore/Traits.h>
-#include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Converter.h>
+#include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
 
 namespace gal {
@@ -83,22 +81,80 @@ void markDirty(const Function* fn);
 template<typename T>
 struct Register
 {
+  static_assert(!data::IsReadView<T>::value && !data::IsWriteView<T>::value,
+                "Can't have registers of views.");
   const Function*      mOwner = nullptr;
-  std::add_const_t<T>* mData  = nullptr;
+  const data::Tree<T>* mData  = nullptr;
 
   Register() = default;
 
-  Register(const Function* fn, std::add_const_t<T>* dref)
+  Register(const Function* fn, const data::Tree<T>* dref)
       : mOwner(fn)
       , mData(dref)
   {}
 
-  std::add_const_t<T>& read() const
+  const data::Tree<T>& read() const
   {
     mOwner->update();
     return *mData;
   }
 };
+
+/**
+ * Helper templates to wrangle various types at compile time.
+ */
+
+template<typename T>
+struct ImplFnArgType
+{
+  using Type =
+    std::conditional_t<(data::IsReadView<T>::value || data::IsWriteView<T>::value),
+                       std::remove_const_t<T>,
+                       T&>;
+};
+
+template<typename T>
+struct ArgTree
+{
+  using Type = data::Tree<typename data::UnwrapView<T>::Type>;
+};
+
+template<typename T>
+struct ArgTree<const T>
+{
+  using Type = const typename ArgTree<T>::Type;
+};
+
+template<typename T>
+struct ArgTree<data::Tree<T>>
+{
+  using Type = data::Tree<T>;
+};
+
+template<typename T>
+using ArgTreeT = typename ArgTree<T>::Type;
+
+template<typename T>
+struct ArgRegister
+{
+  using Type = Register<std::remove_const_t<typename data::UnwrapView<T>::Type>>;
+};
+
+template<typename T>
+struct ArgRegister<const T>
+{
+  // Register always point to const trees, this type doesn't need to be const.
+  using Type = typename ArgRegister<T>::Type;
+};
+
+template<typename T>
+struct ArgRegister<data::Tree<T>>
+{
+  using Type = Register<std::remove_const_t<T>>;
+};
+
+template<typename T>
+using ArgRegisterT = typename ArgRegister<T>::Type;
 
 /**
  * @brief Helper template to process the variadic argument type list.
@@ -156,52 +212,78 @@ struct TypeList
       ValidConstOrder<Ts...>::value;
   };
 
-  template<bool RegisterWrapped, size_t NBegin, size_t NEnd, typename... Ts>
-  struct SubTupleType
+  template<size_t NBegin, size_t NEnd, typename... Ts>
+  struct SubTuples
   {
-    // static_assert(NEnd <= sizeof...(Ts) && NBegin < NEnd);
-    using T = typename std::tuple_element<NBegin, std::tuple<Ts...>>::type;
-    using WrappedT =
-      typename std::conditional_t<RegisterWrapped, Register<std::remove_const_t<T>>, T>;
+    static_assert(NEnd <= sizeof...(Ts));
+    // static_assert(NBegin < NEnd);
 
-    // Prepends the current type to the tuple.
-    template<typename... Us>
-    using AppendedT = typename SubTupleType<RegisterWrapped, NBegin + 1, NEnd, Ts...>::
-      template type<Us..., WrappedT>;
+    using T          = std::tuple_element_t<NBegin, std::tuple<Ts...>>;
+    using UnwrappedT = typename data::UnwrapView<T>::Type;
+    static_assert(!data::IsReadView<UnwrappedT>::value &&
+                  !data::IsWriteView<UnwrappedT>::value);
+    using RegisterT = ArgRegisterT<T>;
+    using TreeT     = ArgTreeT<T>;
 
-    // sub tuple.
+    template<typename H, typename... Us>
+    using AppendedTupleT = std::conditional_t<
+      IsInstance<Register, H>::value,
+      /*appended reg tuple*/
+      typename SubTuples<NBegin + 1, NEnd, Ts...>::template RegTupleType<Us..., H>,
+      std::conditional_t<
+        IsInstance<data::Tree, H>::value,
+        /*appended tree tuple*/
+        typename SubTuples<NBegin + 1, NEnd, Ts...>::template TreeTupleType<Us..., H>,
+        /*appended tuple*/
+        typename SubTuples<NBegin + 1, NEnd, Ts...>::template TupleType<Us..., T>>>;
+
+    // sub tuple types.
     template<typename... Us>
-    using type =
-      typename std::conditional_t<(NBegin < NEnd), AppendedT<Us...>, std::tuple<Us...>>;
+    using TupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<T, Us...>, std::tuple<Us...>>;
+
+    template<typename... Us>
+    using TreeTupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<TreeT, Us...>, std::tuple<Us...>>;
+
+    template<typename... Us>
+    using RegTupleType = typename std::
+      conditional_t<(NBegin < NEnd), AppendedTupleT<RegisterT, Us...>, std::tuple<Us...>>;
   };
 
-  template<bool RegisterWrapped, size_t NEnd, typename... Ts>
-  struct SubTupleType<RegisterWrapped, NEnd, NEnd, Ts...>
+  template<size_t NEnd, typename... Ts>
+  struct SubTuples<NEnd, NEnd, Ts...>
   {
     template<typename... Us>
-    using type = std::tuple<Us...>;
+    using TupleType = std::tuple<Us...>;
+
+    template<typename... Us>
+    using TreeTupleType = std::tuple<Us...>;
+
+    template<typename... Us>
+    using RegTupleType = std::tuple<Us...>;
   };
 
   static_assert(ValidConstOrder<TArgs...>::value);
   static constexpr size_t NumTypes  = sizeof...(TArgs);
   static constexpr size_t NumInputs = NumConstTypes<TArgs...>::value;
   using TupleT                      = std::tuple<TArgs...>;
-  using RefTupleType                = std::tuple<TArgs&...>;
+  using ArgTupleType                = std::tuple<typename ImplFnArgType<TArgs>::Type...>;
   using PtrTupleType                = std::tuple<TArgs*...>;
   using OutputTupleType =
-    typename SubTupleType<false, NumInputs, NumTypes, TArgs...>::template type<>;
-  using OutputRegTupleType =
-    typename SubTupleType<true, NumInputs, NumTypes, TArgs...>::template type<>;
+    typename SubTuples<NumInputs, NumTypes, TArgs...>::template TreeTupleType<>;
   using InputRegTupleType =
-    typename SubTupleType<true, 0, NumInputs, TArgs...>::template type<>;
-  using ImplFnType = std::function<void(TArgs&...)>;
+    typename SubTuples<0, NumInputs, TArgs...>::template RegTupleType<>;
+  using ImplFnType = std::function<void(typename ImplFnArgType<TArgs>::Type...)>;
 
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
+
+  using ArgTreeRefTupleT = std::tuple<typename ArgTree<TArgs>::Type&...>;
 };
 
 template<typename TArgList, size_t N>
-static typename TArgList::template Type<N>& getRef(
+static ArgTreeT<typename TArgList::template Type<N>>& getTreeRef(
   const typename TArgList::InputRegTupleType& inputs,
   typename TArgList::OutputTupleType&         outputs)
 {
@@ -218,30 +300,31 @@ static typename TArgList::template Type<N>& getRef(
 
 // For internal use only from the other function.
 template<typename TArgList, size_t... Is>
-typename TArgList::RefTupleType makeArgRefTupleInternal(
+typename TArgList::ArgTreeRefTupleT makeArgTreeRefTupleInternal(
   const typename TArgList::InputRegTupleType& inputs,
   typename TArgList::OutputTupleType&         outputs,
   std::index_sequence<Is...>)
 {
-  return std::tie(getRef<TArgList, Is>(inputs, outputs)...);
+  return std::tie(getTreeRef<TArgList, Is>(inputs, outputs)...);
 }
 
 template<typename TArgList>
-typename TArgList::RefTupleType makeArgRefTuple(
+typename TArgList::ArgTreeRefTupleT makeArgTreeRefTuple(
   const typename TArgList::InputRegTupleType& inputs,
   typename TArgList::OutputTupleType&         outputs)
 {
-  return makeArgRefTupleInternal<TArgList>(
+  return makeArgTreeRefTupleInternal<TArgList>(
     inputs, outputs, std::make_index_sequence<TArgList::NumTypes> {});
 }
 
+// For internal use only from the other function.
 template<typename OutputTupleT, size_t... Is>
 boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
                                                const OutputTupleT& src,
                                                std::index_sequence<Is...>)
 {
   return boost::python::make_tuple(
-    Register<typename std::tuple_element<Is, OutputTupleT>::type>(
+    ArgRegisterT<typename std::tuple_element_t<Is, OutputTupleT>::Type>(
       fn, &(std::get<Is>(src)))...);
 }
 
@@ -271,7 +354,8 @@ struct TFunction : public Function
 {
   using TArgList                  = TypeList<TArgs...>;
   static constexpr size_t NInputs = TArgList::NumInputs;
-  using RefTupleT                 = typename TArgList::RefTupleType;
+  using ArgTupleT                 = typename TArgList::ArgTupleType;
+  using ArgTreeRefTupleT          = typename TArgList::ArgTreeRefTupleT;
   using InputRegTupleT            = typename TArgList::InputRegTupleType;
   using OutputTupleT              = typename TArgList::OutputTupleType;
   static constexpr size_t NArgs   = TArgList::NumTypes;
@@ -284,23 +368,46 @@ struct TFunction : public Function
   using PyOutputType =
     std::conditional_t<(NOutputs > 1),
                        boost::python::tuple,
-                       Register<typename TArgList::template Type<NInputs>>>;
+                       ArgRegisterT<typename TArgList::template Type<NInputs>>>;
 
 protected:
   /* Some fields are marked mutable because the function is considered changed only if the
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
    */
-  ImplFuncType             mFunc;
-  mutable OutputTupleT     mOutputs;
-  RefTupleT                mArgRefs;
-  InputRegTupleT           mInputs;
-  mutable std::atomic_bool mIsDirty = true;
+  ImplFuncType                                                            mFunc;
+  mutable OutputTupleT                                                    mOutputs;
+  InputRegTupleT                                                          mInputs;
+  mutable data::repeat::Combinations<NInputs, ArgTreeRefTupleT, TArgs...> mCombinations;
+  mutable std::atomic_bool                                                mIsDirty = true;
+
+  template<size_t N = 0>
+  inline void initOutputs() const
+  {
+    if constexpr (NInputs + N < NArgs) {
+      using TOut = std::tuple_element_t<NInputs + N, std::tuple<TArgs...>>;
+      if constexpr (data::IsWriteView<TOut>::value) {
+        std::get<N>(mOutputs).clear();
+      }
+      else {
+        std::get<N>(mOutputs).resize(1);
+      }
+    }
+    if constexpr (NInputs + N + 1 < NArgs) {
+      initOutputs<N + 1>();
+    }
+  }
 
   // Runs the function.
   inline void run() const
   {
-    std::apply(mFunc, mArgRefs);  // Run the function.
+    mCombinations.init();
+    initOutputs();
+    if (!mCombinations.empty()) {
+      do {
+        std::apply(mFunc, mCombinations.template current<ArgTupleT>());
+      } while (mCombinations.next());
+    }
   }
 
 private:
@@ -322,8 +429,8 @@ public:
   TFunction(const ImplFuncType& fn, const InputRegTupleT& inputs)
       : mFunc(std::move(fn))
       , mOutputs()
-      , mArgRefs(makeArgRefTuple<TArgList>(inputs, mOutputs))
       , mInputs(inputs)
+      , mCombinations(makeArgTreeRefTuple<TArgList>(mInputs, mOutputs))
   {
     this->addSubscriber(mIsDirty);
   };
@@ -362,7 +469,7 @@ public:
   PyOutputType pythonOutputRegs() const
   {
     if constexpr (NOutputs == 1) {
-      return Register<typename TArgList::template Type<NInputs>>(
+      return ArgRegisterT<typename TArgList::template Type<NInputs>>(
         dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
     }
     else {
@@ -371,9 +478,9 @@ public:
   }
 
   template<size_t N>
-  Register<typename TArgList::template Type<N + NInputs>> outputRegister()
+  ArgRegisterT<typename TArgList::template Type<N + NInputs>> outputRegister()
   {
-    return Register<typename TArgList::template Type<N + NInputs>>(
+    return ArgRegisterT<typename TArgList::template Type<N + NInputs>>(
       this, &(std::get<N>(mOutputs)));
   }
 };
@@ -394,33 +501,37 @@ struct TVariable : public TFunction<TVal>
                 "Cannot create variable with these arguments.");
 
   using TFirstArg    = typename std::tuple_element_t<0, std::tuple<TArgs...>>;
-  using PyOutputType = Register<TVal>;
+  using PyOutputType = ArgRegisterT<TVal>;
 
 protected:
-  inline uint64_t& registerId() { return this->mRegIds[0]; }
-  inline TVal&     value() { return std::get<0>(this->mOutputs); };
+  inline uint64_t&         registerId() { return this->mRegIds[0]; }
+  inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
+
+  void setInternal(const TArgs&... args)
+  {
+    if constexpr (sIsConstructible) {
+      tree().clear();
+      tree().emplace_back(0, args...);
+    }
+    else if constexpr (IsSingleArgument) {
+      tree().resize(1);
+      Converter<TFirstArg, TVal>::assign(args..., tree().value(0));
+    }
+  }
+
+  inline void run() const {/*Do Nothing.*/};
 
 public:
   TVariable(const TArgs&... args)
       : TFunction<TVal>([](TVal&) -> void {}, {})
   {
-    if constexpr (sIsConstructible) {
-      value() = TVal(args...);
-    }
-    else if constexpr (IsSingleArgument) {
-      Converter<TFirstArg, TVal>::assign(args..., value());
-    }
+    setInternal(args...);
   }
 
   void set(const TArgs&... args)
   {
     store::markDirty(this);
-    if constexpr (sIsConstructible) {
-      value() = TVal(args...);
-    }
-    else if constexpr (IsSingleArgument) {
-      Converter<TFirstArg, TVal>::assign(args..., value());
-    }
+    setInternal(args...);
     this->mIsDirty = false;
   }
 };
@@ -471,17 +582,19 @@ fs::path getcontextpath();
 }  // namespace gal
 
 #define GAL_CONCAT(x, y) x##y
+// Removes the braces from the type name at compile time.
+#define GAL_UNBRACED_TYPE(type) gal::RemoveBraces<void(type)>::Type
 // Get the type from an arg-tuple that has description.
-#define _GAL_ARGD_TYPE(type, name, desc) type
+#define _GAL_ARGD_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)
 #define GAL_ARGD_TYPE(argTuple) _GAL_ARGD_TYPE argTuple
 // Get the type from an arg-tuple that has no description.
-#define _GAL_ARG_TYPE(type, name) type
+#define _GAL_ARG_TYPE(type, name) GAL_UNBRACED_TYPE(type)
 #define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
 // Get the const type from an arg-tuple without description.
-#define _GAL_ARG_CONST_TYPE(type, name) const type
+#define _GAL_ARG_CONST_TYPE(type, name) std::add_const_t<GAL_UNBRACED_TYPE(type)>
 #define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple
 // Get the const type from an arg-tuple with description.
-#define _GAL_ARGD_CONST_TYPE(type, name, desc) const type
+#define _GAL_ARGD_CONST_TYPE(type, name, desc) std::add_const_t<GAL_UNBRACED_TYPE(type)>
 #define GAL_ARGD_CONST_TYPE(argTuple) _GAL_ARGD_CONST_TYPE argTuple
 // Get the name from an arg-tuple without description.
 #define _GAL_ARG_NAME(type, name) name
@@ -502,29 +615,31 @@ fs::path getcontextpath();
 #define _GAL_EXPAND_CONST_TYPE_D_TUPLE(...) MAP_LIST(GAL_ARGD_CONST_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_CONST_TYPE_D_TUPLE(types) _GAL_EXPAND_CONST_TYPE_D_TUPLE types
 // Get reference type from an arg-tuple without description.
-#define GAL_EXPAND_REF_ARG(argTuple) GAL_ARG_TYPE(argTuple) & GAL_ARG_NAME(argTuple)
+#define GAL_EXPAND_IMPL_ARG(argTuple) \
+  gal::func::ImplFnArgType<GAL_ARG_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
 // Get reference type from an arg-tuple with description.
-#define GAL_EXPAND_REF_ARGD(argTuple) GAL_ARGD_TYPE(argTuple) & GAL_ARGD_NAME(argTuple)
+#define GAL_EXPAND_IMPL_ARGD(argTuple) \
+  gal::func::ImplFnArgType<GAL_ARGD_TYPE(argTuple)>::Type GAL_ARGD_NAME(argTuple)
 // Get const refernce type from an arg-tuple without description.
-#define GAL_EXPAND_REF_CONST_ARG(argTuple) \
-  GAL_ARG_CONST_TYPE(argTuple) & GAL_ARG_NAME(argTuple)
+#define GAL_EXPAND_IMPL_CONST_ARG(argTuple) \
+  gal::func::ImplFnArgType<GAL_ARG_CONST_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
 // Get the const reference type from an arg-tuple with description.
-#define GAL_EXPAND_REF_CONST_ARGD(argTuple) \
-  GAL_ARGD_CONST_TYPE(argTuple) & GAL_ARGD_NAME(argTuple)
+#define GAL_EXPAND_IMPL_CONST_ARGD(argTuple) \
+  gal::func::ImplFnArgType<GAL_ARGD_CONST_TYPE(argTuple)>::Type GAL_ARGD_NAME(argTuple)
 // Expand to a list of references from arg-tuples without description.
-#define GAL_EXPAND_REF_ARGS(...) MAP_LIST(GAL_EXPAND_REF_ARG, __VA_ARGS__)
+#define GAL_EXPAND_IMPL_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_ARG, __VA_ARGS__)
 // Expand to a list of references from arg-tuples with description.
-#define GAL_EXPAND_REF_ARGSD(...) MAP_LIST(GAL_EXPAND_REF_ARGD, __VA_ARGS__)
+#define GAL_EXPAND_IMPL_ARGSD(...) MAP_LIST(GAL_EXPAND_IMPL_ARGD, __VA_ARGS__)
 // Expand to a list of const references from arg-tuples without description.
-#define GAL_EXPAND_REF_CONST_ARGS(...) MAP_LIST(GAL_EXPAND_REF_CONST_ARG, __VA_ARGS__)
+#define GAL_EXPAND_IMPL_CONST_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARG, __VA_ARGS__)
 // Expand to a list of const references from arg-tuples with description.
-#define GAL_EXPAND_REF_CONST_ARGSD(...) MAP_LIST(GAL_EXPAND_REF_CONST_ARGD, __VA_ARGS__)
+#define GAL_EXPAND_IMPL_CONST_ARGSD(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARGD, __VA_ARGS__)
 // Get python register argument from an arg-tuple without description.
 #define GAL_PY_REGISTER_ARG(typeTuple) \
-  const gal::func::Register<GAL_ARG_TYPE(typeTuple)>& GAL_ARG_NAME(typeTuple)
+  const gal::func::ArgRegisterT<GAL_ARG_TYPE(typeTuple)>& GAL_ARG_NAME(typeTuple)
 // Get python register argument from an arg-tuple with description.
 #define GAL_PY_REGISTER_ARGD(typeTuple) \
-  const gal::func::Register<GAL_ARGD_TYPE(typeTuple)>& GAL_ARGD_NAME(typeTuple)
+  const gal::func::ArgRegisterT<GAL_ARGD_TYPE(typeTuple)>& GAL_ARGD_NAME(typeTuple)
 // Get python argument register list from arg-tuples without descriptions.
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 // Get python argument register list from arg-tuples with descriptions.
@@ -534,9 +649,9 @@ fs::path getcontextpath();
 // Get register ids from arg-tuples without descriptions.
 #define GAL_EXPAND_REG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
 // Actual declaration of a the static implementation of the function.
-#define GAL_FN_IMPL(fnName, inputs, outputs)                             \
-  static void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_REF_CONST_ARGS inputs, \
-                                       GAL_EXPAND_REF_ARGS       outputs)
+#define GAL_FN_IMPL(fnName, inputs, outputs)                              \
+  static void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_IMPL_CONST_ARGS inputs, \
+                                       GAL_EXPAND_IMPL_ARGS       outputs)
 
 // Declartion of a gal function.
 #define GAL_FUNC_DECL(fnName, fnDesc, inputArgs, outputArgs)   \
@@ -583,7 +698,7 @@ template<typename T>
 boost::python::object read(const Register<T>& reg)
 {
   boost::python::object dst;
-  Converter<T, boost::python::object>::assign(reg.read(), dst);
+  Converter<data::Tree<T>, boost::python::object>::assign(reg.read(), dst);
   return dst;
 }
 

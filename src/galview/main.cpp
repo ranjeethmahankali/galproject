@@ -12,11 +12,11 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Util.h>
-#include <galview/AllViews.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Views.h>
 #include <galview/Widget.h>
 
 using namespace gal;
@@ -115,7 +115,7 @@ void showSettingsPanel()
   panel.newWidget<view::Button>("Reload demo", []() {
     gal::viewfunc::unloadAllOutputs();
     gal::func::store::unloadAllFunctions();
-    gal::view::Context::get().clearDrawables();
+    gal::view::Views::clear();
     int err = runPythonDemoFile(sCurrentDemoPath);
     if (err != 0) {
       std::cerr << "Unable to run the demo file. Aborting...\n";
@@ -164,7 +164,7 @@ int loadDemo(const fs::path& demoPath)
       viewfunc::evalOutputs();
       view::drawAllPanels();
       view::imGuiRender();
-      view::Context::get().render();
+      view::Views::render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
     glfwSwapBuffers(window);
@@ -204,7 +204,7 @@ int debugSession(const fs::path& targetDir)
     {
       view::drawAllPanels();
       view::imGuiRender();
-      view::Context::get().render();
+      view::Views::render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
     glfwSwapBuffers(window);

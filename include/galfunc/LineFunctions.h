@@ -22,13 +22,13 @@ GAL_FUNC_DECL(
   samplePointsOnLine2d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line2d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
-  ((std::vector<glm::vec2>, points, "The sampled points")));
+  (((data::WriteView<glm::vec2, 1>), points, "The sampled points")));
 
 GAL_FUNC_DECL(
   samplePointsOnLine3d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line3d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
-  ((std::vector<glm::vec3>, points, "The sampled points")));
+  (((data::WriteView<glm::vec3, 1>), points, "The sampled points")));
 
 }  // namespace func
 }  // namespace gal
