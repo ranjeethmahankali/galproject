@@ -3673,63 +3673,108 @@ static constexpr std::array<uint32_t, 15360> sIndices = {
    2561, 2548, 2561, 2555, 640,  2560, 2559, 641,  2561, 2560, 639,  2559, 2561, 2560,
    2561, 2559}};
 
-class SphereView : public Drawable
+template<>
+struct Drawable<Sphere> : public std::true_type
 {
-  friend struct MakeDrawable<gal::Sphere>;
-
-public:
-  SphereView() = default;
-  ~SphereView();
-
-  void draw() const override;
+  static constexpr glm::vec4 sFaceColor = {.5f, 1.f, .5f, .5f};
+  static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, .5f};
 
 private:
-  SphereView(const SphereView&) = delete;
-  const SphereView& operator=(const SphereView&) = delete;
-
+  Box3 mBounds;
   uint mVAO   = 0;  // vertex array object.
   uint mVBO   = 0;  // vertex buffer object.
   uint mIBO   = 0;  // index buffer object.a
   uint mVSize = 0;  // vertex buffer size.
   uint mISize = 0;  // index buffer size.
-};
 
-template<>
-struct MakeDrawable<gal::Sphere> : public std::true_type
-{
-  static std::shared_ptr<Drawable> get(const gal::Sphere&           sphere,
-                                       std::vector<RenderSettings>& renderSettings)
+public:
+  Drawable<Sphere>(const std::vector<Sphere>& spheres)
   {
-    auto view = std::make_shared<SphereView>();
-
     // Position and Normal for each vertex.
-    glutil::VertexBuffer vBuf(sVertices.size());
-
-    auto vbegin = vBuf.begin();
-    for (const auto& v : sVertices) {
-      *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
+    glutil::VertexBuffer vBuf(spheres.size() * sVertices.size());
+    glutil::IndexBuffer  iBuf(spheres.size() * sIndices.size());
+    auto                 vbegin = vBuf.begin();
+    auto                 ibegin = iBuf.begin();
+    uint32_t             off    = 0;
+    for (const auto& sphere : spheres) {
+      for (const auto& v : sVertices) {
+        *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
+      }
+      for (auto i : sIndices) {
+        *(ibegin++) = off + i;
+      }
+      off += uint32_t(sIndices.size());
+      mBounds.inflate(sphere.bounds());
     }
 
-    view->mVSize = (uint32_t)vBuf.size();
-    view->setBounds(sphere.bounds());
+    mISize = (uint32_t)iBuf.size();
+    mVSize = (uint32_t)vBuf.size();
+    vBuf.finalize(mVAO, mVBO);
+    iBuf.finalize(mIBO);
+  }
 
-    glutil::IndexBuffer iBuf(sIndices.size());
-    view->mISize = (uint32_t)iBuf.size();
-    std::copy(sIndices.begin(), sIndices.end(), iBuf.begin());
+  ~Drawable<Sphere>()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+    }
+    if (mIBO) {
+      GL_CALL(glDeleteBuffers(1, &mIBO));
+    }
+  }
 
-    vBuf.finalize(view->mVAO, view->mVBO);
-    iBuf.finalize(view->mIBO);
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
 
-    // Render settings.
-    static constexpr glm::vec4 sFaceColor = {.5f, 1.f, .5f, .5f};
-    static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, .5f};
-    RenderSettings             settings;
+  const Drawable& operator=(Drawable&& other)
+  {
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mIBO    = std::exchange(other.mIBO, 0);
+    mVSize  = other.mVSize;
+    mISize  = other.mISize;
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
+  uint64_t drawOrderIndex() const
+  {
+    static const uint64_t sIdx = (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
+                                 (uint64_t((1.f - sFaceColor.a) * 255.f) << 16);
+    return sIdx;
+  }
+
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
+    settings.shaderId      = Context::get().shaderId("default");
     settings.faceColor     = sFaceColor;
     settings.edgeColor     = sEdgeColor;
     settings.shadingFactor = 0.9f;
-    renderSettings.push_back(settings);
-    return view;
-  };
+    return settings;
+  }
+
+  Box3 bounds() const { return mBounds; }
+
+  void draw() const
+  {
+    static auto rsettings = renderSettings();
+    rsettings.apply();
+
+    GL_CALL(glEnable(GL_CULL_FACE));
+    GL_CALL(glCullFace(GL_BACK));
+    GL_CALL(glFrontFace(GL_CW));
+
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
+    GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+
+    GL_CALL(glDisable(GL_CULL_FACE));
+  }
 };
 
 }  // namespace view

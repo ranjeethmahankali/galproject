@@ -4,10 +4,10 @@
 #include <galfunc/GeomFunctions.h>
 #include <galfunc/MeshFunctions.h>
 #include <galfunc/TypeHelper.h>
-#include <galview/AllViews.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Views.h>
 #include <galview/Widget.h>
 #include <cstdint>
 #include <iostream>
@@ -148,18 +148,19 @@ int32_t py_glyphIndex(const std::string& str)
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc : public func::TFunction<const T, uint64_t>
+struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using PyOutputType = typename func::TFunction<const T, uint64_t>::PyOutputType;
+  using BaseT        = func::TFunction<const func::data::Tree<T>, uint64_t>;
+  using PyOutputType = typename BaseT::PyOutputType;
 
   ShowFunc(const std::string&       label,
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
-      : func::TFunction<const T, uint64_t>(
-          [this, visibilityFlag](const T& obj, uint64_t& id) {
-            if constexpr (view::MakeDrawable<T>::value) {
-              id = view::Context::get().addDrawable(obj, visibilityFlag, id);
+      : BaseT(
+          [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
+            if constexpr (view::Drawable<T>::value) {
+              id = view::Views::add<T>(objs.values(), visibilityFlag, id);
             }
             else {
               std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
@@ -167,7 +168,9 @@ struct ShowFunc : public func::TFunction<const T, uint64_t>
           },
           std::make_tuple(reg))
   {
-    std::get<0>(this->mOutputs) = 0;
+    auto& tree = std::get<0>(this->mOutputs);
+    tree.resize(1);
+    tree.value(0) = 0;
   }
   virtual ~ShowFunc() = default;
 };
@@ -201,27 +204,25 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc : public func::TFunction<const T, bool>, public view::Text
+struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
+                   public view::Text
 {
-  using PyOutputType = typename func::TFunction<const T, bool>::PyOutputType;
+  using BaseT        = func::TFunction<const func::data::Tree<T>, uint8_t>;
+  using PyOutputType = typename BaseT::PyOutputType;
+
   std::string       mLabel;
   std::stringstream mStream;
 
   PrintFunc(const std::string& label, const func::Register<T>& reg)
       : mLabel(label)
       , view::Text("")
-      , func::TFunction<const T, bool>(
-          [this](const T& obj, bool& success) {
-            if constexpr (IsPrintable<T>::value) {
-              mStream.clear();
-              mStream.str("");
-              mStream << mLabel << ": " << obj;
-              this->mValue = mStream.str();
-              success      = true;
-            }
-            else {
-              std::cerr << TypeInfo<T>::name() << " object";
-            }
+      , BaseT(
+          [this](const func::data::Tree<T>& obj, uint8_t& success) {
+            mStream.clear();
+            mStream.str("");
+            mStream << mLabel << ": \n" << obj;
+            this->mValue = mStream.str();
+            success      = 1;
           },
           std::make_tuple(reg)) {};
 

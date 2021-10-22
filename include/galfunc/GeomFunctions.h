@@ -54,42 +54,30 @@ GAL_FUNC_DECL(box2,
               ((glm::vec2, min, "min point"), (glm::vec2, max, "max point")),
               ((gal::Box2, box, "Box")));
 
-GAL_FUNC_DECL(randomPointCloudFromBox,
+GAL_FUNC_DECL(randomPointsInBox,
               "Creates a random point cloud with points inside the given box",
               ((gal::Box3, box, "Box to sample from"),
                (int32_t, numPoints, "Number of points to sample")),
-              ((gal::PointCloud, cloud, "Point cloud")));
+              (((data::WriteView<glm::vec3, 1>), cloud, "Point cloud")));
 
-GAL_FUNC_DECL(pointCloudConvexHull,
+GAL_FUNC_DECL(convexHullFromPoints,
               "Creates a convex hull from the given point cloud",
-              ((gal::PointCloud, cloud, "Point cloud")),
+              (((data::ReadView<glm::vec3, 1>), cloud, "Point cloud")),
               ((gal::Mesh, hull, "Convex hull")));
-
-GAL_FUNC_DECL(listVec3FromPointCloud,
-              "Creates a point list from a point cloud",
-              ((gal::PointCloud, cloud, "Point cloud")),
-              ((std::vector<glm::vec3>, pts, "Point list")));
 
 GAL_FUNC_DECL(pointCloud3d,
               "Creates a point cloud from the list of points",
-              ((std::vector<glm::vec3>, points, "points")),
+              (((data::ReadView<glm::vec3, 1>), points, "points")),
               ((gal::PointCloud, cloud, "Point cloud")));
 
 GAL_FUNC_DECL(distance,
               "Gets the distance betwen the two points",
               ((glm::vec3, a, "first point"), (glm::vec3, b, "second point")),
               ((float, dist, "Distance")));
-
-GAL_FUNC_DECL(pointCloudFarthestPt,
-              "Gets the farthest point in the cloud from the given point",
-              ((gal::PointCloud, cloud, "Pointcloud"), (glm::vec3, pt, "point")),
-              ((glm::vec3, farthest, "Farthest")));
-
 }  // namespace func
 }  // namespace gal
 
 // These are all the functions exposed from this translation unit.
-#define GAL_GeomFunctions                                                             \
-  vec3, vec2, vec3FromVec2, vec2FromVec3, plane, box3, box2, randomPointCloudFromBox, \
-    pointCloudConvexHull, pointCloud3d, distance, pointCloudFarthestPt,               \
-    listVec3FromPointCloud
+#define GAL_GeomFunctions                                                       \
+  vec3, vec2, vec3FromVec2, vec2FromVec3, plane, box3, box2, randomPointsInBox, \
+    convexHullFromPoints, pointCloud3d, distance

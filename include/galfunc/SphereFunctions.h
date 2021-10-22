@@ -12,7 +12,7 @@ GAL_FUNC_DECL(sphere,
 
 GAL_FUNC_DECL(boundingSphere,
               "Creates a minimum bounding sphere for the given points.",
-              ((gal::PointCloud, points, "Points")),
+              (((data::ReadView<glm::vec3, 1>), points, "Points")),
               ((gal::Sphere, sphere, "Bounding sphere"),
                (glm::vec3, center, "Center of the sphere"),
                (float, radius, "Radius of the sphere")));

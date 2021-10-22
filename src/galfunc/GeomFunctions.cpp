@@ -63,31 +63,24 @@ GAL_FUNC_DEFN(box2, ((glm::vec2, min), (glm::vec2, max)), ((gal::Box2, box)))
   box.max = max;
 };
 
-GAL_FUNC_DEFN(randomPointCloudFromBox,
+GAL_FUNC_DEFN(randomPointsInBox,
               ((gal::Box3, box), (int32_t, numPoints)),
-              ((gal::PointCloud, cloud)))
+              (((data::WriteView<glm::vec3, 1>), points)))
 {
   size_t nPts = size_t(numPoints);
-  cloud.clear();
-  cloud.reserve(nPts);
-  box.randomPoints(nPts, std::back_inserter(cloud));
+  points.reserve(nPts);
+  box.randomPoints(nPts, std::back_inserter(points));
 };
 
-GAL_FUNC_DEFN(pointCloudConvexHull, ((gal::PointCloud, cloud)), ((gal::Mesh, hull)))
+GAL_FUNC_DEFN(convexHullFromPoints,
+              (((data::ReadView<glm::vec3, 1>), points)),
+              ((gal::Mesh, hull)))
 {
-  hull = std::move(gal::ConvexHull(cloud.begin(), cloud.end()).toMesh());
-}
-
-GAL_FUNC_DEFN(listVec3FromPointCloud,
-              ((gal::PointCloud, cloud)),
-              ((std::vector<glm::vec3>, pts)))
-{
-  pts.resize(cloud.size());
-  std::copy(cloud.begin(), cloud.end(), pts.begin());
+  hull = std::move(gal::ConvexHull(points.begin(), points.end()).toMesh());
 }
 
 GAL_FUNC_DEFN(pointCloud3d,
-              ((std::vector<glm::vec3>, points)),
+              (((data::ReadView<glm::vec3, 1>), points)),
               ((gal::PointCloud, cloud)))
 {
   cloud.resize(points.size());
@@ -97,16 +90,6 @@ GAL_FUNC_DEFN(pointCloud3d,
 GAL_FUNC_DEFN(distance, ((glm::vec3, a), (glm::vec3, b)), ((float, dist)))
 {
   dist = glm::distance(a, b);
-}
-
-GAL_FUNC_DEFN(pointCloudFarthestPt,
-              ((gal::PointCloud, cloud), (glm::vec3, pt)),
-              ((glm::vec3, farthest)))
-{
-  farthest = *(std::max_element(
-    cloud.begin(), cloud.end(), [&pt](const glm::vec3& a, const glm::vec3& b) {
-      return glm::distance2(a, pt) < glm::distance2(b, pt);
-    }));
 }
 
 }  // namespace func

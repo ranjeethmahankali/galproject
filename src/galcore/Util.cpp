@@ -124,3 +124,22 @@ fs::path gal::utils::absPath(const fs::path& relPath)
   path = fs::path(apath).parent_path() / relPath;
   return path;
 }
+
+size_t gal::utils::numCombinations(size_t n, size_t k)
+{
+  if (k > n) {
+    return 0;
+  }
+  if (k * 2 > n) {
+    k = n - k;
+  }
+  if (k == 0) {
+    return 1;
+  }
+  size_t c = n;
+  for (size_t i = 2; i < k + 1; i++) {
+    c *= n - i + 1;
+    c /= i;
+  }
+  return c;
+}

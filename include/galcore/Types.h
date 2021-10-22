@@ -54,7 +54,7 @@ struct TypeInfo<std::vector<T>> : public std::true_type
 }  // namespace gal
 
 GAL_TYPE_INFO(void, 0x9267e7bf);
-GAL_TYPE_INFO(bool, 0x9566a7b1);
+GAL_TYPE_INFO(uint8_t, 0x313861ed);
 GAL_TYPE_INFO(int32_t, 0x9234a3b1);
 GAL_TYPE_INFO(uint64_t, 0x913eb3be);
 GAL_TYPE_INFO(float, 0x32542672);

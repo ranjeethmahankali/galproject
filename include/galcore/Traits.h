@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <memory>
 #include <ostream>
 #include <type_traits>
 
@@ -31,6 +32,27 @@ struct IsInstance<Tem, Tem<Ts...>> : public std::true_type
 {
 };
 
+template<template<typename...> typename Tem, typename... Ts>
+struct IsInstance<Tem, const Tem<Ts...>> : public std::true_type
+{
+};
+
+template<typename T>
+struct GlmVecTraits
+{
+  static constexpr bool IsGlmVec = false;
+  static constexpr int  Size     = 0;
+  using ValueType                = void;
+};
+
+template<int N, typename T, glm::qualifier Q>
+struct GlmVecTraits<glm::vec<N, T, Q>>
+{
+  static constexpr bool IsGlmVec = true;
+  static constexpr int  Size     = N;
+  using ValueType                = T;
+};
+
 /**
  * @brief Checks if the type is streamable to std::ostream.
  *
@@ -49,5 +71,21 @@ class IsPrintable
 public:
   static const bool value = decltype(Check<std::ostream, T>(0))::value;
 };
+
+template<typename T>
+struct RemoveBraces;
+template<typename T, typename U>
+struct RemoveBraces<T(U)>
+{
+  using Type = U;
+};
+
+/** You can't have polymorphic instances on the stack. Its inefficient to have
+ * non-polymorphic instances on the heap. This helper template can decide where to put
+ * what.
+ */
+template<typename U>
+using SafeInstanceType =
+  std::conditional_t<std::is_polymorphic_v<U>, std::shared_ptr<U>, U>;
 
 }  // namespace gal

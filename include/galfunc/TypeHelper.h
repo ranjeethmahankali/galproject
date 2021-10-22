@@ -32,7 +32,7 @@ struct TypeManager
 };
 
 // Instantiation that manages all the known recognized types.
-using typemanager = TypeManager<bool,
+using typemanager = TypeManager<uint8_t,
                                 int32_t,
                                 uint64_t,
                                 float,

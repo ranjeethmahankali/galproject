@@ -44,7 +44,7 @@ GAL_FUNC_DECL(meshSphereQuery,
               ((gal::Mesh, mesh, "Mesh to query"),
                (gal::Sphere, sphere, "Sphere to query the faces with")),
               ((gal::Mesh, resultMesh, "Mesh with the queried faces"),
-               (std::vector<int32_t>,
+               ((data::WriteView<int32_t, 1>),
                 faceIndices,
                 "Indices of the faces that are inside / near the query sphere"),
                (int32_t, numFaces, "The number of faces in the query results")));
@@ -53,8 +53,8 @@ GAL_FUNC_DECL(closestPointsOnMesh,
               "Creates the result point cloud by closest-point-querying the mesh with "
               "the given point cloud",
               ((gal::Mesh, mesh, "Mesh"),
-               (gal::PointCloud, inCloud, "Query point cloud")),
-              ((gal::PointCloud, outCloud, "Result point cloud")));
+               ((data::ReadView<glm::vec3, 1>), inCloud, "Query point cloud")),
+              (((data::WriteView<glm::vec3, 1>), outCloud, "Result point cloud")));
 
 GAL_FUNC_DECL(meshBbox,
               "Gets the bounding box of the mesh",
