@@ -1,20 +1,16 @@
-#include <galcore/Types.h>
-#include <galcore/Util.h>
-#include <galfunc/CircleFunctions.h>
-#include <galfunc/Functions.h>
-#include <galfunc/GeomFunctions.h>
-#include <galfunc/LineFunctions.h>
-#include <galfunc/MapMacro.h>
-#include <galfunc/MeshFunctions.h>
-#include <galfunc/SphereFunctions.h>
-#include <galfunc/TypeHelper.h>
-#include <galfunc/UtilFunctions.h>
+#include <string>
+
 #include <boost/python/class.hpp>
 #include <boost/python/import.hpp>
-#include <string>
-#include "galcore/Annotations.h"
-#include "galcore/Circle2d.h"
-#include "galcore/Line.h"
+
+#include <galcore/Annotations.h>
+#include <galcore/Circle2d.h>
+#include <galcore/Line.h>
+#include <galcore/Types.h>
+#include <galcore/Util.h>
+#include <galfunc/Functions.h>
+#include <galfunc/MapMacro.h>
+#include <galfunc/TypeHelper.h>
 
 namespace gal {
 namespace func {
@@ -88,10 +84,16 @@ fs::path getcontextpath()
 }
 }  // namespace python
 
+// Forward declare the binding functions.
+void bind_UtilFunctions();
+void bind_GeomFunctions();
+void bind_CircleFunctions();
+void bind_SphereFunctions();
+void bind_LineFunctions();
+void bind_MeshFunctions();
+
 }  // namespace func
 }  // namespace gal
-
-#define GAL_DEF_PY_FN_ALL(fnNames) MAP(GAL_DEF_PY_FN, fnNames)
 
 BOOST_PYTHON_MODULE(pygalfunc)
 {
@@ -112,10 +114,10 @@ BOOST_PYTHON_MODULE(pygalfunc)
   def("listvec3", py_list<glm::vec3>);
   def("liststring", py_list<std::string>);
 
-  GAL_DEF_PY_FN_ALL(GAL_UtilFunctions)
-  GAL_DEF_PY_FN_ALL(GAL_GeomFunctions)
-  GAL_DEF_PY_FN_ALL(GAL_CircleFunctions)
-  GAL_DEF_PY_FN_ALL(GAL_SphereFunctions)
-  GAL_DEF_PY_FN_ALL(GAL_LineFunctions)
-  GAL_DEF_PY_FN_ALL(GAL_MeshFunctions)
+  bind_UtilFunctions();
+  bind_GeomFunctions();
+  bind_CircleFunctions();
+  bind_SphereFunctions();
+  bind_LineFunctions();
+  bind_MeshFunctions();
 };

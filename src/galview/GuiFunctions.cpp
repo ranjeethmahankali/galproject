@@ -1,8 +1,6 @@
 #include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
-#include <galfunc/GeomFunctions.h>
-#include <galfunc/MeshFunctions.h>
 #include <galfunc/TypeHelper.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
@@ -271,6 +269,8 @@ struct defOutputFuncs : public gal::func::python::defClass<T>
 }  // namespace viewfunc
 }  // namespace gal
 
+#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
+
 BOOST_PYTHON_MODULE(pygalview)
 {
   using namespace boost::python;
@@ -284,11 +284,6 @@ BOOST_PYTHON_MODULE(pygalview)
 
   gal::func::typemanager::invoke<defOutputFuncs>();
 
-  // Views for drawables
-  // GAL_DEF_PY_FN(show);
-  // GAL_DEF_PY_FN(showAll);
-  // Labels for printable data
-  // GAL_DEF_PY_FN(print);
   // Text fields for string inputs
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
