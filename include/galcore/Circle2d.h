@@ -20,6 +20,8 @@ public:
   float            radius() const;
   void             radius(float newRadius);
   bool             contains(const glm::vec2&, float tolerance = 0.f) const;
+  float            area() const;
+  float            perimeter() const;
 
   Box2 bounds() const;
 
