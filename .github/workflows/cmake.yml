@@ -16,6 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs pull
 
     - name: Install Dependencies
       run: |
@@ -33,14 +37,23 @@ jobs:
       env:
         cache-name: cache-vcpkg
       with:
-        path: ${{github.workspace}}/../vcpkg
+        path: |
+          ${{github.workspace}}/vcpkg/
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/vcpkg_installed/
+          !${{github.workspace}}/vcpkg/buildtrees
+          !${{github.workspace}}/vcpkg/packages
+          !${{github.workspace}}/vcpkg/downloads
         key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
 
     - name: Setup Vcpkg
-      working-directory: ${{github.workspace}}/..
+      working-directory: ${{github.workspace}}
       run: |
+        if [ ! -d "${{github.workspace}}/vcpkg" ]; then
         git clone https://github.com/microsoft/vcpkg.git
+        fi
+        if [ ! -f "${{github.workspace}}/vcpkg/vcpkg" ]; then
         sh vcpkg/bootstrap-vcpkg.sh
+        fi
       env:
         VCPKG_TARGET_TRIPLET: x64-linux
 
@@ -48,11 +61,11 @@ jobs:
       working-directory: ${{github.workspace}}
       run: bash build.sh ${{env.BUILD_TYPE}}
       env:
-        VCPKG_PATH: ${{github.workspace}}/../vcpkg
+        VCPKG_PATH: ${{github.workspace}}/vcpkg
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
-      # Execute tests defined by the CMake configuration.  
+      # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
       
