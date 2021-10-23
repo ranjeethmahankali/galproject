@@ -28,12 +28,19 @@ jobs:
       with:
         python-version: 3.9
 
+    - name: Cache Vcpkg Packages
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-vcpkg-packages
+      with:
+        path: ~/vcpkg
+        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('${{github.workspace}}/vcpkg.json')}}
+
     - name: Setup Vcpkg
-      working-directory: ${{github.workspace}}
+      working-directory: ~/
       run: |
         git clone https://github.com/microsoft/vcpkg.git
         sh vcpkg/bootstrap-vcpkg.sh
-      
       env:
         VCPKG_TARGET_TRIPLET: x64-linux
 
@@ -41,7 +48,7 @@ jobs:
       working-directory: ${{github.workspace}}
       run: bash build.sh ${{env.BUILD_TYPE}}
       env:
-        VCPKG_PATH: ${{github.workspace}}/vcpkg
+        VCPKG_PATH: ~/vcpkg
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
