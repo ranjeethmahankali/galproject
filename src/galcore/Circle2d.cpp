@@ -34,6 +34,17 @@ bool Circle2d::contains(const glm::vec2& pt, float tolerance) const
   return glm::distance(mCenter, pt) <= mRadius + tolerance;
 };
 
+float Circle2d::area() const
+{
+  return M_PI * mRadius * mRadius;
+}
+
+float Circle2d::perimeter() const
+{
+  static constexpr float s2Pi = 2.f * M_PI;
+  return s2Pi * mRadius;
+}
+
 Box2 Circle2d::bounds() const
 {
   glm::vec2 r {mRadius, mRadius};

@@ -10,17 +10,6 @@ namespace func {
 template<typename T1, typename T2>
 struct Converter
 {
-  static std::shared_ptr<T2> convert(const T1& val)
-  {
-    if constexpr (std::is_same_v<T1, T2>) {
-      return std::make_shared<T1>(val);
-    }
-    else {
-      T2 b = T2(val);
-      return std::make_shared<T2>(std::move(b));
-    }
-  };
-
   static void assign(const T1& src, T2& dst)
   {
     if constexpr (std::is_same_v<T1, T2>) {
@@ -35,11 +24,6 @@ struct Converter
 template<typename T>
 struct Converter<boost::python::api::const_object_item, T>
 {
-  static std::shared_ptr<T> convert(const boost::python::api::const_object_item& obj)
-  {
-    return std::make_shared<T>(boost::python::extract<T>(obj));
-  };
-
   static void assign(const boost::python::api::const_object_item& src, T& dst)
   {
     dst = boost::python::extract<T>(src);
@@ -49,11 +33,6 @@ struct Converter<boost::python::api::const_object_item, T>
 template<typename T>
 struct Converter<boost::python::object, T>
 {
-  static std::shared_ptr<T> convert(const boost::python::object& obj)
-  {
-    return std::make_shared<T>(boost::python::extract<T>(obj));
-  };
-
   static void assign(const boost::python::object& src, T& dst)
   {
     dst = boost::python::extract<T>(src);
@@ -88,13 +67,6 @@ struct Converter<glm::vec2, boost::python::object>
 template<>
 struct Converter<boost::python::list, glm::vec2>
 {
-  static std::shared_ptr<glm::vec2> convert(const boost::python::list& lst)
-  {
-    auto v = std::make_shared<glm::vec2>();
-    assign(lst, *v);
-    return v;
-  }
-
   static void assign(const boost::python::list& src, glm::vec2& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
@@ -105,13 +77,6 @@ struct Converter<boost::python::list, glm::vec2>
 template<>
 struct Converter<boost::python::list, glm::vec3>
 {
-  static std::shared_ptr<glm::vec3> convert(const boost::python::list& lst)
-  {
-    auto v = std::make_shared<glm::vec3>();
-    assign(lst, *v);
-    return v;
-  }
-
   static void assign(const boost::python::list& src, glm::vec3& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
@@ -123,14 +88,6 @@ struct Converter<boost::python::list, glm::vec3>
 template<>
 struct Converter<boost::python::api::const_object_item, glm::vec3>
 {
-  static std::shared_ptr<glm::vec3> convert(
-    const boost::python::api::const_object_item& obj)
-  {
-    auto v = std::make_shared<glm::vec3>();
-    assign(obj, *v);
-    return v;
-  };
-
   static void assign(const boost::python::api::const_object_item& src, glm::vec3& dst)
   {
     boost::python::list lst = boost::python::extract<boost::python::list>(src);
@@ -141,14 +98,6 @@ struct Converter<boost::python::api::const_object_item, glm::vec3>
 template<>
 struct Converter<boost::python::api::const_object_item, glm::vec2>
 {
-  static std::shared_ptr<glm::vec2> convert(
-    const boost::python::api::const_object_item& obj)
-  {
-    auto v = std::make_shared<glm::vec2>();
-    assign(obj, *v);
-    return v;
-  };
-
   static void assign(const boost::python::api::const_object_item& src, glm::vec2& dst)
   {
     boost::python::list lst = boost::python::extract<boost::python::list>(src);
@@ -159,13 +108,6 @@ struct Converter<boost::python::api::const_object_item, glm::vec2>
 template<typename T>
 struct Converter<boost::python::list, std::vector<T>>
 {
-  static std::shared_ptr<std::vector<T>> convert(const boost::python::list& lst)
-  {
-    auto dst = std::make_shared<std::vector<T>>();
-    assign(lst, *dst);
-    return dst;
-  };
-
   static void assign(const boost::python::list& src, std::vector<T>& dst)
   {
     size_t count = boost::python::len(src);
@@ -186,13 +128,6 @@ struct Converter<boost::python::list, std::vector<T>>
 template<typename T1, typename T2>
 struct Converter<boost::python::tuple, std::pair<T1, T2>>
 {
-  static std::shared_ptr<std::pair<T1, T2>> convert(const boost::python::tuple& tup)
-  {
-    auto dst = std::make_shared<std::pair<T1, T2>>();
-    assign(tup, *dst);
-    return dst;
-  }
-
   static void assign(const boost::python::tuple& src, std::pair<T1, T2>& dst)
   {
     Converter<boost::python::api::const_object_item, T1>::assign(src[0],
@@ -205,13 +140,6 @@ struct Converter<boost::python::tuple, std::pair<T1, T2>>
 template<typename T1, typename T2>
 struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
 {
-  static std::shared_ptr<std::pair<T1, T2>> convert(
-    const boost::python::api::const_object_item& tup)
-  {
-    return Converter<boost::python::tuple, std::pair<T1, T2>>::convert(
-      boost::python::extract<boost::python::tuple>(tup));
-  }
-
   static void assign(const boost::python::api::const_object_item& src,
                      std::pair<T1, T2>&                           dst)
   {
