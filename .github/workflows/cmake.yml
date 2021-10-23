@@ -21,7 +21,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y inotify-tools libxmu-dev libxi-dev libgl-dev
-        sudo apt install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+        sudo apt install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
 
     - name: Setup Python
       uses: actions/setup-python@v2
@@ -31,13 +31,13 @@ jobs:
     - name: Cache Vcpkg Packages
       uses: actions/cache@v2
       env:
-        cache-name: cache-vcpkg-packages
+        cache-name: cache-vcpkg
       with:
-        path: ~/vcpkg
-        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('${{github.workspace}}/vcpkg.json')}}
+        path: ${{github.workspace}}/../vcpkg
+        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
 
     - name: Setup Vcpkg
-      working-directory: ~/
+      working-directory: ${{github.workspace}}/..
       run: |
         git clone https://github.com/microsoft/vcpkg.git
         sh vcpkg/bootstrap-vcpkg.sh
@@ -48,11 +48,11 @@ jobs:
       working-directory: ${{github.workspace}}
       run: bash build.sh ${{env.BUILD_TYPE}}
       env:
-        VCPKG_PATH: ~/vcpkg
+        VCPKG_PATH: ${{github.workspace}}/../vcpkg
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
+      run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
       

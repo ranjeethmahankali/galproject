@@ -99,7 +99,8 @@ add_custom_command(TARGET galview
 #GALVIEW - end
 
 # GALTEST - begin
-enable_testing() 
+add_compile_definitions(GAL_ASSET_DIR_STR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+enable_testing()
 file (GLOB TEST_SRC "src/galtest/*.cpp")
 add_executable(galtest ${TEST_SRC})
 # add_dependencies(galtest

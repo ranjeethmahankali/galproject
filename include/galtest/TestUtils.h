@@ -1,5 +1,7 @@
 #pragma once
 
+#define GAL_ASSET_DIR std::filesystem::path(GAL_ASSET_DIR_STR)
+
 namespace gal {
 namespace test {
 
