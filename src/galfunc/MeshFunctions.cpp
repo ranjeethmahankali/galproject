@@ -113,7 +113,6 @@ GAL_FUNC(rectangleMesh,
 
 void bind_MeshFunctions()
 {
-  // TODO: These are common for several types of geometry, so these should be overloaded.
   GAL_FN_BIND(centroid);
   GAL_FN_BIND(volume);
   GAL_FN_BIND(area);

@@ -36,6 +36,7 @@ ib = pgv.slideri32("int b", 5, 50, 25);
 fa = pgv.sliderf32("float a", 5., 50., 25.);
 fb = pgv.sliderf32("float b", 5., 50., 25.);
 
+# add function is overloaded for both floats and ints.
 fsum = pgf.add(fa, fb)
 isum = pgf.add(ia, ib)
 

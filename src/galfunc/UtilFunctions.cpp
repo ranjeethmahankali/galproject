@@ -126,7 +126,6 @@ void bind_UtilFunctions()
   GAL_FN_BIND(powf32);
   GAL_FN_BIND(sqrtf32);
 
-  // TODO: These should be overloads that can handle several types.
   GAL_FN_BIND_TEMPLATE(add, (float));
   GAL_FN_BIND_TEMPLATE(add, (int32_t));
   GAL_FN_BIND_TEMPLATE(sub, (float));
