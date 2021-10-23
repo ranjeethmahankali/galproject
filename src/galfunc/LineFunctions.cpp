@@ -3,27 +3,27 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DECL(line2d,
-              "Creates a 2d line from the given 2d points.",
-              ((glm::vec2, start, "First point of the line."),
-               (glm::vec2, end, "Second point of the line.")),
-              ((gal::Line2d, line, "The line.")))
+GAL_FUNC(line2d,
+         "Creates a 2d line from the given 2d points.",
+         ((glm::vec2, start, "First point of the line."),
+          (glm::vec2, end, "Second point of the line.")),
+         ((gal::Line2d, line, "The line.")))
 {
   line.mStart = start;
   line.mEnd   = end;
 }
 
-GAL_FUNC_DECL(line3d,
-              "Creates a 3d line from the given 3d points.",
-              ((glm::vec3, start, "First point of the line."),
-               (glm::vec3, end, "Second point of the line.")),
-              ((gal::Line3d, line, "The line.")))
+GAL_FUNC(line3d,
+         "Creates a 3d line from the given 3d points.",
+         ((glm::vec3, start, "First point of the line."),
+          (glm::vec3, end, "Second point of the line.")),
+         ((gal::Line3d, line, "The line.")))
 {
   line.mStart = start;
   line.mEnd   = end;
 }
 
-GAL_FUNC_DECL(
+GAL_FUNC(
   samplePointsOnLine2d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line2d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
@@ -41,7 +41,7 @@ GAL_FUNC_DECL(
   }
 }
 
-GAL_FUNC_DECL(
+GAL_FUNC(
   samplePointsOnLine3d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line3d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
@@ -61,12 +61,10 @@ GAL_FUNC_DECL(
 
 void bind_LineFunctions()
 {
-  bind_line2d();
-  bind_line3d();
-
+  GAL_FN_BIND(line2d);
+  GAL_FN_BIND(line3d);
   // TODO: Use overloads instead of 2 different functions.
-  bind_samplePointsOnLine2d();
-  bind_samplePointsOnLine3d();
+  GAL_FN_BIND_OVERLOADS(pointsOnLine, samplePointsOnLine2d, samplePointsOnLine3d);
 }
 
 }  // namespace func

@@ -3,31 +3,40 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_DECL(sphere,
-              "Creates a new sphere",
-              ((glm::vec3, center, "Center"), (float, radius, "Radius")),
-              ((gal::Sphere, sphere, "Sphere")))
+GAL_FUNC(sphere,
+         "Creates a new sphere",
+         ((glm::vec3, center, "Center"), (float, radius, "Radius")),
+         ((gal::Sphere, sphere, "Sphere")))
 {
   sphere.center = center;
   sphere.radius = radius;
 }
 
-GAL_FUNC_DECL(boundingSphere,
-              "Creates a minimum bounding sphere for the given points.",
-              (((data::ReadView<glm::vec3, 1>), points, "Points")),
-              ((gal::Sphere, sphere, "Bounding sphere"),
-               (glm::vec3, center, "Center of the sphere"),
-               (float, radius, "Radius of the sphere")))
+GAL_FUNC(boundingSphere,
+         "Creates a minimum bounding sphere for the given points.",
+         (((data::ReadView<glm::vec3, 1>), points, "Points")),
+         ((gal::Sphere, sphere, "Bounding sphere"),
+          (glm::vec3, center, "Center of the sphere"),
+          (float, radius, "Radius of the sphere")))
 {
   sphere = gal::Sphere::minBoundingSphere(points.data(), points.size());
   center = sphere.center;
   radius = sphere.radius;
 }
 
+GAL_FUNC(bounds,
+         "Bounding box of the sphere",
+         ((gal::Sphere, s, "Sphere")),
+         ((gal::Box3, bbox, "Bounding box")))
+{
+  bbox = s.bounds();
+}
+
 void bind_SphereFunctions()
 {
-  bind_sphere();
-  bind_boundingSphere();
+  GAL_FN_BIND(bounds);
+  GAL_FN_BIND(sphere);
+  GAL_FN_BIND(boundingSphere);
 }
 
 }  // namespace func
