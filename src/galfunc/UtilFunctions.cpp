@@ -78,34 +78,38 @@ GAL_FUNC(sqrtf32,
   result = std::sqrt(x);
 }
 
-GAL_FUNC(addf32,
-         "Adds two numbers",
-         ((float, a, "First number"), (float, b, "Second number")),
-         ((float, sum, "The sum of two numbers")))
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  add,
+                  "Adds two numbers",
+                  ((T, a, "First number"), (T, b, "Second number")),
+                  ((T, sum, "The sum of two numbers")))
 {
   sum = a + b;
 }
 
-GAL_FUNC(subf32,
-         "Subtracts the second number from the first",
-         ((float, a, "First number"), (float, b, "Second number")),
-         ((float, diff, "The difference")))
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  sub,
+                  "Subtracts the second number from the first",
+                  ((T, a, "First number"), (T, b, "Second number")),
+                  ((T, diff, "The difference")))
 {
   diff = a - b;
 }
 
-GAL_FUNC(mulf32,
-         "Multiplies the two numbers",
-         ((float, a, "First number"), (float, b, "Second number")),
-         ((float, prod, "The product")))
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  mul,
+                  "Multiplies the two numbers",
+                  ((T, a, "First number"), (T, b, "Second number")),
+                  ((T, prod, "The product")))
 {
   prod = a * b;
 }
 
-GAL_FUNC(divf32,
-         "Divides the first number with the second.",
-         ((float, a, "First number"), (float, b, "Second number")),
-         ((float, quot, "The quotient")))
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  div,
+                  "Divides the first number with the second.",
+                  ((T, a, "First number"), (T, b, "Second number")),
+                  ((T, quot, "The quotient")))
 {
   quot = a / b;
 }
@@ -123,10 +127,14 @@ void bind_UtilFunctions()
   GAL_FN_BIND(sqrtf32);
 
   // TODO: These should be overloads that can handle several types.
-  GAL_FN_BIND(addf32);
-  GAL_FN_BIND(subf32);
-  GAL_FN_BIND(mulf32);
-  GAL_FN_BIND(divf32);
+  GAL_FN_BIND_TEMPLATE(add, (float));
+  GAL_FN_BIND_TEMPLATE(add, (int32_t));
+  GAL_FN_BIND_TEMPLATE(sub, (float));
+  GAL_FN_BIND_TEMPLATE(sub, (int32_t));
+  GAL_FN_BIND_TEMPLATE(mul, (float));
+  GAL_FN_BIND_TEMPLATE(mul, (int32_t));
+  GAL_FN_BIND_TEMPLATE(div, (float));
+  GAL_FN_BIND_TEMPLATE(div, (int32_t));
 }
 
 }  // namespace func

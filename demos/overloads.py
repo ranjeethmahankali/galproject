@@ -9,6 +9,7 @@ def sphere():
     box = pgf.box3(minpt, maxpt)
     npts = pgv.slideri32("Point count", 5, 50, 25)
     cloud = pgf.randomPointsInBox(box, npts)
+    pgv.show("Point Cloud", cloud)
     sphere, *_ = pgf.boundingSphere(cloud)
     return sphere
 
@@ -29,3 +30,14 @@ pgv.show("mesh", m)
 pgv.show("circ", s)
 pgv.show("mbbox", meshbbox)
 pgv.show("cbbox", spbbox)
+
+ia = pgv.slideri32("int a", 5, 50, 25);
+ib = pgv.slideri32("int b", 5, 50, 25);
+fa = pgv.sliderf32("float a", 5., 50., 25.);
+fb = pgv.sliderf32("float b", 5., 50., 25.);
+
+fsum = pgf.add(fa, fb)
+isum = pgf.add(ia, ib)
+
+pgv.print("fsum", fsum)
+pgv.print("isum", isum)
