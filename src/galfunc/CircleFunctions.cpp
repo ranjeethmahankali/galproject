@@ -1,11 +1,15 @@
-#include <galfunc/CircleFunctions.h>
+#include <galfunc/Functions.h>
 
 namespace gal {
 namespace func {
 
-GAL_FUNC_DEFN(boundingCircle,
-              (((data::ReadView<glm::vec3, 1>), points)),
-              ((gal::Circle2d, circle), (glm::vec2, center), (float, radius)))
+GAL_FUNC(boundingCircle,
+         "Creates a bounding circle for the given points. The 3d points are "
+         "flattened to 2d by removing the z-coordinate.",
+         (((data::ReadView<glm::vec3, 1>), points, "Points")),
+         ((gal::Circle2d, circle, "Bounding circle"),
+          (glm::vec2, center, "Center of the circle"),
+          (float, radius, "Radius of the circle")))
 {
   // TODO: Clean this up to consume 2d points as inputs directly.
   std::vector<glm::vec2> pts2d;
@@ -19,28 +23,75 @@ GAL_FUNC_DEFN(boundingCircle,
   radius = circle.radius();
 }
 
-GAL_FUNC_DEFN(circle2d, ((glm::vec2, center), (float, radius)), ((gal::Circle2d, circle)))
+GAL_FUNC(circle2d,
+         "Creates a bounding circle for the given points. The 3d points are "
+         "flattened to 2d by removing the z-coordinate.",
+         ((glm::vec2, center, "Center"), (float, radius, "Radius")),
+         ((gal::Circle2d, circle, "Circle")))
 {
   circle.center(center);
   circle.radius(radius);
 }
 
-GAL_FUNC_DEFN(circle2dFromDiameter,
-              ((glm::vec2, pt1), (glm::vec2, pt2)),
-              ((gal::Circle2d, circle), (glm::vec2, center), (float, radius)))
+GAL_FUNC(circle2dFromDiameter,
+         "Creates a 2d circle with the given points as the ends of the diameter",
+         ((glm::vec2, pt1, "First point"), (glm::vec2, pt2, "Second point")),
+         ((gal::Circle2d, circle, "Circle"),
+          (glm::vec2, center, "Center of the circle"),
+          (float, radius, "Radius of the circle")))
 {
   circle = gal::Circle2d::createFromDiameter(pt1, pt2);
   center = circle.center();
   radius = circle.radius();
 }
 
-GAL_FUNC_DEFN(circumCircle2d,
-              ((glm::vec2, pt1), (glm::vec2, pt2), (glm::vec2, pt3)),
-              ((gal::Circle2d, circle), (glm::vec2, center), (float, radius)))
+GAL_FUNC(circumCircle2d,
+         "Creates a 2d circle with the given points as the ends of the diameter",
+         ((glm::vec2, pt1, "First point"),
+          (glm::vec2, pt2, "Second point"),
+          (glm::vec2, pt3, "Third point")),
+         ((gal::Circle2d, circle, "Circle"),
+          (glm::vec2, center, "Center of the circle"),
+          (float, radius, "Radius of the circle")))
 {
   circle = gal::Circle2d::createCircumcircle(pt1, pt2, pt3);
   center = circle.center();
   radius = circle.radius();
+}
+
+GAL_FUNC(bounds,
+         "Bounding box of the circle",
+         ((gal::Circle2d, circ, "The circle")),
+         ((gal::Box2, bbox, "Bounding box")))
+{
+  bbox = circ.bounds();
+}
+
+GAL_FUNC(area,
+         "Area of the circle",
+         ((gal::Circle2d, circ, "The circle")),
+         ((float, result, "Area")))
+{
+  result = circ.area();
+}
+
+GAL_FUNC(perimeter,
+         "Perimter of the circle",
+         ((gal::Circle2d, circ, "The circle")),
+         ((float, result, "Perimeter")))
+{
+  result = circ.perimeter();
+}
+
+void bind_CircleFunctions()
+{
+  GAL_FN_BIND(bounds);
+  GAL_FN_BIND(area);
+
+  GAL_FN_BIND(boundingCircle);
+  GAL_FN_BIND(circle2d);
+  GAL_FN_BIND(circle2dFromDiameter);
+  GAL_FN_BIND(circumCircle2d);
 }
 
 }  // namespace func
