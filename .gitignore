@@ -8,3 +8,4 @@ Release/
 temp/
 compile_commands.json
 launch.json
+vcpkg/
