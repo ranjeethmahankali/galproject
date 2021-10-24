@@ -3,8 +3,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(NOT DEFINED ENV{VCPKG_PATH})
+  message(FATAL_ERROR "Please clone vcpkg and set the VCPKG_PATH environment variable")
+endif()
+
+set(VCPKG_FEATURE_FLAGS versions)
 set(VCPKG_TARGET_TRIPLET x64-linux)
-set(CMAKE_PREFIX_PATH $ENV{VCPKG_PATH}/installed/${VCPKG_TARGET_TRIPLET})
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -95,7 +99,8 @@ add_custom_command(TARGET galview
 #GALVIEW - end
 
 # GALTEST - begin
-enable_testing() 
+add_compile_definitions(GAL_ASSET_DIR_STR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+enable_testing()
 file (GLOB TEST_SRC "src/galtest/*.cpp")
 add_executable(galtest ${TEST_SRC})
 # add_dependencies(galtest
