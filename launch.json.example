@@ -59,7 +59,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "dap-compilation": "bash ${workspaceFolder}/build.sh Debug pygalfunc"
+            "dap-compilation": "bash ${workspaceFolder}/build.sh Debug pygalfunc && pip3 install -e ${workspaceFolder}/Debug"
         }
     ]
 }
