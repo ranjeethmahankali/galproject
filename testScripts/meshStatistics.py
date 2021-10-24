@@ -1,14 +1,15 @@
-from galutils import *
-
-# fmt: off
-# AppendBinPath("Debug")
-AppendBinPath()
 import pygalfunc as pgf
-# fmt: on
+from os import path
+
+
+def assetPath(filename):
+    return path.join(path.dirname(path.dirname(path.realpath(__file__))),
+                     "assets", filename)
+
 
 def getMeshStatistics(mesh):
-    area = pgf.meshSurfaceArea(mesh)
-    volume = pgf.meshVolume(mesh)
+    area = pgf.area(mesh)
+    volume = pgf.volume(mesh)
     return area, volume
 
 
@@ -23,5 +24,4 @@ def processMesh(path):
     printStatistics(pgf.loadObjFile(path))
 
 
-processMesh(pgf.var(GetRelativePath("assets/bunny_large.obj")))
-
+processMesh(pgf.var(assetPath("bunny_large.obj")))
