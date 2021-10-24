@@ -707,10 +707,8 @@ fs::path getcontextpath();
 #define GAL_FN_BIND_OVERLOADS(fnName, ...) \
   gal::func::python::bindOverloads(#fnName, MAP_LIST(GAL_FN_PTR_VAR, __VA_ARGS__))
 
-#define GAL_EXPAND(...) __VA_ARGS__
-
-#define GAL_FN_BIND_TEMPLATE(fnName, templateParams) \
-  boost::python::def(#fnName, pyfnptr_##fnName<GAL_EXPAND templateParams>)
+#define GAL_FN_BIND_TEMPLATE(fnName, ...) \
+  boost::python::def(#fnName, pyfnptr_##fnName<__VA_ARGS__>)
 
 // Forward declaration of the module initializer, which will be defined by boost later.
 // This should be called before running scripts from within C++.
