@@ -113,17 +113,16 @@ GAL_FUNC(rectangleMesh,
 
 void bind_MeshFunctions()
 {
-  GAL_FN_BIND(centroid);
-  GAL_FN_BIND(volume);
-  GAL_FN_BIND(area);
-  GAL_FN_BIND(scale);
-  GAL_FN_BIND(bounds);
-
-  GAL_FN_BIND(loadObjFile);
-  GAL_FN_BIND(clipMesh);
-  GAL_FN_BIND(meshSphereQuery);
-  GAL_FN_BIND(closestPoints);
-  GAL_FN_BIND(rectangleMesh);
+  GAL_FN_BIND(centroid,
+              volume,
+              area,
+              scale,
+              bounds,
+              loadObjFile,
+              clipMesh,
+              meshSphereQuery,
+              closestPoints,
+              rectangleMesh);
 }
 
 }  // namespace func

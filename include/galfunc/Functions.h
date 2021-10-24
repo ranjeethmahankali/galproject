@@ -700,7 +700,8 @@ fs::path getcontextpath();
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
-#define GAL_FN_BIND(fnName) boost::python::def(#fnName, pyfnptr_##fnName)
+#define _GAL_FN_BIND_ONE(fnName) boost::python::def(#fnName, pyfnptr_##fnName)
+#define GAL_FN_BIND(...) MAP_LIST(_GAL_FN_BIND_ONE, __VA_ARGS__)
 
 #define GAL_FN_PTR_VAR(fnName) pyfnptr_##fnName
 

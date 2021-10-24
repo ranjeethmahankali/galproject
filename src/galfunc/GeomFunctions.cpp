@@ -132,19 +132,18 @@ GAL_FUNC(distance,
 
 void bind_GeomFunctions()
 {
-  GAL_FN_BIND(vec3);
-  GAL_FN_BIND(vec2);
-  GAL_FN_BIND(plane);
-  GAL_FN_BIND(box3);
-  GAL_FN_BIND(box2);
-  GAL_FN_BIND(randomPointsInBox);
-  GAL_FN_BIND(convexHullFromPoints);
-  GAL_FN_BIND(pointCloud3d);
-  GAL_FN_BIND(distance);
+  GAL_FN_BIND(vec3,
+              vec2,
+              plane,
+              box3,
+              box2,
+              randomPointsInBox,
+              convexHullFromPoints,
+              pointCloud3d,
+              distance);
 
   // TODO: Handle these with generic converters later.
-  GAL_FN_BIND(vec3FromVec2);
-  GAL_FN_BIND(vec2FromVec3);
+  GAL_FN_BIND(vec3FromVec2, vec2FromVec3);
 
   GAL_FN_BIND_OVERLOADS(coords, vec3Coords, vec2Coords);
 }
