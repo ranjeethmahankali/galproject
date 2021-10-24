@@ -13,7 +13,7 @@ GAL_FUNC(centroid,
          ((glm::vec3, centroid, "x coordinate")))
 {
   centroid = mesh.centroid(gal::eMeshCentroidType::volumeBased);
-};
+}
 
 GAL_FUNC(volume,
          "Gets the volume of the mesh",
@@ -21,7 +21,7 @@ GAL_FUNC(volume,
          ((float, volume, "Volume of the mesh")))
 {
   volume = mesh.volume();
-};
+}
 
 GAL_FUNC(area,
          "Gets the surface area of the mesh",
@@ -29,7 +29,7 @@ GAL_FUNC(area,
          ((float, result, "Surface area of the mesh")))
 {
   result = mesh.area();
-};
+}
 
 GAL_FUNC(loadObjFile,
          "Loads a mesh from an obj file",
@@ -37,7 +37,7 @@ GAL_FUNC(loadObjFile,
          ((gal::Mesh, mesh, "Loaded mesh")))
 {
   mesh = io::ObjMeshData(filepath, true).toMesh();
-};
+}
 
 GAL_FUNC(scale,
          "Scales the mesh. Returns a new instance.",
@@ -46,7 +46,7 @@ GAL_FUNC(scale,
 {
   scaled = mesh;
   scaled.transform(glm::scale(glm::vec3(scale)));
-};
+}
 
 GAL_FUNC(clipMesh,
          "Clips the given mesh with the plane. Returns a new mesh.",
@@ -54,7 +54,7 @@ GAL_FUNC(clipMesh,
          ((gal::Mesh, clipped, "Clipped mesh")))
 {
   clipped = mesh.clippedWithPlane(plane);
-};
+}
 
 GAL_FUNC(meshSphereQuery,
          "Queries the mesh face rtree with the given sphere and "
@@ -77,7 +77,7 @@ GAL_FUNC(meshSphereQuery,
     });
   resultMesh = mesh.extractFaces(results);
   numFaces   = int32_t(results.size());
-};
+}
 
 GAL_FUNC(closestPoints,
          "Creates the result point cloud by closest-point-querying the mesh with "
@@ -91,7 +91,7 @@ GAL_FUNC(closestPoints,
     glm::vec3 pt = inCloud[i];
     outCloud[i]  = mesh.closestPoint(pt, FLT_MAX);
   });
-};
+}
 
 GAL_FUNC(bounds,
          "Gets the bounding box of the mesh",
@@ -99,7 +99,23 @@ GAL_FUNC(bounds,
          ((gal::Box3, bbox, "Bounds of the mesh")))
 {
   bbox = mesh.bounds();
-};
+}
+
+GAL_FUNC(numFaces,
+         "Gets the number of faces of the mesh",
+         ((gal::Mesh, mesh, "Mesh")),
+         ((int32_t, nfaces, "Number of faces")))
+{
+  nfaces = mesh.numFaces();
+}
+
+GAL_FUNC(numVertices,
+         "Gets the number of vertices of the mesh",
+         ((gal::Mesh, mesh, "Mesh")),
+         ((int32_t, nverts, "Number of vertices")))
+{
+  nverts = mesh.numVertices();
+}
 
 GAL_FUNC(rectangleMesh,
          "Creates a rectangular mesh",
@@ -118,6 +134,8 @@ void bind_MeshFunctions()
               area,
               scale,
               bounds,
+              numFaces,
+              numVertices,
               loadObjFile,
               clipMesh,
               meshSphereQuery,
