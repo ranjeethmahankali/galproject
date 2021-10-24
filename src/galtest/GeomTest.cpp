@@ -9,6 +9,7 @@
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/Util.h>
+#include <galtest/TestUtils.h>
 
 static constexpr float TOLERANCE = 0.0001f;
 
@@ -75,7 +76,8 @@ TEST(Mesh, Area)
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
   ASSERT_FLOAT_EQ(mesh.area(), 1.f);
 
-  mesh = gal::io::ObjMeshData(gal::utils::absPath("../assets/bunny.obj"), true).toMesh();
+  gal::fs::path fpath = GAL_ASSET_DIR / "bunny.obj";
+  mesh                = gal::io::ObjMeshData(fpath, true).toMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
 }
@@ -84,16 +86,14 @@ TEST(Mesh, Volume)
 {
   auto mesh = gal::createRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
-  mesh =
-    gal::io::ObjMeshData(gal::utils::absPath("../assets/bunny_large.obj"), true).toMesh();
+  mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toMesh();
 
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392118f);
 }
 
 TEST(Mesh, ClippedWithPlane)
 {
-  auto mesh =
-    gal::io::ObjMeshData(gal::utils::absPath("../assets/bunny.obj"), true).toMesh();
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
 
   auto clipped = mesh.clippedWithPlane(
