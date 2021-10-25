@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include <galcore/Box.h>
 #include <galcore/ConvexHull.h>
 #include <galfunc/Functions.h>
 
@@ -130,6 +131,24 @@ GAL_FUNC(distance,
   dist = glm::distance(a, b);
 }
 
+GAL_FUNC(box3Points,
+         "Gets the min and max points of the box",
+         ((gal::Box3, box, "The box.")),
+         ((glm::vec3, min, "Min point"), (glm::vec3, max, "Max point")))
+{
+  min = box.min;
+  max = box.max;
+}
+
+GAL_FUNC(box2Points,
+         "Gets the min and max points of the box",
+         ((gal::Box2, box, "The box.")),
+         ((glm::vec2, min, "Min point"), (glm::vec2, max, "Max point")))
+{
+  min = box.min;
+  max = box.max;
+}
+
 void bind_GeomFunctions()
 {
   GAL_FN_BIND(vec3,
@@ -146,6 +165,7 @@ void bind_GeomFunctions()
   GAL_FN_BIND(vec3FromVec2, vec2FromVec3);
 
   GAL_FN_BIND_OVERLOADS(coords, vec3Coords, vec2Coords);
+  GAL_FN_BIND_OVERLOADS(boxPoints, box2Points, box3Points);
 }
 
 }  // namespace func

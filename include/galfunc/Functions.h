@@ -382,19 +382,16 @@ protected:
   mutable std::atomic_bool                                                mIsDirty = true;
 
   template<size_t N = 0>
-  inline void initOutputs() const
+  inline void clearOutputs() const
   {
     if constexpr (NInputs + N < NArgs) {
       using TOut = std::tuple_element_t<NInputs + N, std::tuple<TArgs...>>;
       if constexpr (data::IsWriteView<TOut>::value) {
         std::get<N>(mOutputs).clear();
       }
-      else {
-        std::get<N>(mOutputs).resize(1);
-      }
     }
     if constexpr (NInputs + N + 1 < NArgs) {
-      initOutputs<N + 1>();
+      clearOutputs<N + 1>();
     }
   }
 
@@ -402,7 +399,7 @@ protected:
   inline void run() const
   {
     mCombinations.init();
-    initOutputs();
+    clearOutputs();
     if (!mCombinations.empty()) {
       do {
         std::apply(mFunc, mCombinations.template current<ArgTupleT>());
@@ -738,6 +735,13 @@ boost::python::object read(const Register<T>& reg)
   return dst;
 }
 
+template<typename T>
+void assign(const Register<T>& reg, const boost::python::object& src)
+{
+  Converter<boost::python::object, func::data::Tree<T>>::assign(
+    src, *(const_cast<func::data::Tree<T>*>(reg.mData)));
+}
+
 /**
  * @brief Initializes the python bindings for register and other helper functions related
  * to the type T.
@@ -760,6 +764,8 @@ struct defClass
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Read value into python if conversion is available.
     def("read", read<T>);
+    // Assign values to registers.
+    def("assign", assign<T>);
   }
 };
 

@@ -214,5 +214,61 @@ public:
   };
 };
 
+template<typename T>
+struct Converter<boost::python::object, data::Tree<T>>
+{
+private:
+  using DepthT = data::DepthT;
+
+  static bool isList(const boost::python::object& obj)
+  {
+    return boost::python::str(obj.attr("__class__")).find("'list'") != -1;
+  }
+
+  static size_t leafCount(const boost::python::object& obj)
+  {
+    if (isList(obj)) {
+      boost::python::list lst    = boost::python::extract<boost::python::list>(obj);
+      size_t              length = boost::python::len(lst);
+      size_t              total  = 0;
+      for (size_t i = 0; i < length; i++) {
+        total += leafCount(lst[i]);
+      }
+      return total;
+    }
+    else {
+      return 1;
+    }
+  }
+
+  static void assignInternal(const boost::python::object& src,
+                             std::vector<T>&              vals,
+                             std::vector<DepthT>&         depths,
+                             DepthT                       depth = 0)
+  {
+    if (isList(src)) {
+      boost::python::list lst    = boost::python::extract<boost::python::list>(src);
+      size_t              length = boost::python::len(lst);
+      for (size_t i = 0; i < length; i++) {
+        assignInternal(lst[i], vals, depths, i == 0 ? depth + 1 : 0);
+      }
+    }
+    else {
+      T val;
+      Converter<boost::python::object, T>::assign(src, val);
+      vals.push_back(std::move(val));
+      depths.push_back(depth);
+    }
+  }
+
+public:
+  static void assign(const boost::python::object& src, data::Tree<T>& dst)
+  {
+    dst.clear();
+    dst.reserve(leafCount(src));
+    assignInternal(src, dst.values(), dst.depths());
+  }
+};
+
 }  // namespace func
 }  // namespace gal
