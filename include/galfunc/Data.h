@@ -192,8 +192,17 @@ public:
 
   void resize(size_t n)
   {
+    if (n == 0) {
+      return;
+    }
     mDepths.resize(n, 0);
+    size_t i = mValues.size();
     mValues.resize(n);
+
+    if (!mQueuedDepths.empty()) {
+      mDepths[i] = mQueuedDepths.back();
+      mQueuedDepths.clear();
+    }
   }
 
   DepthT&       depth(size_t i) { return mDepths[i]; }
@@ -426,7 +435,7 @@ public:
    *
    * @return size_t
    */
-  size_t advanceIndex() const { return mIndex + size(); }
+  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
 
   /**
    * @brief Checks whether this tree can advance into its sibling's position. If this node
@@ -725,15 +734,7 @@ public:
     if (n == 0) {
       return;
     }
-    auto& tree = *(this->mTree);
     this->mTree->resize(n + this->mTree->size());
-    if (tree.mQueuedDepths.empty()) {
-      tree.mDepths[mStart] = std::max(DepthT(1), tree.mDepths[mStart]);
-    }
-    else {
-      tree.mDepths[mStart] = tree.mQueuedDepths.back();
-      tree.mQueuedDepths.clear();
-    }
   }
 
   ValueType&       operator[](size_t i) { return this->mTree->value(mStart + i); }
