@@ -28,12 +28,12 @@ void unloadAllOutputs();
  * @tparam T The output type of the slider.
  */
 template<typename T>
-struct SliderFunc : public gal::func::TVariable<T, T>, public gal::view::Slider<T>
+struct SliderFunc : public gal::func::TVariable<T>, public gal::view::Slider<T>
 {
 public:
-  using PyOutuptType = typename gal::func::TVariable<T, T>::PyOutputType;
+  using PyOutuptType = typename gal::func::TVariable<T>::PyOutputType;
   SliderFunc(const std::string& label, T min, T max, T value)
-      : gal::func::TVariable<T, T>(value)
+      : gal::func::TVariable<T>(value)
       , gal::view::Slider<T>(label, min, max, value) {};
 
   virtual ~SliderFunc() = default;
@@ -59,15 +59,14 @@ protected:
  * @tparam Q The precision.
  */
 template<int N, typename T, glm::qualifier Q>
-struct SliderFunc<glm::vec<N, T, Q>>
-    : public gal::func::TVariable<glm::vec<N, T, Q>, glm::vec<N, T, Q>>,
-      public gal::view::Slider<glm::vec<N, T, Q>>
+struct SliderFunc<glm::vec<N, T, Q>> : public gal::func::TVariable<glm::vec<N, T, Q>>,
+                                       public gal::view::Slider<glm::vec<N, T, Q>>
 {
   using VecType = glm::vec<N, T, Q>;
 
 public:
   SliderFunc(const std::string& label, const T& min, const T& max, const T& value)
-      : gal::func::TVariable<VecType, VecType>(VecType(std::clamp(value, min, max)))
+      : gal::func::TVariable<VecType>(VecType(std::clamp(value, min, max)))
       , gal::view::Slider<VecType>(label, min, max, value) {};
 
 private:

@@ -3,7 +3,7 @@ import testUtil as tu
 
 
 def loadMesh(assetFileName):
-    fpath = pgf.var(tu.assetPath(assetFileName))
+    fpath = pgf.var_string(tu.assetPath(assetFileName))
     return pgf.loadObjFile(fpath)
 
 
@@ -37,7 +37,7 @@ def test_meshStatistics():
 def test_scaleMesh():
     mesh = loadLargeBunny()
     factor = 10.0
-    scaled = pgf.scale(mesh, pgf.var(factor))
+    scaled = pgf.scale(mesh, pgf.var_float(factor))
     meshes = [mesh, scaled]
 
     areas = [pgf.read(pgf.area(m)) for m in meshes]
@@ -53,7 +53,7 @@ def test_scaleMesh():
 
 def test_meshBounds():
     assetFiles = ["bunny_large.obj", "bunny.obj"]
-    fpaths = pgf.var("")
+    fpaths = pgf.var_string("")
     pgf.assign(fpaths, [tu.assetPath(a) for a in assetFiles])
     meshes = pgf.loadObjFile(fpaths)
     bounds = pgf.bounds(meshes)
@@ -71,7 +71,7 @@ def test_meshBounds():
 
 def test_meshPlaneClipping():
     mesh = loadLargeBunny()
-    half = pgf.var(0.5)
+    half = pgf.var_float(0.5)
     plane = pgf.plane(pgf.vec3(half, half, half), pgf.vec3(half, half, half))
     clipped = pgf.clipMesh(mesh, plane)
 
@@ -85,10 +85,10 @@ def test_meshPlaneClipping():
 
 
 def test_meshSphereQuery():
-    mesh = pgf.scale(loadSmallBunny(), pgf.var(10.0))
-    zero = pgf.var(0.)
+    mesh = pgf.scale(loadSmallBunny(), pgf.var_float(10.0))
+    zero = pgf.var_float(0.)
     center = pgf.vec3(zero, zero, zero)
-    radius = pgf.var(.5)
+    radius = pgf.var_float(.5)
     sphere = pgf.sphere(center, radius)
 
     rmesh, rindices, rcount = pgf.meshSphereQuery(mesh, sphere)

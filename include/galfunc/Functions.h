@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -398,6 +399,10 @@ protected:
   // Runs the function.
   inline void run() const
   {
+    if (!mFunc) {
+      return;
+    }
+
     mCombinations.init();
     clearOutputs();
     if (!mCombinations.empty()) {
@@ -488,47 +493,54 @@ public:
  * @tparam TArgs... The type of arguments to be passed to the constructor of TVal to
  * initialize it.
  */
-template<typename TVal, typename... TArgs>
+template<typename TVal>
 struct TVariable : public TFunction<TVal>
 {
-  static constexpr bool sIsConstructible = std::is_constructible_v<TVal, TArgs...>;
-  static constexpr bool IsSingleArgument = sizeof...(TArgs) == 1;
-
-  static_assert(sIsConstructible || IsSingleArgument,
-                "Cannot create variable with these arguments.");
-
-  using TFirstArg    = typename std::tuple_element_t<0, std::tuple<TArgs...>>;
   using PyOutputType = ArgRegisterT<TVal>;
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
   inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
 
-  void setInternal(const TArgs&... args)
+  void setInternal(const boost::python::object& obj)
   {
-    if constexpr (sIsConstructible) {
-      tree().clear();
-      tree().emplace_back(0, args...);
-    }
-    else if constexpr (IsSingleArgument) {
-      tree().resize(1);
-      Converter<TFirstArg, TVal>::assign(args..., tree().value(0));
-    }
+    Converter<boost::python::object, data::Tree<TVal>>::assign(obj, tree());
   }
 
-  inline void run() const {/*Do Nothing.*/};
+  void setInternal(const TVal& val)
+  {
+    tree().resize(1);
+    tree().value(0) = val;
+  }
 
 public:
-  TVariable(const TArgs&... args)
-      : TFunction<TVal>([](TVal&) -> void {}, {})
+  TVariable(const boost::python::object& obj)
+      : TFunction<TVal>(nullptr, {})
   {
-    setInternal(args...);
+    setInternal(obj);
   }
 
-  void set(const TArgs&... args)
+  TVariable(const TVal& val)
+      : TFunction<TVal>(nullptr, {})
+  {
+    setInternal(val);
+  }
+
+  TVariable()
+      : TFunction<TVal>(nullptr, {})
+  {}
+
+  void set(const boost::python::object& obj)
   {
     store::markDirty(this);
-    setInternal(args...);
+    setInternal(obj);
+    this->mIsDirty = false;
+  }
+
+  void set(const TVal& val)
+  {
+    store::markDirty(this);
+    setInternal(val);
     this->mIsDirty = false;
   }
 };
@@ -554,20 +566,21 @@ std::shared_ptr<TFunc> makeFunction(const TArgs&... args)
 
 }  // namespace store
 
-template<typename TVal, typename... TArgs>
-typename TVariable<TVal, TArgs...>::PyOutputType py_variable(const TArgs&... args)
+template<typename TVal>
+typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
-  auto fn = std::make_shared<TVariable<TVal, TArgs...>>(args...);
+  auto fn = std::make_shared<TVariable<TVal>>(obj);
   store::addFunction(std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 };
 
-template<typename T>
-typename TVariable<std::vector<T>, boost::python::list>::PyOutputType py_list(
-  const boost::python::list& lst)
+template<typename TVal>
+typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
-  return py_variable<std::vector<T>, boost::python::list>(lst);
-};
+  auto fn = std::make_shared<TVariable<TVal>>();
+  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  return fn->pythonOutputRegs();
+}
 
 namespace python {
 
@@ -738,8 +751,14 @@ boost::python::object read(const Register<T>& reg)
 template<typename T>
 void assign(const Register<T>& reg, const boost::python::object& src)
 {
-  Converter<boost::python::object, func::data::Tree<T>>::assign(
-    src, *(const_cast<func::data::Tree<T>*>(reg.mData)));
+  const TVariable<T>* mOwner = dynamic_cast<const TVariable<T>*>(reg.mOwner);
+  if (mOwner) {
+    const_cast<TVariable<T>*>(mOwner)->set(src);
+  }
+  else {
+    throw std::runtime_error(
+      "Cannot assign to this register because it's not owned by a variable");
+  }
 }
 
 /**
@@ -757,11 +776,17 @@ struct defClass
     static auto              sType = boost::python::class_<Register<T>>(name.c_str());
     return sType;
   }
+
   static void invoke()
   {
+    using namespace boost::python;
     // Defining the str function allows python to print the objects using the c++
     // implementation of the << operator.
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
+    // Functions to create a varable of the type.
+    static const std::string varname("var_" + TypeInfo<T>::name());
+    def(varname.c_str(), py_varWithValue<T>);
+    def(varname.c_str(), py_varEmpty<T>);
     // Read value into python if conversion is available.
     def("read", read<T>);
     // Assign values to registers.
