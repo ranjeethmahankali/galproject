@@ -74,6 +74,7 @@ public:
 
 template<typename T>
 struct RemoveBraces;
+
 template<typename T, typename U>
 struct RemoveBraces<T(U)>
 {
