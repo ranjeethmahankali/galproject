@@ -44,11 +44,7 @@ struct Converter<glm::vec3, boost::python::object>
 {
   static void assign(const glm::vec3& src, boost::python::object& dst)
   {
-    boost::python::list lst;
-    lst.append(src[0]);
-    lst.append(src[1]);
-    lst.append(src[2]);
-    dst = std::move(lst);
+    dst = boost::python::make_tuple(src[0], src[1], src[2]);
   }
 };
 
@@ -57,17 +53,14 @@ struct Converter<glm::vec2, boost::python::object>
 {
   static void assign(const glm::vec2& src, boost::python::object& dst)
   {
-    boost::python::list lst;
-    lst.append(src[0]);
-    lst.append(src[1]);
-    dst = std::move(lst);
+    dst = boost::python::make_tuple(src[0], src[1]);
   }
 };
 
 template<>
-struct Converter<boost::python::list, glm::vec2>
+struct Converter<boost::python::tuple, glm::vec2>
 {
-  static void assign(const boost::python::list& src, glm::vec2& dst)
+  static void assign(const boost::python::tuple& src, glm::vec2& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
     dst.y = boost::python::extract<float>(src[1]);
@@ -75,9 +68,9 @@ struct Converter<boost::python::list, glm::vec2>
 };
 
 template<>
-struct Converter<boost::python::list, glm::vec3>
+struct Converter<boost::python::tuple, glm::vec3>
 {
-  static void assign(const boost::python::list& src, glm::vec3& dst)
+  static void assign(const boost::python::tuple& src, glm::vec3& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
     dst.y = boost::python::extract<float>(src[1]);
@@ -86,22 +79,22 @@ struct Converter<boost::python::list, glm::vec3>
 };
 
 template<>
-struct Converter<boost::python::api::const_object_item, glm::vec3>
+struct Converter<boost::python::object, glm::vec3>
 {
-  static void assign(const boost::python::api::const_object_item& src, glm::vec3& dst)
+  static void assign(const boost::python::object& src, glm::vec3& dst)
   {
-    boost::python::list lst = boost::python::extract<boost::python::list>(src);
-    Converter<boost::python::list, glm::vec3>::assign(lst, dst);
+    boost::python::tuple tup = boost::python::extract<boost::python::tuple>(src);
+    Converter<boost::python::tuple, glm::vec3>::assign(tup, dst);
   };
 };
 
 template<>
-struct Converter<boost::python::api::const_object_item, glm::vec2>
+struct Converter<boost::python::api::object, glm::vec2>
 {
-  static void assign(const boost::python::api::const_object_item& src, glm::vec2& dst)
+  static void assign(const boost::python::object& src, glm::vec2& dst)
   {
-    boost::python::list lst = boost::python::extract<boost::python::list>(src);
-    Converter<boost::python::list, glm::vec2>::assign(lst, dst);
+    boost::python::tuple tup = boost::python::extract<boost::python::tuple>(src);
+    Converter<boost::python::tuple, glm::vec2>::assign(tup, dst);
   };
 };
 
