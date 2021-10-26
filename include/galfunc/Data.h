@@ -1183,18 +1183,20 @@ public:
    */
   Combinations(const TreeTupleT& trees)
       : mTrees(trees)
-  {
-    std::array<DepthT, NArgs> offsets;
-    getDepthData(trees, mViewDepths, offsets);
-    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
-    mViews.reserve(size_t(mMaxOffset) + 1);
-  }
+  {}
 
   /**
    * @brief Initializes a new set of combinations for a new run of the function.
    *
    */
-  void init() { HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews); }
+  void init()
+  {
+    std::array<DepthT, NArgs> offsets;
+    getDepthData(mTrees, mViewDepths, offsets);
+    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
+    mViews.reserve(size_t(mMaxOffset) + 1);
+    HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews);
+  }
 
   bool empty() const { return mViews.empty(); }
 

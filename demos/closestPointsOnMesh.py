@@ -2,14 +2,14 @@ import pygalfunc as pgf
 import pygalview as pgv
 
 
-relpath = pgf.var("../assets/bunny.obj")
+relpath = pgf.var_string("../assets/bunny.obj")
 path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)
-scale = pgf.var(10.0)
+scale = pgf.var_float(10.0)
 scaled = pgf.scale(mesh, scale)
 
 box = pgf.bounds(scaled)
-npts = pgv.slideri32("Point count", 100, 5000, 100)
+npts = pgv.slideri32("Point count", 1000, 25000, 100)
 inpts = pgf.randomPointsInBox(box, npts)
 
 outpts = pgf.closestPoints(scaled, inpts)
