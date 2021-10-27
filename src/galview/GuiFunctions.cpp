@@ -70,14 +70,13 @@ void unloadAllOutputs()
 // TODO: TagsFunc
 // TODO: GlyphsFunc
 
-struct TextFieldFunc : public gal::func::TVariable<std::string, std::string>,
+struct TextFieldFunc : public gal::func::TVariable<std::string>,
                        public gal::view::TextInput
 {
 public:
-  using PyOutputType =
-    typename gal::func::TVariable<std::string, std::string>::PyOutputType;
+  using PyOutputType = typename gal::func::TVariable<std::string>::PyOutputType;
   TextFieldFunc(const std::string& label)
-      : gal::func::TVariable<std::string, std::string>("")
+      : gal::func::TVariable<std::string>("")
       , gal::view::TextInput(label, "") {};
 
 private:

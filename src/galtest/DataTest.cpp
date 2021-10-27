@@ -212,6 +212,27 @@ TEST(Data, TreeConversion)
       }
     }
   }
+  ASSERT_EQ(i, 32);
 
+  decltype(tree) tree2;
+  gal::func::Converter<boost::python::object, decltype(tree)>::assign(lst, tree2);
+  i = 0;
+  gal::func::data::ReadView<int, 5> v5(tree2);
+  ASSERT_EQ(v5.size(), 2);
+  for (auto v4 : v5) {
+    ASSERT_EQ(v4.size(), 2);
+    for (auto v3 : v4) {
+      ASSERT_EQ(v3.size(), 2);
+      for (auto v2 : v3) {
+        ASSERT_EQ(v4.size(), 2);
+        for (auto v1 : v2) {
+          ASSERT_EQ(v1.size(), 2);
+          for (int v0 : v1) {
+            ASSERT_EQ(v0, i++);
+          }
+        }
+      }
+    }
+  }
   ASSERT_EQ(i, 32);
 }

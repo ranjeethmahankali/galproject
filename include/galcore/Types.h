@@ -27,13 +27,13 @@ struct TypeInfo<const T> : public TypeInfo<T>
 
 }  // namespace gal
 
-#define GAL_TYPE_INFO(type, idInt)                                           \
-  template<>                                                                 \
-  struct gal::TypeInfo<type> : public std::true_type                         \
-  {                                                                          \
-    static constexpr uint32_t id      = idInt;                               \
-    static constexpr char     sName[] = #type;                               \
-    static std::string        name() noexcept { return std::string(sName); } \
+#define GAL_TYPE_INFO(type, typeName, idInt)                                        \
+  template<>                                                                        \
+  struct gal::TypeInfo<gal::RemoveBraces<void(type)>::Type> : public std::true_type \
+  {                                                                                 \
+    static constexpr uint32_t id      = idInt;                                      \
+    static constexpr char     sName[] = #typeName;                                  \
+    static std::string        name() noexcept { return std::string(sName); }        \
   };
 
 namespace gal {
@@ -53,24 +53,23 @@ struct TypeInfo<std::vector<T>> : public std::true_type
 };
 }  // namespace gal
 
-GAL_TYPE_INFO(void, 0x9267e7bf);
-GAL_TYPE_INFO(uint8_t, 0x313861ed);
-GAL_TYPE_INFO(int32_t, 0x9234a3b1);
-GAL_TYPE_INFO(uint64_t, 0x913eb3be);
-GAL_TYPE_INFO(float, 0x32542672);
-GAL_TYPE_INFO(std::string, 0x12340989);
+GAL_TYPE_INFO(uint8_t, uint8, 0x313861ed);
+GAL_TYPE_INFO(int32_t, int, 0x9234a3b1);
+GAL_TYPE_INFO(uint64_t, uint64, 0x913eb3be);
+GAL_TYPE_INFO(float, float, 0x32542672);
+GAL_TYPE_INFO(std::string, string, 0x12340989);
 
-GAL_TYPE_INFO(glm::vec3, 0x33821151);
-GAL_TYPE_INFO(glm::vec2, 0xbd40c8a1);
-GAL_TYPE_INFO(gal::Sphere, 0x5e8f631c);
-GAL_TYPE_INFO(gal::Plane, 0x591f323f);
-GAL_TYPE_INFO(gal::Box3, 0x8fcb9e01);
-GAL_TYPE_INFO(gal::Box2, 0xd60b396d);
-GAL_TYPE_INFO(gal::PointCloud, 0xe6e934eb);
-GAL_TYPE_INFO(gal::Circle2d, 0x3271dc29);
-GAL_TYPE_INFO(gal::Line2d, 0x34ff4158);
-GAL_TYPE_INFO(gal::Line3d, 0x989fdbdd);
-GAL_TYPE_INFO(gal::Mesh, 0x45342367);
-GAL_TYPE_INFO(gal::TextAnnotations, 0x901da902);
-GAL_TYPE_INFO(gal::Glyph, 0x71b91b77);
-GAL_TYPE_INFO(gal::GlyphAnnotations, 0x15301102);
+GAL_TYPE_INFO(glm::vec3, vec3, 0x33821151);
+GAL_TYPE_INFO(glm::vec2, vec2, 0xbd40c8a1);
+GAL_TYPE_INFO(gal::Sphere, sphere, 0x5e8f631c);
+GAL_TYPE_INFO(gal::Plane, plane, 0x591f323f);
+GAL_TYPE_INFO(gal::Box3, box3, 0x8fcb9e01);
+GAL_TYPE_INFO(gal::Box2, box2, 0xd60b396d);
+GAL_TYPE_INFO(gal::PointCloud, ptcloud, 0xe6e934eb);
+GAL_TYPE_INFO(gal::Circle2d, circl2d, 0x3271dc29);
+GAL_TYPE_INFO(gal::Line2d, line2d, 0x34ff4158);
+GAL_TYPE_INFO(gal::Line3d, line3d, 0x989fdbdd);
+GAL_TYPE_INFO(gal::Mesh, mesh, 0x45342367);
+GAL_TYPE_INFO(gal::TextAnnotations, tags, 0x901da902);
+GAL_TYPE_INFO(gal::Glyph, glyphIcon, 0x71b91b77);
+GAL_TYPE_INFO(gal::GlyphAnnotations, glyph, 0x15301102);

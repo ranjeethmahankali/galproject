@@ -85,13 +85,8 @@ GAL_FUNC(perimeter,
 
 void bind_CircleFunctions()
 {
-  GAL_FN_BIND(bounds);
-  GAL_FN_BIND(area);
-
-  GAL_FN_BIND(boundingCircle);
-  GAL_FN_BIND(circle2d);
-  GAL_FN_BIND(circle2dFromDiameter);
-  GAL_FN_BIND(circumCircle2d);
+  GAL_FN_BIND(
+    bounds, area, boundingCircle, circle2d, circle2dFromDiameter, circumCircle2d);
 }
 
 }  // namespace func

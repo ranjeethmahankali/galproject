@@ -822,8 +822,8 @@ gal::Mesh createRectangularMesh(const gal::Plane& plane,
   vertices.reserve((dims.x + 1) * (dims.y + 1));
 
   glm::ivec2 qi;
-  for (qi.x = 0; qi.x <= dims.x; qi.x++) {
-    for (qi.y = 0; qi.y <= dims.y; qi.y++) {
+  for (qi.y = 0; qi.y <= dims.y; qi.y++) {
+    for (qi.x = 0; qi.x <= dims.x; qi.x++) {
       vertices.emplace_back(plane.origin() +
                             (plane.xaxis() * (qsize.x * float(qi.x) + box.min.x)) +
                             (plane.yaxis() * (qsize.y * float(qi.y) + box.min.y)));
@@ -832,8 +832,8 @@ gal::Mesh createRectangularMesh(const gal::Plane& plane,
 
   std::vector<Mesh::Face> faces;
   faces.reserve(dims.x * dims.y * 2);
-  for (qi.x = 0; qi.x < dims.x; qi.x++) {
-    for (qi.y = 0; qi.y < dims.y; qi.y++) {
+  for (qi.y = 0; qi.y < dims.y; qi.y++) {
+    for (qi.x = 0; qi.x < dims.x; qi.x++) {
       std::array<size_t, 4> quadIndices = {size_t(qi.x + qi.y * (dims.x + 1)),
                                            size_t(qi.x + qi.y * (dims.x + 1) + 1),
                                            size_t(qi.x + (qi.y + 1) * (dims.x + 1)),

@@ -74,6 +74,13 @@ public:
 
 template<typename T>
 struct RemoveBraces;
+
+/**
+ * @brief Removes braces from a typename
+ *
+ * @tparam T Typename to remove the braces from.
+ * @tparam U This can be whatever... like void.
+ */
 template<typename T, typename U>
 struct RemoveBraces<T(U)>
 {

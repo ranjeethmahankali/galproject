@@ -44,11 +44,7 @@ struct Converter<glm::vec3, boost::python::object>
 {
   static void assign(const glm::vec3& src, boost::python::object& dst)
   {
-    boost::python::list lst;
-    lst.append(src[0]);
-    lst.append(src[1]);
-    lst.append(src[2]);
-    dst = std::move(lst);
+    dst = boost::python::make_tuple(src[0], src[1], src[2]);
   }
 };
 
@@ -57,17 +53,14 @@ struct Converter<glm::vec2, boost::python::object>
 {
   static void assign(const glm::vec2& src, boost::python::object& dst)
   {
-    boost::python::list lst;
-    lst.append(src[0]);
-    lst.append(src[1]);
-    dst = std::move(lst);
+    dst = boost::python::make_tuple(src[0], src[1]);
   }
 };
 
 template<>
-struct Converter<boost::python::list, glm::vec2>
+struct Converter<boost::python::tuple, glm::vec2>
 {
-  static void assign(const boost::python::list& src, glm::vec2& dst)
+  static void assign(const boost::python::tuple& src, glm::vec2& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
     dst.y = boost::python::extract<float>(src[1]);
@@ -75,9 +68,9 @@ struct Converter<boost::python::list, glm::vec2>
 };
 
 template<>
-struct Converter<boost::python::list, glm::vec3>
+struct Converter<boost::python::tuple, glm::vec3>
 {
-  static void assign(const boost::python::list& src, glm::vec3& dst)
+  static void assign(const boost::python::tuple& src, glm::vec3& dst)
   {
     dst.x = boost::python::extract<float>(src[0]);
     dst.y = boost::python::extract<float>(src[1]);
@@ -86,22 +79,22 @@ struct Converter<boost::python::list, glm::vec3>
 };
 
 template<>
-struct Converter<boost::python::api::const_object_item, glm::vec3>
+struct Converter<boost::python::object, glm::vec3>
 {
-  static void assign(const boost::python::api::const_object_item& src, glm::vec3& dst)
+  static void assign(const boost::python::object& src, glm::vec3& dst)
   {
-    boost::python::list lst = boost::python::extract<boost::python::list>(src);
-    Converter<boost::python::list, glm::vec3>::assign(lst, dst);
+    boost::python::tuple tup = boost::python::extract<boost::python::tuple>(src);
+    Converter<boost::python::tuple, glm::vec3>::assign(tup, dst);
   };
 };
 
 template<>
-struct Converter<boost::python::api::const_object_item, glm::vec2>
+struct Converter<boost::python::api::object, glm::vec2>
 {
-  static void assign(const boost::python::api::const_object_item& src, glm::vec2& dst)
+  static void assign(const boost::python::object& src, glm::vec2& dst)
   {
-    boost::python::list lst = boost::python::extract<boost::python::list>(src);
-    Converter<boost::python::list, glm::vec2>::assign(lst, dst);
+    boost::python::tuple tup = boost::python::extract<boost::python::tuple>(src);
+    Converter<boost::python::tuple, glm::vec2>::assign(tup, dst);
   };
 };
 
@@ -212,6 +205,62 @@ public:
     assert(vbegin == vend);
     dst = lst;
   };
+};
+
+template<typename T>
+struct Converter<boost::python::object, data::Tree<T>>
+{
+private:
+  using DepthT = data::DepthT;
+
+  static bool isList(const boost::python::object& obj)
+  {
+    return boost::python::str(obj.attr("__class__")).find("'list'") != -1;
+  }
+
+  static size_t leafCount(const boost::python::object& obj)
+  {
+    if (isList(obj)) {
+      boost::python::list lst    = boost::python::extract<boost::python::list>(obj);
+      size_t              length = boost::python::len(lst);
+      size_t              total  = 0;
+      for (size_t i = 0; i < length; i++) {
+        total += leafCount(lst[i]);
+      }
+      return total;
+    }
+    else {
+      return 1;
+    }
+  }
+
+  static void assignInternal(const boost::python::object& src,
+                             std::vector<T>&              vals,
+                             std::vector<DepthT>&         depths,
+                             DepthT                       depth = 0)
+  {
+    if (isList(src)) {
+      boost::python::list lst    = boost::python::extract<boost::python::list>(src);
+      size_t              length = boost::python::len(lst);
+      for (size_t i = 0; i < length; i++) {
+        assignInternal(lst[i], vals, depths, i == 0 ? depth + 1 : 0);
+      }
+    }
+    else {
+      T val;
+      Converter<boost::python::object, T>::assign(src, val);
+      vals.push_back(std::move(val));
+      depths.push_back(depth);
+    }
+  }
+
+public:
+  static void assign(const boost::python::object& src, data::Tree<T>& dst)
+  {
+    dst.clear();
+    dst.reserve(leafCount(src));
+    assignInternal(src, dst.values(), dst.depths());
+  }
 };
 
 }  // namespace func

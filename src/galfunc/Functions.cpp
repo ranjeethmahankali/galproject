@@ -103,17 +103,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   typemanager::invoke<defClass>();
 
-  def("var", py_variable<std::string, std::string>);
-  def("var", py_variable<float, float>);
-  def("var", py_variable<int32_t, int32_t>);
-  def("var", py_variable<glm::vec3, boost::python::list>);
-  def("var", py_variable<glm::vec2, boost::python::list>);
-
-  def("listf32", py_list<float>);
-  def("listi32", py_list<int32_t>);
-  def("listvec3", py_list<glm::vec3>);
-  def("liststring", py_list<std::string>);
-
   bind_UtilFunctions();
   bind_GeomFunctions();
   bind_CircleFunctions();

@@ -34,9 +34,7 @@ GAL_FUNC(bounds,
 
 void bind_SphereFunctions()
 {
-  GAL_FN_BIND(bounds);
-  GAL_FN_BIND(sphere);
-  GAL_FN_BIND(boundingSphere);
+  GAL_FN_BIND(bounds, sphere, boundingSphere);
 }
 
 }  // namespace func

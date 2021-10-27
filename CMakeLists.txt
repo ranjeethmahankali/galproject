@@ -66,6 +66,7 @@ target_link_libraries(galfunc PUBLIC
     util
     dl)
 
+# Python shared lib
 add_library(pygalfunc SHARED ${GALFUNC_SRC})
 set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
 set_target_properties(pygalfunc PROPERTIES PREFIX "")
@@ -75,6 +76,11 @@ target_link_libraries(pygalfunc PRIVATE
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
     Boost::python39)
+# Copy the python setup file
+add_custom_command(TARGET pygalfunc
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/scripts/setup.py
+  ${PROJECT_BINARY_DIR})
 #GALFUNC - end
 
 # GALVIEW - begin
@@ -103,13 +109,8 @@ add_compile_definitions(GAL_ASSET_DIR_STR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
 enable_testing()
 file (GLOB TEST_SRC "src/galtest/*.cpp")
 add_executable(galtest ${TEST_SRC})
-# add_dependencies(galtest
-#     galcore
-#     galfunc)
-
 target_include_directories(galtest PRIVATE
     ${PYTHON_INCLUDE_DIRS})
-
 target_link_libraries(galtest PRIVATE
     galcore
     galfunc

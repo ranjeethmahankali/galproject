@@ -106,6 +106,7 @@ private:
 
   void pushDepth(DepthT d)
   {
+    ensureDepth(d);
     if (mQueuedDepths.empty()) {
       mDepths.push_back(d);
     }
@@ -191,8 +192,17 @@ public:
 
   void resize(size_t n)
   {
-    mDepths.resize(n);
+    if (n == 0) {
+      return;
+    }
+    mDepths.resize(n, 0);
+    size_t i = mValues.size();
     mValues.resize(n);
+
+    if (!mQueuedDepths.empty()) {
+      mDepths[i] = mQueuedDepths.back();
+      mQueuedDepths.clear();
+    }
   }
 
   DepthT&       depth(size_t i) { return mDepths[i]; }
@@ -223,15 +233,19 @@ public:
    */
   void push_back(DepthT d, T item)
   {
-    ensureDepth(d);
     mValues.emplace_back(std::move(item));
+    pushDepth(d);
+  }
+
+  void emplace_back(DepthT d)
+  {
+    mValues.emplace_back();
     pushDepth(d);
   }
 
   template<typename... TArgs>
   void emplace_back(DepthT d, TArgs... args)
   {
-    ensureDepth(d);
     mValues.emplace_back(args...);
     pushDepth(d);
   }
@@ -398,7 +412,21 @@ public:
     return *(begin() + i);
   }
 
-  size_t size() const { return mTree->mCache.offset(mIndex, Dim); }
+  size_t size() const
+  {
+    if constexpr (Dim > 0) {
+      size_t n = 0;
+      size_t i = mIndex;
+      do {
+        i += mTree->mCache.offset(i, Dim - 1);
+        n++;
+      } while (i < mTree->size() && mTree->depth(i) == Dim - 1);
+      return n;
+    }
+    else {
+      return mTree->mCache.offset(mIndex, Dim);
+    }
+  }
 
   const T* data() const { return mTree->mValues.data() + mIndex; }
 
@@ -407,7 +435,7 @@ public:
    *
    * @return size_t
    */
-  size_t advanceIndex() const { return mIndex + size(); }
+  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
 
   /**
    * @brief Checks whether this tree can advance into its sibling's position. If this node
@@ -701,7 +729,13 @@ public:
     this->mTree->push_back(DepthT(size() == 0 ? 1 : 0), std::move(val));
   }
 
-  void resize(size_t n) { this->mTree->resize(n + this->mTree->size()); }
+  void resize(size_t n)
+  {
+    if (n == 0) {
+      return;
+    }
+    this->mTree->resize(n + this->mTree->size());
+  }
 
   ValueType&       operator[](size_t i) { return this->mTree->value(mStart + i); }
   const ValueType& operator[](size_t i) const { return this->mTree->value(mStart + i); }
@@ -876,18 +910,31 @@ public:
   /**
    * @brief Tries to advance this view to its sibling's position.
    *
+   * @tparam IsInput flag indicating whether this view points to an input arg.
    * @return bool True if the view was advanced, false otherwise. The tree will not be
    * advanced if this node is the last node if its parent.
    */
+  template<bool IsInput>
   bool tryAdvance()
   {
-    DepthT td     = mArgDepth + mOffset;
-    size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
-    if (advIdx < mTree.size()) {
-      mIndex = advIdx;
-      return true;
+    DepthT td = mArgDepth + mOffset;
+    if constexpr (IsInput) {
+      if (mIndex >= mTree.size()) {
+        return false;
+      }
+      size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
+      mIndex        = advIdx;
+      if (advIdx < mTree.size()) {
+        return true;
+      }
+      return false;
     }
-    return false;
+    else {
+      if (td == 0) {
+        mIndex++;
+      }
+      return false;
+    }
   }
 };
 
@@ -952,10 +999,11 @@ private:
   static ArgType getArg(Type& view, const TreeTupleT& trees)
   {
     auto& v = std::get<N>(view);
+    if constexpr (N < NInputs) {
+      std::get<N>(trees).ensureCache();
+    }
+
     if constexpr (IsInstance<data::Tree, std::remove_reference_t<ArgType>>::value) {
-      if constexpr (N < NInputs) {
-        std::get<N>(trees).ensureCache();
-      }
       return std::get<N>(trees);
     }
     else if constexpr (IsReadView<ArgType>::value) {
@@ -965,7 +1013,18 @@ private:
       return ArgType(std::get<N>(trees));
     }
     else {
-      return std::get<N>(trees).value(v.index());
+      if constexpr (N < NInputs) {
+        return std::get<N>(trees).value(v.index());
+      }
+      else {
+        if (v.index() == std::get<N>(trees).size()) {
+          std::get<N>(trees).emplace_back(0);
+          return std::get<N>(trees).values().back();
+        }
+        else {
+          return std::get<N>(trees).value(v.index());
+        }
+      }
     }
   }
 
@@ -1006,14 +1065,18 @@ public:
   template<size_t N = 0>
   static bool tryAdvance(Type& tup)
   {
-    if constexpr (N < NInputs) {
+    if constexpr (N < NTrees) {
+      static constexpr bool IsInput = N < NInputs;
       // Try to advance the tuple of views. Its successful if at least one view can be
       // advanced. Return true if successful, false otherwise.
-      if constexpr (N == NInputs - 1) {
-        return std::get<N>(tup).tryAdvance();
+      if constexpr (N + 1 == NTrees) {
+        return std::get<N>(tup).template tryAdvance<IsInput>();
       }
       else {
-        return std::get<N>(tup).tryAdvance() && tryAdvance<N + 1>(tup);
+        // Try advancing current and next separately to avoid short circuiting the OR.
+        bool current = std::get<N>(tup).template tryAdvance<IsInput>();
+        bool next    = tryAdvance<N + 1>(tup);
+        return current || next;
       }
     }
     else {
@@ -1120,18 +1183,20 @@ public:
    */
   Combinations(const TreeTupleT& trees)
       : mTrees(trees)
-  {
-    std::array<DepthT, NArgs> offsets;
-    getDepthData(trees, mViewDepths, offsets);
-    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
-    mViews.reserve(size_t(mMaxOffset) + 1);
-  }
+  {}
 
   /**
    * @brief Initializes a new set of combinations for a new run of the function.
    *
    */
-  void init() { HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews); }
+  void init()
+  {
+    std::array<DepthT, NArgs> offsets;
+    getDepthData(mTrees, mViewDepths, offsets);
+    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
+    mViews.reserve(size_t(mMaxOffset) + 1);
+    HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews);
+  }
 
   bool empty() const { return mViews.empty(); }
 

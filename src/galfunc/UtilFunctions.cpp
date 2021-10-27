@@ -116,24 +116,16 @@ GAL_FUNC_TEMPLATE(((typename, T)),
 
 void bind_UtilFunctions()
 {
-  GAL_FN_BIND(absPath);
-  GAL_FN_BIND(sin);
-  GAL_FN_BIND(cos);
-  GAL_FN_BIND(tan);
-  GAL_FN_BIND(arcsin);
-  GAL_FN_BIND(arccos);
-  GAL_FN_BIND(arctan);
-  GAL_FN_BIND(powf32);
-  GAL_FN_BIND(sqrtf32);
+  GAL_FN_BIND(absPath, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32);
 
-  GAL_FN_BIND_TEMPLATE(add, (float));
-  GAL_FN_BIND_TEMPLATE(add, (int32_t));
-  GAL_FN_BIND_TEMPLATE(sub, (float));
-  GAL_FN_BIND_TEMPLATE(sub, (int32_t));
-  GAL_FN_BIND_TEMPLATE(mul, (float));
-  GAL_FN_BIND_TEMPLATE(mul, (int32_t));
-  GAL_FN_BIND_TEMPLATE(div, (float));
-  GAL_FN_BIND_TEMPLATE(div, (int32_t));
+  GAL_FN_BIND_TEMPLATE(add, float);
+  GAL_FN_BIND_TEMPLATE(add, int32_t);
+  GAL_FN_BIND_TEMPLATE(sub, float);
+  GAL_FN_BIND_TEMPLATE(sub, int32_t);
+  GAL_FN_BIND_TEMPLATE(mul, float);
+  GAL_FN_BIND_TEMPLATE(mul, int32_t);
+  GAL_FN_BIND_TEMPLATE(div, float);
+  GAL_FN_BIND_TEMPLATE(div, int32_t);
 }
 
 }  // namespace func
