@@ -123,9 +123,17 @@ GAL_FUNC(pointCloud3d,
   std::copy(points.begin(), points.end(), cloud.begin());
 }
 
-GAL_FUNC(distance,
+GAL_FUNC(distance3,
          "Gets the distance betwen the two points",
          ((glm::vec3, a, "first point"), (glm::vec3, b, "second point")),
+         ((float, dist, "Distance")))
+{
+  dist = glm::distance(a, b);
+}
+
+GAL_FUNC(distance2,
+         "Gets the distance betwen the two points",
+         ((glm::vec2, a, "first point"), (glm::vec2, b, "second point")),
          ((float, dist, "Distance")))
 {
   dist = glm::distance(a, b);
@@ -151,21 +159,15 @@ GAL_FUNC(box2Points,
 
 void bind_GeomFunctions()
 {
-  GAL_FN_BIND(vec3,
-              vec2,
-              plane,
-              box3,
-              box2,
-              randomPointsInBox,
-              convexHullFromPoints,
-              pointCloud3d,
-              distance);
+  GAL_FN_BIND(
+    vec3, vec2, plane, box3, box2, randomPointsInBox, convexHullFromPoints, pointCloud3d);
 
   // TODO: Handle these with generic converters later.
   GAL_FN_BIND(vec3FromVec2, vec2FromVec3);
 
   GAL_FN_BIND_OVERLOADS(coords, vec3Coords, vec2Coords);
   GAL_FN_BIND_OVERLOADS(boxPoints, box2Points, box3Points);
+  GAL_FN_BIND_OVERLOADS(distance, distance2, distance3);
 }
 
 }  // namespace func
