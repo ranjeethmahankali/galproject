@@ -116,5 +116,40 @@ def test_div():
     binaryFloatOpTest(lambda a, b: a / b, pgf.div)
 
 
+def test_seriesInt():
+    random.seed(42)
+    valrange = (23, 256)
+    steprange = (2, 9)
+    valstart = random.randint(valrange[0], valrange[1])
+    valstep = random.randint(steprange[0], steprange[1])
+    valcount = random.randint(valrange[0], valrange[1])
+    valstop = valstart + valstep * valcount
+
+    start = pgf.var_int(valstart)
+    step = pgf.var_int(valstep)
+    count = pgf.var_int(valcount)
+    series = pgf.series(start, step, count)
+
+    assert tu.equal(range(valstart, valstop, valstep), pgf.read(series))
+
+
+def test_seriesFloat():
+    random.seed(42)
+    valrange = (22.345, 223.66)
+    steprange = (1.778, 9.56)
+    valstart = random.uniform(valrange[0], valrange[1])
+    valstep = random.uniform(steprange[0], steprange[1])
+    valcount = random.randint(25, 98)
+    valstop = valstart + valstep * valcount
+
+    start = pgf.var_float(valstart)
+    step = pgf.var_float(valstep)
+    count = pgf.var_int(valcount)
+    series = pgf.series(start, step, count)
+
+    expected = [(valstart + i * valstep) for i in range(valcount)]
+    tu.assertEqualf(expected, pgf.read(series), 1e-3)
+
+
 if __name__ == "__main__":
-    test_tan()
+    test_seriesFloat()

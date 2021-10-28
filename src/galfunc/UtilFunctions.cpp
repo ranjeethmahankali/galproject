@@ -114,6 +114,25 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   quot = a / b;
 }
 
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  series,
+                  "Populates a list with members of an arithmetic progression.",
+                  ((T, start, "Start of the series"),
+                   (T, step, "Difference between consecutive members of the series."),
+                   (int32_t, count, "Number of elements in the series")),
+                  (((data::WriteView<T, 1>), result, "The series")))
+{
+  if (count == 0) {
+    return;
+  }
+  result.resize(count);
+  T item = start;
+  for (int32_t i = 0; i < count; i++) {
+    result[i] = item;
+    item += step;
+  }
+}
+
 void bind_UtilFunctions()
 {
   GAL_FN_BIND(absPath, sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32);
@@ -126,6 +145,8 @@ void bind_UtilFunctions()
   GAL_FN_BIND_TEMPLATE(mul, int32_t);
   GAL_FN_BIND_TEMPLATE(div, float);
   GAL_FN_BIND_TEMPLATE(div, int32_t);
+  GAL_FN_BIND_TEMPLATE(series, float);
+  GAL_FN_BIND_TEMPLATE(series, int32_t);
 }
 
 }  // namespace func
