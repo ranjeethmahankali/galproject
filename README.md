@@ -12,32 +12,25 @@ how the algorithms are composed for that demo. These demos can have
 sliders, and other input fields that help you run and test the
 algorithms interactively, while seeing the results in the 3d viewer.
 
-### dependencies
+## Building on Linux
 
-vcpkg dependencies:
-* boost, boost-python, boost-program-options
-* python3
-* glm
-* glfw3
-* GLEW
-* imgui
-* gtest
-* tinyobjloader
-* efsw
-* freetype
-* tbb
-* pngpp
-
-EFSW depends on `inotify`. It can be installed as follows:
+You need to have python3.9 and a few other dependencies that you can install like this:
 ```
-sudo apt-get install inotify-tools
+sudo apt update
+sudo apt install -y inotify-tools libxmu-dev libxi-dev libgl-dev
+sudo apt install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+pip3 install pytest-xdist
 ```
 
-### building on linux
-
-if all the dependencies are setup correctly, you can just run:
+Now setup Vcpkg
+```
+git clone https://github.com/microsoft/vcpkg.git
+sh vcpkg/booststrap-vcpkg.sh
+```
+Set the environment variable VCPKG_PATH to the path where vcpkg is cloned. Then build:
 
 ```
-sh build.sh
+bash build.sh Release
 ```
+
 
