@@ -151,5 +151,92 @@ def test_seriesFloat():
     tu.assertEqualf(expected, pgf.read(series), 1e-3)
 
 
+def test_listSumInt():
+    random.seed(42)
+    valrange = (23, 345)
+    vals = [random.randint(valrange[0], valrange[1]) for _ in range(25)]
+
+    lst = pgf.var_int(vals)
+    result = pgf.listSum(lst)
+
+    assert tu.equal(sum(vals), pgf.read(result))
+
+
+def test_listSumFloat():
+    random.seed(42)
+    valrange = (22.345, 223.66)
+    vals = [random.uniform(valrange[0], valrange[1]) for _ in range(25)]
+
+    lst = pgf.var_float(vals)
+    result = pgf.listSum(lst)
+
+    assert tu.equalf(sum(vals), pgf.read(result), 1e-3)
+
+
+def repeatGenericTest(val, pgvarfn, comparefn):
+    random.seed(42)
+    count = random.randint(23, 345)
+    vals = [val for _ in range(count)]
+
+    rval = pgvarfn(val)
+    result = pgf.repeat(rval, pgf.var_int(count))
+
+    assert comparefn(vals, pgf.read(result))
+
+
+def test_repeat():
+    def compareInt(a, b): return tu.equal(a, b)
+    repeatGenericTest(int(7), pgf.var_int, compareInt)
+
+    def compareFloat(a, b): return tu.equalf(a, b)
+    repeatGenericTest(7.34, pgf.var_float, compareFloat)
+
+    repeatGenericTest((2.45, 3.67), pgf.var_vec2, compareFloat)
+    repeatGenericTest((2.45, 3.67, 45.4), pgf.var_vec3, compareFloat)
+
+
+def listItemGenericTest(vals, pgvarfn, comparefn):
+    rvals = pgvarfn(vals)
+    rindex = pgf.var_int()
+    result = pgf.listItem(rvals, rindex)
+
+    random.seed(42)
+    for _ in range(25):
+        index = random.randint(0, len(vals) - 1)
+        pgf.assign(rindex, index)
+        assert comparefn(vals[index], pgf.read(result))
+
+
+def test_listItem():
+    def compareInt(a, b): return tu.equal(a, b)
+    listItemGenericTest(list(range(2, 23)), pgf.var_int, compareInt)
+
+    random.seed(42)
+    valrange = (22.345, 223.66)
+    vals = [random.uniform(valrange[0], valrange[1]) for _ in range(25)]
+    def compareFloat(a, b): return tu.equalf(a, b)
+    listItemGenericTest(vals, pgf.var_float, compareFloat)
+
+
+def test_listLength():
+    random.seed(42)
+    valrange = (23, 345)
+    rvals = pgf.var_int()
+    rstart = pgf.var_int()
+    rstop = pgf.var_int()
+    slist = pgf.subList(rvals, rstart, rstop)
+    for _ in range(20):
+        vals = [random.randint(valrange[0], valrange[1]) for _ in range(25)]
+        irange = (random.randint(0, len(vals) - 1),
+                  random.randint(0, len(vals) - 1))
+        irange = sorted(irange)
+        expected = vals[irange[0]: irange[1]]
+        # print(len(vals), irange[0], irange[1])
+        pgf.assign(rvals, vals)
+        pgf.assign(rstart, irange[0])
+        pgf.assign(rstop, irange[1])
+        tu.assertEqual(expected, pgf.read(slist))
+
+
 if __name__ == "__main__":
-    test_seriesFloat()
+    test_listLength()
