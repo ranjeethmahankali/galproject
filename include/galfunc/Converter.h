@@ -141,6 +141,24 @@ struct Converter<boost::python::api::const_object_item, std::pair<T1, T2>>
   }
 };
 
+template<>
+struct Converter<boost::python::object, Bool>
+{
+  static void assign(const boost::python::object& src, Bool& dst)
+  {
+    dst = bool(boost::python::extract<bool>(src));
+  }
+};
+
+template<>
+struct Converter<Bool, boost::python::object>
+{
+  static void assign(const Bool& src, boost::python::object& dst)
+  {
+    dst = boost::python::object(bool(src));
+  }
+};
+
 template<typename T>
 struct Converter<data::Tree<T>, boost::python::object>
 {

@@ -1263,7 +1263,26 @@ struct TypeInfo<func::data::ReadView<T, Dim>> : public TypeInfo<T>
 {
 };
 
+/**
+ * @brief Data trees and functions cannot use the built-in bool (not without enduring
+ * inconvenient templates) because of the std::vector bool specialization. This wrapper
+ * should be used instead. The implicit conversion should make everything as smooth as
+ * possible.
+ */
+struct Bool
+{
+  Bool() = default;
+  Bool(bool b);
+  operator bool&();
+  operator bool() const;
+
+private:
+  bool mValue = false;
+};
+
 }  // namespace gal
+
+GAL_TYPE_INFO(gal::Bool, bool, 0xe2953d62);
 
 namespace std {
 
