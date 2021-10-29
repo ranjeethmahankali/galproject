@@ -1,5 +1,6 @@
 #pragma once
 #include <galcore/Types.h>
+#include <galfunc/Data.h>
 
 namespace gal {
 namespace func {
@@ -36,6 +37,7 @@ using typemanager = TypeManager<uint8_t,
                                 int32_t,
                                 uint64_t,
                                 float,
+                                gal::Bool,
                                 std::string,
                                 glm::vec3,
                                 glm::vec2,

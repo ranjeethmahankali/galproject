@@ -238,5 +238,26 @@ def test_listLength():
         tu.assertEqual(expected, pgf.read(slist))
 
 
+def test_dispatch():
+    random.seed(42)
+    valrange = (23, 345)
+    rvals = pgf.var_int()
+    rpattern = pgf.var_bool()
+    rtvals, rfvals = pgf.dispatch(rvals, rpattern)
+    for _ in range(20):
+        nItems = 25
+        vals = [random.randint(valrange[0], valrange[1])
+                for _ in range(nItems)]
+        pattern = [random.randint(valrange[0], valrange[1]) %
+                   2 == 0 for _ in range(nItems)]
+        tvals = [v for v, p in zip(vals, pattern) if p]
+        fvals = [v for v, p in zip(vals, pattern) if not p]
+
+        pgf.assign(rvals, vals)
+        pgf.assign(rpattern, pattern)
+        assert tu.equal(tvals, pgf.read(rtvals))
+        assert tu.equal(fvals, pgf.read(rfvals))
+
+
 if __name__ == "__main__":
-    test_listLength()
+    test_dispatch()

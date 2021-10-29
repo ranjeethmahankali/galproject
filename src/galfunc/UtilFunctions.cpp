@@ -195,6 +195,30 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   length = int32_t(list.size());
 }
 
+GAL_FUNC_TEMPLATE(
+  ((typename, T)),
+  dispatch,
+  "Dispatches elements of a list based on a boolean pattern",
+  (((data::ReadView<T, 1>), items, "Items to be dispatched"),
+   ((data::ReadView<Bool, 1>), pattern, "Boolean values used to dispatch")),
+  (((data::WriteView<T, 1>), trueLst, "Items with true values"),
+   ((data::WriteView<T, 1>), falseLst, "Items with false values")))
+{
+  if (items.size() != pattern.size()) {
+    throw std::length_error(
+      "The dispatch pattern must be of the same length as the list of items to be "
+      "dispatched.");
+  }
+  for (size_t i = 0; i < pattern.size(); i++) {
+    if (pattern[i]) {
+      trueLst.push_back(items[i]);
+    }
+    else {
+      falseLst.push_back(items[i]);
+    }
+  }
+}
+
 template<typename T>
 struct bindAllTypes
 {
@@ -204,6 +228,7 @@ struct bindAllTypes
     GAL_FN_BIND_TEMPLATE(listItem, T);
     GAL_FN_BIND_TEMPLATE(subList, T);
     GAL_FN_BIND_TEMPLATE(listLength, T);
+    GAL_FN_BIND_TEMPLATE(dispatch, T);
   }
 };
 
