@@ -1,8 +1,8 @@
 #pragma once
 
-#include <boost/python/object_core.hpp>
 #include <filesystem>
 
+#include <boost/python/object_core.hpp>
 #include <glm/glm.hpp>
 
 #include <galfunc/Data.h>
@@ -120,6 +120,26 @@ struct Converter<boost::python::list, std::vector<T>>
       }
     }
   };
+};
+
+template<typename T>
+struct Converter<std::vector<T>, boost::python::list>
+{
+  static void assign(const std::vector<T>& src, boost::python::list& dst)
+  {
+    for (size_t i = 0; i < src.size(); i++) {
+      if constexpr (IsInstance<std::vector, T>::value) {  // Nested vector.
+        boost::python::list lst;
+        Converter<T, boost::python::list>::assign(src[i], lst);
+        dst.append(lst);
+      }
+      else {
+        boost::python::object obj;
+        Converter<T, boost::python::object>::assign(src[i], obj);
+        dst.append(obj);
+      }
+    }
+  }
 };
 
 template<typename T1, typename T2>

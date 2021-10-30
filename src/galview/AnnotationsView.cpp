@@ -1,5 +1,6 @@
 #include <array>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 #include <png++/png.hpp>
@@ -200,8 +201,8 @@ private:
   static constexpr uint32_t NY        = 1 << 3;
   static constexpr size_t   NUMGLYPHS = size_t(NX * NY);
 
-  TextureAtlas<NX, NY, uint32_t>                                   mAtlas;
-  std::vector<std::pair<std::string, png::image<png::rgba_pixel>>> mImages;
+  TextureAtlas<NX, NY, uint32_t>           mAtlas;
+  std::vector<png::image<png::rgba_pixel>> mImages;
 
   GlyphAtlas()
       : mAtlas(GLYPHSIZE)
@@ -236,11 +237,11 @@ public:
       std::cerr << "Not a valid glyph index\n";
       throw std::out_of_range("Not a valid glyph index");
     }
-    const auto& image = std::get<1>(mImages[i]);
+    const auto& image = mImages[i];
     return {int(image.get_width()), int(image.get_height())};
   }
 
-  void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths)
+  std::vector<int32_t> loadGlyphs(const std::vector<fs::path>& labeledPNGPaths)
   {
     // Clear the current texture atlas.
     mAtlas.deleteGLTexture();
@@ -250,10 +251,9 @@ public:
       throw std::out_of_range("Too many glyphs!");
     }
 
+    int32_t ibegin = mImages.size();
     mImages.reserve(mImages.size() + labeledPNGPaths.size());
-    for (const auto& pair : labeledPNGPaths) {
-      const auto& label = std::get<0>(pair);
-      const auto& path  = std::get<1>(pair);
+    for (const auto& path : labeledPNGPaths) {
       if (!fs::exists(path)) {
         std::cerr << "Cannot find glyph file: " << path << std::endl;
         continue;
@@ -265,15 +265,16 @@ public:
                   << GLYPHSIZE << "x" << GLYPHSIZE << std::endl;
         continue;
       }
-      mImages.emplace_back(label, std::move(image));
+      mImages.emplace_back(std::move(image));
     }
+    int32_t iend = mImages.size();
 
     mAtlas.allocate();  // Clears the entire texture.
     uint32_t    width = mAtlas.width();
     const float wf    = float(mAtlas.width());
     const float hf    = float(mAtlas.height());
     for (size_t i = 0; i < mImages.size(); i++) {
-      const auto& image     = std::get<1>(mImages[i]);
+      const auto& image     = mImages[i];
       uint32_t*   dst       = mAtlas.tilestart(i);
       size_t      dstoffset = std::distance(mAtlas.mTexture.data(), dst);
       uint32_t    x1        = dstoffset % width;
@@ -292,20 +293,11 @@ public:
         float(x1) / wf, float(y1) / hf, float(x2) / wf, float(y2) / hf};
     }
     mAtlas.initGLTexture();
-  }
 
-  size_t glyphIndex(const std::string& label)
-  {
-    auto match = std::find_if(
-      mImages.begin(),
-      mImages.end(),
-      [&label](const std::pair<std::string, png::image<png::rgba_pixel>>& pair) {
-        return label == pair.first;
-      });
-    if (match == mImages.end()) {
-      throw std::out_of_range("Cannot find a glyph with the given label.");
-    }
-    return std::distance(mImages.begin(), match);
+    // Indices.
+    std::vector<int32_t> indices(size_t(iend - ibegin));
+    std::iota(indices.begin(), indices.end(), ibegin);
+    return indices;
   }
 
   static GlyphAtlas& get()
@@ -325,14 +317,9 @@ void bindGlyphAtlasTexture()
   GlyphAtlas::get().atlas().bind();
 }
 
-void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths)
+std::vector<int32_t> loadGlyphs(const std::vector<fs::path>& labeledPNGPaths)
 {
-  GlyphAtlas::get().loadGlyphs(labeledPNGPaths);
-}
-
-size_t getGlyphIndex(const std::string& label)
-{
-  return GlyphAtlas::get().glyphIndex(label);
+  return GlyphAtlas::get().loadGlyphs(labeledPNGPaths);
 }
 
 void unbindTexture()

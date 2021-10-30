@@ -75,22 +75,19 @@ void unloadAllOutputs()
 /**
  * @brief Loads glyph textures from files on disk.
  *
- * @param pyglyphdata List of tuples, where each tuple contains the name of the glyphs and
- * a path to the png image.
- * @return boost::python::list List of glyph indices.
+ * @param pyglyphdata Paths to png images.
+ * @return boost::python::list List of indices of the loaded glyphs, in the same order of
+ * the supplied paths.
  */
-boost::python::list py_loadGlyphs(const boost::python::list& pyglyphdata)
+boost::python::list py_loadGlyphs(const boost::python::list& glyphPaths)
 {
-  std::vector<std::pair<std::string, fs::path>> glyphData;
-  func::Converter<boost::python::list, decltype(glyphData)>::assign(pyglyphdata,
+  std::vector<fs::path> glyphData;
+  func::Converter<boost::python::list, decltype(glyphData)>::assign(glyphPaths,
                                                                     glyphData);
-  view::loadGlyphs(glyphData);
-  boost::python::list indices;
-  for (const auto& g : glyphData) {
-    indices.append(view::getGlyphIndex(std::get<0>(g)));
-  }
-
-  return indices;
+  auto                indices = view::loadGlyphs(glyphData);
+  boost::python::list lst;
+  func::Converter<decltype(indices), boost::python::list>::assign(indices, lst);
+  return lst;
 }
 
 GAL_FUNC(

@@ -21,11 +21,10 @@ const glm::ivec2& charsize(char c);
 uint32_t          charadvance(char c);
 const glm::vec4&  chartexcoords(char c);
 
-void   bindGlyphAtlasTexture();
-void   loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
-size_t getGlyphIndex(const std::string& label);
-const glm::vec4& glyphtexcoords(size_t i);
-glm::ivec2       glyphSize(size_t i);
+void                 bindGlyphAtlasTexture();
+std::vector<int32_t> loadGlyphs(const std::vector<fs::path>& labeledPNGPaths);
+const glm::vec4&     glyphtexcoords(size_t i);
+glm::ivec2           glyphSize(size_t i);
 
 struct AnnotationVertex
 {

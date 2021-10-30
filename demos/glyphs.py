@@ -10,27 +10,24 @@ POINTS = [
     (0, -1, 0),
 ]
 
-GLYPHDATA = [("receiver", "/home/rnjth94/works/YouTube/GAL_BoundingCircle/receiverDishGlyph.png"),
-              ("transmitter", "/home/rnjth94/works/YouTube/GAL_BoundingCircle/transmitterGlyph.png")]
-
-GLYPHINDICES = {"receiver": 0, "transmitter": 0}
+GLYPHDATA = ["/home/rnjth94/works/YouTube/GAL_BoundingCircle/receiverDishGlyph.png",
+             "/home/rnjth94/works/YouTube/GAL_BoundingCircle/transmitterGlyph.png"]
 
 
 def initGlyphs():
     global GTRANSMITTER, GRECEIVER
-    indices = pgv.loadGlyphs(GLYPHDATA)
-    GLYPHINDICES["receiver"] = indices[0]
-    GLYPHINDICES["transmitter"] = indices[1]
+    return pgv.loadGlyphs(GLYPHDATA)
 
 
 if __name__ == "__main__":
-    initGlyphs()
+    glyphs = initGlyphs()
     pts = pgf.var_vec3(POINTS)
-    cloudGlyphs = pgf.var_int([GLYPHINDICES["receiver"] for _ in range(len(POINTS))])
+    cloudGlyphs = pgf.var_int([glyphs[0]
+                              for _ in range(len(POINTS))])
     idxPt = pgf.listItem(pts, pgv.slideri32("Index", 0, len(POINTS) - 1, 0))
     circ, center, radius = pgf.boundingCircle(pts)
     center3 = pgf.vec3FromVec2(center)
-    centerGlyph = pgf.var_int(GLYPHINDICES["transmitter"])
+    centerGlyph = pgf.var_int(glyphs[1])
 
     pgv.show("glyph1", pgv.glyphs(cloudGlyphs, pts))
     pgv.show("glyph2", pgv.glyphs(centerGlyph, center3))
