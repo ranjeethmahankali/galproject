@@ -56,9 +56,10 @@ target_include_directories(galcore PUBLIC ${PNGPP_INCLUDE_DIRS})
 
 #GALFUNC - begin
 file(GLOB GALFUNC_SRC "src/galfunc/*.cpp")
-add_library(galfunc STATIC ${GALFUNC_SRC})
-target_include_directories(galfunc PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(galfunc PUBLIC
+# Share the object files between galfunc and pygalfunc
+add_library(galfuncobjects OBJECT ${GALFUNC_SRC})
+target_include_directories(galfuncobjects PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(galfuncobjects PUBLIC
     galcore
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
@@ -66,16 +67,16 @@ target_link_libraries(galfunc PUBLIC
     util
     dl)
 
+add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
+# This will carry the dependencies and include dirs of galfuncobjects to
+# any other library that uses galfunc
+target_link_libraries(galfunc galfuncobjects)
+
 # Python shared lib
-add_library(pygalfunc SHARED ${GALFUNC_SRC})
+add_library(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
 set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
 set_target_properties(pygalfunc PROPERTIES PREFIX "")
-target_include_directories(pygalfunc PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(pygalfunc PRIVATE
-    galcore
-    ${Boost_LIBRARIES}
-    ${PYTHON_LIBRARIES}
-    Boost::python39)
+target_link_libraries(pygalfunc galfuncobjects)
 # Copy the python setup file
 add_custom_command(TARGET pygalfunc
   POST_BUILD

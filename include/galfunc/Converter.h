@@ -1,8 +1,12 @@
 #pragma once
 
+#include <filesystem>
+
+#include <boost/python/object_core.hpp>
+#include <glm/glm.hpp>
+
 #include <galfunc/Data.h>
 #include <galfunc/Functions.h>
-#include <glm/glm.hpp>
 
 namespace gal {
 namespace func {
@@ -118,6 +122,26 @@ struct Converter<boost::python::list, std::vector<T>>
   };
 };
 
+template<typename T>
+struct Converter<std::vector<T>, boost::python::list>
+{
+  static void assign(const std::vector<T>& src, boost::python::list& dst)
+  {
+    for (size_t i = 0; i < src.size(); i++) {
+      if constexpr (IsInstance<std::vector, T>::value) {  // Nested vector.
+        boost::python::list lst;
+        Converter<T, boost::python::list>::assign(src[i], lst);
+        dst.append(lst);
+      }
+      else {
+        boost::python::object obj;
+        Converter<T, boost::python::object>::assign(src[i], obj);
+        dst.append(obj);
+      }
+    }
+  }
+};
+
 template<typename T1, typename T2>
 struct Converter<boost::python::tuple, std::pair<T1, T2>>
 {
@@ -156,6 +180,25 @@ struct Converter<Bool, boost::python::object>
   static void assign(const Bool& src, boost::python::object& dst)
   {
     dst = boost::python::object(bool(src));
+  }
+};
+
+template<>
+struct Converter<boost::python::object, std::filesystem::path>
+{
+  static void assign(const boost::python::object& src, std::filesystem::path& dst)
+  {
+    dst = std::string(boost::python::extract<std::string>(src));
+  }
+};
+
+template<>
+struct Converter<boost::python::api::const_object_item, std::filesystem::path>
+{
+  static void assign(const boost::python::api::const_object_item& src,
+                     std::filesystem::path&                       dst)
+  {
+    dst = std::string(boost::python::extract<std::string>(src));
   }
 };
 

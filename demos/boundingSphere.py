@@ -1,10 +1,9 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-minCoord = pgf.var(-1.)
-maxCoord = pgf.var(1.)
-minpt = pgf.vec3(minCoord, minCoord, minCoord)
-maxpt = pgf.vec3(maxCoord, maxCoord, maxCoord)
+
+minpt = pgf.var_vec3((-1., -1., -1.))
+maxpt = pgf.var_vec3((1., 1., 1.))
 box = pgf.box3(minpt, maxpt)
 
 npts = pgv.slideri32("Point count", 5, 50, 25)

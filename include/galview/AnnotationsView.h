@@ -21,11 +21,10 @@ const glm::ivec2& charsize(char c);
 uint32_t          charadvance(char c);
 const glm::vec4&  chartexcoords(char c);
 
-void   bindGlyphAtlasTexture();
-void   loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths);
-size_t getGlyphIndex(const std::string& label);
-const glm::vec4& glyphtexcoords(size_t i);
-glm::ivec2       glyphSize(size_t i);
+void                 bindGlyphAtlasTexture();
+std::vector<int32_t> loadGlyphs(const std::vector<fs::path>& labeledPNGPaths);
+const glm::vec4&     glyphtexcoords(size_t i);
+glm::ivec2           glyphSize(size_t i);
 
 struct AnnotationVertex
 {
@@ -133,13 +132,14 @@ public:
   {
     RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("glyph");
+    settings.shaderId   = Context::get().shaderId("text");
     return settings;
   }
 
   void draw() const
   {
     static RenderSettings rsettings = renderSettings();
+    rsettings.apply();
     Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
     bindCharAtlasTexture();
     GL_CALL(glBindVertexArray(mVAO));
@@ -208,8 +208,10 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
@@ -226,7 +228,7 @@ public:
   {
     RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("text");
+    settings.shaderId   = Context::get().shaderId("glyph");
     return settings;
   }
 

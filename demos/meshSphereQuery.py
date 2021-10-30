@@ -1,11 +1,11 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-relpath = pgf.var("../assets/bunny.obj")
+relpath = pgf.var_string("../assets/bunny.obj")
 path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)
-scale = pgf.var(10.0)
-scaled = pgf.scaleMesh(mesh, scale)
+scale = pgf.var_float(10.0)
+scaled = pgf.scale(mesh, scale)
 
 center = pgv.sliderVec3("center", 0., 1., 0.)
 radius = pgv.sliderf32("radius", 0., 1., .5)

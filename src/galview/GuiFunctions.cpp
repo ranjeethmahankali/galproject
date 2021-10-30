@@ -1,5 +1,14 @@
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
+#include <galcore/Annotations.h>
 #include <galcore/Types.h>
 #include <galcore/Util.h>
+#include <galfunc/Data.h>
 #include <galfunc/Functions.h>
 #include <galfunc/TypeHelper.h>
 #include <galview/AnnotationsView.h>
@@ -7,10 +16,6 @@
 #include <galview/GuiFunctions.h>
 #include <galview/Views.h>
 #include <galview/Widget.h>
-#include <cstdint>
-#include <iostream>
-#include <memory>
-#include <sstream>
 
 namespace gal {
 namespace viewfunc {
@@ -67,8 +72,58 @@ void unloadAllOutputs()
   sOutputPanel->clear();
 }
 
-// TODO: TagsFunc
-// TODO: GlyphsFunc
+/**
+ * @brief Loads glyph textures from files on disk.
+ *
+ * @param pyglyphdata Paths to png images.
+ * @return boost::python::list List of indices of the loaded glyphs, in the same order of
+ * the supplied paths.
+ */
+boost::python::list py_loadGlyphs(const boost::python::list& glyphPaths)
+{
+  std::vector<fs::path> glyphData;
+  func::Converter<boost::python::list, decltype(glyphData)>::assign(glyphPaths,
+                                                                    glyphData);
+  auto                indices = view::loadGlyphs(glyphData);
+  boost::python::list lst;
+  func::Converter<decltype(indices), boost::python::list>::assign(indices, lst);
+  return lst;
+}
+
+GAL_FUNC(
+  glyphs,
+  "Displays glyphs in the viewer",
+  (((func::data::ReadView<int, 1>), indices, "The indices of the glyphs to be displayed"),
+   ((func::data::ReadView<glm::vec3, 1>),
+    positions,
+    "Positions at which to display the glyphs")),
+  ((gal::GlyphAnnotations, result, "The glyph set")))
+{
+  if (indices.size() != positions.size()) {
+    throw std::length_error("Index list and positions list must have the same length");
+  }
+  result.resize(indices.size());
+  for (size_t i = 0; i < indices.size(); i++) {
+    result[i] = {positions[i], {uint32_t(indices[i])}};
+  }
+}
+
+GAL_FUNC(
+  tags,
+  "Shows string tags in the viewer",
+  (((func::data::ReadView<std::string, 1>), words, "The string tags to show."),
+   ((func::data::ReadView<glm::vec3, 1>), positions, "Positions to show the tags at")),
+  ((gal::TextAnnotations, result, "The tags")))
+{
+  if (words.size() != positions.size()) {
+    throw std::length_error(
+      "The number of tags must be the same as the number of positions.");
+  }
+  result.resize(words.size());
+  for (size_t i = 0; i < words.size(); i++) {
+    result[i] = {positions[i], words[i]};
+  }
+}
 
 struct TextFieldFunc : public gal::func::TVariable<std::string>,
                        public gal::view::TextInput
@@ -114,29 +169,6 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
 };
-
-// TODO: py_tags
-// TODO: py_glyphs
-
-void py_loadGlyphs(const boost::python::list& lst)
-{
-  std::vector<std::pair<std::string, std::string>> pairs;
-  gal::func::Converter<boost::python::list, decltype(pairs)>::assign(lst, pairs);
-
-  std::vector<std::pair<std::string, fs::path>> pairs2(pairs.size());
-  std::transform(pairs.begin(),
-                 pairs.end(),
-                 pairs2.begin(),
-                 [](const std::pair<std::string, std::string>& p) {
-                   return std::make_pair(p.first, fs::path(p.second));
-                 });
-  gal::view::loadGlyphs(pairs2);
-}
-
-int32_t py_glyphIndex(const std::string& str)
-{
-  return int32_t(gal::view::getGlyphIndex(str));
-}
 
 /**
  * @brief Function that adds the given object to the 3d scene, if it is a drawable object.
@@ -252,10 +284,8 @@ namespace python {
 using namespace boost::python;
 
 template<typename T>
-struct defOutputFuncs : public gal::func::python::defClass<T>
+struct defOutputFuncs
 {
-  using BaseType = gal::func::python::defClass<T>;
-
   static void invoke()
   {
     def("show", py_show<T>);
@@ -286,10 +316,9 @@ BOOST_PYTHON_MODULE(pygalview)
   // Text fields for string inputs
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
-  // GAL_DEF_PY_FN(tags);
-  // GAL_DEF_PY_FN(glyphs);
+  GAL_DEF_PY_FN(tags);
+  GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
-  GAL_DEF_PY_FN(glyphIndex);
   // Viewer controls.
   GAL_DEF_PY_FN(set2dMode);
   GAL_DEF_PY_FN(useOrthoCam);
