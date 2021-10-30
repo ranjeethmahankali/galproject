@@ -2,8 +2,8 @@ import pygalfunc as pgf
 import pygalview as pgv
 
 def sphere():
-    minCoord = pgf.var(-1.)
-    maxCoord = pgf.var(1.)
+    minCoord = pgf.var_float(-1.)
+    maxCoord = pgf.var_float(1.)
     minpt = pgf.vec3(minCoord, minCoord, minCoord)
     maxpt = pgf.vec3(maxCoord, maxCoord, maxCoord)
     box = pgf.box3(minpt, maxpt)
@@ -14,7 +14,7 @@ def sphere():
     return sphere
 
 def mesh():
-    relpath = pgf.var("../assets/bunny_large.obj")
+    relpath = pgf.var_string("../assets/bunny_large.obj")
     # relpath = pgv.textField("Relative file path");
     path = pgf.absPath(relpath)
     return pgf.loadObjFile(path)
