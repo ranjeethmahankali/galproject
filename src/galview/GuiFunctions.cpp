@@ -1,5 +1,12 @@
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+
 #include <galcore/Types.h>
 #include <galcore/Util.h>
+#include <galfunc/Data.h>
 #include <galfunc/Functions.h>
 #include <galfunc/TypeHelper.h>
 #include <galview/AnnotationsView.h>
@@ -7,10 +14,6 @@
 #include <galview/GuiFunctions.h>
 #include <galview/Views.h>
 #include <galview/Widget.h>
-#include <cstdint>
-#include <iostream>
-#include <memory>
-#include <sstream>
 
 namespace gal {
 namespace viewfunc {
@@ -68,7 +71,38 @@ void unloadAllOutputs()
 }
 
 // TODO: TagsFunc
-// TODO: GlyphsFunc
+
+boost::python::list py_loadGlyphs(const boost::python::list& pyglyphdata)
+{
+  std::vector<std::pair<std::string, fs::path>> glyphData;
+  func::Converter<boost::python::list, decltype(glyphData)>::assign(pyglyphdata,
+                                                                    glyphData);
+  view::loadGlyphs(glyphData);
+  boost::python::list indices;
+  for (const auto& g : glyphData) {
+    indices.append(view::getGlyphIndex(std::get<0>(g)));
+  }
+
+  return indices;
+}
+
+GAL_FUNC(
+  glyphs,
+  "Displays glyphs in the viewer",
+  (((func::data::ReadView<int, 1>), indices, "The indices of the glyphs to be displayed"),
+   ((func::data::ReadView<glm::vec3, 1>),
+    positions,
+    "Positions at which to display the glyphs")),
+  ((gal::GlyphAnnotations, result, "The glyph set")))
+{
+  if (indices.size() != positions.size()) {
+    throw std::length_error("Index list and positions list must have the same length");
+  }
+  result.resize(indices.size());
+  for (size_t i = 0; i < indices.size(); i++) {
+    result[i] = {positions[i], {uint32_t(indices[i])}};
+  }
+}
 
 struct TextFieldFunc : public gal::func::TVariable<std::string>,
                        public gal::view::TextInput
@@ -117,26 +151,6 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 
 // TODO: py_tags
 // TODO: py_glyphs
-
-void py_loadGlyphs(const boost::python::list& lst)
-{
-  std::vector<std::pair<std::string, std::string>> pairs;
-  gal::func::Converter<boost::python::list, decltype(pairs)>::assign(lst, pairs);
-
-  std::vector<std::pair<std::string, fs::path>> pairs2(pairs.size());
-  std::transform(pairs.begin(),
-                 pairs.end(),
-                 pairs2.begin(),
-                 [](const std::pair<std::string, std::string>& p) {
-                   return std::make_pair(p.first, fs::path(p.second));
-                 });
-  gal::view::loadGlyphs(pairs2);
-}
-
-int32_t py_glyphIndex(const std::string& str)
-{
-  return int32_t(gal::view::getGlyphIndex(str));
-}
 
 /**
  * @brief Function that adds the given object to the 3d scene, if it is a drawable object.
@@ -252,10 +266,8 @@ namespace python {
 using namespace boost::python;
 
 template<typename T>
-struct defOutputFuncs : public gal::func::python::defClass<T>
+struct defOutputFuncs
 {
-  using BaseType = gal::func::python::defClass<T>;
-
   static void invoke()
   {
     def("show", py_show<T>);
@@ -287,9 +299,8 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
   // GAL_DEF_PY_FN(tags);
-  // GAL_DEF_PY_FN(glyphs);
+  GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
-  GAL_DEF_PY_FN(glyphIndex);
   // Viewer controls.
   GAL_DEF_PY_FN(set2dMode);
   GAL_DEF_PY_FN(useOrthoCam);

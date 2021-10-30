@@ -3,43 +3,38 @@ import pygalview as pgv
 import os
 
 POINTS = [
-    [0, 0, 0],
-    [1, 0, 0],
-    [1, 1, 0],
-    [-.3, 1, 0],
-    [0, -1, 0],
+    (0, 0, 0),
+    (1, 0, 0),
+    (1, 1, 0),
+    (-.3, 1, 0),
+    (0, -1, 0),
 ]
 
-GTRANSMITTER = 0
-GRECEIVER = 0
+GLYPHDATA = [("receiver", "/home/rnjth94/works/YouTube/GAL_BoundingCircle/receiverDishGlyph.png"),
+              ("transmitter", "/home/rnjth94/works/YouTube/GAL_BoundingCircle/transmitterGlyph.png")]
+
+GLYPHINDICES = {"receiver": 0, "transmitter": 0}
 
 
 def initGlyphs():
     global GTRANSMITTER, GRECEIVER
-    relpaths = ["../assets/transmitterGlyph.png", "../assets/receiverDishGlyph.png"]
-    gpaths = [os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), p)) for p in relpaths]
-    gnames = ["transmitter", "receiver"]
-    glyphs = [(gname, gpath) for gname, gpath in zip(gnames, gpaths)]
-    print(glyphs)
-    pgv.loadGlyphs(glyphs)
-    GTRANSMITTER = pgv.glyphIndex(gnames[0])
-    GRECEIVER = pgv.glyphIndex(gnames[1])
+    indices = pgv.loadGlyphs(GLYPHDATA)
+    GLYPHINDICES["receiver"] = indices[0]
+    GLYPHINDICES["transmitter"] = indices[1]
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     initGlyphs()
-    pts = pgf.listvec3(POINTS)
-    cloudGlyphs = pgf.listi32([GRECEIVER for _ in range(len(POINTS))])
-    cloud = pgf.pointCloud3d(pts)
+    pts = pgf.var_vec3(POINTS)
+    cloudGlyphs = pgf.var_int([GLYPHINDICES["receiver"] for _ in range(len(POINTS))])
     idxPt = pgf.listItem(pts, pgv.slideri32("Index", 0, len(POINTS) - 1, 0))
-    circ, center, radius = pgf.boundingCircle(cloud)
+    circ, center, radius = pgf.boundingCircle(pts)
+    center3 = pgf.vec3FromVec2(center)
+    centerGlyph = pgf.var_int(GLYPHINDICES["transmitter"])
 
-    centerList = pgf.makeList([pgf.vec3FromVec2(center)])
-    centerGlyphs = pgf.listi32([GTRANSMITTER])
-
-    pgv.glyphs("transmitters", pts, cloudGlyphs)
-    pgv.glyphs("receiver", centerList, centerGlyphs)
-    pgv.show("circle", circ)
-    pgv.show("points", cloud)
-    pgv.show("center", pgf.pointCloud3d(centerList))
-    pgv.print("Point at index", idxPt)
+    pgv.show("glyph1", pgv.glyphs(cloudGlyphs, pts))
+    # pgv.show("glyph2", pgv.glyphs(centerGlyph, center3))
+    # pgv.show("circle", circ)
+    # pgv.show("points", pts)
+    # pgv.show("center", center3)
+    # pgv.print("Point at index", idxPt)

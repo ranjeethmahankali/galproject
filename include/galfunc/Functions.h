@@ -659,8 +659,8 @@ fs::path getcontextpath();
 // Declartion of a gal function.
 #define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                               \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                         \
-  static TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                            \
-                   GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType                   \
+  static gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                 \
+                              GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType        \
     py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                \
   {                                                                                   \
     using namespace gal::func;                                                        \
@@ -670,8 +670,8 @@ fs::path getcontextpath();
       GAL_FN_IMPL_NAME(fnName), std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs)); \
     return fn->pythonOutputRegs();                                                    \
   };                                                                                  \
-  static constexpr TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                  \
-                             GAL_EXPAND_TYPE_TUPLE(outputArgs)>::                     \
+  static constexpr gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),       \
+                                        GAL_EXPAND_TYPE_TUPLE(outputArgs)>::          \
     PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =        \
       &py_##fnName;                                                                   \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
@@ -689,28 +689,28 @@ fs::path getcontextpath();
 #define GAL_TEMPL_ARG(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)
 #define GAL_EXPAND_TEMPL_ARGS(...) MAP_LIST(GAL_TEMPL_ARG, __VA_ARGS__)
 
-#define GAL_FUNC_TEMPLATE(templateParams, fnName, fnDesc, inputArgs, outputArgs) \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                               \
-  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                    \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                               \
-  static typename TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),              \
-                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType     \
-    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                           \
-  {                                                                              \
-    using namespace gal::func;                                                   \
-    using FType = TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),              \
-                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                  \
-    auto fn     = store::makeFunction<FType>(                                    \
-      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS templateParams >,     \
-      std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                      \
-    return fn->pythonOutputRegs();                                               \
-  };                                                                             \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                               \
-  static constexpr typename TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),    \
-                                      GAL_EXPAND_TYPE_TUPLE(outputArgs)>::       \
-    PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =   \
-      &py_##fnName<GAL_EXPAND_TEMPL_ARGS templateParams>;                        \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                               \
+#define GAL_FUNC_TEMPLATE(templateParams, fnName, fnDesc, inputArgs, outputArgs)         \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
+  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                            \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
+  static typename gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),           \
+                                       GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType  \
+    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                   \
+  {                                                                                      \
+    using namespace gal::func;                                                           \
+    using FType = TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                      \
+                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                          \
+    auto fn     = store::makeFunction<FType>(                                            \
+      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS templateParams >,             \
+      std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                              \
+    return fn->pythonOutputRegs();                                                       \
+  };                                                                                     \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
+  static constexpr typename gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
+                                                 GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
+    PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =           \
+      &py_##fnName<GAL_EXPAND_TEMPL_ARGS templateParams>;                                \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.

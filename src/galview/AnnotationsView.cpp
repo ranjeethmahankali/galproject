@@ -242,6 +242,7 @@ public:
 
   void loadGlyphs(const std::vector<std::pair<std::string, fs::path>>& labeledPNGPaths)
   {
+    // Clear the current texture atlas.
     mAtlas.deleteGLTexture();
     if (mImages.size() + labeledPNGPaths.size() >= NUMGLYPHS) {
       std::cerr << "Cannot load glyphs because only a maximum of " << NUMGLYPHS
