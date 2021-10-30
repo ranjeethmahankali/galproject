@@ -72,6 +72,13 @@ void unloadAllOutputs()
   sOutputPanel->clear();
 }
 
+/**
+ * @brief Loads glyph textures from files on disk.
+ *
+ * @param pyglyphdata List of tuples, where each tuple contains the name of the glyphs and
+ * a path to the png image.
+ * @return boost::python::list List of glyph indices.
+ */
 boost::python::list py_loadGlyphs(const boost::python::list& pyglyphdata)
 {
   std::vector<std::pair<std::string, fs::path>> glyphData;
