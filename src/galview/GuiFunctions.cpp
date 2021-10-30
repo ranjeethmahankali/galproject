@@ -3,7 +3,9 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 
+#include <galcore/Annotations.h>
 #include <galcore/Types.h>
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
@@ -70,8 +72,6 @@ void unloadAllOutputs()
   sOutputPanel->clear();
 }
 
-// TODO: TagsFunc
-
 boost::python::list py_loadGlyphs(const boost::python::list& pyglyphdata)
 {
   std::vector<std::pair<std::string, fs::path>> glyphData;
@@ -101,6 +101,23 @@ GAL_FUNC(
   result.resize(indices.size());
   for (size_t i = 0; i < indices.size(); i++) {
     result[i] = {positions[i], {uint32_t(indices[i])}};
+  }
+}
+
+GAL_FUNC(
+  tags,
+  "Shows string tags in the viewer",
+  (((func::data::ReadView<std::string, 1>), words, "The string tags to show."),
+   ((func::data::ReadView<glm::vec3, 1>), positions, "Positions to show the tags at")),
+  ((gal::TextAnnotations, result, "The tags")))
+{
+  if (words.size() != positions.size()) {
+    throw std::length_error(
+      "The number of tags must be the same as the number of positions.");
+  }
+  result.resize(words.size());
+  for (size_t i = 0; i < words.size(); i++) {
+    result[i] = {positions[i], words[i]};
   }
 }
 
@@ -148,9 +165,6 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
 };
-
-// TODO: py_tags
-// TODO: py_glyphs
 
 /**
  * @brief Function that adds the given object to the 3d scene, if it is a drawable object.
@@ -298,7 +312,7 @@ BOOST_PYTHON_MODULE(pygalview)
   // Text fields for string inputs
   GAL_DEF_PY_FN(textField);
   // Viewer annotations
-  // GAL_DEF_PY_FN(tags);
+  GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
   // Viewer controls.

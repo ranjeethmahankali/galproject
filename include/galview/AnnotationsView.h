@@ -140,6 +140,7 @@ public:
   void draw() const
   {
     static RenderSettings rsettings = renderSettings();
+    rsettings.apply();
     Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
     bindCharAtlasTexture();
     GL_CALL(glBindVertexArray(mVAO));

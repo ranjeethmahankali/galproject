@@ -219,6 +219,15 @@ GAL_FUNC_TEMPLATE(
   }
 }
 
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  toString,
+                  "Converts the input data to string, if such a conversion is supported.",
+                  ((T, src, "The source data")),
+                  ((std::string, result, "String result")))
+{
+  result = std::to_string(src);
+}
+
 template<typename T>
 struct bindAllTypes
 {
@@ -248,6 +257,8 @@ void bind_UtilFunctions()
   GAL_FN_BIND_TEMPLATE(series, int32_t);
   GAL_FN_BIND_TEMPLATE(listSum, float);
   GAL_FN_BIND_TEMPLATE(listSum, int32_t);
+  GAL_FN_BIND_TEMPLATE(toString, float);
+  GAL_FN_BIND_TEMPLATE(toString, int32_t);
 
   typemanager::invoke<bindAllTypes>();
 }
