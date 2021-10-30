@@ -33,8 +33,8 @@ if __name__ == "__main__":
     centerGlyph = pgf.var_int(GLYPHINDICES["transmitter"])
 
     pgv.show("glyph1", pgv.glyphs(cloudGlyphs, pts))
-    # pgv.show("glyph2", pgv.glyphs(centerGlyph, center3))
-    # pgv.show("circle", circ)
-    # pgv.show("points", pts)
-    # pgv.show("center", center3)
-    # pgv.print("Point at index", idxPt)
+    pgv.show("glyph2", pgv.glyphs(centerGlyph, center3))
+    pgv.show("circle", circ)
+    pgv.show("points", pts)
+    pgv.show("center", center3)
+    pgv.print("Point at index", idxPt)

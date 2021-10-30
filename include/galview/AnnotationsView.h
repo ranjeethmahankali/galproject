@@ -133,7 +133,7 @@ public:
   {
     RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("glyph");
+    settings.shaderId   = Context::get().shaderId("text");
     return settings;
   }
 
@@ -208,8 +208,10 @@ public:
 
   const Drawable& operator=(Drawable&& other)
   {
-    mVAO = std::exchange(other.mVAO, 0);
-    mVBO = std::exchange(other.mVBO, 0);
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
     return *this;
   }
   Drawable(Drawable&& other) { *this = std::move(other); }
@@ -226,7 +228,7 @@ public:
   {
     RenderSettings settings;
     settings.pointColor = sPointColor;
-    settings.shaderId   = Context::get().shaderId("text");
+    settings.shaderId   = Context::get().shaderId("glyph");
     return settings;
   }
 
