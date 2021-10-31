@@ -584,10 +584,28 @@ typename TVariable<TVal>::PyOutputType py_varEmpty()
 
 namespace python {
 
-template<typename TFnPtr, typename... TFnPtrs>
-void bindOverloads(const char* fnName, TFnPtr fn, TFnPtrs... rest)
+struct FuncDocString
 {
-  boost::python::def<TFnPtr>(fnName, fn);
+  FuncDocString(const std::string&                                      desc,
+                const std::vector<std::pair<std::string, std::string>>& inputs,
+                const std::vector<std::pair<std::string, std::string>>& outputs);
+
+  const char* c_str() const;
+
+private:
+  std::string mDocString;
+  std::string mDesc;
+  // Names and descriptions of arguments.
+  std::vector<std::pair<std::string, std::string>> mInputs;
+  std::vector<std::pair<std::string, std::string>> mOutputs;
+};
+
+template<typename TFnPtr, typename... TFnPtrs>
+void bindOverloads(const char*                             fnName,
+                   std::pair<TFnPtr, const FuncDocString*> fn,
+                   std::pair<TFnPtrs, const FuncDocString*>... rest)
+{
+  boost::python::def<TFnPtr>(fnName, std::get<0>(fn), std::get<1>(fn)->c_str());
   if constexpr (sizeof...(TFnPtrs) > 0) {
     bindOverloads<TFnPtrs...>(fnName, rest...);
   }
@@ -617,16 +635,16 @@ fs::path getcontextpath();
 // Get the const type from an arg-tuple with description.
 #define _GAL_ARG_CONST_TYPE(type, name, desc) std::add_const_t<GAL_UNBRACED_TYPE(type)>
 #define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple
-// Get the name from an arg-tuple with description.
+// Get the name from an arg-tuple.
 #define _GAL_ARG_NAME(type, name, desc) name
 #define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple
-// Expand types from a list of arg-tuples with description.
+// Expand types from a list of arg-tuples.
 #define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
 // Expand const types from a list of arg-tuples with description.
 #define _GAL_EXPAND_CONST_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_CONST_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_CONST_TYPE_TUPLE(types) _GAL_EXPAND_CONST_TYPE_TUPLE types
-// Get reference type from an arg-tuple with description.
+// Get reference type from an arg-tuple.
 #define GAL_EXPAND_IMPL_ARG(argTuple) \
   typename gal::func::ImplFnArgType<GAL_ARG_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
 // Get the const reference type from an arg-tuple with description.
@@ -656,6 +674,21 @@ fs::path getcontextpath();
   static void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_IMPL_CONST_ARGS inputs, \
                                        GAL_EXPAND_IMPL_ARGS       outputs)
 
+// Gets the documentation info of an argument.
+#define _GAL_ARG_INFO(type, argname, desc) \
+  {                                        \
+#argname, desc                         \
+  }
+#define GAL_ARG_INFO(arg) _GAL_ARG_INFO arg
+// Expand the name and description of arguments
+#define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)
+#define GAL_EXPAND_ARG_INFOS(args) _GAL_EXPAND_ARG_INFOS args
+
+// Documentation info of the function
+#define GAL_FN_INFO_DECL(fnName, desc, inputs, outputs)                   \
+  static const auto pyfnInfo_##fnName = gal::func::python::FuncDocString( \
+    desc, {GAL_EXPAND_ARG_INFOS(inputs)}, {GAL_EXPAND_ARG_INFOS(outputs)});
+
 // Declartion of a gal function.
 #define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                               \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                         \
@@ -670,6 +703,7 @@ fs::path getcontextpath();
       GAL_FN_IMPL_NAME(fnName), std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs)); \
     return fn->pythonOutputRegs();                                                    \
   };                                                                                  \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                             \
   static constexpr gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),       \
                                         GAL_EXPAND_TYPE_TUPLE(outputArgs)>::          \
     PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =        \
@@ -705,6 +739,7 @@ fs::path getcontextpath();
       std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                              \
     return fn->pythonOutputRegs();                                                       \
   };                                                                                     \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                                \
   template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
   static constexpr typename gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
                                                  GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
@@ -714,16 +749,16 @@ fs::path getcontextpath();
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
-#define _GAL_FN_BIND_ONE(fnName) boost::python::def(#fnName, pyfnptr_##fnName)
+#define _GAL_FN_BIND_ONE(fnName) \
+  boost::python::def(#fnName, pyfnptr_##fnName, pyfnInfo_##fnName.c_str())
 #define GAL_FN_BIND(...) MAP_LIST(_GAL_FN_BIND_ONE, __VA_ARGS__)
 
-#define GAL_FN_PTR_VAR(fnName) pyfnptr_##fnName
-
+#define _GAL_FN_OVERLOAD_DATA(fnName) std::make_pair(pyfnptr_##fnName, &pyfnInfo_##fnName)
 #define GAL_FN_BIND_OVERLOADS(fnName, ...) \
-  gal::func::python::bindOverloads(#fnName, MAP_LIST(GAL_FN_PTR_VAR, __VA_ARGS__))
+  gal::func::python::bindOverloads(#fnName, MAP_LIST(_GAL_FN_OVERLOAD_DATA, __VA_ARGS__))
 
 #define GAL_FN_BIND_TEMPLATE(fnName, ...) \
-  boost::python::def(#fnName, pyfnptr_##fnName<__VA_ARGS__>)
+  boost::python::def(#fnName, pyfnptr_##fnName<__VA_ARGS__>, pyfnInfo_##fnName.c_str())
 
 // Forward declaration of the module initializer, which will be defined by boost later.
 // This should be called before running scripts from within C++.
@@ -785,12 +820,19 @@ struct defClass
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Functions to create a varable of the type.
     static const std::string varname("var_" + TypeInfo<T>::name());
-    def(varname.c_str(), py_varWithValue<T>);
-    def(varname.c_str(), py_varEmpty<T>);
+    static const std::string vardocVal =
+      "A variable of type " + TypeInfo<T>::name() + " with the given value.";
+    static const std::string vardocEmpty =
+      "Empty variable of type " + TypeInfo<T>::name();
+    def(varname.c_str(), py_varWithValue<T>, vardocVal.c_str());
+    def(varname.c_str(), py_varEmpty<T>, vardocEmpty.c_str());
     // Read value into python if conversion is available.
-    def("read", read<T>);
+    def("read",
+        read<T>,
+        "Read the data from the variable. This might cause all or some of the upstream "
+        "functions to be evaluated.");
     // Assign values to registers.
-    def("assign", assign<T>);
+    def("assign", assign<T>, "Assign the given value to the variable");
   }
 };
 

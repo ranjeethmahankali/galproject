@@ -56,6 +56,7 @@ void unloadAllFunctions()
 }  // namespace store
 
 namespace python {
+
 fs::path getcontextpath()
 {
   using namespace boost::python;
@@ -82,6 +83,31 @@ fs::path getcontextpath()
   result = filename.stem() / result;
   return result;
 }
+
+FuncDocString::FuncDocString(
+  const std::string&                                      desc,
+  const std::vector<std::pair<std::string, std::string>>& inputs,
+  const std::vector<std::pair<std::string, std::string>>& outputs)
+{
+  mDocString  = desc + "\n";
+  size_t argI = 0;
+  for (const auto& argpair : inputs) {
+    mDocString += argpair.first + ": " + argpair.second;
+  }
+  mDocString +=
+    "\n****"
+    " Return values "
+    "****\n";
+  for (const auto& argpair : outputs) {
+    mDocString += argpair.first + ": " + argpair.second;
+  }
+}
+
+const char* FuncDocString::c_str() const
+{
+  return mDocString.c_str();
+}
+
 }  // namespace python
 
 // Forward declare the binding functions.
