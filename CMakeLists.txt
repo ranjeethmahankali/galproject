@@ -74,8 +74,9 @@ target_link_libraries(galfunc galfuncobjects)
 
 # Python shared lib
 add_library(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
-set_target_properties(pygalfunc PROPERTIES SUFFIX .so)
-set_target_properties(pygalfunc PROPERTIES PREFIX "")
+set_target_properties(pygalfunc PROPERTIES
+  SUFFIX .so
+  PREFIX "")
 target_link_libraries(pygalfunc galfuncobjects)
 # Copy the python setup file
 add_custom_command(TARGET pygalfunc
