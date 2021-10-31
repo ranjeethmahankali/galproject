@@ -584,12 +584,28 @@ typename TVariable<TVal>::PyOutputType py_varEmpty()
 
 namespace python {
 
+/**
+ * @brief Python doc-string of a function.
+ *
+ */
 struct FuncDocString
 {
+  /**
+   * @brief Create a new python doc-string.
+   *
+   * @param desc Description of the function.
+   * @param inputs Names and descriptions of inputs.
+   * @param outputs Names and descriptions of outputs.
+   */
   FuncDocString(const std::string&                                      desc,
                 const std::vector<std::pair<std::string, std::string>>& inputs,
                 const std::vector<std::pair<std::string, std::string>>& outputs);
 
+  /**
+   * @brief Gets the c-string representation of the python doc-string.
+   *
+   * @return char* c-string.
+   */
   const char* c_str() const;
 
 private:
@@ -632,7 +648,7 @@ fs::path getcontextpath();
 // Get the type from an arg-tuple that has description.
 #define _GAL_ARG_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)
 #define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
-// Get the const type from an arg-tuple with description.
+// Get the const type from an arg-tuple.
 #define _GAL_ARG_CONST_TYPE(type, name, desc) std::add_const_t<GAL_UNBRACED_TYPE(type)>
 #define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple
 // Get the name from an arg-tuple.
@@ -641,33 +657,33 @@ fs::path getcontextpath();
 // Expand types from a list of arg-tuples.
 #define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
-// Expand const types from a list of arg-tuples with description.
+// Expand const types from a list of arg-tuples.
 #define _GAL_EXPAND_CONST_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_CONST_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_CONST_TYPE_TUPLE(types) _GAL_EXPAND_CONST_TYPE_TUPLE types
 // Get reference type from an arg-tuple.
 #define GAL_EXPAND_IMPL_ARG(argTuple) \
   typename gal::func::ImplFnArgType<GAL_ARG_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
-// Get the const reference type from an arg-tuple with description.
+// Get the const reference type from an arg-tuple.
 #define GAL_EXPAND_IMPL_CONST_ARG(argTuple)                                           \
   typename gal::func::ImplFnArgType<GAL_ARG_CONST_TYPE(argTuple)>::Type GAL_ARG_NAME( \
     argTuple)
-// Expand to a list of references from arg-tuples with description.
+// Expand to a list of references from arg-tuples.
 #define GAL_EXPAND_IMPL_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_ARG, __VA_ARGS__)
-// Expand to a list of const references from arg-tuples with description.
+// Expand to a list of const references from arg-tuples.
 #define GAL_EXPAND_IMPL_CONST_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARG, __VA_ARGS__)
 // Get the register type for the python function argument.
 #define GAL_PY_REGISTER_TYPE(typeTuple) \
   const gal::func::ArgRegisterT<GAL_ARG_TYPE(typeTuple)>&
-// Get python register argument from an arg-tuple with description.
+// Get python register argument from an arg-tuple.
 #define GAL_PY_REGISTER_ARG(typeTuple) \
   GAL_PY_REGISTER_TYPE(typeTuple) GAL_ARG_NAME(typeTuple)
-// Get python argument register list from arg-tuples with descriptions.
+// Get python argument register list from arg-tuples.
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 // Get python argument type list.
 #define GAL_EXPAND_PY_REGISTER_TYPES(...) MAP_LIST(GAL_PY_REGISTER_TYPE, __VA_ARGS__)
 // Name of a function implementation.
 #define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
-// Get register ids from arg-tuples without descriptions.
+// Get register ids from arg-tuples.
 #define GAL_EXPAND_REG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
 // Actual declaration of a the static implementation of the function.
 #define GAL_FN_IMPL(fnName, inputs, outputs)                              \
