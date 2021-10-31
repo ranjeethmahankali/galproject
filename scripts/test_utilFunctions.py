@@ -2,6 +2,7 @@ import pygalfunc as pgf
 import testUtil as tu
 import math
 import random
+import itertools
 
 
 def unaryFloatOpTest(expFn, pgfn, minval=0., maxval=9.):
@@ -259,5 +260,22 @@ def test_dispatch():
         assert tu.equal(fvals, pgf.read(rfvals))
 
 
+def test_combinations():
+    random.seed(42)
+    valrange = (23, 345)
+    rvals = pgf.var_int()
+    rnumc = pgf.var_int()
+    rcombs = pgf.combinations(rvals, rnumc)
+    for _ in range(5):
+        nItems = random.randint(23, 29)
+        numc = random.randint(3, 5)
+        vals = [random.randint(valrange[0], valrange[1]) for _ in range(nItems)]
+        combs = list(itertools.combinations(vals, numc))
+
+        pgf.assign(rvals, vals)
+        pgf.assign(rnumc, numc)
+        assert tu.equal(combs, pgf.read(rcombs))
+
+
 if __name__ == "__main__":
-    test_dispatch()
+    test_combinations()

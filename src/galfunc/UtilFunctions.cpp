@@ -228,6 +228,24 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   result = std::to_string(src);
 }
 
+GAL_FUNC_TEMPLATE(
+  ((typename, T)),
+  combinations,
+  "Creates all possible combinations of elements from the given list",
+  (((data::ReadView<T, 1>), items, "Items to create the combinations from."),
+   (int32_t, nc, "Number of items in each combination")),
+  (((data::WriteView<T, 2>), combs, "Resulting combinations")))
+{
+  size_t n = items.size();
+  size_t k = size_t(nc);
+  combs.reserve(k * utils::numCombinations(items.size(), size_t(k)));
+  std::vector<T> temp(k);
+  utils::combinations(k, items.begin(), items.end(), temp.begin(), [&]() {
+    auto child = combs.child();
+    std::move(temp.begin(), temp.end(), std::back_inserter(child));
+  });
+}
+
 template<typename T>
 struct bindAllTypes
 {
@@ -238,6 +256,7 @@ struct bindAllTypes
     GAL_FN_BIND_TEMPLATE(subList, T);
     GAL_FN_BIND_TEMPLATE(listLength, T);
     GAL_FN_BIND_TEMPLATE(dispatch, T);
+    GAL_FN_BIND_TEMPLATE(combinations, T);
   }
 };
 
