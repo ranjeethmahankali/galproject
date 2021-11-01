@@ -27,10 +27,22 @@ Now setup Vcpkg
 git clone https://github.com/microsoft/vcpkg.git
 sh vcpkg/booststrap-vcpkg.sh
 ```
-Set the environment variable VCPKG_PATH to the path where vcpkg is cloned. Then build:
+Set the environment variable VCPKG_PATH to the path where vcpkg is cloned.
+
+Building:
 
 ```
 bash build.sh Release
+```
+
+Runnning unit tests:
+```
+Release/galtest
+```
+
+Running script tests:
+```
+pytest scripts/
 ```
 
 
