@@ -117,6 +117,8 @@ void bind_CircleFunctions();
 void bind_SphereFunctions();
 void bind_LineFunctions();
 void bind_MeshFunctions();
+void bind_MathFunctions();
+void bind_ListFunctions();
 
 }  // namespace func
 }  // namespace gal
@@ -135,4 +137,6 @@ BOOST_PYTHON_MODULE(pygalfunc)
   bind_SphereFunctions();
   bind_LineFunctions();
   bind_MeshFunctions();
+  bind_MathFunctions();
+  bind_ListFunctions();
 };

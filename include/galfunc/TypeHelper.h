@@ -11,11 +11,9 @@ namespace func {
  * @tparam T The first datatype.
  * @tparam Ts The remaining datatypes.
  */
-template<typename T, typename... Ts>
+template<typename... Ts>
 struct TypeManager
 {
-  static constexpr size_t NumTypes = 1 + sizeof...(Ts);
-
   /**
    * @brief Calls the static "invoke" function of the invoker type on
    * all the types, one after another recursively.
@@ -25,10 +23,7 @@ struct TypeManager
   template<template<typename> typename InvokerType>
   static void invoke()
   {
-    InvokerType<T>::invoke();
-    if constexpr (sizeof...(Ts) > 0) {
-      TypeManager<Ts...>::template invoke<InvokerType>();
-    }
+    return (InvokerType<Ts>::invoke(), ...);
   }
 };
 
@@ -53,5 +48,6 @@ using typemanager = TypeManager<uint8_t,
                                 gal::TextAnnotations,
                                 gal::Glyph,
                                 gal::GlyphAnnotations>;
+
 }  // namespace func
 }  // namespace gal

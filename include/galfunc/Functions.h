@@ -1,21 +1,13 @@
 #pragma once
 
-#include <string.h>
 #include <functional>
-#include <iostream>
-#include <memory>
 #include <stdexcept>
+#include <string>
 #include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <utility>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
-#include <boost/python/scope.hpp>
-#include <boost/python/tuple.hpp>
 
-#include <galcore/Util.h>
 #include <galfunc/Converter.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
