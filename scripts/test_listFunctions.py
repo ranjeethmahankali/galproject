@@ -169,17 +169,28 @@ def test_sort():
     rvals = pgf.var_int()
     rkeys = pgf.var_int()
     rsorted = pgf.sort(rvals, rkeys)
+    lvals = []
+    lkeys = []
     for _ in range(10):
         nItems = random.randint(75, 155)
         vals = list(range(nItems))
         keys = list(range(nItems))
         random.shuffle(vals)
         random.shuffle(keys)
+        lvals.append(vals)
+        lkeys.append(keys)
         expected = [x for x, _ in sorted(zip(vals, keys), key=lambda pair: pair[1])]
         
         pgf.assign(rvals, vals)
         pgf.assign(rkeys, keys)
         assert tu.equal(expected, pgf.read(rsorted))
+
+    # Test the same with tree combinatorics.
+    expected = [[x for x, _ in sorted(zip(v, k), key=lambda pair: pair[1])]
+                for v, k in zip(lvals, lkeys)]
+    pgf.assign(rvals, lvals)
+    pgf.assign(rkeys, lkeys)
+    assert tu.equal(expected, pgf.read(rsorted))
 
 
 if __name__=="__main__":
