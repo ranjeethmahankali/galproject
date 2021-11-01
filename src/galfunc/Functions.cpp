@@ -92,14 +92,14 @@ FuncDocString::FuncDocString(
   mDocString  = desc + "\n";
   size_t argI = 0;
   for (const auto& argpair : inputs) {
-    mDocString += argpair.first + ": " + argpair.second;
+    mDocString += argpair.first + ": " + argpair.second + "\n";
   }
   mDocString +=
     "\n****"
     " Return values "
     "****\n";
   for (const auto& argpair : outputs) {
-    mDocString += argpair.first + ": " + argpair.second;
+    mDocString += argpair.first + ": " + argpair.second + "\n";
   }
 }
 
