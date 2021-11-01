@@ -1,20 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-#include <algorithm>
 #include <execution>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <numeric>
 #include <stdexcept>
-#include <type_traits>
-#include <utility>
 #include <vector>
-
-#include <tbb/tbb.h>
 
 #include <galcore/Traits.h>
 #include <galcore/Types.h>

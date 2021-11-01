@@ -602,10 +602,6 @@ struct FuncDocString
 
 private:
   std::string mDocString;
-  std::string mDesc;
-  // Names and descriptions of arguments.
-  std::vector<std::pair<std::string, std::string>> mInputs;
-  std::vector<std::pair<std::string, std::string>> mOutputs;
 };
 
 template<typename TFnPtr, typename... TFnPtrs>

@@ -89,8 +89,7 @@ FuncDocString::FuncDocString(
   const std::vector<std::pair<std::string, std::string>>& inputs,
   const std::vector<std::pair<std::string, std::string>>& outputs)
 {
-  mDocString  = desc + "\n";
-  size_t argI = 0;
+  mDocString = desc + "\n";
   for (const auto& argpair : inputs) {
     mDocString += argpair.first + ": " + argpair.second + "\n";
   }
