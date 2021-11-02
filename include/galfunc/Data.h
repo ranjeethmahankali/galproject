@@ -94,6 +94,7 @@ private:
 
   void pushDepth(DepthT d)
   {
+    mIsCacheValid = false;
     ensureDepth(d);
     if (mQueuedDepths.empty()) {
       mDepths.push_back(d);

@@ -187,6 +187,7 @@ struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : BaseT(
+          "show",
           [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
             if constexpr (view::Drawable<T>::value) {
               id = view::Views::add<T>(objs.values(), visibilityFlag, id);
@@ -246,6 +247,7 @@ struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
       : mLabel(label)
       , view::Text("")
       , BaseT(
+          "print",
           [this](const func::data::Tree<T>& obj, uint8_t& success) {
             mStream.clear();
             mStream.str("");
