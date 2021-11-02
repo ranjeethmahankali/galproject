@@ -911,8 +911,8 @@ public:
         return false;
       }
       size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
-      mIndex        = advIdx;
       if (advIdx < mTree.size()) {
+        mIndex = advIdx;
         return true;
       }
       return false;
