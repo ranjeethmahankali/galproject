@@ -69,6 +69,21 @@ struct MeshVertex
 template<typename V>
 class TVertexBuffer : public std::vector<V>
 {
+  uint32_t mVAO = 0;
+  uint32_t mVBO = 0;
+
+  void free()
+  {
+    if (mVAO) {
+      GL_CALL(glDeleteVertexArrays(1, &mVAO));
+      mVAO = 0;
+    }
+    if (mVBO) {
+      GL_CALL(glDeleteBuffers(1, &mVBO));
+      mVBO = 0;
+    }
+  }
+
 public:
   using VertexType = V;
 
@@ -76,18 +91,41 @@ public:
       : std::vector<V>(nverts)
   {}
 
+  ~TVertexBuffer() { free(); }
+
   using std::vector<V>::size;
   using std::vector<V>::data;
 
+  // Disallow copying.
+  TVertexBuffer(const TVertexBuffer&) = delete;
+  const TVertexBuffer& operator=(const TVertexBuffer&) = delete;
+
+  const TVertexBuffer& operator=(TVertexBuffer&& other)
+  {
+    if (this != &other) {
+      free();
+      std::vector<V>::operator=(std::move(other));
+      mVAO                    = std::exchange(other.mVAO, 0);
+      mVBO                    = std::exchange(other.mVBO, 0);
+    }
+    return *this;
+  }
+  TVertexBuffer(TVertexBuffer&& other) { *this = std::move(other); }
+
   size_t numbytes() const { return sizeof(V) * size(); }
 
-  void finalize(uint32_t& vao, uint32_t& vbo) const
-  {
-    GL_CALL(glGenVertexArrays(1, &vao));
-    GL_CALL(glGenBuffers(1, &vbo));
+  void bindVao() const { GL_CALL(glBindVertexArray(mVAO)); }
 
-    GL_CALL(glBindVertexArray(vao));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+  void bindVbo() const { GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO)); }
+
+  void alloc()
+  {
+    free();  // Free if already bound.
+    GL_CALL(glGenVertexArrays(1, &mVAO));
+    GL_CALL(glGenBuffers(1, &mVBO));
+
+    GL_CALL(glBindVertexArray(mVAO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, numbytes(), data(), GL_STATIC_DRAW));
 
     V::initAttributes();
@@ -103,11 +141,25 @@ using MeshVertexBuffer = TVertexBuffer<MeshVertex>;
 
 class IndexBuffer : public std::vector<uint32_t>
 {
+  uint32_t mIBO = 0;
+
+  void free();
+
 public:
   IndexBuffer(size_t nIndices);
+  IndexBuffer(IndexBuffer&& other);
+  ~IndexBuffer();
 
-  size_t numbytes() const;
-  void   finalize(uint32_t& ibo) const;
+  // Disallow copying.
+  IndexBuffer(const IndexBuffer&) = delete;
+  const IndexBuffer& operator=(const IndexBuffer&) = delete;
+
+  const IndexBuffer& operator=(IndexBuffer&&);
+
+  uint32_t ibo() const;
+  size_t   numbytes() const;
+  void     alloc();
+  void     bind() const;
 };
 
 };  // namespace glutil

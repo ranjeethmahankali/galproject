@@ -16,29 +16,26 @@ struct Drawable<Mesh> : public std::true_type
   static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, 1.f};
 
 private:
-  Box3 mBounds;
-  uint mVAO   = 0;  // vertex array object.
-  uint mVBO   = 0;  // vertex buffer object.
-  uint mIBO   = 0;  // index buffer object.a
-  uint mVSize = 0;  // vertex buffer size.
-  uint mISize = 0;  // index buffer size.
+  glutil::MeshVertexBuffer mVBuf;
+  glutil::IndexBuffer      mIBuf;
+  Box3                     mBounds;
 
 public:
   Drawable<Mesh>(const std::vector<Mesh>& meshes)
+      : mVBuf(std::accumulate(
+          meshes.begin(),
+          meshes.end(),
+          size_t(0),
+          [](size_t total, const Mesh& mesh) { return total + mesh.numVertices(); }))
+      , mIBuf(std::accumulate(
+          meshes.begin(),
+          meshes.end(),
+          size_t(0),
+          [](size_t total, const Mesh& mesh) { return total + 3 * mesh.numFaces(); }))
   {
-    // Position and Normal for each vertex.
-    glutil::MeshVertexBuffer vBuf(std::accumulate(
-      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
-        return total + mesh.numVertices();
-      }));
-    auto                     vbegin = vBuf.begin();
-    glutil::IndexBuffer      iBuf(std::accumulate(
-      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
-        return total + 3 * mesh.numFaces();
-      }));
-    uint32_t*                dsti = iBuf.data();
-
-    uint32_t off = 0;
+    auto      vbegin = mVBuf.begin();
+    uint32_t* dsti   = mIBuf.data();
+    uint32_t  off    = 0;
     for (const auto& mesh : meshes) {
       size_t      nVerts  = mesh.numVertices();
       const auto& vColors = mesh.vertexColors();
@@ -59,41 +56,9 @@ public:
 
       mBounds.inflate(mesh.bounds());
     }
-    mVSize = (uint32_t)vBuf.size();
-    mISize = (uint32_t)iBuf.size();
-
-    vBuf.finalize(mVAO, mVBO);
-    iBuf.finalize(mIBO);
+    mVBuf.alloc();
+    mIBuf.alloc();
   }
-
-  ~Drawable<Mesh>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-    if (mIBO) {
-      GL_CALL(glDeleteBuffers(1, &mIBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mIBO    = std::exchange(other.mIBO, 0);
-    mVSize  = other.mVSize;
-    mISize  = other.mISize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
-
   Box3 bounds() const { return mBounds; }
 
   uint64_t drawOrderIndex() const
@@ -117,18 +82,16 @@ public:
   {
     static RenderSettings rsettings = renderSettings();
     rsettings.apply();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
-    GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+    mVBuf.bindVao();
+    mIBuf.bind();
+    GL_CALL(glDrawElements(GL_TRIANGLES, mIBuf.size(), GL_UNSIGNED_INT, nullptr));
 
     if (Context::get().wireframeMode()) {
       rsettings.edgeColor   = {0.f, 0.f, 0.f, 1.f};
       rsettings.faceColor   = {0.f, 0.f, 0.f, 1.f};
       rsettings.polygonMode = std::make_pair(GL_FRONT_AND_BACK, GL_LINE);
       rsettings.apply();
-      GL_CALL(glBindVertexArray(mVAO));
-      GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
-      GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
+      GL_CALL(glDrawElements(GL_TRIANGLES, mIBuf.size(), GL_UNSIGNED_INT, nullptr));
     }
   }
 };

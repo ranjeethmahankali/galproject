@@ -3680,22 +3680,19 @@ struct Drawable<Sphere> : public std::true_type
   static constexpr glm::vec4 sEdgeColor = {0.f, 0.f, 0.f, .5f};
 
 private:
-  Box3 mBounds;
-  uint mVAO   = 0;  // vertex array object.
-  uint mVBO   = 0;  // vertex buffer object.
-  uint mIBO   = 0;  // index buffer object.a
-  uint mVSize = 0;  // vertex buffer size.
-  uint mISize = 0;  // index buffer size.
+  glutil::VertexBuffer mVBuf;
+  glutil::IndexBuffer  mIBuf;
+  Box3                 mBounds;
 
 public:
   Drawable<Sphere>(const std::vector<Sphere>& spheres)
+      : mVBuf(spheres.size() * sVertices.size())
+      , mIBuf(spheres.size() * sIndices.size())
   {
     // Position and Normal for each vertex.
-    glutil::VertexBuffer vBuf(spheres.size() * sVertices.size());
-    glutil::IndexBuffer  iBuf(spheres.size() * sIndices.size());
-    auto                 vbegin = vBuf.begin();
-    auto                 ibegin = iBuf.begin();
-    uint32_t             off    = 0;
+    auto     vbegin = mVBuf.begin();
+    auto     ibegin = mIBuf.begin();
+    uint32_t off    = 0;
     for (const auto& sphere : spheres) {
       for (const auto& v : sVertices) {
         *(vbegin++) = {(v * sphere.radius) + sphere.center /*position*/, v /*normal*/};
@@ -3707,40 +3704,9 @@ public:
       mBounds.inflate(sphere.bounds());
     }
 
-    mISize = (uint32_t)iBuf.size();
-    mVSize = (uint32_t)vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
-    iBuf.finalize(mIBO);
+    mVBuf.alloc();
+    mIBuf.alloc();
   }
-
-  ~Drawable<Sphere>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-    if (mIBO) {
-      GL_CALL(glDeleteBuffers(1, &mIBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mIBO    = std::exchange(other.mIBO, 0);
-    mVSize  = other.mVSize;
-    mISize  = other.mISize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
-
   uint64_t drawOrderIndex() const
   {
     static const uint64_t sIdx = (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |
@@ -3768,11 +3734,9 @@ public:
     GL_CALL(glEnable(GL_CULL_FACE));
     GL_CALL(glCullFace(GL_BACK));
     GL_CALL(glFrontFace(GL_CW));
-
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
-    GL_CALL(glDrawElements(GL_TRIANGLES, mISize, GL_UNSIGNED_INT, nullptr));
-
+    mVBuf.bindVao();
+    mIBuf.bind();
+    GL_CALL(glDrawElements(GL_TRIANGLES, mIBuf.size(), GL_UNSIGNED_INT, nullptr));
     GL_CALL(glDisable(GL_CULL_FACE));
   }
 };

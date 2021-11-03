@@ -45,27 +45,27 @@ struct Drawable<Annotations<std::string>> : public std::true_type
   using AnnotationsT = SafeInstanceType<Annotations<std::string>>;
 
 private:
-  Box3     mBounds;
-  uint32_t mVAO;
-  uint32_t mVBO;
-  uint32_t mVSize;
+  AnnotationVertBuffer mVBuf;
+  Box3                 mBounds;
 
 public:
   Drawable(const std::vector<AnnotationsT>& tags)
+      : mVBuf(std::accumulate(
+          tags.begin(),
+          tags.end(),
+          size_t(0),
+          [](size_t total0, const AnnotationsT& t) {
+            return total0 +
+                   6 * std::accumulate(
+                         t.begin(),
+                         t.end(),
+                         size_t(0),
+                         [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
+                           return total + tag.second.size();
+                         });
+          }))
   {
-    AnnotationVertBuffer vBuf(std::accumulate(
-      tags.begin(), tags.end(), size_t(0), [](size_t total0, const AnnotationsT& t) {
-        return total0 +
-               6 * std::accumulate(
-                     t.begin(),
-                     t.end(),
-                     size_t(0),
-                     [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
-                       return total + tag.second.size();
-                     });
-      }));
-
-    auto vbegin = vBuf.begin();
+    auto vbegin = mVBuf.begin();
     for (const auto& ann : tags) {
       for (const auto& tag : ann) {
         float x = 0.f;
@@ -93,33 +93,8 @@ public:
       }
     }
 
-    mVSize = vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
+    mVBuf.alloc();
   }
-
-  ~Drawable<Annotations<std::string>>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mVSize  = other.mVSize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
-
   Box3 bounds() const { return mBounds; }
 
   uint64_t drawOrderIndex() const
@@ -142,9 +117,9 @@ public:
     rsettings.apply();
     Context::get().setUniform("textColor", glm::vec3 {1.f, 1.f, 1.f});
     bindCharAtlasTexture();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVBuf.size()));
     unbindTexture();
   }
 };
@@ -157,20 +132,18 @@ class Drawable<Annotations<Glyph>> : public std::true_type
   using AnnotationsT = SafeInstanceType<Annotations<Glyph>>;
 
 private:
-  Box3     mBounds;
-  uint32_t mVAO;
-  uint32_t mVBO;
-  uint32_t mVSize;
+  AnnotationVertBuffer mVBuf;
+  Box3                 mBounds;
 
 public:
   Drawable(const std::vector<AnnotationsT>& tags)
+      : mVBuf(std::accumulate(
+          tags.begin(),
+          tags.end(),
+          size_t(0),
+          [](size_t total, const AnnotationsT& t) { return total + 6 * t.size(); }))
   {
-    AnnotationVertBuffer vBuf(std::accumulate(
-      tags.begin(), tags.end(), size_t(0), [](size_t total, const AnnotationsT& t) {
-        return total + 6 * t.size();
-      }));
-
-    auto vbegin = vBuf.begin();
+    auto vbegin = mVBuf.begin();
     for (const auto& ann : tags) {
       for (const auto& tag : ann) {
         float x = 0.f;
@@ -189,32 +162,8 @@ public:
       }
     }
 
-    mVSize = vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
+    mVBuf.alloc();
   }
-
-  ~Drawable<Annotations<Glyph>>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mVSize  = other.mVSize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
@@ -237,9 +186,9 @@ public:
     static RenderSettings rsettings = renderSettings();
     rsettings.apply();
     bindGlyphAtlasTexture();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVBuf.size()));
     unbindTexture();
   }
 };

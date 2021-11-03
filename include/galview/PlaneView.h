@@ -12,17 +12,18 @@ struct Drawable<Plane> : std::true_type
   static constexpr glm::vec4 sFaceColor = {0.7, 0.0, 0.0, 0.2};
 
 private:
-  Box3 mBounds;
-  uint mVAO   = 0;  // vertex array object.
-  uint mVBO   = 0;  // vertex buffer object.
-  uint mVSize = 0;  // vertex buffer size.
+  glutil::VertexBuffer mVBuf;
+  Box3                 mBounds;
+  uint                 mVAO   = 0;  // vertex array object.
+  uint                 mVBO   = 0;  // vertex buffer object.
+  uint                 mVSize = 0;  // vertex buffer size.
 
 public:
   Drawable<Plane>(const std::vector<Plane>& planes)
+      : mVBuf(6 * planes.size())
   {
     static constexpr float sHalfSize = 2.0f;
-    glutil::VertexBuffer   vBuf(6 * planes.size());
-    auto                   vbegin = vBuf.begin();
+    auto                   vbegin    = mVBuf.begin();
 
     for (const auto& plane : planes) {
       glm::vec3             x = plane.xaxis(), y = plane.yaxis();
@@ -40,35 +41,11 @@ public:
       *(vbegin++) = {plane.origin() - (x * sHalfSize) + (y * sHalfSize), plane.normal()};
     }
 
-    for (const auto& v : vBuf) {
+    for (const auto& v : mVBuf) {
       mBounds.inflate(v.position);
     }
 
-    mVSize = vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mVSize  = other.mVSize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
-
-  ~Drawable<Plane>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
+    mVBuf.alloc();
   }
 
   uint64_t drawOrderIndex() const
@@ -93,9 +70,9 @@ public:
   {
     static auto rsettings = renderSettings();
     rsettings.apply();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVSize));
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, mVBuf.size()));
   }
 };
 

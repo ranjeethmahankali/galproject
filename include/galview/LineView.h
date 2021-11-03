@@ -12,49 +12,23 @@ struct Drawable<Line2d> : public std::true_type
   static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
 
 private:
-  Box3     mBounds;
-  uint32_t mVAO   = 0;
-  uint32_t mVBO   = 0;
-  uint32_t mVSize = 0;
+  glutil::VertexBuffer mVBuf;
+  Box3                 mBounds;
 
 public:
   Drawable<Line2d>(const std::vector<Line2d>& lines)
+      : mVBuf(2 * lines.size())
   {
     static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
-    glutil::VertexBuffer       vBuf(2 * lines.size());
 
-    auto vbegin = vBuf.begin();
+    auto vbegin = mVBuf.begin();
     for (const auto& line : lines) {
       *(vbegin++) = {glm::vec3(line.mStart, 0.f), sZero};
       *(vbegin++) = {glm::vec3(line.mEnd, 0.f), sZero};
       mBounds.inflate(line.bounds());
     }
-    mVSize = vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
+    mVBuf.alloc();
   }
-
-  ~Drawable<Line2d>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mVSize  = other.mVSize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
@@ -80,9 +54,9 @@ public:
   {
     static auto rsettings = renderSettings();
     rsettings.apply();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_LINES, 0, mVSize));
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_LINES, 0, mVBuf.size()));
   }
 };
 
@@ -92,44 +66,23 @@ struct Drawable<Line3d> : public std::true_type
   static constexpr glm::vec4 sLineColor = {1.f, 1.f, 1.f, 1.f};
 
 private:
-  Box3     mBounds;
-  uint32_t mVAO   = 0;
-  uint32_t mVBO   = 0;
-  uint32_t mVSize = 0;
+  glutil::VertexBuffer mVBuf;
+  Box3                 mBounds;
 
 public:
   Drawable<Line3d>(const std::vector<Line3d>& lines)
+      : mVBuf(2 * lines.size())
   {
     static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
-    glutil::VertexBuffer       vBuf(2 * lines.size());
-    auto                       vbegin = vBuf.begin();
+
+    auto vbegin = mVBuf.begin();
     for (const auto& line : lines) {
       *(vbegin++) = {line.mStart, sZero};
       *(vbegin++) = {line.mEnd, sZero};
       mBounds.inflate(line.bounds());
     }
-    mVSize = vBuf.size();
-    vBuf.finalize(mVAO, mVBO);
+    mVBuf.alloc();
   }
-
-  ~Drawable<Line3d>()
-  {
-    GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    GL_CALL(glDeleteBuffers(1, &mVBO));
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mVSize  = other.mVSize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
 
   uint64_t drawOrderIndex() const
   {
@@ -153,9 +106,9 @@ public:
   {
     static auto rsettings = renderSettings();
     rsettings.apply();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
-    GL_CALL(glDrawArrays(GL_LINES, 0, mVSize));
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_LINES, 0, mVBuf.size()));
   }
 };
 

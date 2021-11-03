@@ -60,20 +60,59 @@ void MeshVertex::initAttributes()
   GL_CALL(glEnableVertexAttribArray(2));
 }
 
+void IndexBuffer::free()
+{
+  if (mIBO) {
+    GL_CALL(glDeleteBuffers(1, &mIBO));
+    mIBO = 0;
+  }
+}
+
 IndexBuffer::IndexBuffer(size_t nIndices)
     : std::vector<uint32_t>(nIndices) {};
+
+IndexBuffer::IndexBuffer(IndexBuffer&& other)
+{
+  *this = std::move(other);
+}
+
+IndexBuffer::~IndexBuffer()
+{
+  free();
+}
+
+const IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other)
+{
+  if (this != &other) {
+    free();
+    std::vector<uint32_t>::operator=(std::move(other));
+    mIBO                           = std::exchange(other.mIBO, 0);
+  }
+  return *this;
+}
+
+uint32_t IndexBuffer::ibo() const
+{
+  return mIBO;
+}
 
 size_t IndexBuffer::numbytes() const
 {
   return sizeof(uint32_t) * size();
 }
 
-void IndexBuffer::finalize(uint32_t& ibo) const
+void IndexBuffer::alloc()
 {
-  GL_CALL(glGenBuffers(1, &ibo));
-  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+  free();
+  GL_CALL(glGenBuffers(1, &mIBO));
+  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
   GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, numbytes(), data(), GL_STATIC_DRAW));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}
+
+void IndexBuffer::bind() const
+{
+  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
 }
 
 }  // namespace glutil
