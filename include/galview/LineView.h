@@ -118,6 +118,19 @@ public:
     GL_CALL(glDeleteBuffers(1, &mVBO));
   }
 
+  Drawable(const Drawable&) = delete;
+  const Drawable& operator=(const Drawable&) = delete;
+
+  const Drawable& operator=(Drawable&& other)
+  {
+    mBounds = other.mBounds;
+    mVAO    = std::exchange(other.mVAO, 0);
+    mVBO    = std::exchange(other.mVBO, 0);
+    mVSize  = other.mVSize;
+    return *this;
+  }
+  Drawable(Drawable&& other) { *this = std::move(other); }
+
   uint64_t drawOrderIndex() const
   {
     static const uint64_t sIdx = (uint64_t((1.f - sLineColor.a) * 255.f) << 8) |
