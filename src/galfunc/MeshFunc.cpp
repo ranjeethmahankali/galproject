@@ -127,6 +127,16 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(createRectangularMesh(plane, bounds, edgeLength));
 }
 
+GAL_FUNC(meshWithVertexColors,
+         "Creates a new mesh by with the given vertex colors",
+         ((gal::Mesh, mesh, "Input mesh"),
+          ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
+         ((gal::Mesh, outmesh, "Colored mesh with vertex colors.")))
+{
+  outmesh = mesh;
+  outmesh.setVertexColors(colors.begin(), colors.end());
+}
+
 void bind_MeshFunc()
 {
   GAL_FN_BIND(centroid,
@@ -140,7 +150,8 @@ void bind_MeshFunc()
               clipMesh,
               meshSphereQuery,
               closestPoints,
-              rectangleMesh);
+              rectangleMesh,
+              meshWithVertexColors);
 }
 
 }  // namespace func
