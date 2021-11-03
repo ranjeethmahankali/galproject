@@ -53,6 +53,7 @@ using ViewManager = TViewManager<TextAnnotations,
                                  Line3d,
                                  Mesh,
                                  glm::vec3,
+                                 glm::vec2,
                                  Plane,
                                  PointCloud,
                                  Sphere>;

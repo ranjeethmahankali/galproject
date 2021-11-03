@@ -13,7 +13,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <galcore/Serialization.h>
 #include <galcore/Traits.h>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
@@ -26,6 +25,8 @@ static constexpr glm::vec2 vec2_zero  = {0.0f, 0.0f};
 static constexpr glm::vec2 vec2_xunit = {1.0f, 0.0f};
 static constexpr glm::vec2 vec2_yunit = {0.0f, 1.0f};
 static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
+
+namespace fs = std::filesystem;
 
 namespace std {
 std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v);

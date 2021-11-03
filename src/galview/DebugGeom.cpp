@@ -1,17 +1,20 @@
+#include <atomic>
+#include <chrono>
+#include <fstream>
+#include <mutex>
+
+#include <efsw/efsw.hpp>
+
 #include <galcore/Annotations.h>
 #include <galcore/DebugProfile.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Serialization.h>
+#include <galcore/Traits.h>
 #include <galcore/Types.h>
 #include <galview/Context.h>
 #include <galview/DebugGeom.h>
 #include <galview/Views.h>
 #include <galview/Widget.h>
-#include <atomic>
-#include <chrono>
-#include <efsw/efsw.hpp>
-#include <fstream>
-#include <mutex>
 
 namespace gal {
 namespace debug {
@@ -161,7 +164,8 @@ struct WatchManager
   }
 };
 
-using manager = WatchManager<glm::vec2,
+using manager = WatchManager<glm::vec3,
+                             glm::vec2,
                              Circle2d,
                              Box3,
                              Mesh,
