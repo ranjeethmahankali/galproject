@@ -1122,37 +1122,7 @@ struct Combinations
                 "Expecting a tuple of datatrees");
 
 private:
-  template<size_t N = 0>
-  static inline void getDepthData(const TreeTupleT&          trees,
-                                  std::array<DepthT, NArgs>& viewDepths,
-                                  std::array<DepthT, NArgs>& offsets)
-  {
-    if constexpr (N < NArgs) {
-      using TArg                      = std::tuple_element_t<N, std::tuple<TArgs...>>;
-      static constexpr bool ArgIsTree = IsInstance<Tree, TArg>::value;
-      static constexpr bool ArgIsRead = IsReadView<std::remove_reference_t<TArg>>::value;
-      static constexpr bool ArgIsWrite =
-        IsWriteView<std::remove_reference_t<TArg>>::value;
-
-      auto treeDepth = std::get<N>(trees).maxDepth();
-      if constexpr (ArgIsTree) {
-        // The function is requesting the whole tree at once, so the view depth must be
-        // the same as the depth of the tree. Hence the offset is 0.
-        viewDepths[N] = treeDepth;
-        offsets[N]    = 0;
-      }
-      else {
-        static constexpr DepthT ArgDepth =
-          (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
-        viewDepths[N] = ArgDepth;
-        // Prevent unsigned integer underflow.
-        offsets[N] = treeDepth < ArgDepth ? 0 : treeDepth - ArgDepth;
-      }
-    }
-    if constexpr (N + 1 < NArgs) {
-      getDepthData<N + 1>(trees, viewDepths, offsets);
-    }
-  }
+  static constexpr bool hasTreeInput() { return (IsInstance<Tree, TArgs>::value || ...); }
 
   using HelperT   = CombiViewTuple<NInputs, TreeTupleT>;
   using CVTupType = typename HelperT::Type;
@@ -1161,6 +1131,48 @@ private:
   std::array<DepthT, NArgs> mViewDepths;
   std::vector<CVTupType>    mViews;
   DepthT                    mMaxOffset = 0;
+
+  /**
+   * @brief Initializes the depth data needed for enumerating all combinations.
+   *
+   * @tparam N The index of the argument.
+   * @param maxOffset Current known max offset among all input trees.
+   * @return DepthT Gets the maximum offset.
+   */
+  template<size_t N = 0>
+  inline DepthT initDepthData(DepthT maxOffset = 0)
+  {
+    if constexpr (N < NArgs) {
+      using TArg                      = std::tuple_element_t<N, std::tuple<TArgs...>>;
+      static constexpr bool ArgIsTree = IsInstance<Tree, TArg>::value;
+      static constexpr bool ArgIsRead = IsReadView<std::remove_reference_t<TArg>>::value;
+      static constexpr bool ArgIsWrite =
+        IsWriteView<std::remove_reference_t<TArg>>::value;
+
+      auto treeDepth = std::get<N>(mTrees).maxDepth();
+      if constexpr (ArgIsTree) {
+        // The function is requesting the whole tree at once, so the view depth must be
+        // the same as the depth of the tree. Hence the offset is 0.
+        mViewDepths[N] = treeDepth;
+        // Max offset will remain unchanged.
+      }
+      else {
+        static constexpr DepthT ArgDepth =
+          (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
+        mViewDepths[N] = ArgDepth;
+        // Prevent unsigned integer underflow.
+        maxOffset =
+          std::max(maxOffset, DepthT(treeDepth < ArgDepth ? 0 : treeDepth - ArgDepth));
+      }
+    }
+
+    if constexpr (N + 1 < NArgs) {
+      return initDepthData<N + 1>(maxOffset);
+    }
+    else {  // Last arg.
+      return maxOffset;
+    }
+  }
 
 public:
   /**
@@ -1172,7 +1184,14 @@ public:
    */
   Combinations(const TreeTupleT& trees)
       : mTrees(trees)
-  {}
+  {
+    if constexpr (!hasTreeInput()) {
+      // If none of the inputs are trees, the depth data only needs to be computed once in
+      // this constructor.
+      mMaxOffset = initDepthData();
+      mViews.reserve(size_t(mMaxOffset) + 1);
+    }
+  }
 
   /**
    * @brief Initializes a new set of combinations for a new run of the function.
@@ -1180,10 +1199,12 @@ public:
    */
   void init()
   {
-    std::array<DepthT, NArgs> offsets;
-    getDepthData(mTrees, mViewDepths, offsets);
-    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
-    mViews.reserve(size_t(mMaxOffset) + 1);
+    if constexpr (hasTreeInput()) {
+      // Trees can change at runtime, so we need to recompute the depth data every time
+      // depth data is initialized.
+      mMaxOffset = initDepthData();
+      mViews.reserve(size_t(mMaxOffset) + 1);
+    }
     HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews);
   }
 

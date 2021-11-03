@@ -139,6 +139,7 @@ void bind_LineFunctions();
 void bind_MeshFunctions();
 void bind_MathFunctions();
 void bind_ListFunctions();
+void bind_TreeFunctions();
 
 }  // namespace func
 }  // namespace gal
@@ -159,4 +160,5 @@ BOOST_PYTHON_MODULE(pygalfunc)
   bind_MeshFunctions();
   bind_MathFunctions();
   bind_ListFunctions();
+  bind_TreeFunctions();
 };
