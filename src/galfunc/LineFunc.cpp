@@ -59,7 +59,7 @@ GAL_FUNC(
   }
 }
 
-void bind_LineFunctions()
+void bind_LineFunc()
 {
   GAL_FN_BIND(line2d, line3d);
   GAL_FN_BIND_OVERLOADS(pointsOnLine, samplePointsOnLine2d, samplePointsOnLine3d);

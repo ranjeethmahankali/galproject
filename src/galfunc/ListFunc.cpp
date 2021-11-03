@@ -1,6 +1,5 @@
-#include <galcore/Util.h>
 #include <galfunc/Functions.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 
 namespace gal {
 namespace func {
@@ -107,42 +106,7 @@ GAL_FUNC_TEMPLATE(
   }
 }
 
-GAL_FUNC_TEMPLATE(
-  ((typename, T)),
-  combinations,
-  "Creates all possible combinations of elements from the given list",
-  (((data::ReadView<T, 1>), items, "Items to create the combinations from."),
-   (int32_t, nc, "Number of items in each combination")),
-  (((data::WriteView<T, 2>), combs, "Resulting combinations")))
-{
-  size_t n = items.size();
-  size_t k = size_t(nc);
-  combs.reserve(k * utils::numCombinations(items.size(), size_t(k)));
-  std::vector<T> temp(k);
-  utils::combinations(k, items.begin(), items.end(), temp.begin(), [&]() {
-    auto child = combs.child();
-    std::move(temp.begin(), temp.end(), std::back_inserter(child));
-  });
-}
-
-GAL_FUNC_TEMPLATE(((typename, TVal), (typename, TKey)),
-                  sort,
-                  "Sorts a list based on given keys.",
-                  (((data::ReadView<TVal, 1>), list, "List to be sorted"),
-                   ((data::ReadView<TKey, 1>), keys, "Keys to be used for sorting")),
-                  (((data::WriteView<TVal, 1>), sorted, "Sorted values")))
-{
-  std::vector<size_t> indices(list.size());
-  std::iota(indices.begin(), indices.end(), size_t(0));
-  std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
-    return keys[a] < keys[b];
-  });
-  sorted.reserve(list.size());
-  std::transform(
-    indices.begin(), indices.end(), std::back_inserter(sorted), [&](size_t i) {
-      return list[i];
-    });
-}
+namespace listfunc {  // Anon namespace to avoid linker confusion.
 
 template<typename T>
 struct bindAllTypes
@@ -154,22 +118,18 @@ struct bindAllTypes
     GAL_FN_BIND_TEMPLATE(subList, T);
     GAL_FN_BIND_TEMPLATE(listLength, T);
     GAL_FN_BIND_TEMPLATE(dispatch, T);
-    GAL_FN_BIND_TEMPLATE(combinations, T);
-
-    // Two overloads for the sort function with different key types.
-    GAL_FN_BIND_TEMPLATE(sort, T, int32_t);
-    GAL_FN_BIND_TEMPLATE(sort, T, float);
   }
 };
 
-void bind_ListFunctions()
+}  // namespace listfunc
+void bind_ListFunc()
 {
   GAL_FN_BIND_TEMPLATE(series, float);
   GAL_FN_BIND_TEMPLATE(series, int32_t);
   GAL_FN_BIND_TEMPLATE(listSum, float);
   GAL_FN_BIND_TEMPLATE(listSum, int32_t);
 
-  typemanager::invoke<bindAllTypes>();
+  typemanager::invoke<listfunc::bindAllTypes>();
 }
 
 }  // namespace func

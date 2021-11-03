@@ -10,7 +10,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 
 namespace gal {
 namespace func {
@@ -131,15 +131,16 @@ const char* FuncDocString::c_str() const
 }  // namespace python
 
 // Forward declare the binding functions.
-void bind_UtilFunctions();
-void bind_GeomFunctions();
-void bind_CircleFunctions();
-void bind_SphereFunctions();
-void bind_LineFunctions();
-void bind_MeshFunctions();
-void bind_MathFunctions();
-void bind_ListFunctions();
-void bind_TreeFunctions();
+void bind_UtilFunc();
+void bind_GeomFunc();
+void bind_CircleFunc();
+void bind_SphereFunc();
+void bind_LineFunc();
+void bind_MeshFunc();
+void bind_MathFunc();
+void bind_ListFunc();
+void bind_TreeFunc();
+void bind_SortFunc();
 
 }  // namespace func
 }  // namespace gal
@@ -152,13 +153,14 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   typemanager::invoke<defClass>();
 
-  bind_UtilFunctions();
-  bind_GeomFunctions();
-  bind_CircleFunctions();
-  bind_SphereFunctions();
-  bind_LineFunctions();
-  bind_MeshFunctions();
-  bind_MathFunctions();
-  bind_ListFunctions();
-  bind_TreeFunctions();
+  bind_UtilFunc();
+  bind_GeomFunc();
+  bind_CircleFunc();
+  bind_SphereFunc();
+  bind_LineFunc();
+  bind_MeshFunc();
+  bind_MathFunc();
+  bind_ListFunc();
+  bind_TreeFunc();
+  bind_SortFunc();
 };

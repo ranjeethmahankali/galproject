@@ -13,7 +13,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   sum = std::accumulate(tree.values().begin(), tree.values().end(), sZero);
 }
 
-void bind_TreeFunctions()
+void bind_TreeFunc()
 {
   GAL_FN_BIND_TEMPLATE(treeSum, int32_t);
   GAL_FN_BIND_TEMPLATE(treeSum, float);

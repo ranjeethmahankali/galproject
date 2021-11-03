@@ -378,6 +378,7 @@ public:
     mTree  = other.mTree;
     mIndex = other.mIndex;
     setReadMode();
+    return *this;
   }
   const ReadView& operator=(ReadView&& other)
   {
@@ -385,6 +386,7 @@ public:
     mTree       = other.mTree;
     mIndex      = other.mIndex;
     other.mTree = nullptr;
+    return *this;
   }
 
   const typename Tree<T>::InternalStorageT& storage() const { return mTree->mValues; }
@@ -629,12 +631,14 @@ public:
     this->releaseWriteMode();
     this->mTree = other.mTree;
     this->setWriteMode();
+    return *this;
   }
 
   const WriteView& operator=(WriteView&& other)
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
+    return *this;
   }
 
   /**
@@ -697,12 +701,14 @@ public:
     this->mTree  = other.mTree;
     this->mStart = other.mStart;
     this->setWriteMode();
+    return *this;
   }
 
   const WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
+    return *this;
   }
 
   /**

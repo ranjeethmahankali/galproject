@@ -127,7 +127,7 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(createRectangularMesh(plane, bounds, edgeLength));
 }
 
-void bind_MeshFunctions()
+void bind_MeshFunc()
 {
   GAL_FN_BIND(centroid,
               volume,

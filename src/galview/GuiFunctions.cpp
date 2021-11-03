@@ -10,7 +10,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/Functions.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>

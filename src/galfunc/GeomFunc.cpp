@@ -157,7 +157,7 @@ GAL_FUNC(box2Points,
   max = box.max;
 }
 
-void bind_GeomFunctions()
+void bind_GeomFunc()
 {
   GAL_FN_BIND(
     vec3, vec2, plane, box3, box2, randomPointsInBox, convexHullFromPoints, pointCloud3d);

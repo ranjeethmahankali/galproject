@@ -1,6 +1,6 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 
 namespace gal {
 namespace func {
@@ -105,7 +105,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   quot = a / b;
 }
 
-void bind_MathFunctions()
+void bind_MathFunc()
 {
   GAL_FN_BIND(sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32);
 
