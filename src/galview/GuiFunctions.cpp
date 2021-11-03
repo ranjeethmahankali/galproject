@@ -165,7 +165,7 @@ void py_usePerspectiveCam()
 
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
-  auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
+  auto fn = gal::func::store::makeFunction<TextFieldFunc>("textfield", label);
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
 };
@@ -187,7 +187,6 @@ struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : BaseT(
-          "show",
           [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
             if constexpr (view::Drawable<T>::value) {
               id = view::Views::add<T>(objs.values(), visibilityFlag, id);
@@ -220,9 +219,9 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                            const func::Register<T>& reg)
 {
   std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
-    label, getCheckBox(label).checkedPtr(), reg);
-  auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
-  func::store::addFunction(fn);
+    "show_" + TypeInfo<T>::name(), label, getCheckBox(label).checkedPtr(), reg);
+
+  auto                  fn  = std::dynamic_pointer_cast<func::Function>(sfn);
   const func::Function* ptr = fn.get();
   sOutputCallbacks.push_back([ptr]() { ptr->update(); });
   return sfn->pythonOutputRegs();
@@ -247,7 +246,6 @@ struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
       : mLabel(label)
       , view::Text("")
       , BaseT(
-          "print",
           [this](const func::data::Tree<T>& obj, uint8_t& success) {
             mStream.clear();
             mStream.str("");
@@ -272,10 +270,9 @@ template<typename T>
 typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
                                              const func::Register<T>& reg)
 {
-  std::shared_ptr<PrintFunc<T>> pfn =
-    gal::func::store::makeFunction<PrintFunc<T>>(label, reg);
-  auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
-  func::store::addFunction(fn);
+  std::shared_ptr<PrintFunc<T>> pfn = gal::func::store::makeFunction<PrintFunc<T>>(
+    "print_" + TypeInfo<T>::name(), label, reg);
+  auto                  fn  = std::dynamic_pointer_cast<func::Function>(pfn);
   const func::Function* ptr = fn.get();
   sOutputCallbacks.push_back([ptr]() { ptr->update(); });
   outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));

@@ -15,6 +15,25 @@
 namespace gal {
 namespace func {
 
+Function::Function()
+    : mContextPath(python::getcontextpath())
+{}
+
+const fs::path& Function::contextpath() const
+{
+  return mContextPath;
+}
+
+const std::string& Function::name() const
+{
+  return mName;
+}
+
+void Function::name(std::string name)
+{
+  mName = std::move(name);
+}
+
 namespace store {
 
 static std::unordered_map<uint64_t, std::shared_ptr<Function>, CustomSizeTHash>
@@ -25,8 +44,10 @@ static std::unordered_map<uint64_t,
                           CustomSizeTHash>
   sSubscriberMap;
 
-std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn)
+std::shared_ptr<Function> addFunction(std::string                      name,
+                                      const std::shared_ptr<Function>& fn)
 {
+  fn->name(std::move(name));  // Name the function.
   sFunctionMap.emplace(uint64_t(fn.get()), fn);
   return fn;
 };

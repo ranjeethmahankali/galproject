@@ -15,6 +15,20 @@
 namespace gal {
 namespace func {
 
+namespace python {
+
+/**
+ * @brief Gets the current python context in a path format. Must be used from inside a
+ * function that has python binding. This can be used to find out in what context a
+ * function was instantiated.
+ *
+ * @return fs::path This is not an actual file path. This is just the context (python
+ * stack trace) represented as a path.
+ */
+fs::path getcontextpath();
+
+}  // namespace python
+
 /**
  * @brief Base class for all functions.
  */
@@ -29,6 +43,19 @@ struct Function
   virtual void update() const = 0;
 
   virtual void addSubscriber(std::atomic_bool& dirtyFlag) const = 0;
+
+  const fs::path& contextpath() const;
+
+  const std::string& name() const;
+
+  void name(std::string name);
+
+protected:
+  Function();
+
+private:
+  fs::path    mContextPath;
+  std::string mName;
 };
 
 namespace store {
@@ -39,7 +66,8 @@ namespace store {
  *
  * @param fn
  */
-std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
+std::shared_ptr<Function> addFunction(std::string                      name,
+                                      const std::shared_ptr<Function>& fn);
 
 /**
  * @brief Unloads all loaded function instances.
@@ -368,7 +396,6 @@ protected:
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
    */
-  const std::string                                                       mName;
   ImplFuncType                                                            mFunc;
   mutable OutputTupleT                                                    mOutputs;
   InputRegTupleT                                                          mInputs;
@@ -421,9 +448,8 @@ public:
    * in order, followed by references of all outputs in order.
    * @param inputs The input registers.
    */
-  TFunction(const std::string& name, const ImplFuncType& fn, const InputRegTupleT& inputs)
-      : mName(name)
-      , mFunc(std::move(fn))
+  TFunction(const ImplFuncType& fn, const InputRegTupleT& inputs)
+      : mFunc(std::move(fn))
       , mOutputs()
       , mInputs(inputs)
       , mCombinations(makeArgTreeRefTuple<TArgList>(mInputs, mOutputs))
@@ -507,23 +533,21 @@ protected:
     tree().value(0) = val;
   }
 
-  static std::string varname() { return "var_" + TypeInfo<TVal>::name(); }
-
 public:
   TVariable(const boost::python::object& obj)
-      : TFunction<TVal>(varname(), nullptr, {})
+      : TFunction<TVal>(nullptr, {})
   {
     setInternal(obj);
   }
 
   TVariable(const TVal& val)
-      : TFunction<TVal>(varname(), nullptr, {})
+      : TFunction<TVal>(nullptr, {})
   {
     setInternal(val);
   }
 
   TVariable()
-      : TFunction<TVal>(varname(), nullptr, {})
+      : TFunction<TVal>(nullptr, {})
   {}
 
   void set(const boost::python::object& obj)
@@ -551,22 +575,28 @@ namespace store {
  * @param args The arguments to be passed to the constructor.
  */
 template<typename TFunc, typename... TArgs>
-std::shared_ptr<TFunc> makeFunction(const TArgs&... args)
+std::shared_ptr<TFunc> makeFunction(std::string name, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::make_shared<TFunc>(args...);
-  addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(std::move(name), std::dynamic_pointer_cast<Function>(fn));
   return fn;
 };
 
 }  // namespace store
 
+template<typename T>
+std::string varfnName()
+{
+  return "var_" + TypeInfo<T>::name();
+}
+
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
   auto fn = std::make_shared<TVariable<TVal>>(obj);
-  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 };
 
@@ -574,7 +604,7 @@ template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
   auto fn = std::make_shared<TVariable<TVal>>();
-  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 }
 
@@ -618,16 +648,6 @@ void bindOverloads(const char*                             fnName,
     bindOverloads<TFnPtrs...>(fnName, rest...);
   }
 }
-
-/**
- * @brief Gets the current python context in a path format. Must be used from inside a
- * function that has python binding. This can be used to find out in what context a
- * function was instantiated.
- *
- * @return fs::path This is not an actual file path. This is just the context (python
- * stack trace) represented as a path.
- */
-fs::path getcontextpath();
 
 }  // namespace python
 
@@ -830,7 +850,7 @@ struct defClass
     // implementation of the << operator.
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Functions to create a varable of the type.
-    static const std::string varname("var_" + TypeInfo<T>::name());
+    static const std::string varname = varfnName<T>();
     static const std::string vardocVal =
       "A variable of type " + TypeInfo<T>::name() + " with the given value.";
     static const std::string vardocEmpty =
