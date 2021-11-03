@@ -114,18 +114,30 @@ public:
 
   size_t numbytes() const { return sizeof(V) * size(); }
 
+  /**
+   * @brief Bind the vertex array.
+   *
+   */
   void bindVao() const { GL_CALL(glBindVertexArray(mVAO)); }
 
+  /**
+   * @brief Binds the vertex buffer.
+   *
+   */
   void bindVbo() const { GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO)); }
 
+  /**
+   * @brief Allocates the vertex array and vertex buffer on the GPU and copies the data.
+   *
+   */
   void alloc()
   {
     free();  // Free if already bound.
     GL_CALL(glGenVertexArrays(1, &mVAO));
     GL_CALL(glGenBuffers(1, &mVBO));
 
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, mVBO));
+    bindVao();
+    bindVbo();
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, numbytes(), data(), GL_STATIC_DRAW));
 
     V::initAttributes();
@@ -156,10 +168,17 @@ public:
 
   const IndexBuffer& operator=(IndexBuffer&&);
 
-  uint32_t ibo() const;
-  size_t   numbytes() const;
-  void     alloc();
-  void     bind() const;
+  /**
+   * @brief Allocates the index buffer on the GPU and copies the indices.
+   *
+   */
+  void alloc();
+
+  /**
+   * @brief Binds the index buffer.
+   *
+   */
+  void bind() const;
 };
 
 };  // namespace glutil

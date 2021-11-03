@@ -91,22 +91,13 @@ const IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other)
   return *this;
 }
 
-uint32_t IndexBuffer::ibo() const
-{
-  return mIBO;
-}
-
-size_t IndexBuffer::numbytes() const
-{
-  return sizeof(uint32_t) * size();
-}
-
 void IndexBuffer::alloc()
 {
+  size_t nBytes = sizeof(uint32_t) * size();
   free();
   GL_CALL(glGenBuffers(1, &mIBO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
-  GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, numbytes(), data(), GL_STATIC_DRAW));
+  GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, nBytes, data(), GL_STATIC_DRAW));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
