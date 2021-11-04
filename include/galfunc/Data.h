@@ -40,6 +40,14 @@ public:
         : mTree(tree)
     {}
 
+    const Cache& operator=(const Cache& other)
+    {
+      mDepthScan = other.mDepthScan;
+      mOffsets   = other.mOffsets;
+      // Should not reassign mTree;
+      return *this;
+    }
+
     void clear()
     {
       mDepthScan.clear();
@@ -130,6 +138,23 @@ public:
   Tree()
       : mCache(*this)
   {}
+
+  const Tree& operator=(const Tree& other)
+  {
+    mValues       = other.mValues;
+    mDepths       = other.mDepths;
+    mQueuedDepths = other.mQueuedDepths;
+    mCache        = other.mCache;
+    mAccessFlag == other.mAccessFlag;
+    mIsCacheValid = other.mIsCacheValid;
+    return *this;
+  }
+
+  Tree(const Tree& other)
+      : mCache(*this)
+  {
+    mCache = other.mCache;
+  }
 
   const Cache& cache() const { return mCache; }
 
@@ -418,6 +443,8 @@ public:
       return mTree->mCache.offset(mIndex, Dim);
     }
   }
+
+  bool empty() const { return size() == 0; }
 
   const T* data() const { return mTree->mValues.data() + mIndex; }
 

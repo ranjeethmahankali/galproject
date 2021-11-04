@@ -1,7 +1,7 @@
 #include <tbb/parallel_for.h>
 #include <glm/gtx/transform.hpp>
-#include "galcore/ObjLoader.h"
 
+#include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 
 namespace gal {
@@ -117,6 +117,15 @@ GAL_FUNC(numVertices,
   nverts = mesh.numVertices();
 }
 
+GAL_FUNC(vertices,
+         "Gets the vertices of the mesh as a list of points",
+         ((gal::Mesh, mesh, "Mesh")),
+         (((data::WriteView<glm::vec3, 1>), points, "Vertex positions")))
+{
+  points.reserve(mesh.numVertices());
+  std::copy(mesh.vertices().begin(), mesh.vertices().end(), std::back_inserter(points));
+}
+
 GAL_FUNC(rectangleMesh,
          "Creates a rectangular mesh",
          ((gal::Plane, plane, "plane"),
@@ -146,6 +155,7 @@ void bind_MeshFunc()
               bounds,
               numFaces,
               numVertices,
+              vertices,
               loadObjFile,
               clipMesh,
               meshSphereQuery,

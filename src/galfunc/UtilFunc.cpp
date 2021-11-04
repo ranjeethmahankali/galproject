@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <stdexcept>
 
 #include <galcore/Util.h>
+#include <galfunc/Data.h>
 #include <galfunc/Functions.h>
 #include <galfunc/TypeManager.h>
 
@@ -42,6 +44,29 @@ GAL_FUNC_TEMPLATE(
   });
 }
 
+GAL_FUNC(mapValueToColor,
+         "Maps the given value w.r.t to the range to a color according to the provided "
+         "color scheme",
+         ((float, val, "The value to be mapped"),
+          (glm::vec2, range, "Limits of the value"),
+          ((data::ReadView<glm::vec3, 1>), colorScheme, "Color scheme")),
+         ((glm::vec3, color, "Mapped color")))
+{
+  if (colorScheme.empty()) {
+    color = {0.f, 0.f, 0.f};
+    return;
+  }
+
+  float r = float(colorScheme.size() - 1) *
+            std::clamp((val - range[0]) / (range[1] - range[0]), 0.f, 1.f);
+  float  fr = std::floor(r);
+  size_t i  = size_t(fr);
+  size_t j  = size_t(std::ceil(r));
+  r -= fr;
+
+  color = colorScheme[i] * (1.f - r) + colorScheme[j] * r;
+}
+
 namespace utilfunc {  // Namespace to avoid linker confusion.
 
 template<typename T>
@@ -54,7 +79,7 @@ struct bindAllTypes
 
 void bind_UtilFunc()
 {
-  GAL_FN_BIND(absPath);
+  GAL_FN_BIND(absPath, mapValueToColor);
   GAL_FN_BIND_TEMPLATE(toString, float);
   GAL_FN_BIND_TEMPLATE(toString, int32_t);
 
