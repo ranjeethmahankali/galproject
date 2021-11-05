@@ -21,9 +21,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
                   ((data::Tree<T>, treeOut, "Output tree")))
 {
   treeOut = treeIn;
-  for (auto& d : treeOut.depths()) {
-    d++;
-  }
+  treeOut.graft();
 }
 
 namespace treefunc {

@@ -406,10 +406,7 @@ protected:
   inline void clearOutputs() const
   {
     if constexpr (NInputs + N < NArgs) {
-      using TOut = std::tuple_element_t<NInputs + N, std::tuple<TArgs...>>;
-      if constexpr (data::IsWriteView<TOut>::value) {
-        std::get<N>(mOutputs).clear();
-      }
+      std::get<N>(mOutputs).clear();
     }
     if constexpr (NInputs + N + 1 < NArgs) {
       clearOutputs<N + 1>();
@@ -423,8 +420,8 @@ protected:
       return;
     }
 
-    mCombinations.init();
     clearOutputs();
+    mCombinations.init();
     if (!mCombinations.empty()) {
       do {
         std::apply(mFunc, mCombinations.template current<ArgTupleT>());

@@ -282,6 +282,23 @@ public:
     mIsCacheValid = false;
   }
 
+  void graft()
+  {
+    for (auto& d : mDepths) {
+      d++;
+    }
+    mIsCacheValid = false;
+  }
+
+  void flatten()
+  {
+    std::fill(mDepths.begin(), mDepths.end(), DepthT(0));
+    if (mDepths.size() > 1) {
+      mDepths.front() = 1;
+    }
+    mIsCacheValid = false;
+  }
+
   friend std::ostream& operator<<(std::ostream& os, const Tree<T>& tree)
   {
     using namespace gal::func::data;

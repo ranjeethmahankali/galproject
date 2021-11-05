@@ -183,13 +183,16 @@ struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
   using BaseT        = func::TFunction<const func::data::Tree<T>, uint64_t>;
   using PyOutputType = typename BaseT::PyOutputType;
 
+  uint64_t mDrawId = 0;
+
   ShowFunc(const std::string&       label,
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : BaseT(
-          [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
+          [this, visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
             if constexpr (view::Drawable<T>::value) {
-              id = view::Views::add<T>(objs.values(), visibilityFlag, id);
+              mDrawId = view::Views::add<T>(objs.values(), visibilityFlag, mDrawId);
+              id      = mDrawId;
             }
             else {
               std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
