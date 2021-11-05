@@ -19,7 +19,7 @@ def test_itemListMapping():
 
 
 def test_treeInputs():
-    random.seed(24)
+    random.seed(42)
     vals = [[random.randint(23, 345) for _ in range(10)] for _ in range(10)]
     rvals = pgf.var_int()
     rsum = pgf.treeSum(rvals)
@@ -29,5 +29,17 @@ def test_treeInputs():
     assert tu.equal(expected, pgf.read(rsum))
 
 
+def test_heterogenousTrees():
+    random.seed(42)
+    vals1 = [[2], [3]]
+    vals2 = [4, 5]
+    expected = [[8, 10], [12, 15]]
+
+    rvals1 = pgf.var_int(vals1)
+    rvals2 = pgf.var_int(vals2)
+    prod = pgf.mul(rvals1, rvals2)
+    assert tu.equal(expected, pgf.read(prod))
+
+
 if __name__=="__main__":
-    test_treeInputs()
+    test_heterogenousTrees()

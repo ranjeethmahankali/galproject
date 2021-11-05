@@ -14,6 +14,13 @@ namespace data {
 using DepthT                      = uint8_t;  // Max is 255.
 static constexpr DepthT DEPTH_MAX = UINT8_MAX;
 
+namespace repeat {
+// Forward declare template.
+template<typename T>
+struct CombiView;
+
+}  // namespace repeat
+
 /**
  * @brief Datastructure to store arbitrary dimensional trees of a datatype. The tree uses
  * contiguous storage to store the leaf elements. The nested vectors are divided up a bit
@@ -85,6 +92,8 @@ private:
 
   template<typename U, DepthT Dim>
   friend struct WriteView;
+
+  friend repeat::CombiView<T>;
 
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
@@ -901,12 +910,24 @@ private:
   DepthT         mOffset;
   const DepthT   mArgDepth;
 
-public:
   CombiView(const Tree<T>& tree, DepthT offset, DepthT argDepth)
       : mTree(tree)
       , mOffset(offset)
       , mArgDepth(argDepth)
   {}
+
+public:
+  template<bool IsInput>
+  static CombiView<T> create(const Tree<T>& tree, DepthT offset, DepthT argDepth)
+  {
+    auto c = CombiView<T>(tree, offset, argDepth);
+    if constexpr (!IsInput) {
+      if (offset > 0 || argDepth == 0) {
+        const_cast<Tree<T>&>(tree).queueDepth(offset);
+      }
+    }
+    return c;
+  }
 
   size_t index() const { return mIndex; }
 
@@ -932,7 +953,6 @@ public:
   /**
    * @brief Tries to advance this view to its sibling's position.
    *
-   * @tparam IsInput flag indicating whether this view points to an input arg.
    * @return bool True if the view was advanced, false otherwise. The tree will not be
    * advanced if this node is the last node if its parent.
    */
@@ -945,7 +965,7 @@ public:
         return false;
       }
       size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
-      if (advIdx < mTree.size()) {
+      if (advIdx < mTree.size() && mTree.depth(advIdx) == td) {
         mIndex = advIdx;
         return true;
       }
@@ -954,6 +974,10 @@ public:
     else {
       if (td == 0) {
         mIndex++;
+      }
+      else if (mOffset > 0 || mArgDepth == 0) {
+        mIndex = mTree.size();
+        const_cast<Tree<T>&>(mTree).queueDepth(mOffset);
       }
       return false;
     }
@@ -1006,8 +1030,8 @@ private:
     dst.clear();
     for (size_t i = 0; i <= offset; i++) {
       // Go as deep as possible - i.e. until zero offset.
-      dst.emplace_back(
-        CombiView<ValueType<Is>>(std::get<Is>(trees), offset - i, viewDepths[Is])...);
+      dst.emplace_back(CombiView<ValueType<Is>>::template create<(Is < NInputs)>(
+        std::get<Is>(trees), offset - i, viewDepths[Is])...);
     }
   }
 
@@ -1120,7 +1144,7 @@ public:
     if (dst.empty()) {
       return;
     }
-    goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {});
+    dst.push_back(goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {}));
   }
 
   /**
@@ -1155,8 +1179,6 @@ struct Combinations
                 "Expecting a tuple of datatrees");
 
 private:
-  static constexpr bool hasTreeInput() { return (IsInstance<Tree, TArgs>::value || ...); }
-
   using HelperT   = CombiViewTuple<NInputs, TreeTupleT>;
   using CVTupType = typename HelperT::Type;
 
@@ -1217,14 +1239,7 @@ public:
    */
   Combinations(const TreeTupleT& trees)
       : mTrees(trees)
-  {
-    if constexpr (!hasTreeInput()) {
-      // If none of the inputs are trees, the depth data only needs to be computed once in
-      // this constructor.
-      mMaxOffset = initDepthData();
-      mViews.reserve(size_t(mMaxOffset) + 1);
-    }
-  }
+  {}
 
   /**
    * @brief Initializes a new set of combinations for a new run of the function.
@@ -1232,12 +1247,8 @@ public:
    */
   void init()
   {
-    if constexpr (hasTreeInput()) {
-      // Trees can change at runtime, so we need to recompute the depth data every time
-      // depth data is initialized.
-      mMaxOffset = initDepthData();
-      mViews.reserve(size_t(mMaxOffset) + 1);
-    }
+    mMaxOffset = initDepthData();
+    mViews.reserve(size_t(mMaxOffset) + 1);
     HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews);
   }
 
