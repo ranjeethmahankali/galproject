@@ -87,6 +87,8 @@ class TVertexBuffer : public std::vector<V>
 public:
   using VertexType = V;
 
+  TVertexBuffer() = default;
+
   TVertexBuffer(size_t nverts)
       : std::vector<V>(nverts)
   {}
@@ -158,6 +160,7 @@ class IndexBuffer : public std::vector<uint32_t>
   void free();
 
 public:
+  IndexBuffer() = default;
   IndexBuffer(size_t nIndices);
   IndexBuffer(IndexBuffer&& other);
   ~IndexBuffer();

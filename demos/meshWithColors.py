@@ -14,7 +14,7 @@ box3 = pgf.box3(minpt, maxpt)
 npts = pgv.slideri32("Point count", 5, 50, 25)
 cloud = pgf.randomPointsInBox(box3, npts)
 
-edgeLen = pgf.var_float(.05)
+edgeLen = pgf.var_float(.01)
 rect = pgf.rectangleMesh(plane, box2, edgeLen)
 
 distances = pgf.distance(pgf.graft(pgf.vertices(rect)), cloud)

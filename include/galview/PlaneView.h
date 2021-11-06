@@ -19,9 +19,10 @@ private:
   uint                 mVSize = 0;  // vertex buffer size.
 
 public:
-  Drawable<Plane>(const std::vector<Plane>& planes)
-      : mVBuf(6 * planes.size())
+  void update(const std::vector<Plane>& planes)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(6 * planes.size());
     static constexpr float sHalfSize = 2.0f;
     auto                   vbegin    = mVBuf.begin();
 

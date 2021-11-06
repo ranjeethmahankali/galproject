@@ -18,9 +18,10 @@ private:
   glutil::VertexBuffer mVBuf;
 
 public:
-  Drawable<Circle2d>(const std::vector<Circle2d>& circles)
-      : mVBuf(2 * sNumPts * circles.size())
+  void update(const std::vector<Circle2d>& circles)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(2 * sNumPts * circles.size());
     auto vbegin = mVBuf.begin();
     for (const auto& circle : circles) {
       glm::vec3 center(circle.center().x, circle.center().y, 0.0f);
@@ -39,6 +40,7 @@ public:
 
     mVBuf.alloc();
   }
+
   uint64_t drawOrderIndex() const
   {
     static const uint64_t sIdx = (uint64_t((1.f - sLineColor.a) * 255.f) << 8) |

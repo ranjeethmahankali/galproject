@@ -69,7 +69,8 @@ void IndexBuffer::free()
 }
 
 IndexBuffer::IndexBuffer(size_t nIndices)
-    : std::vector<uint32_t>(nIndices) {};
+    : std::vector<uint32_t>(nIndices)
+{}
 
 IndexBuffer::IndexBuffer(IndexBuffer&& other)
 {

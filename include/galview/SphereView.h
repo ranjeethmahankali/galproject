@@ -3685,10 +3685,12 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable<Sphere>(const std::vector<Sphere>& spheres)
-      : mVBuf(spheres.size() * sVertices.size())
-      , mIBuf(spheres.size() * sIndices.size())
+  void update(const std::vector<Sphere>& spheres)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(spheres.size() * sVertices.size());
+    mIBuf.resize(spheres.size() * sIndices.size());
+
     // Position and Normal for each vertex.
     auto     vbegin = mVBuf.begin();
     auto     ibegin = mIBuf.begin();
@@ -3707,6 +3709,7 @@ public:
     mVBuf.alloc();
     mIBuf.alloc();
   }
+
   uint64_t drawOrderIndex() const
   {
     static const uint64_t sIdx = (uint64_t((1.f - sEdgeColor.a) * 255.f) << 8) |

@@ -1,58 +1,16 @@
 #include <galview/Views.h>
-#include <variant>
 
 namespace gal {
 namespace view {
 
-std::vector<Views::RenderData> Views::mDrawables = {};
-
-void Views::remove(size_t id)
-{
-  mDrawables.erase(
-    std::remove_if(mDrawables.begin(),
-                   mDrawables.end(),
-                   [id](const RenderData& rdata) { return std::get<2>(rdata) == id; }),
-    mDrawables.end());
-}
+static std::vector<Views::RenderData>  sDrawables               = {};
+static std::vector<Views::RenderData*> sSortedDrawables         = {};
+static bool                            sSortedDrawablesUptoDate = false;
 
 static bool isVisible(const Views::RenderData& rdata)
 {
-  const bool* ptr = std::get<1>(rdata);
+  const bool* ptr = rdata.mVisibility;
   return ptr == nullptr ? false : *ptr;
-}
-
-void Views::render()
-{
-  for (const Views::RenderData& rdata : mDrawables) {
-    if (isVisible(rdata)) {
-      std::visit([](const auto& v) { v.draw(); }, std::get<0>(rdata));
-    }
-  }
-}
-
-Box3 Views::visibleBounds()
-{
-  Box3 bounds;
-  for (const auto& d : mDrawables) {
-    if (isVisible(d)) {
-      const Box3& b =
-        std::visit([](const auto& v) { return v.bounds(); }, std::get<0>(d));
-      bounds.inflate(b.min);
-      bounds.inflate(b.max);
-    }
-  }
-  return bounds;
-}
-
-void Views::clear()
-{
-  mDrawables.clear();
-}
-
-static size_t newViewId()
-{
-  static size_t sId = 1;
-  return sId++;
 }
 
 static uint64_t drawOrderIndex(const Views::VariantT& view)
@@ -60,15 +18,62 @@ static uint64_t drawOrderIndex(const Views::VariantT& view)
   return std::visit([](const auto& v) { return v.drawOrderIndex(); }, view);
 }
 
+static void updateSortedDrawables()
+{
+  sSortedDrawables.resize(sDrawables.size());
+  std::iota(sSortedDrawables.begin(), sSortedDrawables.end(), sDrawables.data());
+  std::sort(sSortedDrawables.begin(),
+            sSortedDrawables.end(),
+            [](const Views::RenderData* a, const Views::RenderData* b) {
+              return drawOrderIndex(a->mDrawable) < drawOrderIndex(b->mDrawable);
+            });
+  sSortedDrawablesUptoDate = true;
+}
+
+Views::RenderData::RenderData(Views::VariantT drawable, const bool* visibility)
+    : mDrawable(std::move(drawable))
+    , mVisibility(visibility)
+{}
+
+void Views::render()
+{
+  if (!sSortedDrawablesUptoDate) {
+    updateSortedDrawables();
+  }
+  for (const Views::RenderData* rdata : sSortedDrawables) {
+    if (isVisible(*rdata)) {
+      std::visit([](const auto& v) { v.draw(); }, rdata->mDrawable);
+    }
+  }
+}
+
+Box3 Views::visibleBounds()
+{
+  Box3 bounds;
+  for (const auto& d : sDrawables) {
+    if (isVisible(d)) {
+      const Box3& b = std::visit([](const auto& v) { return v.bounds(); }, d.mDrawable);
+      bounds.inflate(b);
+    }
+  }
+  return bounds;
+}
+
+void Views::clear()
+{
+  sDrawables.clear();
+}
+
 size_t Views::addInternal(VariantT&& view, const bool* visibility)
 {
-  size_t id = newViewId();
-  mDrawables.emplace_back(std::move(view), visibility, id);
-  std::sort(
-    mDrawables.begin(), mDrawables.end(), [](const RenderData& a, const RenderData& b) {
-      return drawOrderIndex(std::get<0>(a)) < drawOrderIndex(std::get<0>(b));
-    });
-  return id;
+  sDrawables.emplace_back(std::move(view), visibility);
+  sSortedDrawablesUptoDate = false;
+  return sDrawables.size() - 1;
+}
+
+Views::VariantT& Views::getDrawable(size_t i)
+{
+  return sDrawables[i].mDrawable;
 }
 
 }  // namespace view

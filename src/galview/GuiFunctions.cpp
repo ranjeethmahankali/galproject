@@ -22,7 +22,7 @@ namespace viewfunc {
 
 static view::Panel*                                           sInputPanel  = nullptr;
 static view::Panel*                                           sOutputPanel = nullptr;
-static std::vector<std::function<void()>>                     sOutputCallbacks;
+static std::vector<const func::Function*>                     sOutputFuncs;
 static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
 
 /**
@@ -59,15 +59,15 @@ view::Panel& outputPanel()
 
 void evalOutputs()
 {
-  for (auto& cbfn : sOutputCallbacks) {
-    cbfn();
+  for (const func::Function* fnptr : sOutputFuncs) {
+    fnptr->update();
   }
 }
 
 void unloadAllOutputs()
 {
   std::cout << "Unloading all output data...\n";
-  sOutputCallbacks.clear();
+  sOutputFuncs.clear();
   sInputPanel->clear();
   sOutputPanel->clear();
 }
@@ -173,21 +173,17 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 template<typename T>
 struct ShowCallable
 {
-  const bool*      mVisibilityFlag;
-  mutable uint64_t mDrawId = 0;
+  static_assert(view::Views::IsDrawableType<T>, "Must be a drawable type");
+
+  size_t mDrawableIndex;
 
   ShowCallable(const bool* visibilityFlag)
-      : mVisibilityFlag(visibilityFlag)
+      : mDrawableIndex(view::Views::create<T>(visibilityFlag))
   {}
 
   void operator()(const func::data::Tree<T>& objs, uint64_t&) const
   {
-    if constexpr (view::Drawable<T>::value) {
-      mDrawId = view::Views::add<T>(objs.values(), mVisibilityFlag, mDrawId);
-    }
-    else {
-      std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
-    }
+    view::Views::update<T>(mDrawableIndex, objs.values());
   }
 };
 
@@ -233,12 +229,12 @@ template<typename T>
 typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                            const func::Register<T>& reg)
 {
+  static_assert(view::Views::IsDrawableType<T>);
   std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
     "show_" + TypeInfo<T>::name(), label, getCheckBox(label).checkedPtr(), reg);
 
-  auto                  fn  = std::dynamic_pointer_cast<func::Function>(sfn);
-  const func::Function* ptr = fn.get();
-  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
+  sOutputFuncs.push_back(fn.get());
   return sfn->pythonOutputRegs();
 }
 
@@ -298,9 +294,8 @@ typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
 {
   std::shared_ptr<PrintFunc<T>> pfn = gal::func::store::makeFunction<PrintFunc<T>>(
     "print_" + TypeInfo<T>::name(), label, reg);
-  auto                  fn  = std::dynamic_pointer_cast<func::Function>(pfn);
-  const func::Function* ptr = fn.get();
-  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
+  sOutputFuncs.push_back(fn.get());
   outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
   return pfn->pythonOutputRegs();
 }
@@ -313,8 +308,10 @@ struct defOutputFuncs
 {
   static void invoke()
   {
-    def("show", py_show<T>);
     def("print", py_print<T>);
+    if constexpr (view::Views::IsDrawableType<T>) {
+      def("show", py_show<T>);
+    }
   }
 };
 

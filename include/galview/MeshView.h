@@ -21,18 +21,18 @@ private:
   Box3                     mBounds;
 
 public:
-  Drawable<Mesh>(const std::vector<Mesh>& meshes)
-      : mVBuf(std::accumulate(
-          meshes.begin(),
-          meshes.end(),
-          size_t(0),
-          [](size_t total, const Mesh& mesh) { return total + mesh.numVertices(); }))
-      , mIBuf(std::accumulate(
-          meshes.begin(),
-          meshes.end(),
-          size_t(0),
-          [](size_t total, const Mesh& mesh) { return total + 3 * mesh.numFaces(); }))
+  void update(const std::vector<Mesh>& meshes)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(std::accumulate(
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
+        return total + mesh.numVertices();
+      }));
+    mIBuf.resize(std::accumulate(
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
+        return total + 3 * mesh.numFaces();
+      }));
+
     auto      vbegin = mVBuf.begin();
     uint32_t* dsti   = mIBuf.data();
     uint32_t  off    = 0;
@@ -59,6 +59,7 @@ public:
     mVBuf.alloc();
     mIBuf.alloc();
   }
+
   Box3 bounds() const { return mBounds; }
 
   uint64_t drawOrderIndex() const

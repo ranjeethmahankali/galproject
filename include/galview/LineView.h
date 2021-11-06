@@ -16,9 +16,10 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable<Line2d>(const std::vector<Line2d>& lines)
-      : mVBuf(2 * lines.size())
+  void update(const std::vector<Line2d>& lines)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(2 * lines.size());
     static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
 
     auto vbegin = mVBuf.begin();
@@ -70,9 +71,9 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable<Line3d>(const std::vector<Line3d>& lines)
-      : mVBuf(2 * lines.size())
+  void update(const std::vector<Line3d>& lines)
   {
+    mVBuf.resize(2 * lines.size());
     static constexpr glm::vec3 sZero = {0.f, 0.f, 0.f};
 
     auto vbegin = mVBuf.begin();

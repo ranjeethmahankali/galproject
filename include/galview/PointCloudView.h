@@ -16,13 +16,13 @@ private:
   glutil::VertexBuffer mVBuf;
 
 public:
-  Drawable<PointCloud>(const std::vector<PointCloud>& clouds)
-      : mVBuf(std::accumulate(
-          clouds.begin(),
-          clouds.end(),
-          size_t(0),
-          [](size_t total, const PointCloud& cloud) { return total + cloud.size(); }))
+  void update(const std::vector<PointCloud>& clouds)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(std::accumulate(
+      clouds.begin(), clouds.end(), size_t(0), [](size_t total, const PointCloud& cloud) {
+        return total + cloud.size();
+      }));
     for (const auto& cloud : clouds) {
       std::transform(
         cloud.cbegin(),

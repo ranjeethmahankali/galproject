@@ -18,10 +18,11 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable<Box3>(const std::vector<Box3>& boxes)
-      : mVBuf(8 * boxes.size())
-      , mIBuf(sIBuf.size() * boxes.size())
+  void update(const std::vector<Box3>& boxes)
   {
+    mBounds = gal::Box3();
+    mVBuf.resize(8 * boxes.size());
+    mIBuf.resize(sIBuf.size() * boxes.size());
     auto   vbegin = mVBuf.begin();
     auto   ibegin = mIBuf.begin();
     size_t off    = 0;

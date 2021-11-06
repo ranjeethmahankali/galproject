@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 #include <galcore/Annotations.h>
+#include <galcore/Box.h>
 #include <galview/Context.h>
 
 namespace gal {
@@ -49,22 +50,21 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable(const std::vector<AnnotationsT>& tags)
-      : mVBuf(std::accumulate(
-          tags.begin(),
-          tags.end(),
-          size_t(0),
-          [](size_t total0, const AnnotationsT& t) {
-            return total0 +
-                   6 * std::accumulate(
-                         t.begin(),
-                         t.end(),
-                         size_t(0),
-                         [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
-                           return total + tag.second.size();
-                         });
-          }))
+  void update(const std::vector<AnnotationsT>& tags)
   {
+    mVBuf.resize(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total0, const AnnotationsT& t) {
+        return total0 +
+               6 * std::accumulate(
+                     t.begin(),
+                     t.end(),
+                     size_t(0),
+                     [](size_t total, const std::pair<glm::vec3, std::string>& tag) {
+                       return total + tag.second.size();
+                     });
+      }));
+
+    mBounds     = gal::Box3();
     auto vbegin = mVBuf.begin();
     for (const auto& ann : tags) {
       for (const auto& tag : ann) {
@@ -95,6 +95,7 @@ public:
 
     mVBuf.alloc();
   }
+
   Box3 bounds() const { return mBounds; }
 
   uint64_t drawOrderIndex() const
@@ -136,13 +137,14 @@ private:
   Box3                 mBounds;
 
 public:
-  Drawable(const std::vector<AnnotationsT>& tags)
-      : mVBuf(std::accumulate(
-          tags.begin(),
-          tags.end(),
-          size_t(0),
-          [](size_t total, const AnnotationsT& t) { return total + 6 * t.size(); }))
+  void update(const std::vector<AnnotationsT>& tags)
   {
+    mVBuf.resize(std::accumulate(
+      tags.begin(), tags.end(), size_t(0), [](size_t total, const AnnotationsT& t) {
+        return total + 6 * t.size();
+      }));
+
+    mBounds     = gal::Box3();
     auto vbegin = mVBuf.begin();
     for (const auto& ann : tags) {
       for (const auto& tag : ann) {

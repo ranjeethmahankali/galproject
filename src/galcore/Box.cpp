@@ -47,8 +47,10 @@ void Box3::inflate(const glm::vec3& pt)
 
 void Box3::inflate(const Box3& b)
 {
-  inflate(b.min);
-  inflate(b.max);
+  if (b.valid()) {
+    inflate(b.min);
+    inflate(b.max);
+  }
 }
 
 void Box3::inflate(float d)
