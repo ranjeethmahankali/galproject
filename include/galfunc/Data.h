@@ -1,20 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-#include <algorithm>
 #include <execution>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <numeric>
 #include <stdexcept>
-#include <type_traits>
-#include <utility>
 #include <vector>
-
-#include <tbb/tbb.h>
 
 #include <galcore/Traits.h>
 #include <galcore/Types.h>
@@ -25,6 +13,13 @@ namespace data {
 
 using DepthT                      = uint8_t;  // Max is 255.
 static constexpr DepthT DEPTH_MAX = UINT8_MAX;
+
+namespace repeat {
+// Forward declare template.
+template<typename T, bool IsInput>
+struct CombiView;
+
+}  // namespace repeat
 
 /**
  * @brief Datastructure to store arbitrary dimensional trees of a datatype. The tree uses
@@ -51,6 +46,14 @@ public:
     Cache(const Tree<T>& tree)
         : mTree(tree)
     {}
+
+    const Cache& operator=(const Cache& other)
+    {
+      mDepthScan = other.mDepthScan;
+      mOffsets   = other.mOffsets;
+      // Should not reassign mTree;
+      return *this;
+    }
 
     void clear()
     {
@@ -90,6 +93,8 @@ private:
   template<typename U, DepthT Dim>
   friend struct WriteView;
 
+  friend repeat::CombiView<T, false>;
+
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
   std::vector<DepthT> mQueuedDepths;
@@ -106,6 +111,7 @@ private:
 
   void pushDepth(DepthT d)
   {
+    mIsCacheValid = false;
     ensureDepth(d);
     if (mQueuedDepths.empty()) {
       mDepths.push_back(d);
@@ -141,6 +147,23 @@ public:
   Tree()
       : mCache(*this)
   {}
+
+  const Tree& operator=(const Tree& other)
+  {
+    mValues       = other.mValues;
+    mDepths       = other.mDepths;
+    mQueuedDepths = other.mQueuedDepths;
+    mCache        = other.mCache;
+    mAccessFlag == other.mAccessFlag;
+    mIsCacheValid = other.mIsCacheValid;
+    return *this;
+  }
+
+  Tree(const Tree& other)
+      : mCache(*this)
+  {
+    mCache = other.mCache;
+  }
 
   const Cache& cache() const { return mCache; }
 
@@ -256,6 +279,23 @@ public:
     mDepths.clear();
     mQueuedDepths.clear();
     mCache.clear();
+    mIsCacheValid = false;
+  }
+
+  void graft()
+  {
+    for (auto& d : mDepths) {
+      d++;
+    }
+    mIsCacheValid = false;
+  }
+
+  void flatten()
+  {
+    std::fill(mDepths.begin(), mDepths.end(), DepthT(0));
+    if (mDepths.size() > 1) {
+      mDepths.front() = 1;
+    }
     mIsCacheValid = false;
   }
 
@@ -389,6 +429,7 @@ public:
     mTree  = other.mTree;
     mIndex = other.mIndex;
     setReadMode();
+    return *this;
   }
   const ReadView& operator=(ReadView&& other)
   {
@@ -396,6 +437,7 @@ public:
     mTree       = other.mTree;
     mIndex      = other.mIndex;
     other.mTree = nullptr;
+    return *this;
   }
 
   const typename Tree<T>::InternalStorageT& storage() const { return mTree->mValues; }
@@ -427,6 +469,8 @@ public:
       return mTree->mCache.offset(mIndex, Dim);
     }
   }
+
+  bool empty() const { return size() == 0; }
 
   const T* data() const { return mTree->mValues.data() + mIndex; }
 
@@ -640,12 +684,14 @@ public:
     this->releaseWriteMode();
     this->mTree = other.mTree;
     this->setWriteMode();
+    return *this;
   }
 
   const WriteView& operator=(WriteView&& other)
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
+    return *this;
   }
 
   /**
@@ -708,12 +754,14 @@ public:
     this->mTree  = other.mTree;
     this->mStart = other.mStart;
     this->setWriteMode();
+    return *this;
   }
 
   const WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
+    return *this;
   }
 
   /**
@@ -868,23 +916,32 @@ namespace repeat {
  * reading nor writing data from / into the tree. Its only for traversing the tree during
  * combinatorics.
  *
- * @tparam T
+ * @tparam T Type of data in the tree.
+ * @tparam IsInput Should indicate whether this corresponds to an input arg.
  */
-template<typename T>
+template<typename T, bool IsInput>
 struct CombiView
 {
+  using TreeRefT = std::conditional_t<IsInput, const Tree<T>&, Tree<T>&>;
+
 private:
-  const Tree<T>& mTree;
-  size_t         mIndex = 0;
-  DepthT         mOffset;
-  const DepthT   mArgDepth;
+  TreeRefT     mTree;
+  size_t       mIndex = 0;
+  DepthT       mOffset;
+  const DepthT mArgDepth;
 
 public:
-  CombiView(const Tree<T>& tree, DepthT offset, DepthT argDepth)
+  CombiView(TreeRefT& tree, DepthT offset, DepthT argDepth)
       : mTree(tree)
       , mOffset(offset)
       , mArgDepth(argDepth)
-  {}
+  {
+    if constexpr (!IsInput) {
+      if (mOffset > 0 || mArgDepth == 0) {
+        mTree.queueDepth(offset);
+      }
+    }
+  }
 
   size_t index() const { return mIndex; }
 
@@ -897,12 +954,12 @@ public:
    * the node that this view points to.
    *
    */
-  CombiView<T> child() const
+  CombiView<T, IsInput> child() const
   {
     if (mOffset == 0) {
       throw std::logic_error("The leaf view cannot have a child view");
     }
-    auto c   = CombiView<T>(mTree, mOffset - 1, mArgDepth);
+    auto c   = CombiView<T, IsInput>(mTree, mOffset - 1, mArgDepth);
     c.mIndex = mIndex;
     return c;
   }
@@ -910,11 +967,9 @@ public:
   /**
    * @brief Tries to advance this view to its sibling's position.
    *
-   * @tparam IsInput flag indicating whether this view points to an input arg.
    * @return bool True if the view was advanced, false otherwise. The tree will not be
    * advanced if this node is the last node if its parent.
    */
-  template<bool IsInput>
   bool tryAdvance()
   {
     DepthT td = mArgDepth + mOffset;
@@ -923,8 +978,8 @@ public:
         return false;
       }
       size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
-      mIndex        = advIdx;
-      if (advIdx < mTree.size()) {
+      if (advIdx < mTree.size() && mTree.depth(advIdx) == td) {
+        mIndex = advIdx;
         return true;
       }
       return false;
@@ -932,6 +987,10 @@ public:
     else {
       if (td == 0) {
         mIndex++;
+      }
+      else if (mOffset > 0 || mArgDepth == 0) {
+        mIndex = mTree.size();
+        mTree.queueDepth(mOffset);
       }
       return false;
     }
@@ -964,7 +1023,8 @@ struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
    * arguments.
    */
   using Type = std::tuple<
-    CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type>...>;
+    CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type,
+              std::is_const_v<std::remove_reference_t<TreeTs>>>...>;
 
   /**
    * Tuple of the trees corresponding to the function arguments.
@@ -984,8 +1044,8 @@ private:
     dst.clear();
     for (size_t i = 0; i <= offset; i++) {
       // Go as deep as possible - i.e. until zero offset.
-      dst.emplace_back(
-        CombiView<ValueType<Is>>(std::get<Is>(trees), offset - i, viewDepths[Is])...);
+      dst.emplace_back(CombiView<ValueType<Is>, (Is < NInputs)>(
+        std::get<Is>(trees), offset - i, viewDepths[Is])...);
     }
   }
 
@@ -1070,11 +1130,11 @@ public:
       // Try to advance the tuple of views. Its successful if at least one view can be
       // advanced. Return true if successful, false otherwise.
       if constexpr (N + 1 == NTrees) {
-        return std::get<N>(tup).template tryAdvance<IsInput>();
+        return std::get<N>(tup).tryAdvance();
       }
       else {
         // Try advancing current and next separately to avoid short circuiting the OR.
-        bool current = std::get<N>(tup).template tryAdvance<IsInput>();
+        bool current = std::get<N>(tup).tryAdvance();
         bool next    = tryAdvance<N + 1>(tup);
         return current || next;
       }
@@ -1098,7 +1158,7 @@ public:
     if (dst.empty()) {
       return;
     }
-    goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {});
+    dst.push_back(goDeeperInternal(dst.back(), std::make_index_sequence<NTrees> {}));
   }
 
   /**
@@ -1133,10 +1193,23 @@ struct Combinations
                 "Expecting a tuple of datatrees");
 
 private:
+  using HelperT   = CombiViewTuple<NInputs, TreeTupleT>;
+  using CVTupType = typename HelperT::Type;
+
+  TreeTupleT                mTrees;
+  std::array<DepthT, NArgs> mViewDepths;
+  std::vector<CVTupType>    mViews;
+  DepthT                    mMaxOffset = 0;
+
+  /**
+   * @brief Initializes the depth data needed for enumerating all combinations.
+   *
+   * @tparam N The index of the argument.
+   * @param maxOffset Current known max offset among all input trees.
+   * @return DepthT Gets the maximum offset.
+   */
   template<size_t N = 0>
-  static inline void getDepthData(const TreeTupleT&          trees,
-                                  std::array<DepthT, NArgs>& viewDepths,
-                                  std::array<DepthT, NArgs>& offsets)
+  inline DepthT initDepthData(DepthT maxOffset = 0)
   {
     if constexpr (N < NArgs) {
       using TArg                      = std::tuple_element_t<N, std::tuple<TArgs...>>;
@@ -1145,33 +1218,30 @@ private:
       static constexpr bool ArgIsWrite =
         IsWriteView<std::remove_reference_t<TArg>>::value;
 
-      auto treeDepth = std::get<N>(trees).maxDepth();
+      auto treeDepth = std::get<N>(mTrees).maxDepth();
       if constexpr (ArgIsTree) {
         // The function is requesting the whole tree at once, so the view depth must be
         // the same as the depth of the tree. Hence the offset is 0.
-        viewDepths[N] = treeDepth;
-        offsets[N]    = 0;
+        mViewDepths[N] = treeDepth;
+        // Max offset will remain unchanged.
       }
       else {
         static constexpr DepthT ArgDepth =
           (ArgIsRead || ArgIsWrite) ? ViewDimensions<TArg>::value : 0;
-        viewDepths[N] = ArgDepth;
+        mViewDepths[N] = ArgDepth;
         // Prevent unsigned integer underflow.
-        offsets[N] = treeDepth < ArgDepth ? 0 : treeDepth - ArgDepth;
+        maxOffset =
+          std::max(maxOffset, DepthT(treeDepth < ArgDepth ? 0 : treeDepth - ArgDepth));
       }
     }
+
     if constexpr (N + 1 < NArgs) {
-      getDepthData<N + 1>(trees, viewDepths, offsets);
+      return initDepthData<N + 1>(maxOffset);
+    }
+    else {  // Last arg.
+      return maxOffset;
     }
   }
-
-  using HelperT   = CombiViewTuple<NInputs, TreeTupleT>;
-  using CVTupType = typename HelperT::Type;
-
-  TreeTupleT                mTrees;
-  std::array<DepthT, NArgs> mViewDepths;
-  std::vector<CVTupType>    mViews;
-  DepthT                    mMaxOffset = 0;
 
 public:
   /**
@@ -1191,9 +1261,7 @@ public:
    */
   void init()
   {
-    std::array<DepthT, NArgs> offsets;
-    getDepthData(mTrees, mViewDepths, offsets);
-    mMaxOffset = *(std::max_element(offsets.begin(), offsets.end()));
+    mMaxOffset = initDepthData();
     mViews.reserve(size_t(mMaxOffset) + 1);
     HelperT::init(mTrees, mViewDepths, mMaxOffset, mViews);
   }

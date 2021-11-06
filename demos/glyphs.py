@@ -15,7 +15,6 @@ GLYPHDATA = ["/home/rnjth94/works/YouTube/GAL_BoundingCircle/receiverDishGlyph.p
 
 
 def initGlyphs():
-    global GTRANSMITTER, GRECEIVER
     return pgv.loadGlyphs(GLYPHDATA)
 
 

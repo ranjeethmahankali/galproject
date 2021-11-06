@@ -4,9 +4,11 @@
 #include <variant>
 #include <vector>
 
+#include <galcore/Types.h>
 #include <galview/AnnotationsView.h>
 #include <galview/BoxView.h>
 #include <galview/Circle2dView.h>
+#include <galview/Context.h>
 #include <galview/LineView.h>
 #include <galview/MeshView.h>
 #include <galview/PlaneView.h>
@@ -53,6 +55,7 @@ using ViewManager = TViewManager<TextAnnotations,
                                  Line3d,
                                  Mesh,
                                  glm::vec3,
+                                 glm::vec2,
                                  Plane,
                                  PointCloud,
                                  Sphere>;
@@ -64,15 +67,18 @@ using ViewManager = TViewManager<TextAnnotations,
 class Views
 {
 public:
-  using VariantT   = typename ViewManager::DrawableVariantT;
-  using RenderData = std::tuple<VariantT, const bool*, size_t>;
+  using VariantT = typename ViewManager::DrawableVariantT;
+  struct RenderData
+  {
+    VariantT    mDrawable;
+    const bool* mVisibility;
 
-  /**
-   * @brief Remove the object with the given id from the scene.
-   *
-   * @param id
-   */
-  static void remove(size_t id);
+    RenderData(VariantT drawable, const bool* visibility);
+  };
+
+  template<typename T>
+  static constexpr bool  IsDrawableType =
+    Drawable<T>::value&& ViewManager::IsManagedType<T>;
 
   /**
    * @brief Render all objects currently in the scene. Ideally this should be called once
@@ -95,38 +101,30 @@ public:
   static void clear();
 
 private:
-  static std::vector<RenderData> mDrawables;
-
-  static size_t addInternal(VariantT&& view, const bool* vis);
+  static size_t    addInternal(VariantT&& view, const bool* vis);
+  static VariantT& getDrawable(size_t index);
 
 public:
+  template<typename T>
+  static void update(size_t drawableIndex, const std::vector<T>& objs)
+  {
+    std::get<Drawable<T>>(getDrawable(drawableIndex)).update(objs);
+  }
+
   /**
-   * @brief Add a vector of objects of the given type to the scene, under a single
-   * scene-object-id. If the datatype cannot be rendered in the viewer, this will do
-   * nothing.
+   * @brief Creates an new empty drawable of the given datatype.
    *
-   * @tparam T The type of object.
-   * @param objs The objects.
+   * @tparam T The type of object to be drawn.
    * @param visibility The flag that controls the visibility of these objects. For
    * example, this can be linked to a UI control that the user can use to toggle the
    * visbility of these objects.
-   * @param oldId If the new objects need to replace old objects (for example, when
-   * replacing the old outputs of a function with new ones), supplying this old id, will
-   * cause the old objects to be removed from the scene before the new ones are added.
-   * @return size_t The id corresponding to the added objects.
+   * @return size_t Index of the drawable.
    */
   template<typename T>
-  static size_t add(const std::vector<SafeInstanceType<T>>& objs,
-                    const bool*                             visibility,
-                    size_t                                  oldId = 0)
+  static size_t create(const bool* visibility)
   {
-    if constexpr (Drawable<T>::value && ViewManager::IsManagedType<T>) {
-      remove(oldId);
-      return addInternal(Drawable<T>(objs), visibility);
-    }
-    else {
-      return 0;
-    }
+    static_assert(IsDrawableType<T>, "Must be a drawable type");
+    return addInternal(Drawable<T>(), visibility);
   }
 };
 

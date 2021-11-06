@@ -10,7 +10,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/Functions.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
@@ -22,7 +22,7 @@ namespace viewfunc {
 
 static view::Panel*                                           sInputPanel  = nullptr;
 static view::Panel*                                           sOutputPanel = nullptr;
-static std::vector<std::function<void()>>                     sOutputCallbacks;
+static std::vector<const func::Function*>                     sOutputFuncs;
 static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
 
 /**
@@ -59,15 +59,15 @@ view::Panel& outputPanel()
 
 void evalOutputs()
 {
-  for (auto& cbfn : sOutputCallbacks) {
-    cbfn();
+  for (const func::Function* fnptr : sOutputFuncs) {
+    fnptr->update();
   }
 }
 
 void unloadAllOutputs()
 {
   std::cout << "Unloading all output data...\n";
-  sOutputCallbacks.clear();
+  sOutputFuncs.clear();
   sInputPanel->clear();
   sOutputPanel->clear();
 }
@@ -165,9 +165,26 @@ void py_usePerspectiveCam()
 
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
-  auto fn = gal::func::store::makeFunction<TextFieldFunc>(label);
+  auto fn = gal::func::store::makeFunction<TextFieldFunc>("textfield", label);
   inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
+};
+
+template<typename T>
+struct ShowCallable
+{
+  static_assert(view::Views::IsDrawableType<T>, "Must be a drawable type");
+
+  size_t mDrawableIndex;
+
+  ShowCallable(const bool* visibilityFlag)
+      : mDrawableIndex(view::Views::create<T>(visibilityFlag))
+  {}
+
+  void operator()(const func::data::Tree<T>& objs, uint64_t&) const
+  {
+    view::Views::update<T>(mDrawableIndex, objs.values());
+  }
 };
 
 /**
@@ -177,25 +194,19 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
+struct ShowFunc
+    : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using BaseT        = func::TFunction<const func::data::Tree<T>, uint64_t>;
+  using BaseT = func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>;
   using PyOutputType = typename BaseT::PyOutputType;
+
+  uint64_t mDrawId = 0;
 
   ShowFunc(const std::string&       label,
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
-      : BaseT(
-          [visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
-            if constexpr (view::Drawable<T>::value) {
-              id = view::Views::add<T>(objs.values(), visibilityFlag, id);
-            }
-            else {
-              std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
-            }
-          },
-          std::make_tuple(reg))
+      : BaseT(ShowCallable<T>(visibilityFlag), std::make_tuple(reg))
   {
     auto& tree = std::get<0>(this->mOutputs);
     tree.resize(1);
@@ -218,14 +229,36 @@ template<typename T>
 typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                            const func::Register<T>& reg)
 {
+  static_assert(view::Views::IsDrawableType<T>);
   std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
-    label, getCheckBox(label).checkedPtr(), reg);
+    "show_" + TypeInfo<T>::name(), label, getCheckBox(label).checkedPtr(), reg);
+
   auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
-  func::store::addFunction(fn);
-  const func::Function* ptr = fn.get();
-  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  sOutputFuncs.push_back(fn.get());
   return sfn->pythonOutputRegs();
 }
+
+template<typename T>
+struct PrintCallable
+{
+  std::string mLabel;
+  // mutable std::stringstream mStream;
+  gal::view::Text* mTextPtr = nullptr;
+
+  PrintCallable(const std::string& label, gal::view::Text* textLabelPtr)
+      : mLabel(label)
+      , mTextPtr(textLabelPtr)
+  {}
+
+  void operator()(const func::data::Tree<T>& obj, uint8_t&) const
+  {
+    std::stringstream stream;
+    stream.clear();
+    stream.str("");
+    stream << mLabel << ": \n" << obj;
+    mTextPtr->set(stream.str());
+  }
+};
 
 /**
  * @brief Prints the given object to the output panel.
@@ -233,27 +266,16 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
-                   public view::Text
+struct PrintFunc
+    : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>,
+      public view::Text
 {
-  using BaseT        = func::TFunction<const func::data::Tree<T>, uint8_t>;
+  using BaseT = func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>;
   using PyOutputType = typename BaseT::PyOutputType;
 
-  std::string       mLabel;
-  std::stringstream mStream;
-
   PrintFunc(const std::string& label, const func::Register<T>& reg)
-      : mLabel(label)
-      , view::Text("")
-      , BaseT(
-          [this](const func::data::Tree<T>& obj, uint8_t& success) {
-            mStream.clear();
-            mStream.str("");
-            mStream << mLabel << ": \n" << obj;
-            this->mValue = mStream.str();
-            success      = 1;
-          },
-          std::make_tuple(reg)) {};
+      : view::Text("")
+      , BaseT(PrintCallable<T>(label, this), std::make_tuple(reg)) {};
 
   virtual ~PrintFunc() = default;
 };
@@ -270,12 +292,10 @@ template<typename T>
 typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
                                              const func::Register<T>& reg)
 {
-  std::shared_ptr<PrintFunc<T>> pfn =
-    gal::func::store::makeFunction<PrintFunc<T>>(label, reg);
+  std::shared_ptr<PrintFunc<T>> pfn = gal::func::store::makeFunction<PrintFunc<T>>(
+    "print_" + TypeInfo<T>::name(), label, reg);
   auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
-  func::store::addFunction(fn);
-  const func::Function* ptr = fn.get();
-  sOutputCallbacks.push_back([ptr]() { ptr->update(); });
+  sOutputFuncs.push_back(fn.get());
   outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
   return pfn->pythonOutputRegs();
 }
@@ -288,8 +308,10 @@ struct defOutputFuncs
 {
   static void invoke()
   {
-    def("show", py_show<T>);
     def("print", py_print<T>);
+    if constexpr (view::Views::IsDrawableType<T>) {
+      def("show", py_show<T>);
+    }
   }
 };
 

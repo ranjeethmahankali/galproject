@@ -83,7 +83,7 @@ GAL_FUNC(perimeter,
   result = circ.perimeter();
 }
 
-void bind_CircleFunctions()
+void bind_CircleFunc()
 {
   GAL_FN_BIND(
     bounds, area, boundingCircle, circle2d, circle2dFromDiameter, circumCircle2d);

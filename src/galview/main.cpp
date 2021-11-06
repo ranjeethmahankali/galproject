@@ -7,13 +7,11 @@
 
 #include <galcore/Circle2d.h>
 #include <galcore/ConvexHull.h>
-#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Util.h>
 #include <galview/Context.h>
-#include <galview/DebugGeom.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Views.h>
@@ -174,71 +172,11 @@ int loadDemo(const fs::path& demoPath)
   return 0;
 }
 
-int debugSession(const fs::path& targetDir)
-{
-  if (!fs::is_directory(targetDir)) {
-    return 1;
-  }
-
-  int         err    = 0;
-  GLFWwindow* window = nullptr;
-  if ((err = initViewer(window))) {
-    std::cerr << "Failed to initialize the viewer\n";
-    return err;
-  }
-
-  // Setup IMGUI
-  view::initializeImGui(window, glslVersion);
-
-  gal::debug::initSession(targetDir);
-
-  std::cout << "Starting render loop...\n";
-
-  showSettingsPanel();
-
-  while (!glfwWindowShouldClose(window)) {
-    glfwPollEvents();
-    view::imGuiNewFrame();
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    {
-      view::drawAllPanels();
-      view::imGuiRender();
-      view::Views::render();
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-    glfwSwapBuffers(window);
-  }
-
-  wrapUp(window);
-  return 0;
-}
-
 int main(int argc, char** argv)
 {
-#ifdef GALDEBUG
-  gal::debug::enableDebugging();
-#endif
-  //   return debugSession(gal::utils::absPath("../temp"));
-  //   return loadDemo(gal::utils::absPath("../demos/textTags.py"));
-  //   return loadDemo(gal::utils::absPath("../demos/glyphs.py"));
-  //   return loadDemo(gal::utils::absPath(
-  //     "/home/rnjth94/works/YouTube/GAL_BoundingCircle/scenesBoundingCircle.py"));
-
-  static constexpr char pathKey[] = "path";
-  bool                  debugFlag;
-  bool                  postMortemFlag;
-
+  static constexpr char    pathKey[] = "path";
   bpo::options_description desc("galview options");
-  desc.add_options()("help", "produce help message")(
-    "debug,d",
-    bpo::bool_switch(&debugFlag),
-    "Flag used to debug a application running at the given path")(
-    "postmortem,p",
-    bpo::bool_switch(&postMortemFlag),
-    "Flag used to do a postmortem of the gal application session at the"
-    " given folder");
-
+  desc.add_options()("help", "produce help message");
   bpo::options_description hidden("hidden options");
   hidden.add_options()(pathKey, "Path to run the program with.");
   bpo::options_description allOptions;
@@ -276,21 +214,7 @@ int main(int argc, char** argv)
   fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
 
   if (fs::exists(path)) {
-    bool isDir = fs::is_directory(path);
-    if (!debugFlag && !postMortemFlag && !isDir) {
-      return loadDemo(path);
-    }
-    else if (debugFlag && !postMortemFlag && isDir) {
-      return debugSession(path);
-    }
-    else if (!debugFlag && postMortemFlag && isDir) {
-      std::cerr << "Postmortem feature is not implemented\n";
-      return 1;
-    }
-    else {
-      std::cerr << "Invalid options!\n";
-      return 1;
-    }
+    return loadDemo(path);
   }
   else {
     std::cerr << "The given path does not exist!\n";

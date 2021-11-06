@@ -1,7 +1,7 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-# relpath = pgf.var("../assets/bunny.obj")
+# relpath = pgf.var_string("../assets/bunny_large.obj")
 relpath = pgv.textField("relpath")
 path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)

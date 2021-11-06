@@ -10,10 +10,29 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
-#include <galfunc/TypeHelper.h>
+#include <galfunc/TypeManager.h>
 
 namespace gal {
 namespace func {
+
+Function::Function()
+    : mContextPath(python::getcontextpath())
+{}
+
+const fs::path& Function::contextpath() const
+{
+  return mContextPath;
+}
+
+const std::string& Function::name() const
+{
+  return mName;
+}
+
+void Function::name(std::string name)
+{
+  mName = std::move(name);
+}
 
 namespace store {
 
@@ -25,8 +44,10 @@ static std::unordered_map<uint64_t,
                           CustomSizeTHash>
   sSubscriberMap;
 
-std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn)
+std::shared_ptr<Function> addFunction(std::string                      name,
+                                      const std::shared_ptr<Function>& fn)
 {
+  fn->name(std::move(name));  // Name the function.
   sFunctionMap.emplace(uint64_t(fn.get()), fn);
   return fn;
 };
@@ -89,17 +110,16 @@ FuncDocString::FuncDocString(
   const std::vector<std::pair<std::string, std::string>>& inputs,
   const std::vector<std::pair<std::string, std::string>>& outputs)
 {
-  mDocString  = desc + "\n";
-  size_t argI = 0;
+  mDocString = desc + "\n";
   for (const auto& argpair : inputs) {
-    mDocString += argpair.first + ": " + argpair.second;
+    mDocString += argpair.first + ": " + argpair.second + "\n";
   }
   mDocString +=
     "\n****"
     " Return values "
     "****\n";
   for (const auto& argpair : outputs) {
-    mDocString += argpair.first + ": " + argpair.second;
+    mDocString += argpair.first + ": " + argpair.second + "\n";
   }
 }
 
@@ -111,12 +131,16 @@ const char* FuncDocString::c_str() const
 }  // namespace python
 
 // Forward declare the binding functions.
-void bind_UtilFunctions();
-void bind_GeomFunctions();
-void bind_CircleFunctions();
-void bind_SphereFunctions();
-void bind_LineFunctions();
-void bind_MeshFunctions();
+void bind_UtilFunc();
+void bind_GeomFunc();
+void bind_CircleFunc();
+void bind_SphereFunc();
+void bind_LineFunc();
+void bind_MeshFunc();
+void bind_MathFunc();
+void bind_ListFunc();
+void bind_TreeFunc();
+void bind_SortFunc();
 
 }  // namespace func
 }  // namespace gal
@@ -129,10 +153,14 @@ BOOST_PYTHON_MODULE(pygalfunc)
 
   typemanager::invoke<defClass>();
 
-  bind_UtilFunctions();
-  bind_GeomFunctions();
-  bind_CircleFunctions();
-  bind_SphereFunctions();
-  bind_LineFunctions();
-  bind_MeshFunctions();
+  bind_UtilFunc();
+  bind_GeomFunc();
+  bind_CircleFunc();
+  bind_SphereFunc();
+  bind_LineFunc();
+  bind_MeshFunc();
+  bind_MathFunc();
+  bind_ListFunc();
+  bind_TreeFunc();
+  bind_SortFunc();
 };

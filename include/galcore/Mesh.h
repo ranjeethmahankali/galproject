@@ -150,6 +150,16 @@ public:
   const glm::vec3&              vertexColor(size_t vi) const;
   void                          vertexColor(const glm::vec3& color, size_t vi);
 
+  template<typename TColorIter>
+  void setVertexColors(TColorIter begin, TColorIter end)
+  {
+    mVertexColors.resize(numVertices(), glm::vec3(0.f, 0.f, 0.f));
+    auto dst = mVertexColors.begin();
+    while (begin != end && dst != mVertexColors.end()) {
+      *(dst++) = *(begin++);
+    }
+  }
+
   float     volume() const;
   bool      isSolid() const;
   glm::vec3 centroid() const;

@@ -32,7 +32,7 @@ GAL_FUNC(bounds,
   bbox = s.bounds();
 }
 
-void bind_SphereFunctions()
+void bind_SphereFunc()
 {
   GAL_FN_BIND(bounds, sphere, boundingSphere);
 }

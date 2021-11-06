@@ -7,28 +7,24 @@ namespace view {
 template<>
 struct Drawable<Box3> : public std::true_type
 {
-  static constexpr glm::vec4 sLineColor = {1.0, 1.0, 1.0, 1.0};
+  static constexpr glm::vec4                sLineColor = {1.0, 1.0, 1.0, 1.0};
+  static constexpr std::array<uint32_t, 24> sIBuf      = {{
+    0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
+  }};
 
 private:
-  Box3 mBounds;
-  uint mVAO   = 0;  // vertex array object.
-  uint mVBO   = 0;  // vertex buffer object.
-  uint mIBO   = 0;  // index buffer object.a
-  uint mVSize = 0;  // vertex buffer size.
-  uint mISize = 0;  // index buffer size.
+  glutil::VertexBuffer mVBuf;
+  glutil::IndexBuffer  mIBuf;
+  Box3                 mBounds;
 
 public:
-  Drawable<Box3>(const std::vector<Box3>& boxes)
+  void update(const std::vector<Box3>& boxes)
   {
-    static constexpr std::array<uint32_t, 24> sIBuf = {{
-      0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
-    }};
-
-    glutil::VertexBuffer vBuf(8 * boxes.size());
-    glutil::IndexBuffer  iBuf(sIBuf.size() * boxes.size());
-
-    auto   vbegin = vBuf.begin();
-    auto   ibegin = iBuf.begin();
+    mBounds = gal::Box3();
+    mVBuf.resize(8 * boxes.size());
+    mIBuf.resize(sIBuf.size() * boxes.size());
+    auto   vbegin = mVBuf.begin();
+    auto   ibegin = mIBuf.begin();
     size_t off    = 0;
     for (const auto& box : boxes) {
       *(vbegin++) = {{box.min.x, box.min.y, box.min.z}};
@@ -46,39 +42,9 @@ public:
       mBounds.inflate(box);
     }
 
-    mVSize = (uint32_t)vBuf.size();
-    mISize = (uint32_t)iBuf.size();
-    vBuf.finalize(mVAO, mVBO);
-    iBuf.finalize(mIBO);
+    mVBuf.alloc();
+    mIBuf.alloc();
   }
-
-  ~Drawable<Box3>()
-  {
-    if (mVAO) {
-      GL_CALL(glDeleteVertexArrays(1, &mVAO));
-    }
-    if (mVBO) {
-      GL_CALL(glDeleteBuffers(1, &mVBO));
-    }
-    if (mIBO) {
-      GL_CALL(glDeleteBuffers(1, &mIBO));
-    }
-  }
-
-  Drawable(const Drawable&) = delete;
-  const Drawable& operator=(const Drawable&) = delete;
-
-  const Drawable& operator=(Drawable&& other)
-  {
-    mBounds = other.mBounds;
-    mVAO    = std::exchange(other.mVAO, 0);
-    mVBO    = std::exchange(other.mVBO, 0);
-    mIBO    = std::exchange(other.mIBO, 0);
-    mVSize  = other.mVSize;
-    mISize  = other.mISize;
-    return *this;
-  }
-  Drawable(Drawable&& other) { *this = std::move(other); }
 
   Box3 bounds() const { return mBounds; }
 
@@ -103,9 +69,9 @@ public:
   {
     static auto rsettings = renderSettings();
     rsettings.apply();
-    GL_CALL(glBindVertexArray(mVAO));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO));
-    GL_CALL(glDrawElements(GL_LINES, mISize, GL_UNSIGNED_INT, nullptr));
+    mVBuf.bindVao();
+    mIBuf.bind();
+    GL_CALL(glDrawElements(GL_LINES, mIBuf.size(), GL_UNSIGNED_INT, nullptr));
   }
 };
 

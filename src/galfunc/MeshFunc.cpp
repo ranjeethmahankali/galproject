@@ -1,7 +1,7 @@
 #include <tbb/parallel_for.h>
 #include <glm/gtx/transform.hpp>
-#include "galcore/ObjLoader.h"
 
+#include <galcore/ObjLoader.h>
 #include <galfunc/Functions.h>
 
 namespace gal {
@@ -117,6 +117,15 @@ GAL_FUNC(numVertices,
   nverts = mesh.numVertices();
 }
 
+GAL_FUNC(vertices,
+         "Gets the vertices of the mesh as a list of points",
+         ((gal::Mesh, mesh, "Mesh")),
+         (((data::WriteView<glm::vec3, 1>), points, "Vertex positions")))
+{
+  points.reserve(mesh.numVertices());
+  std::copy(mesh.vertices().begin(), mesh.vertices().end(), std::back_inserter(points));
+}
+
 GAL_FUNC(rectangleMesh,
          "Creates a rectangular mesh",
          ((gal::Plane, plane, "plane"),
@@ -127,7 +136,17 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(createRectangularMesh(plane, bounds, edgeLength));
 }
 
-void bind_MeshFunctions()
+GAL_FUNC(meshWithVertexColors,
+         "Creates a new mesh by with the given vertex colors",
+         ((gal::Mesh, mesh, "Input mesh"),
+          ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
+         ((gal::Mesh, outmesh, "Colored mesh with vertex colors.")))
+{
+  outmesh = mesh;
+  outmesh.setVertexColors(colors.begin(), colors.end());
+}
+
+void bind_MeshFunc()
 {
   GAL_FN_BIND(centroid,
               volume,
@@ -136,11 +155,13 @@ void bind_MeshFunctions()
               bounds,
               numFaces,
               numVertices,
+              vertices,
               loadObjFile,
               clipMesh,
               meshSphereQuery,
               closestPoints,
-              rectangleMesh);
+              rectangleMesh,
+              meshWithVertexColors);
 }
 
 }  // namespace func

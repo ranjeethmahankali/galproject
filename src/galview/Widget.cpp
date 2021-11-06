@@ -108,6 +108,11 @@ void drawAllPanels()
 Text::Text(const std::string& value)
     : mValue(value) {};
 
+void Text::set(const std::string& text)
+{
+  mValue = text;
+}
+
 void Text::draw()
 {
   ImGui::Text("%s", mValue.c_str());

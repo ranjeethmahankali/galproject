@@ -1,27 +1,32 @@
 #pragma once
 
-#include <string.h>
-#include <functional>
-#include <iostream>
-#include <memory>
 #include <stdexcept>
+#include <string>
 #include <tuple>
-#include <type_traits>
-#include <unordered_map>
-#include <utility>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
-#include <boost/python/scope.hpp>
-#include <boost/python/tuple.hpp>
 
-#include <galcore/Util.h>
 #include <galfunc/Converter.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
 
 namespace gal {
 namespace func {
+
+namespace python {
+
+/**
+ * @brief Gets the current python context in a path format. Must be used from inside a
+ * function that has python binding. This can be used to find out in what context a
+ * function was instantiated.
+ *
+ * @return fs::path This is not an actual file path. This is just the context (python
+ * stack trace) represented as a path.
+ */
+fs::path getcontextpath();
+
+}  // namespace python
 
 /**
  * @brief Base class for all functions.
@@ -37,6 +42,19 @@ struct Function
   virtual void update() const = 0;
 
   virtual void addSubscriber(std::atomic_bool& dirtyFlag) const = 0;
+
+  const fs::path& contextpath() const;
+
+  const std::string& name() const;
+
+  void name(std::string name);
+
+protected:
+  Function();
+
+private:
+  fs::path    mContextPath;
+  std::string mName;
 };
 
 namespace store {
@@ -47,7 +65,8 @@ namespace store {
  *
  * @param fn
  */
-std::shared_ptr<Function> addFunction(const std::shared_ptr<Function>& fn);
+std::shared_ptr<Function> addFunction(std::string                      name,
+                                      const std::shared_ptr<Function>& fn);
 
 /**
  * @brief Unloads all loaded function instances.
@@ -275,7 +294,7 @@ struct TypeList
     typename SubTuples<NumInputs, NumTypes, TArgs...>::template TreeTupleType<>;
   using InputRegTupleType =
     typename SubTuples<0, NumInputs, TArgs...>::template RegTupleType<>;
-  using ImplFnType = std::function<void(typename ImplFnArgType<TArgs>::Type...)>;
+  using FnPtrType = void (*)(typename ImplFnArgType<TArgs>::Type...);
 
   template<size_t N>
   using Type = typename std::tuple_element<N, std::tuple<TArgs...>>::type;
@@ -345,12 +364,18 @@ boost::python::tuple pythonOutputTuple(const Function* fn, const OutputTupleT& s
     fn, src, std::make_index_sequence<std::tuple_size_v<OutputTupleT>> {});
 }
 
+template<typename... Ts>
+struct EmptyCallable
+{
+  void operator()(typename ImplFnArgType<Ts>::Type...) const {};
+};
+
 /**
  * @brief Template for all non-variable functions.
  * @tparam NInputs Number of inputs.
  * @tparam TArgs All arguments. Inputs followed by outputs.
  */
-template<typename... TArgs>
+template<typename TCallable, typename... TArgs>
 struct TFunction : public Function
 {
   using TArgList                  = TypeList<TArgs...>;
@@ -365,7 +390,7 @@ struct TFunction : public Function
   static constexpr bool   HasInputs  = NInputs > 0;
   static constexpr size_t NOutputs   = NArgs - NInputs;
   static constexpr bool   HasOutputs = NOutputs > 0;
-  using ImplFuncType                 = typename TArgList::ImplFnType;
+
   using PyOutputType =
     std::conditional_t<(NOutputs > 1),
                        boost::python::tuple,
@@ -376,7 +401,7 @@ protected:
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
    */
-  ImplFuncType                                                            mFunc;
+  TCallable                                                               mFunc;
   mutable OutputTupleT                                                    mOutputs;
   InputRegTupleT                                                          mInputs;
   mutable data::repeat::Combinations<NInputs, ArgTreeRefTupleT, TArgs...> mCombinations;
@@ -386,10 +411,7 @@ protected:
   inline void clearOutputs() const
   {
     if constexpr (NInputs + N < NArgs) {
-      using TOut = std::tuple_element_t<NInputs + N, std::tuple<TArgs...>>;
-      if constexpr (data::IsWriteView<TOut>::value) {
-        std::get<N>(mOutputs).clear();
-      }
+      std::get<N>(mOutputs).clear();
     }
     if constexpr (NInputs + N + 1 < NArgs) {
       clearOutputs<N + 1>();
@@ -399,16 +421,14 @@ protected:
   // Runs the function.
   inline void run() const
   {
-    if (!mFunc) {
-      return;
-    }
-
-    mCombinations.init();
-    clearOutputs();
-    if (!mCombinations.empty()) {
-      do {
-        std::apply(mFunc, mCombinations.template current<ArgTupleT>());
-      } while (mCombinations.next());
+    if constexpr (!IsInstance<EmptyCallable, TCallable>::value) {
+      clearOutputs();
+      mCombinations.init();
+      if (!mCombinations.empty()) {
+        do {
+          std::apply(mFunc, mCombinations.template current<ArgTupleT>());
+        } while (mCombinations.next());
+      }
     }
   }
 
@@ -428,7 +448,7 @@ public:
    * in order, followed by references of all outputs in order.
    * @param inputs The input registers.
    */
-  TFunction(const ImplFuncType& fn, const InputRegTupleT& inputs)
+  TFunction(const TCallable& fn, const InputRegTupleT& inputs)
       : mFunc(std::move(fn))
       , mOutputs()
       , mInputs(inputs)
@@ -437,7 +457,7 @@ public:
     this->addSubscriber(mIsDirty);
   };
 
-  virtual ~TFunction() {};
+  virtual ~TFunction() = default;
 
   void update() const override
   {
@@ -487,6 +507,9 @@ public:
   }
 };
 
+template<typename... TArgs>
+using TFunctionWithFnPtr = TFunction<typename TypeList<TArgs...>::FnPtrType, TArgs...>;
+
 /**
  * @brief Template for a variable functions.
  * @tparam TVal The type of the value stored in the variable.
@@ -494,9 +517,10 @@ public:
  * initialize it.
  */
 template<typename TVal>
-struct TVariable : public TFunction<TVal>
+struct TVariable : public TFunction<EmptyCallable<TVal>, TVal>
 {
   using PyOutputType = ArgRegisterT<TVal>;
+  using BaseT        = TFunction<EmptyCallable<TVal>, TVal>;
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
@@ -515,20 +539,22 @@ protected:
 
 public:
   TVariable(const boost::python::object& obj)
-      : TFunction<TVal>(nullptr, {})
+      : BaseT({}, {})
   {
     setInternal(obj);
   }
 
   TVariable(const TVal& val)
-      : TFunction<TVal>(nullptr, {})
+      : BaseT({}, {})
   {
     setInternal(val);
   }
 
   TVariable()
-      : TFunction<TVal>(nullptr, {})
+      : BaseT({}, {})
   {}
+
+  virtual ~TVariable() = default;
 
   void set(const boost::python::object& obj)
   {
@@ -555,22 +581,28 @@ namespace store {
  * @param args The arguments to be passed to the constructor.
  */
 template<typename TFunc, typename... TArgs>
-std::shared_ptr<TFunc> makeFunction(const TArgs&... args)
+std::shared_ptr<TFunc> makeFunction(std::string name, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::make_shared<TFunc>(args...);
-  addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(std::move(name), std::dynamic_pointer_cast<Function>(fn));
   return fn;
 };
 
 }  // namespace store
 
+template<typename T>
+std::string varfnName()
+{
+  return "var_" + TypeInfo<T>::name();
+}
+
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
   auto fn = std::make_shared<TVariable<TVal>>(obj);
-  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 };
 
@@ -578,7 +610,7 @@ template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
   auto fn = std::make_shared<TVariable<TVal>>();
-  store::addFunction(std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 }
 
@@ -610,10 +642,6 @@ struct FuncDocString
 
 private:
   std::string mDocString;
-  std::string mDesc;
-  // Names and descriptions of arguments.
-  std::vector<std::pair<std::string, std::string>> mInputs;
-  std::vector<std::pair<std::string, std::string>> mOutputs;
 };
 
 template<typename TFnPtr, typename... TFnPtrs>
@@ -626,16 +654,6 @@ void bindOverloads(const char*                             fnName,
     bindOverloads<TFnPtrs...>(fnName, rest...);
   }
 }
-
-/**
- * @brief Gets the current python context in a path format. Must be used from inside a
- * function that has python binding. This can be used to find out in what context a
- * function was instantiated.
- *
- * @return fs::path This is not an actual file path. This is just the context (python
- * stack trace) represented as a path.
- */
-fs::path getcontextpath();
 
 }  // namespace python
 
@@ -706,24 +724,26 @@ fs::path getcontextpath();
     desc, {GAL_EXPAND_ARG_INFOS(inputs)}, {GAL_EXPAND_ARG_INFOS(outputs)});
 
 // Declartion of a gal function.
-#define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                               \
-  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                         \
-  static gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                 \
-                              GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType        \
-    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                \
-  {                                                                                   \
-    using namespace gal::func;                                                        \
-    using FType = TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                   \
-                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                       \
-    auto fn     = store::makeFunction<FType>(                                         \
-      GAL_FN_IMPL_NAME(fnName), std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs)); \
-    return fn->pythonOutputRegs();                                                    \
-  };                                                                                  \
-  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                             \
-  static constexpr gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),       \
-                                        GAL_EXPAND_TYPE_TUPLE(outputArgs)>::          \
-    PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =        \
-      &py_##fnName;                                                                   \
+#define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                                  \
+  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                            \
+  static gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),           \
+                                       GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType  \
+    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                   \
+  {                                                                                      \
+    using namespace gal::func;                                                           \
+    using FType = TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),             \
+                                     GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                 \
+    auto fn =                                                                            \
+      store::makeFunction<FType>(#fnName,                                                \
+                                 GAL_FN_IMPL_NAME(fnName),                               \
+                                 std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));       \
+    return fn->pythonOutputRegs();                                                       \
+  };                                                                                     \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                                \
+  static constexpr gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
+                                                 GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
+    PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =           \
+      &py_##fnName;                                                                      \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 #define _GAL_TEMPL_PARAM_TYPE(argType, argSymbol) argType
@@ -739,29 +759,31 @@ fs::path getcontextpath();
 #define GAL_TEMPL_ARG(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)
 #define GAL_EXPAND_TEMPL_ARGS(...) MAP_LIST(GAL_TEMPL_ARG, __VA_ARGS__)
 
-#define GAL_FUNC_TEMPLATE(templateParams, fnName, fnDesc, inputArgs, outputArgs)         \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
-  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                            \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
-  static typename gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),           \
-                                       GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType  \
-    py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                                   \
-  {                                                                                      \
-    using namespace gal::func;                                                           \
-    using FType = TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),                      \
-                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                          \
-    auto fn     = store::makeFunction<FType>(                                            \
-      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS templateParams >,             \
-      std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                              \
-    return fn->pythonOutputRegs();                                                       \
-  };                                                                                     \
-  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                                \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
-  static constexpr typename gal::func::TFunction<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
-                                                 GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
-    PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =           \
-      &py_##fnName<GAL_EXPAND_TEMPL_ARGS templateParams>;                                \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                       \
+#define GAL_FUNC_TEMPLATE(templateParams, fnName, fnDesc, inputArgs, outputArgs)        \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+  GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                           \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+  static typename gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
+                                                GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
+    PyOutputType py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                     \
+  {                                                                                     \
+    using namespace gal::func;                                                          \
+    using FType = TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),            \
+                                     GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                \
+    auto fn     = store::makeFunction<FType>(                                           \
+      #fnName,                                                                      \
+      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS templateParams >,            \
+      std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                             \
+    return fn->pythonOutputRegs();                                                      \
+  };                                                                                    \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                               \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+  static constexpr                                                                      \
+    typename gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),      \
+                                           GAL_EXPAND_TYPE_TUPLE(outputArgs)>::         \
+      PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =        \
+        &py_##fnName<GAL_EXPAND_TEMPL_ARGS templateParams>;                             \
+  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
@@ -835,7 +857,7 @@ struct defClass
     // implementation of the << operator.
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Functions to create a varable of the type.
-    static const std::string varname("var_" + TypeInfo<T>::name());
+    static const std::string varname = varfnName<T>();
     static const std::string vardocVal =
       "A variable of type " + TypeInfo<T>::name() + " with the given value.";
     static const std::string vardocEmpty =

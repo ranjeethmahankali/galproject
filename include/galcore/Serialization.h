@@ -169,4 +169,26 @@ struct Serial<std::string> : public std::true_type
   }
 };
 
+template<int N, typename T, glm::qualifier Q>
+struct Serial<glm::vec<N, T, Q>>
+{
+  static glm::vec<N, T, Q> deserialize(Bytes& bytes)
+  {
+    glm::vec<N, T, Q> v;
+    for (int i = 0; i < N; i++) {
+      bytes >> v[i];
+    }
+    return v;
+  }
+
+  static Bytes serialize(const glm::vec<N, T, Q>& vec)
+  {
+    Bytes bytes;
+    for (int i = 0; i < N; i++) {
+      bytes << vec[i];
+    }
+    return bytes;
+  }
+};
+
 }  // namespace gal
