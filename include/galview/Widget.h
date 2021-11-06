@@ -74,6 +74,8 @@ public:
   Text(const std::string& text);
   virtual ~Text() = default;
 
+  void set(const std::string& text);
+
   void draw();
 
 protected:

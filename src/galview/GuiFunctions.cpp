@@ -170,6 +170,27 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
   return fn->pythonOutputRegs();
 };
 
+template<typename T>
+struct ShowCallable
+{
+  const bool*      mVisibilityFlag;
+  mutable uint64_t mDrawId = 0;
+
+  ShowCallable(const bool* visibilityFlag)
+      : mVisibilityFlag(visibilityFlag)
+  {}
+
+  void operator()(const func::data::Tree<T>& objs, uint64_t&) const
+  {
+    if constexpr (view::Drawable<T>::value) {
+      mDrawId = view::Views::add<T>(objs.values(), mVisibilityFlag, mDrawId);
+    }
+    else {
+      std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
+    }
+  }
+};
+
 /**
  * @brief Function that adds the given object to the 3d scene, if it is a drawable object.
  * The output type of the function is the draw-id of the object added to the scene.
@@ -177,10 +198,11 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
+struct ShowFunc
+    : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using BaseT        = func::TFunction<const func::data::Tree<T>, uint64_t>;
+  using BaseT = func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>;
   using PyOutputType = typename BaseT::PyOutputType;
 
   uint64_t mDrawId = 0;
@@ -188,17 +210,7 @@ struct ShowFunc : public func::TFunction<const func::data::Tree<T>, uint64_t>
   ShowFunc(const std::string&       label,
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
-      : BaseT(
-          [this, visibilityFlag](const func::data::Tree<T>& objs, uint64_t& id) {
-            if constexpr (view::Drawable<T>::value) {
-              mDrawId = view::Views::add<T>(objs.values(), visibilityFlag, mDrawId);
-              id      = mDrawId;
-            }
-            else {
-              std::cerr << TypeInfo<T>::name() << " is not a drawable type\n";
-            }
-          },
-          std::make_tuple(reg))
+      : BaseT(ShowCallable<T>(visibilityFlag), std::make_tuple(reg))
   {
     auto& tree = std::get<0>(this->mOutputs);
     tree.resize(1);
@@ -230,33 +242,44 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
   return sfn->pythonOutputRegs();
 }
 
+template<typename T>
+struct PrintCallable
+{
+  std::string mLabel;
+  // mutable std::stringstream mStream;
+  gal::view::Text* mTextPtr = nullptr;
+
+  PrintCallable(const std::string& label, gal::view::Text* textLabelPtr)
+      : mLabel(label)
+      , mTextPtr(textLabelPtr)
+  {}
+
+  void operator()(const func::data::Tree<T>& obj, uint8_t&) const
+  {
+    std::stringstream stream;
+    stream.clear();
+    stream.str("");
+    stream << mLabel << ": \n" << obj;
+    mTextPtr->set(stream.str());
+  }
+};
+
 /**
  * @brief Prints the given object to the output panel.
  *
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc : public func::TFunction<const func::data::Tree<T>, uint8_t>,
-                   public view::Text
+struct PrintFunc
+    : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>,
+      public view::Text
 {
-  using BaseT        = func::TFunction<const func::data::Tree<T>, uint8_t>;
+  using BaseT = func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>;
   using PyOutputType = typename BaseT::PyOutputType;
 
-  std::string       mLabel;
-  std::stringstream mStream;
-
   PrintFunc(const std::string& label, const func::Register<T>& reg)
-      : mLabel(label)
-      , view::Text("")
-      , BaseT(
-          [this](const func::data::Tree<T>& obj, uint8_t& success) {
-            mStream.clear();
-            mStream.str("");
-            mStream << mLabel << ": \n" << obj;
-            this->mValue = mStream.str();
-            success      = 1;
-          },
-          std::make_tuple(reg)) {};
+      : view::Text("")
+      , BaseT(PrintCallable<T>(label, this), std::make_tuple(reg)) {};
 
   virtual ~PrintFunc() = default;
 };
