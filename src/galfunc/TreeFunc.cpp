@@ -18,17 +18,31 @@ GAL_FUNC_TEMPLATE(((typename, T)),
                   graft,
                   "Grafts the tree data",
                   ((data::Tree<T>, treeIn, "Input tree")),
-                  ((data::Tree<T>, treeOut, "Output tree")))
+                  ((data::Tree<T>, treeOut, "Grafted tree")))
 {
   treeOut = treeIn;
   treeOut.graft();
+}
+
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  flatten,
+                  "Flattens the tree",
+                  ((data::Tree<T>, in, "Input tree")),
+                  ((data::Tree<T>, out, "Flattened tree")))
+{
+  out = in;
+  out.flatten();
 }
 
 namespace treefunc {
 template<typename T>
 struct bindAllTypes
 {
-  static void invoke() { GAL_FN_BIND_TEMPLATE(graft, T); }
+  static void invoke()
+  {
+    GAL_FN_BIND_TEMPLATE(graft, T);
+    GAL_FN_BIND_TEMPLATE(flatten, T);
+  }
 };
 }  // namespace treefunc
 
