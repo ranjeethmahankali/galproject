@@ -4,8 +4,8 @@
 
 #include <galcore/Annotations.h>
 #include <galcore/Circle2d.h>
-#include <galcore/DebugProfile.h>
 #include <galcore/Plane.h>
+#include <galcore/Sphere.h>
 #include <galcore/Util.h>
 #include <galtest/TestUtils.h>
 
@@ -13,7 +13,6 @@ static constexpr float TOLERANCE = 0.0001f;
 
 TEST(Circle2d, MinBoundingCircle)
 {
-  GALSCOPE(__func__);
   const static std::vector<std::vector<glm::vec2>> pointSets {{
                                                                 {0.f, 0.f},
                                                                 {1.1f, 0.f},
@@ -32,9 +31,7 @@ TEST(Circle2d, MinBoundingCircle)
 
   for (const auto& points : pointSets) {
     auto cloud = gal::PointCloud(points);
-    GALCAPTURE(cloud);
-    GALCAPTURE_WITH_NAME(gal::createIndexedPointCloud(cloud), tags);
-    auto circ = gal::Circle2d::minBoundingCircle(points);
+    auto circ  = gal::Circle2d::minBoundingCircle(points);
 
     for (const auto& pt : points) {
       ASSERT_TRUE(circ.contains(pt, TOLERANCE));
@@ -54,14 +51,11 @@ TEST(Circle2d, MinBoundingCircle)
 
 TEST(Sphere, MinBoundingSphere)
 {
-  GALSCOPE(__func__);
   const static std::vector<glm::vec3> points {
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};
 
   auto cloud = gal::PointCloud(points);
-  GALCAPTURE(cloud);
-  GALCAPTURE_WITH_NAME(gal::createIndexedPointCloud(cloud), tags);
-  auto sp = gal::Sphere::minBoundingSphere(points);
+  auto sp    = gal::Sphere::minBoundingSphere(points);
 
   for (const auto& pt : points) {
     ASSERT_TRUE(sp.contains(pt, TOLERANCE));

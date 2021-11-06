@@ -1,4 +1,3 @@
-#include <galcore/DebugProfile.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/Util.h>
 #include <algorithm>
@@ -20,7 +19,6 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
     : mPath(makeAbsolute(pathIn))
     , mFlipYZ(flipYZ)
 {
-  GALSCOPE(__func__);
   tinyobj::ObjReaderConfig config;
   config.triangulate = true;
   if (!mReader.ParseFromFile(mPath, config)) {
@@ -37,7 +35,6 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
 
 Mesh ObjMeshData::toMesh() const
 {
-  GALSCOPE(__func__);
   std::vector<size_t> indices;
 
   const auto&        shapes     = mReader.GetShapes();

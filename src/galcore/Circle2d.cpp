@@ -1,5 +1,4 @@
 #include <galcore/Circle2d.h>
-#include <galcore/DebugProfile.h>
 #include <algorithm>
 #include <glm/gtx/norm.hpp>
 
@@ -55,7 +54,6 @@ Circle2d Circle2d::createCircumcircle(const glm::vec2& a,
                                       const glm::vec2& b,
                                       const glm::vec2& c)
 {
-  GALSCOPE(__func__);
   float a2 = glm::length2(a);
   float b2 = glm::length2(b);
   float c2 = glm::length2(c);
@@ -87,15 +85,12 @@ static void minBoundingCircleImpl(Circle2d&        circ,
   auto current = begin;
   if (pin1 && pin2) {
     circ = Circle2d::createFromDiameter(*pin1, *pin2);
-    GALCAPTURE(circ);
   }
   else if (pin1) {
     circ = Circle2d::createFromDiameter(*(current++), *pin1);
-    GALCAPTURE(circ);
   }
   else {
     circ = Circle2d::createFromDiameter(*current, *(current + 1));
-    GALCAPTURE(circ);
     current += 2;
   }
 
@@ -103,7 +98,6 @@ static void minBoundingCircleImpl(Circle2d&        circ,
     if (!circ.contains(*current)) {
       if (pin1 && pin2) {
         circ = Circle2d::createCircumcircle(*pin1, *pin2, *current);
-        GALCAPTURE(circ);
       }
       else if (pin1) {
         minBoundingCircleImpl(circ, begin, current, pin1, current);
@@ -118,14 +112,12 @@ static void minBoundingCircleImpl(Circle2d&        circ,
 
 Circle2d Circle2d::minBoundingCircle(const glm::vec2* pts, size_t npts)
 {
-  GALSCOPE(__func__);
   if (npts < 2) {
     throw "Cannot compute circle";
   }
 
   Circle2d circ;
   minBoundingCircleImpl(circ, pts, pts + npts);
-  GALCAPTURE(circ);
   return circ;
 };
 
