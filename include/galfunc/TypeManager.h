@@ -3,13 +3,14 @@
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
 
-#define GAL_EXTERN_TEMPLATE(type)                             \
-  extern template class gal::func::data::Tree<type>;          \
-  extern template struct gal::func::data::ReadView<type, 1>;  \
-  extern template struct gal::func::data::ReadView<type, 2>;  \
-  extern template struct gal::func::data::WriteView<type, 1>; \
-  extern template struct gal::func::data::WriteView<type, 2>; \
-  extern template struct gal::func::data::repeat::CombiView<type>;
+#define GAL_EXTERN_TEMPLATE(type)                                        \
+  extern template class gal::func::data::Tree<type>;                     \
+  extern template struct gal::func::data::ReadView<type, 1>;             \
+  extern template struct gal::func::data::ReadView<type, 2>;             \
+  extern template struct gal::func::data::WriteView<type, 1>;            \
+  extern template struct gal::func::data::WriteView<type, 2>;            \
+  extern template struct gal::func::data::repeat::CombiView<type, true>; \
+  extern template struct gal::func::data::repeat::CombiView<type, false>;
 
 #define GAL_MANAGED_TYPES                                                          \
   uint8_t, int32_t, uint64_t, float, gal::Bool, std::string, glm::vec3, glm::vec2, \

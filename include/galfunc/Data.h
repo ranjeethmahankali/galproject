@@ -16,7 +16,7 @@ static constexpr DepthT DEPTH_MAX = UINT8_MAX;
 
 namespace repeat {
 // Forward declare template.
-template<typename T>
+template<typename T, bool IsInput>
 struct CombiView;
 
 }  // namespace repeat
@@ -93,7 +93,7 @@ private:
   template<typename U, DepthT Dim>
   friend struct WriteView;
 
-  friend repeat::CombiView<T>;
+  friend repeat::CombiView<T, false>;
 
   InternalStorageT    mValues;
   std::vector<DepthT> mDepths;
@@ -916,34 +916,31 @@ namespace repeat {
  * reading nor writing data from / into the tree. Its only for traversing the tree during
  * combinatorics.
  *
- * @tparam T
+ * @tparam T Type of data in the tree.
+ * @tparam IsInput Should indicate whether this corresponds to an input arg.
  */
-template<typename T>
+template<typename T, bool IsInput>
 struct CombiView
 {
-private:
-  const Tree<T>& mTree;
-  size_t         mIndex = 0;
-  DepthT         mOffset;
-  const DepthT   mArgDepth;
+  using TreeRefT = std::conditional_t<IsInput, const Tree<T>&, Tree<T>&>;
 
-  CombiView(const Tree<T>& tree, DepthT offset, DepthT argDepth)
+private:
+  TreeRefT     mTree;
+  size_t       mIndex = 0;
+  DepthT       mOffset;
+  const DepthT mArgDepth;
+
+public:
+  CombiView(TreeRefT& tree, DepthT offset, DepthT argDepth)
       : mTree(tree)
       , mOffset(offset)
       , mArgDepth(argDepth)
-  {}
-
-public:
-  template<bool IsInput>
-  static CombiView<T> create(const Tree<T>& tree, DepthT offset, DepthT argDepth)
   {
-    auto c = CombiView<T>(tree, offset, argDepth);
     if constexpr (!IsInput) {
-      if (offset > 0 || argDepth == 0) {
-        const_cast<Tree<T>&>(tree).queueDepth(offset);
+      if (mOffset > 0 || mArgDepth == 0) {
+        mTree.queueDepth(offset);
       }
     }
-    return c;
   }
 
   size_t index() const { return mIndex; }
@@ -957,12 +954,12 @@ public:
    * the node that this view points to.
    *
    */
-  CombiView<T> child() const
+  CombiView<T, IsInput> child() const
   {
     if (mOffset == 0) {
       throw std::logic_error("The leaf view cannot have a child view");
     }
-    auto c   = CombiView<T>(mTree, mOffset - 1, mArgDepth);
+    auto c   = CombiView<T, IsInput>(mTree, mOffset - 1, mArgDepth);
     c.mIndex = mIndex;
     return c;
   }
@@ -973,7 +970,6 @@ public:
    * @return bool True if the view was advanced, false otherwise. The tree will not be
    * advanced if this node is the last node if its parent.
    */
-  template<bool IsInput>
   bool tryAdvance()
   {
     DepthT td = mArgDepth + mOffset;
@@ -994,7 +990,7 @@ public:
       }
       else if (mOffset > 0 || mArgDepth == 0) {
         mIndex = mTree.size();
-        const_cast<Tree<T>&>(mTree).queueDepth(mOffset);
+        mTree.queueDepth(mOffset);
       }
       return false;
     }
@@ -1027,7 +1023,8 @@ struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
    * arguments.
    */
   using Type = std::tuple<
-    CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type>...>;
+    CombiView<typename std::remove_reference_t<std::remove_const_t<TreeTs>>::Type,
+              std::is_const_v<std::remove_reference_t<TreeTs>>>...>;
 
   /**
    * Tuple of the trees corresponding to the function arguments.
@@ -1047,7 +1044,7 @@ private:
     dst.clear();
     for (size_t i = 0; i <= offset; i++) {
       // Go as deep as possible - i.e. until zero offset.
-      dst.emplace_back(CombiView<ValueType<Is>>::template create<(Is < NInputs)>(
+      dst.emplace_back(CombiView<ValueType<Is>, (Is < NInputs)>(
         std::get<Is>(trees), offset - i, viewDepths[Is])...);
     }
   }
@@ -1133,11 +1130,11 @@ public:
       // Try to advance the tuple of views. Its successful if at least one view can be
       // advanced. Return true if successful, false otherwise.
       if constexpr (N + 1 == NTrees) {
-        return std::get<N>(tup).template tryAdvance<IsInput>();
+        return std::get<N>(tup).tryAdvance();
       }
       else {
         // Try advancing current and next separately to avoid short circuiting the OR.
-        bool current = std::get<N>(tup).template tryAdvance<IsInput>();
+        bool current = std::get<N>(tup).tryAdvance();
         bool next    = tryAdvance<N + 1>(tup);
         return current || next;
       }
