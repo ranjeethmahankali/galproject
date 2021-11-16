@@ -7,9 +7,9 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
 
-#include <galfunc/Converter.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
+#include <galfunc/TypeManager.h>
 
 namespace gal {
 namespace func {
