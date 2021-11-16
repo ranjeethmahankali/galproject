@@ -72,6 +72,7 @@ void unloadAllFunctions()
 {
   std::cout << "Unloading all functions...\n";
   store::sFunctionMap.clear();
+  store::sSubscriberMap.clear();
 }
 
 }  // namespace store
