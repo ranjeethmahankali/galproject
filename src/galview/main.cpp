@@ -159,9 +159,9 @@ int loadDemo(const fs::path& demoPath)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
-      viewfunc::evalOutputs();
       view::drawAllPanels();
       view::imGuiRender();
+      viewfunc::evalOutputs();
       view::Views::render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }

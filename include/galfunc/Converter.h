@@ -2,11 +2,13 @@
 
 #include <filesystem>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#include <boost/python.hpp>
+
 #include <boost/python/object_core.hpp>
 #include <glm/glm.hpp>
 
 #include <galfunc/Data.h>
-#include <galfunc/Functions.h>
 
 namespace gal {
 namespace func {

@@ -28,7 +28,6 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
-find_package(efsw CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 
 # pngpp is a header only library
@@ -95,7 +94,6 @@ target_link_libraries(galview PRIVATE
   imgui::imgui
   GLEW::GLEW
   glfw
-  efsw::efsw
   freetype)
 
 # Copy the shaders to bin dir
