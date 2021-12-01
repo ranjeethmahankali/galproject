@@ -19,7 +19,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "dap-compilation": "bash ${workspaceFolder}/build.sh Debug galtest"
+            "dap-compilation": "${workspaceFolder}/build.sh Debug galtest"
         },
         {
             "name": "galview-debug",
@@ -39,7 +39,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "dap-compilation": "bash ${workspaceFolder}/build.sh Debug galview"
+            "dap-compilation": "${workspaceFolder}/build.sh Debug galview"
         },
         {
             "name": "script-debug",
@@ -59,7 +59,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "dap-compilation": "bash ${workspaceFolder}/build.sh Debug pygalfunc && pip3 install -e ${workspaceFolder}/Debug"
+            "dap-compilation": "${workspaceFolder}/build.sh Debug pygalfunc && pip3 install -e ${workspaceFolder}/Debug"
         }
     ]
 }
