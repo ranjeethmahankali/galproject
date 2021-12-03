@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 
-#include <boost/program_options.hpp>
+#include <cxxopts.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <galcore/Circle2d.h>
@@ -18,8 +18,7 @@
 #include <galview/Widget.h>
 
 using namespace gal;
-namespace fs  = std::filesystem;
-namespace bpo = boost::program_options;
+namespace fs = std::filesystem;
 
 static constexpr char glslVersion[]    = "#version 330 core";
 static fs::path       sCurrentDemoPath = "";
@@ -174,44 +173,25 @@ int loadDemo(const fs::path& demoPath)
 
 int main(int argc, char** argv)
 {
-  static constexpr char    pathKey[] = "path";
-  bpo::options_description desc("galview options");
-  desc.add_options()("help", "produce help message");
-  bpo::options_description hidden("hidden options");
-  hidden.add_options()(pathKey, "Path to run the program with.");
-  bpo::options_description allOptions;
-  allOptions.add(desc).add(hidden);
+  cxxopts::Options opts("galview", "Visualize the gal demos written in python");
+  fs::path         path;
+  // clang-format off
+  opts
+    .allow_unrecognised_options()
+    .add_options()
+    ("help", "Print help")
+    ("f,file", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
+  // clang-format on
+  auto parsed = opts.parse(argc, argv);
 
-  bpo::positional_options_description posn;
-  posn.add(pathKey, 1);
-
-  bpo::variables_map vmap;
-  try {
-    bpo::store(
-      bpo::command_line_parser(argc, argv).options(allOptions).positional(posn).run(),
-      vmap);
-    bpo::notify(vmap);
-  }
-  catch (const bpo::error& err) {
-    std::cerr << "Couldn't parse command line arguments properly:\n";
-    std::cerr << err.what() << '\n' << '\n';
-    std::cerr << desc << '\n';
-    return 1;
+  if (parsed.count("help")) {
+    std::cout << opts.help() << std::endl;
   }
 
-  if (vmap.count("help")) {
-    std::cout << desc << "\n";
-    return 1;
+  if (parsed.count("file") == 0) {
+    std::cerr
+      << "Please provide the path to the demo file using the --file (or -f) flag.\n";
   }
-
-  if (!vmap.count(pathKey)) {
-    std::cerr << "Please provide a path to a demo file, or a directory for debugging or "
-                 "postmortem";
-    std::cerr << desc << '\n';
-    return 1;
-  }
-
-  fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
 
   if (fs::exists(path)) {
     return loadDemo(path);

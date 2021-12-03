@@ -4,7 +4,7 @@
   "dependencies": [
     "boost-python",
     "boost-geometry",
-    "boost-program-options",
+    "cxxopts",
     "python3",
     "glm",
     "glew",
