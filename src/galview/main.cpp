@@ -56,7 +56,7 @@ void glfw_error_cb(int error, const char* desc)
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-int initViewer(GLFWwindow*& window)
+int initViewer(GLFWwindow*& window, const std::string& filename)
 {
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
@@ -68,7 +68,8 @@ int initViewer(GLFWwindow*& window)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  window = glfwCreateWindow(1920, 1080, "galview", nullptr, nullptr);
+  std::string title = "galview - " + filename;
+  window            = glfwCreateWindow(1920, 1080, title.c_str(), nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -134,7 +135,7 @@ int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if ((err = initViewer(window))) {
+  if ((err = initViewer(window, demoPath.filename().string()))) {
     std::cerr << "Failed to initialize the viewer\n";
     return err;
   }
