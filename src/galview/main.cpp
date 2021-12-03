@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -187,18 +188,19 @@ int main(int argc, char** argv)
 
   if (parsed.count("help")) {
     std::cout << opts.help() << std::endl;
+    return 0;
   }
 
   if (parsed.count("file") == 0) {
     std::cerr
       << "Please provide the path to the demo file using the --file (or -f) flag.\n";
-  }
-
-  if (fs::exists(path)) {
-    return loadDemo(path);
-  }
-  else {
-    std::cerr << "The given path does not exist!\n";
     return 1;
   }
+
+  if (!fs::is_regular_file(path) || !fs::exists(path)) {
+    std::cerr << "The given path does not point to a an existing file.\n";
+    return 1;
+  }
+
+  return loadDemo(path);
 }
