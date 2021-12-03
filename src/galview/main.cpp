@@ -179,9 +179,9 @@ int main(int argc, char** argv)
   fs::path         path;
   // clang-format off
   opts
-    .allow_unrecognised_options()
     .add_options()
     ("help", "Print help")
+    ("c,canvas", "Optional flag to open the demo file in canvas mode.")
     ("f,file", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
   // clang-format on
   auto parsed = opts.parse(argc, argv);
@@ -202,5 +202,11 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  return loadDemo(path);
+  if (parsed.count("canvas")) {
+    std::cerr << "Canvas mode is not implemented yet.\n";
+    return 1;
+  }
+  else {
+    return loadDemo(path);
+  }
 }
