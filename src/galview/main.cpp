@@ -1,8 +1,9 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-#include <boost/program_options.hpp>
+#include <cxxopts.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <galcore/Circle2d.h>
@@ -18,8 +19,7 @@
 #include <galview/Widget.h>
 
 using namespace gal;
-namespace fs  = std::filesystem;
-namespace bpo = boost::program_options;
+namespace fs = std::filesystem;
 
 static constexpr char glslVersion[]    = "#version 330 core";
 static fs::path       sCurrentDemoPath = "";
@@ -57,7 +57,7 @@ void glfw_error_cb(int error, const char* desc)
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
 }
 
-int initViewer(GLFWwindow*& window)
+int initViewer(GLFWwindow*& window, const std::string& filename)
 {
   glfwSetErrorCallback(glfw_error_cb);
   std::cout << "Initializign GLFW...\n";
@@ -69,7 +69,8 @@ int initViewer(GLFWwindow*& window)
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   std::cout << "...Opening the Window...\n";
-  window = glfwCreateWindow(1920, 1080, "galview", nullptr, nullptr);
+  std::string title = "galview - " + filename;
+  window            = glfwCreateWindow(1920, 1080, title.c_str(), nullptr, nullptr);
   if (window == nullptr)
     return 1;
 
@@ -135,7 +136,7 @@ int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if ((err = initViewer(window))) {
+  if ((err = initViewer(window, demoPath.filename().string()))) {
     std::cerr << "Failed to initialize the viewer\n";
     return err;
   }
@@ -174,50 +175,32 @@ int loadDemo(const fs::path& demoPath)
 
 int main(int argc, char** argv)
 {
-  static constexpr char    pathKey[] = "path";
-  bpo::options_description desc("galview options");
-  desc.add_options()("help", "produce help message");
-  bpo::options_description hidden("hidden options");
-  hidden.add_options()(pathKey, "Path to run the program with.");
-  bpo::options_description allOptions;
-  allOptions.add(desc).add(hidden);
+  cxxopts::Options opts("galview", "Visualize the gal demos written in python");
+  fs::path         path;
+  // clang-format off
+  opts
+    .allow_unrecognised_options()
+    .add_options()
+    ("help", "Print help")
+    ("f,file", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
+  // clang-format on
+  auto parsed = opts.parse(argc, argv);
 
-  bpo::positional_options_description posn;
-  posn.add(pathKey, 1);
-
-  bpo::variables_map vmap;
-  try {
-    bpo::store(
-      bpo::command_line_parser(argc, argv).options(allOptions).positional(posn).run(),
-      vmap);
-    bpo::notify(vmap);
+  if (parsed.count("help")) {
+    std::cout << opts.help() << std::endl;
+    return 0;
   }
-  catch (const bpo::error& err) {
-    std::cerr << "Couldn't parse command line arguments properly:\n";
-    std::cerr << err.what() << '\n' << '\n';
-    std::cerr << desc << '\n';
+
+  if (parsed.count("file") == 0) {
+    std::cerr
+      << "Please provide the path to the demo file using the --file (or -f) flag.\n";
     return 1;
   }
 
-  if (vmap.count("help")) {
-    std::cout << desc << "\n";
+  if (!fs::is_regular_file(path) || !fs::exists(path)) {
+    std::cerr << "The given path does not point to a an existing file.\n";
     return 1;
   }
 
-  if (!vmap.count(pathKey)) {
-    std::cerr << "Please provide a path to a demo file, or a directory for debugging or "
-                 "postmortem";
-    std::cerr << desc << '\n';
-    return 1;
-  }
-
-  fs::path path = fs::absolute(fs::path(vmap[pathKey].as<std::string>()));
-
-  if (fs::exists(path)) {
-    return loadDemo(path);
-  }
-  else {
-    std::cerr << "The given path does not exist!\n";
-    return 1;
-  }
+  return loadDemo(path);
 }
