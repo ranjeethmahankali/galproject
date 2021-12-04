@@ -39,14 +39,10 @@ public:
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
-  std::vector<std::shared_ptr<Widget>> toBeAdded;
-  std::vector<std::shared_ptr<Widget>> toBeRemoved;
   std::string                          mTitle;
 
 public:
   void addWidget(const std::shared_ptr<Widget>& widget);
-
-  void removeWidget(const std::shared_ptr<Widget>& widget);
 
   /**
    * @brief Clears all widgets / contents inside this panel.
