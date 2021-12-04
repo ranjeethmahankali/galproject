@@ -1,22 +1,30 @@
 
-#include <galcore/Util.h>
-#include <galview/Widget.h>
 #include <iostream>
+
+#include <imgui.h>
+
+#include <galcore/Util.h>
+#include <galview/GLUtil.h>
+#include <galview/Widget.h>
 
 namespace gal {
 namespace view {
 
-static ImFont* sFont = nullptr;
+static ImFont* sFont      = nullptr;
+static ImFont* sFontLarge = nullptr;
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
   std::cout << "Setting up ImGui...\n";
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO&    io      = ImGui::GetIO();
+  std::string absPath = utils::absPath("CascadiaMono.ttf");
   if (!sFont) {
-    std::string absPath = utils::absPath("CascadiaMono.ttf");
-    sFont               = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.0f);
+    sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
+  }
+  if (!sFontLarge) {
+    sFontLarge = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 20.f);
   }
   ImGui::StyleColorsDark();  // Dark Mode
 
@@ -112,7 +120,7 @@ TextInput::TextInput(const std::string& label, const std::string& value)
   mValue.reserve(1024);  // avoids reallocation for each frame.
 };
 
-static int TextInputResizeCallback(ImGuiInputTextCallbackData* data)
+static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
     std::string* str = (std::string*)data->UserData;
@@ -128,7 +136,7 @@ void TextInput::draw()
                    mValue.data(),
                    mValue.size(),
                    ImGuiInputTextFlags_CallbackResize,
-                   TextInputResizeCallback,
+                   TextInputCallBack,
                    (void*)(&mValue));
 
   checkEdited();
@@ -150,7 +158,7 @@ void TextInputBox::draw()
                             mValue.size(),
                             ImVec2(200, ImGui::GetTextLineHeight() * 4),
                             ImGuiInputTextFlags_CallbackResize,
-                            TextInputResizeCallback,
+                            TextInputCallBack,
                             (void*)(&mValue));
   checkEdited();
   if (!ImGui::IsItemActive()) {
@@ -173,6 +181,68 @@ const bool* CheckBox::checkedPtr() const
 {
   return &mValue;
 }
+
+namespace cmdinterface {
+
+static int cmdLineCallback(ImGuiInputTextCallbackData* data)
+{
+  if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+    std::string* str = (std::string*)data->UserData;
+    str->resize(data->BufSize);
+    data->Buf = str->data();
+  }
+  else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
+    // TODO: Implement proper auto completion here.
+    data->InsertChars(data->CursorPos, "..");
+  }
+  return 0;
+}
+
+void show(GLFWwindow* window)
+{
+  static std::string cmdline    = "";
+  static bool        isVisible  = true;
+  static float       sCmdHeight = 50.f;
+
+  // Get the parent window size.
+  int width = 0, height = 0;
+  glfwGetWindowSize(window, &width, &height);
+  float fwidth = float(width), fheight = float(height);
+
+  ImGuiWindowFlags wflags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
+                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+  // ImGuiWindowFlags wflags = 0;
+  ImGui::SetNextWindowPos(ImVec2(0.f, fheight - sCmdHeight));
+  ImGui::SetNextWindowSize(ImVec2(fwidth, sCmdHeight));
+  ImGui::Begin("command-window", &isVisible, wflags);
+  if (sFontLarge) {
+    ImGui::PushFont(sFontLarge);
+  }
+
+  ImGuiInputTextFlags tflags = ImGuiInputTextFlags_CallbackResize |
+                               ImGuiInputTextFlags_EnterReturnsTrue |
+                               ImGuiInputTextFlags_CallbackCompletion;
+  ImGui::Text("Command: ");
+  ImGui::SameLine();
+  ImGui::PushItemWidth(fwidth - 120.f);
+  if (ImGui::InputText(
+        "", cmdline.data(), cmdline.size(), tflags, cmdLineCallback, (void*)(&cmdline))) {
+    cmdline.erase(std::remove(cmdline.begin(), cmdline.end(), '\0'), cmdline.end());
+    std::cout << "Received command: " << cmdline << std::endl;
+    cmdline.clear();
+  }
+  if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {
+    ImGui::SetKeyboardFocusHere(0);
+  }
+  ImGui::PopItemWidth();
+
+  if (sFontLarge) {
+    ImGui::PopFont();
+  }
+  ImGui::End();
+}
+
+}  // namespace cmdinterface
 
 }  // namespace view
 }  // namespace gal

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -290,6 +291,12 @@ public:
   void        draw();
   const bool* checkedPtr() const;
 };
+
+namespace cmdinterface {
+
+void show(GLFWwindow* window);
+
+}
 
 }  // namespace view
 }  // namespace gal
