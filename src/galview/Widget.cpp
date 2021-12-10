@@ -233,7 +233,7 @@ void draw(GLFWwindow* window)
   // ImGuiWindowFlags wflags = 0;
   ImGui::SetNextWindowPos(ImVec2(0.f, fheight - cmdHeight));
   ImGui::SetNextWindowSize(ImVec2(fwidth, cmdHeight));
-  ImGui::SetNextWindowBgAlpha(0.25f);
+  ImGui::SetNextWindowBgAlpha(0.4f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", &isVisible, wflags);
 
