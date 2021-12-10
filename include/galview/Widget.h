@@ -294,9 +294,10 @@ public:
 
 namespace cmdinterface {
 
-void show(GLFWwindow* window);
+void init();
+void draw(GLFWwindow* window);
 
-}
+}  // namespace cmdinterface
 
 }  // namespace view
 }  // namespace gal

@@ -1,9 +1,15 @@
 
+#include <algorithm>
 #include <iostream>
 
 #include <imgui.h>
+#include <spdlog/common.h>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <galcore/Util.h>
+#include <galview/Command.h>
 #include <galview/GLUtil.h>
 #include <galview/Widget.h>
 
@@ -24,7 +30,7 @@ void initializeImGui(GLFWwindow* window, const char* glslVersion)
     sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
   }
   if (!sFontLarge) {
-    sFontLarge = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 20.f);
+    sFontLarge = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 19.f);
   }
   ImGui::StyleColorsDark();  // Dark Mode
 
@@ -198,44 +204,67 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
   return 0;
 }
 
-void show(GLFWwindow* window)
+static std::stringstream sResponseStream;
+static auto              sResponseSink =
+  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
+
+void init()
+{
+  addLogSink(sResponseSink);
+}
+
+void draw(GLFWwindow* window)
 {
   static std::string cmdline    = "";
+  static std::string response   = "";
   static bool        isVisible  = true;
   static float       sCmdHeight = 50.f;
 
   // Get the parent window size.
   int width = 0, height = 0;
   glfwGetWindowSize(window, &width, &height);
-  float fwidth = float(width), fheight = float(height);
+  float  fwidth = float(width), fheight = float(height);
+  size_t nLines =
+    std::max(size_t(1), size_t(std::count(response.begin(), response.end(), '\n')));
+  float cmdHeight = sCmdHeight + float(nLines) * 17.f;
 
-  ImGuiWindowFlags wflags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
-                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+  ImGuiWindowFlags wflags =
+    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
   // ImGuiWindowFlags wflags = 0;
-  ImGui::SetNextWindowPos(ImVec2(0.f, fheight - sCmdHeight));
-  ImGui::SetNextWindowSize(ImVec2(fwidth, sCmdHeight));
+  ImGui::SetNextWindowPos(ImVec2(0.f, fheight - cmdHeight));
+  ImGui::SetNextWindowSize(ImVec2(fwidth, cmdHeight));
+  ImGui::SetNextWindowBgAlpha(0.25f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", &isVisible, wflags);
+
+  ImGui::PushStyleColor(ImGuiCol_Text, 0xff999999);
+  ImGui::Text("%s", response.c_str());
+  ImGui::PopStyleColor();
+
   if (sFontLarge) {
     ImGui::PushFont(sFontLarge);
   }
-
+  ImGui::PushItemWidth(fwidth - 120.f);
   ImGuiInputTextFlags tflags = ImGuiInputTextFlags_CallbackResize |
                                ImGuiInputTextFlags_EnterReturnsTrue |
                                ImGuiInputTextFlags_CallbackCompletion;
   ImGui::Text("Command: ");
   ImGui::SameLine();
-  ImGui::PushItemWidth(fwidth - 120.f);
   if (ImGui::InputText(
         "", cmdline.data(), cmdline.size(), tflags, cmdLineCallback, (void*)(&cmdline))) {
     cmdline.erase(std::remove(cmdline.begin(), cmdline.end(), '\0'), cmdline.end());
-    std::cout << "Received command: " << cmdline << std::endl;
+
+    runCommand(cmdline);
+
+    response = sResponseStream.str();
+    sResponseStream.str("");
     cmdline.clear();
   }
   if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {
     ImGui::SetKeyboardFocusHere(0);
   }
   ImGui::PopItemWidth();
-
+  ImGui::PopStyleVar();
   if (sFontLarge) {
     ImGui::PopFont();
   }
