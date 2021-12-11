@@ -158,7 +158,6 @@ void Context::registerCallbacks(GLFWwindow* window)
   glfwSetCursorPosCallback(window, Context::onMouseMove);
   glfwSetMouseButtonCallback(window, Context::onMouseButton);
   glfwSetScrollCallback(window, Context::onMouseScroll);
-  glfwSetKeyCallback(window, Context::onKeyEvent);
 };
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
@@ -212,16 +211,6 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
   }
 
   GL_CALL(glfwGetCursorPos(window, &sMousePos.x, &sMousePos.y));
-}
-
-void Context::onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-  // No key events at the moment. But keeping this handler around just in case.
-  if (ImGui::IsAnyItemActive())
-    return;
-  if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
-    Context::get().zoomExtents();
-  }
 }
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
