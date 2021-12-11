@@ -20,10 +20,25 @@
 namespace gal {
 namespace viewfunc {
 
-static view::Panel*                                           sInputPanel  = nullptr;
-static view::Panel*                                           sOutputPanel = nullptr;
+static std::shared_ptr<view::Panel>                           sInputPanel  = nullptr;
+static std::shared_ptr<view::Panel>                           sOutputPanel = nullptr;
+static bool                                                   sShowInputs  = true;
+static bool                                                   sShowOutputs = true;
 static std::vector<const func::Function*>                     sOutputFuncs;
 static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
+
+struct PanelInfo
+{
+  std::shared_ptr<view::Panel> mPanel;
+  bool                         mVisible = true;
+
+  PanelInfo(const std::shared_ptr<view::Panel>& panel)
+      : mPanel(panel)
+  {}
+  const std::string& title() const { return mPanel->title(); }
+};
+
+static std::vector<PanelInfo> sPanels;
 
 /**
  * @brief Gets the visibility checkbox from the output panel with the given name.
@@ -41,10 +56,33 @@ static const view::CheckBox& getCheckBox(const std::string name)
   return pair.first->second;
 }
 
-void initPanels(view::Panel& inputs, view::Panel& outputs)
+void initPanels()
 {
-  sInputPanel  = &inputs;
-  sOutputPanel = &outputs;
+  sInputPanel = std::make_shared<view::Panel>("inputs");
+  sPanels.emplace_back(sInputPanel);
+  sOutputPanel = std::make_shared<view::Panel>("outputs");
+  sPanels.emplace_back(sOutputPanel);
+}
+
+void setPanelVisibility(const std::string& name, bool visible)
+{
+  auto match =
+    std::find_if(sPanels.begin(), sPanels.end(), [&name](const PanelInfo& pinfo) {
+      return pinfo.mPanel->title() == name;
+    });
+  if (match != sPanels.end()) {
+    match->mVisible = visible;
+  }
+}
+
+void drawPanels()
+{
+  for (const auto& pinfo : sPanels) {
+    if (pinfo.mVisible) {
+      pinfo.mPanel->draw();
+    }
+  }
+  // Incomplete.
 }
 
 view::Panel& inputPanel()

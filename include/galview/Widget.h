@@ -59,11 +59,9 @@ public:
     addWidget(w);
     return w;
   };
+
+  const std::string& title() const;
 };
-
-Panel& newPanel(const std::string& title);
-
-void drawAllPanels();
 
 class Text : public Widget
 {

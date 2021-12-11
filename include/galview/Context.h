@@ -91,11 +91,11 @@ public:
 
   void set2dMode(bool flag);
 
-  void toggle2dMode();
-
   size_t shaderId(const std::string& name) const;
 
   void useShader(size_t shaderId);
+
+  void zoomExtents();
 
 private:
   Context();
@@ -113,8 +113,6 @@ private:
   static void onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods);
 
   void cameraChanged();
-
-  void zoomExtents();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);

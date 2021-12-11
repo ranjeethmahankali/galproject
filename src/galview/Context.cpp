@@ -124,11 +124,6 @@ void Context::set2dMode(bool flag)
   }
 }
 
-void Context::toggle2dMode()
-{
-  set2dMode(!s2dMode);
-}
-
 Context::Context()
     : mShaders(4)
 {

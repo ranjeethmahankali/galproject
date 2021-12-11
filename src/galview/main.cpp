@@ -31,7 +31,7 @@ void initPythonEnvironment()
   Py_Initialize();
 
   using namespace std::string_literals;
-  gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
+  gal::viewfunc::initPanels();
 };
 
 void glfw_error_cb(int error, const char* desc)
@@ -88,16 +88,6 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   return 0;
 }
 
-void showSettingsPanel()
-{
-  static view::Panel& panel = view::newPanel("Settings");
-  panel.newWidget<view::Button>("Toggle 2d Mode",
-                                []() { view::Context::get().toggle2dMode(); });
-  panel.newWidget<view::Button>("Reload demo", []() {
-
-  });
-}
-
 void wrapUp(GLFWwindow* window)
 {
   ImGui_ImplOpenGL3_Shutdown();
@@ -118,7 +108,6 @@ int loadDemo(const fs::path& demoPath)
 
   // Setup IMGUI
   view::initializeImGui(window, glslVersion);
-  view::cmdinterface::init();
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
@@ -128,8 +117,9 @@ int loadDemo(const fs::path& demoPath)
     return err;
   }
 
+  view::cmdinterface::init();
+
   std::cout << "Starting render loop...\n";
-  showSettingsPanel();
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     view::imGuiNewFrame();
@@ -138,7 +128,7 @@ int loadDemo(const fs::path& demoPath)
     {
       view::cmdinterface::draw(window);
 
-      view::drawAllPanels();
+      viewfunc::drawPanels();
       view::imGuiRender();
       viewfunc::evalOutputs();
       view::Views::render();

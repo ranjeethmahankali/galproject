@@ -78,20 +78,12 @@ void Panel::clear()
   mWidgets.clear();
 }
 
+const std::string& Panel::title() const
+{
+  return mTitle;
+}
+
 static std::vector<std::shared_ptr<Panel>> sPanels;
-
-Panel& newPanel(const std::string& title)
-{
-  sPanels.push_back(std::make_shared<Panel>(title));
-  return *sPanels.back();
-};
-
-void drawAllPanels()
-{
-  for (auto& p : sPanels) {
-    p->draw();
-  }
-};
 
 Text::Text(const std::string& value)
     : mValue(value) {};

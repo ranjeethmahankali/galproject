@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include <spdlog/sinks/ostream_sink.h>
-#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <galview/GuiFunctions.h>
 #include <galview/Views.h>
@@ -16,11 +16,16 @@ namespace view {
 static std::stringstream sHistoryStream;
 static auto              sHistorySink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sHistoryStream);
-static spdlog::logger sLogger          = spdlog::logger("cmd", sHistorySink);
-static fs::path       sCurrentDemoPath = "";
+static auto     sLogger          = spdlog::stdout_color_mt("galview");
+static fs::path sCurrentDemoPath = "";
 
 using CmdFnType = void (*)(int, char**);
 static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
+
+spdlog::logger& logger()
+{
+  return *sLogger;
+}
 
 namespace cmdfuncs {
 
@@ -31,16 +36,47 @@ void reload(int, char**)
   gal::view::Views::clear();
   int err = runPythonDemoFile(sCurrentDemoPath);
   if (err != 0) {
-    std::cerr << "Unable to run the demo file. Aborting...\n";
+    logger().error("Unable to run the demo file. Aborting...\n");
     std::exit(err);
   }
+}
+
+void twoDMode(int, char**)
+{
+  view::Context::get().set2dMode(true);
+}
+
+void threeDMode(int, char**)
+{
+  view::Context::get().set2dMode(false);
+}
+
+void zoomExtents(int, char**)
+{
+  view::Context::get().zoomExtents();
+}
+
+void show(int argc, char** argv)
+{
+  if (argc != 2) {
+    logger().error("show commands expects the name of the panel as an argument.");
+  }
+  viewfunc::setPanelVisibility(argv[1], true);
+}
+
+void hide(int argc, char** argv)
+{
+  if (argc != 2) {
+    logger().error("hide commands expects the name of the panel as an argument.");
+  }
+  viewfunc::setPanelVisibility(argv[1], false);
 }
 
 }  // namespace cmdfuncs
 
 void addLogSink(const spdlog::sink_ptr& sink)
 {
-  sLogger.sinks().push_back(sink);
+  logger().sinks().push_back(sink);
 }
 
 void setDemoFilepath(const fs::path& path)
@@ -50,23 +86,29 @@ void setDemoFilepath(const fs::path& path)
 
 void initCommands()
 {
+  logger().sinks().push_back(sHistorySink);
   sCommandFnMap.emplace("reload", cmdfuncs::reload);
+  sCommandFnMap.emplace("2d", cmdfuncs::twoDMode);
+  sCommandFnMap.emplace("3d", cmdfuncs::threeDMode);
+  sCommandFnMap.emplace("ze", cmdfuncs::zoomExtents);
+  sCommandFnMap.emplace("show", cmdfuncs::show);
+  sCommandFnMap.emplace("hide", cmdfuncs::hide);
 }
 
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
-    std::cout << "Running demo file: " << demoPath << std::endl;
     view::setDemoFilepath(demoPath);
     boost::python::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
     boost::python::exec_file(demoPath.c_str(), global);
+    logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
   catch (boost::python::error_already_set) {
     PyErr_Print();
-    std::cerr << "Unable to load the demo... aborting...\n";
+    logger().error("Unable to load the demo... aborting...\n");
     return 1;
   }
 }
@@ -93,10 +135,14 @@ void runCommand(const std::string& cmd)
     return i + sParsed.data();
   });
 
+  if (sArgV.empty()) {
+    // No command received.
+    return;
+  }
   std::string command = sArgV[0];
   auto        match   = sCommandFnMap.find(command);
   if (match == sCommandFnMap.end()) {
-    sLogger.error("Unrecognized command {}", command);
+    logger().error("Unrecognized command {}", command);
     return;
   }
 
