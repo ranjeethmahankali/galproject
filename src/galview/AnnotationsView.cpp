@@ -100,7 +100,7 @@ void getFontTextureData(FT_Face                           face,
   for (unsigned char c = 0; c < 128; c++) {
     // load character glyph
     if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-      std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+      view::logger().error("ERROR::FREETYTPE: Failed to load glyph for character {}", c);
       continue;
     }
 

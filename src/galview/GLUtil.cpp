@@ -8,11 +8,8 @@ bool log_errors(const char* function, const char* file, uint line)
 {
   static bool found_error = false;
   while (GLenum error = glGetError()) {
-    std::cout << "[OpenGL Error] (0x" << std::hex << error << std::dec << ")";
-#ifndef NDEBUG
-    std::cout << " in " << function << " at " << file << ":" << line;
-#endif  // NDEBUG
-    std::cout << std::endl;
+    view::logger().error(
+      "OpenGL Error 0x{:x} in {} at {}:{}", error, function, file, line);
     found_error = true;
   }
   if (found_error) {

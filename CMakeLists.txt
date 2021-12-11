@@ -37,6 +37,7 @@ add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 include_directories(include)
 # Dependencies and Includes - end
@@ -48,7 +49,9 @@ add_library(galcore STATIC ${GALCORE_SRC})
 target_link_libraries(galcore PUBLIC
     glm::glm
     tinyobjloader::tinyobjloader
-    TBB::tbb)
+    TBB::tbb
+    spdlog::spdlog
+    spdlog::spdlog_header_only)
 
 target_include_directories(galcore PUBLIC ${PNGPP_INCLUDE_DIRS})
 #GALCORE - end

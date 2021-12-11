@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -39,14 +40,10 @@ public:
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
-  std::vector<std::shared_ptr<Widget>> toBeAdded;
-  std::vector<std::shared_ptr<Widget>> toBeRemoved;
   std::string                          mTitle;
 
 public:
   void addWidget(const std::shared_ptr<Widget>& widget);
-
-  void removeWidget(const std::shared_ptr<Widget>& widget);
 
   /**
    * @brief Clears all widgets / contents inside this panel.
@@ -62,11 +59,9 @@ public:
     addWidget(w);
     return w;
   };
+
+  const std::string& title() const;
 };
-
-Panel& newPanel(const std::string& title);
-
-void drawAllPanels();
 
 class Text : public Widget
 {
@@ -294,6 +289,13 @@ public:
   void        draw();
   const bool* checkedPtr() const;
 };
+
+namespace cmdinterface {
+
+void init();
+void draw(GLFWwindow* window);
+
+}  // namespace cmdinterface
 
 }  // namespace view
 }  // namespace gal

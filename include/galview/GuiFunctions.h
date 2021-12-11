@@ -10,7 +10,9 @@
 namespace gal {
 namespace viewfunc {
 
-void         initPanels(view::Panel& inputs, view::Panel& outputs);
+void         initPanels();
+void         drawPanels();
+void         setPanelVisibility(const std::string& name, bool visible);
 view::Panel& inputPanel();
 view::Panel& outputPanel();
 void         evalOutputs();

@@ -4,14 +4,15 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-
-#include <galcore/Mesh.h>
-#include <galcore/Util.h>
-#include <galview/Context.h>
-#include <galview/Views.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+
+#include <galcore/Mesh.h>
+#include <galcore/Util.h>
+#include <galview/Command.h>
+#include <galview/Context.h>
+#include <galview/Views.h>
 
 namespace gal {
 namespace view {
@@ -100,7 +101,7 @@ void Context::useShader(size_t shaderId)
     setOrthoModeUniform();
   }
   else {
-    std::cerr << "Invalid shader id\n";
+    view::logger().error("{} is an invalid shader id.", shaderId);
   }
 }
 
@@ -122,11 +123,6 @@ void Context::set2dMode(bool flag)
     useCamera({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
     setPerspective();
   }
-}
-
-void Context::toggle2dMode()
-{
-  set2dMode(!s2dMode);
 }
 
 Context::Context()
@@ -163,7 +159,6 @@ void Context::registerCallbacks(GLFWwindow* window)
   glfwSetCursorPosCallback(window, Context::onMouseMove);
   glfwSetMouseButtonCallback(window, Context::onMouseButton);
   glfwSetScrollCallback(window, Context::onMouseScroll);
-  glfwSetKeyCallback(window, Context::onKeyEvent);
 };
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
@@ -217,16 +212,6 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
   }
 
   GL_CALL(glfwGetCursorPos(window, &sMousePos.x, &sMousePos.y));
-}
-
-void Context::onKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-  // No key events at the moment. But keeping this handler around just in case.
-  if (ImGui::IsAnyItemActive())
-    return;
-  if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
-    Context::get().zoomExtents();
-  }
 }
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
@@ -313,25 +298,24 @@ static void checkCompilation(uint32_t id, uint32_t type)
   if (result == GL_FALSE) {
     int length;
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-    std::cerr << "Failed to compile ";
+    std::string shaderType = "unknown";
     switch (type) {
     case GL_VERTEX_SHADER:
-      std::cerr << "vertex";
+      shaderType = "vertex";
       break;
     case GL_FRAGMENT_SHADER:
-      std::cerr << "fragment";
+      shaderType = "fragment";
       break;
     case GL_COMPUTE_SHADER:
-      std::cerr << "compute";
+      shaderType = "compute";
       break;
     default:
       break;
     }
-    std::cerr << " shader" << std::endl;
 
     std::string message(length + 1, '\0');
     glGetShaderInfoLog(id, length, &length, message.data());
-    std::cerr << message << std::endl;
+    view::logger().error("Failed to compile {} shader:\n{}", shaderType, message);
 
     GL_CALL(glDeleteShader(id));
   }
@@ -344,13 +328,13 @@ static void checkLinking(uint32_t progId)
   glGetProgramiv(progId, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(progId, 1024, NULL, infoLog);
-    std::cout << "Error Linking Shader Program:\n" << infoLog << std::endl;
+    view::logger().error("Error linking shader program:\n{}", infoLog);
   }
 };
 
 static std::string readfile(const std::string& filepath)
 {
-  std::cout << "Reading shader source: " << filepath << std::endl;
+  view::logger().debug("Reading shader source: {}", filepath);
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   std::stringstream file_stream;
@@ -360,8 +344,7 @@ static std::string readfile(const std::string& filepath)
     file.close();
   }
   catch (std::ifstream::failure e) {
-    std::cout << "Error reading shader source file!" << std::endl;
-    std::cout << e.what() << std::endl;
+    view::logger().error("Error reading shader source file:\n{}", e.what());
   }
   return file_stream.str();
 };

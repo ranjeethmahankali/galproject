@@ -1,22 +1,36 @@
 
-#include <galcore/Util.h>
-#include <galview/Widget.h>
+#include <algorithm>
 #include <iostream>
+
+#include <imgui.h>
+#include <spdlog/common.h>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
+
+#include <galcore/Util.h>
+#include <galview/Command.h>
+#include <galview/GLUtil.h>
+#include <galview/Widget.h>
 
 namespace gal {
 namespace view {
 
-static ImFont* sFont = nullptr;
+static ImFont* sFont      = nullptr;
+static ImFont* sFontLarge = nullptr;
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
-  std::cout << "Setting up ImGui...\n";
+  view::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO&    io      = ImGui::GetIO();
+  std::string absPath = utils::absPath("CascadiaMono.ttf");
   if (!sFont) {
-    std::string absPath = utils::absPath("CascadiaMono.ttf");
-    sFont               = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.0f);
+    sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
+  }
+  if (!sFontLarge) {
+    sFontLarge = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 19.f);
   }
   ImGui::StyleColorsDark();  // Dark Mode
 
@@ -45,26 +59,6 @@ void Panel::draw()
   if (sFont)
     ImGui::PushFont(sFont);
 
-  // Add the widgets that are queued to be added.
-  if (!toBeAdded.empty()) {
-    std::copy(toBeAdded.begin(), toBeAdded.end(), std::back_inserter(mWidgets));
-    toBeAdded.clear();
-  }
-  // Remove the widgets that are queued to be removed.
-  if (!toBeRemoved.empty()) {
-    mWidgets.erase(std::remove_if(mWidgets.begin(),
-                                  mWidgets.end(),
-                                  [this](const std::shared_ptr<Widget>& w) {
-                                    return std::find_if(
-                                             toBeRemoved.begin(),
-                                             toBeRemoved.end(),
-                                             [&w](const std::shared_ptr<Widget>& r) {
-                                               return w.get() == r.get();
-                                             }) != toBeRemoved.end();
-                                  }),
-                   mWidgets.end());
-    toBeRemoved.clear();
-  }
   for (auto& w : mWidgets) {
     w->draw();
   }
@@ -76,34 +70,20 @@ void Panel::draw()
 
 void Panel::addWidget(const std::shared_ptr<Widget>& widget)
 {
-  toBeAdded.push_back(widget);
+  mWidgets.push_back(widget);
 };
-
-void Panel::removeWidget(const std::shared_ptr<Widget>& widget)
-{
-  toBeRemoved.push_back(widget);
-}
 
 void Panel::clear()
 {
-  std::cout << "Clearing all widgets...\n";
   mWidgets.clear();
 }
 
+const std::string& Panel::title() const
+{
+  return mTitle;
+}
+
 static std::vector<std::shared_ptr<Panel>> sPanels;
-
-Panel& newPanel(const std::string& title)
-{
-  sPanels.push_back(std::make_shared<Panel>(title));
-  return *sPanels.back();
-};
-
-void drawAllPanels()
-{
-  for (auto& p : sPanels) {
-    p->draw();
-  }
-};
 
 Text::Text(const std::string& value)
     : mValue(value) {};
@@ -137,7 +117,7 @@ TextInput::TextInput(const std::string& label, const std::string& value)
   mValue.reserve(1024);  // avoids reallocation for each frame.
 };
 
-static int TextInputResizeCallback(ImGuiInputTextCallbackData* data)
+static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
     std::string* str = (std::string*)data->UserData;
@@ -153,7 +133,7 @@ void TextInput::draw()
                    mValue.data(),
                    mValue.size(),
                    ImGuiInputTextFlags_CallbackResize,
-                   TextInputResizeCallback,
+                   TextInputCallBack,
                    (void*)(&mValue));
 
   checkEdited();
@@ -175,7 +155,7 @@ void TextInputBox::draw()
                             mValue.size(),
                             ImVec2(200, ImGui::GetTextLineHeight() * 4),
                             ImGuiInputTextFlags_CallbackResize,
-                            TextInputResizeCallback,
+                            TextInputCallBack,
                             (void*)(&mValue));
   checkEdited();
   if (!ImGui::IsItemActive()) {
@@ -198,6 +178,105 @@ const bool* CheckBox::checkedPtr() const
 {
   return &mValue;
 }
+
+namespace cmdinterface {
+
+static std::stringstream sResponseStream;
+static auto              sResponseSink =
+  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
+static std::string sCmdline  = "";
+static std::string sResponse = "";
+
+static void captureResponseStream()
+{
+  sResponse = sResponseStream.str();
+  sResponseStream.str("");
+}
+
+static int cmdLineCallback(ImGuiInputTextCallbackData* data)
+{
+  if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+    std::string* str = (std::string*)data->UserData;
+    str->resize(data->BufSize);
+    data->Buf = str->data();
+  }
+  else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
+    static std::string sCharsToInsert = "";
+    // TODO: Implement proper auto completion here.
+    std::string* cmd = (std::string*)data->UserData;
+    autocompleteCommand(*cmd, sCharsToInsert);
+    data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
+    captureResponseStream();
+  }
+  return 0;
+}
+
+void init()
+{
+  initCommands();
+  sResponseSink->set_pattern("[%l] %v");
+  addLogSink(sResponseSink);
+}
+
+void draw(GLFWwindow* window)
+{
+  static bool  isVisible  = false;
+  static float sCmdHeight = 50.f;
+
+  // Get the parent window size.
+  int width = 0, height = 0;
+  glfwGetWindowSize(window, &width, &height);
+  float  fwidth = float(width), fheight = float(height);
+  float  cmdWidth = std::min(fwidth, 960.f);
+  size_t nLines =
+    std::max(size_t(1), size_t(std::count(sResponse.begin(), sResponse.end(), '\n')));
+  float cmdHeight = sCmdHeight + float(nLines) * 17.f;
+
+  ImGuiWindowFlags wflags =
+    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+  // ImGuiWindowFlags wflags = 0;
+  ImGui::SetNextWindowPos(ImVec2(0.5f * (fwidth - cmdWidth), fheight - cmdHeight));
+  ImGui::SetNextWindowSize(ImVec2(cmdWidth, cmdHeight));
+  ImGui::SetNextWindowBgAlpha(0.75f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+  ImGui::Begin("command-window", &isVisible, wflags);
+
+  ImGui::PushStyleColor(ImGuiCol_Text, 0xff999999);
+  ImGui::Text("%s", sResponse.c_str());
+  ImGui::PopStyleColor();
+
+  if (sFontLarge) {
+    ImGui::PushFont(sFontLarge);
+  }
+  ImGui::PushItemWidth(cmdWidth - 70.f);
+  ImGuiInputTextFlags tflags = ImGuiInputTextFlags_CallbackResize |
+                               ImGuiInputTextFlags_EnterReturnsTrue |
+                               ImGuiInputTextFlags_CallbackCompletion;
+  ImGui::Text(">>> ");
+  ImGui::SameLine();
+  if (ImGui::InputText("",
+                       sCmdline.data(),
+                       sCmdline.size(),
+                       tflags,
+                       cmdLineCallback,
+                       (void*)(&sCmdline))) {
+    sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
+    runCommand(sCmdline);
+    captureResponseStream();
+    sCmdline.clear();
+  }
+  if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {
+    ImGui::SetKeyboardFocusHere(0);
+  }
+  ImGui::PopItemWidth();
+  ImGui::PopStyleVar();
+  if (sFontLarge) {
+    ImGui::PopFont();
+  }
+  ImGui::End();
+}
+
+}  // namespace cmdinterface
 
 }  // namespace view
 }  // namespace gal

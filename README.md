@@ -32,7 +32,7 @@ Set the environment variable VCPKG_PATH to the path where vcpkg is cloned.
 Building:
 
 ```
-bash build.sh Release
+./build.sh Release
 ```
 
 Runnning unit tests:
