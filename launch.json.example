@@ -26,7 +26,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/Debug/galview",
-            "args": ["-f", "demos/meshWithColors.py"],
+            "args": ["demos/meshView.py"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

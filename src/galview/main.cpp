@@ -182,10 +182,13 @@ int main(int argc, char** argv)
   fs::path         path;
   // clang-format off
   opts
+    .allow_unrecognised_options()
     .add_options()
     ("help", "Print help")
-    ("f,file", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
+    ("filepath", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
   // clang-format on
+  opts.positional_help("<path/to/demo/file>");
+  opts.parse_positional({"filepath"});
   auto parsed = opts.parse(argc, argv);
 
   if (parsed.count("help")) {
@@ -193,9 +196,8 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  if (parsed.count("file") == 0) {
-    std::cerr
-      << "Please provide the path to the demo file using the --file (or -f) flag.\n";
+  if (parsed.count("filepath") == 0) {
+    std::cerr << "Please provide the path to the demo file.\n";
     return 1;
   }
 
