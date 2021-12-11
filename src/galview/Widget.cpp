@@ -75,7 +75,6 @@ void Panel::addWidget(const std::shared_ptr<Widget>& widget)
 
 void Panel::clear()
 {
-  std::cout << "Clearing all widgets...\n";
   mWidgets.clear();
 }
 
@@ -210,6 +209,7 @@ static auto              sResponseSink =
 
 void init()
 {
+  initCommands();
   sResponseSink->set_pattern("[%l] %v");
   addLogSink(sResponseSink);
 }

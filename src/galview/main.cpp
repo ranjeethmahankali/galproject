@@ -12,6 +12,7 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Util.h>
+#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
@@ -21,8 +22,7 @@
 using namespace gal;
 namespace fs = std::filesystem;
 
-static constexpr char glslVersion[]    = "#version 330 core";
-static fs::path       sCurrentDemoPath = "";
+static constexpr char glslVersion[] = "#version 330 core";
 
 void initPythonEnvironment()
 {
@@ -34,24 +34,6 @@ void initPythonEnvironment()
   gal::viewfunc::initPanels(view::newPanel("Inputs"s), view::newPanel("Outputs"s));
 };
 
-int runPythonDemoFile(const fs::path& demoPath)
-{
-  try {
-    std::cout << "Running demo file: " << demoPath << std::endl;
-    sCurrentDemoPath = demoPath;
-    boost::python::dict global;
-    global["__file__"] = demoPath.string();
-    global["__name__"] = "__main__";
-    boost::python::exec_file(demoPath.c_str(), global);
-    return 0;
-  }
-  catch (boost::python::error_already_set) {
-    PyErr_Print();
-    std::cerr << "Unable to load the demo... aborting...\n";
-    return 1;
-  }
-}
-
 void glfw_error_cb(int error, const char* desc)
 {
   std::cerr << "Glfw Error " << error << ": " << desc << std::endl;
@@ -60,7 +42,7 @@ void glfw_error_cb(int error, const char* desc)
 int initViewer(GLFWwindow*& window, const std::string& filename)
 {
   glfwSetErrorCallback(glfw_error_cb);
-  std::cout << "Initializign GLFW...\n";
+  std::cout << "Initializing GLFW...\n";
   if (!glfwInit())
     return 1;
 
@@ -112,14 +94,7 @@ void showSettingsPanel()
   panel.newWidget<view::Button>("Toggle 2d Mode",
                                 []() { view::Context::get().toggle2dMode(); });
   panel.newWidget<view::Button>("Reload demo", []() {
-    gal::viewfunc::unloadAllOutputs();
-    gal::func::store::unloadAllFunctions();
-    gal::view::Views::clear();
-    int err = runPythonDemoFile(sCurrentDemoPath);
-    if (err != 0) {
-      std::cerr << "Unable to run the demo file. Aborting...\n";
-      std::exit(err);
-    }
+
   });
 }
 
@@ -147,7 +122,7 @@ int loadDemo(const fs::path& demoPath)
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
-  err = runPythonDemoFile(demoPath);
+  err = view::runPythonDemoFile(demoPath);
   if (err != 0) {
     std::cerr << "Unable to run the demo file. Aborting...\n";
     return err;

@@ -68,6 +68,7 @@ void unloadAllOutputs()
 {
   std::cout << "Unloading all output data...\n";
   sOutputFuncs.clear();
+  sShowCheckboxes.clear();
   sInputPanel->clear();
   sOutputPanel->clear();
 }
