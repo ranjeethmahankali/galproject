@@ -95,6 +95,42 @@ void initCommands()
   sCommandFnMap.emplace("hide", cmdfuncs::hide);
 }
 
+void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
+{
+  static std::string sSuggestions = "";
+  charsToInsert.clear();
+  sSuggestions.clear();
+  for (const auto& pair : sCommandFnMap) {
+    const std::string& match   = std::get<0>(pair);
+    auto               cmdend  = std::find(cmd.begin(), cmd.end(), '\0');
+    size_t             cmdsize = std::distance(cmd.begin(), cmdend);
+    if (cmdsize > match.size()) {
+      continue;
+    }
+    if (std::equal(cmd.begin(), cmdend, match.begin())) {
+      auto diffbegin = match.begin() + cmdsize;
+      sSuggestions += " " + match;
+      if (charsToInsert.empty()) {
+        std::copy(diffbegin, match.end(), std::back_inserter(charsToInsert));
+      }
+      else {
+        for (auto left = charsToInsert.begin();
+             left != charsToInsert.end() && diffbegin != match.end();
+             left++, diffbegin++) {
+          if (*left != *diffbegin) {
+            charsToInsert.erase(left, charsToInsert.end());
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (!sSuggestions.empty()) {
+    logger().info("Possible completions:{}", sSuggestions);
+  }
+}
+
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {

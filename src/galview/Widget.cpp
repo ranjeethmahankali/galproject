@@ -181,6 +181,18 @@ const bool* CheckBox::checkedPtr() const
 
 namespace cmdinterface {
 
+static std::stringstream sResponseStream;
+static auto              sResponseSink =
+  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
+static std::string sCmdline  = "";
+static std::string sResponse = "";
+
+static void captureResponseStream()
+{
+  sResponse = sResponseStream.str();
+  sResponseStream.str("");
+}
+
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
@@ -189,15 +201,15 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
     data->Buf = str->data();
   }
   else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
+    static std::string sCharsToInsert = "";
     // TODO: Implement proper auto completion here.
-    data->InsertChars(data->CursorPos, "..");
+    std::string* cmd = (std::string*)data->UserData;
+    autocompleteCommand(*cmd, sCharsToInsert);
+    data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
+    captureResponseStream();
   }
   return 0;
 }
-
-static std::stringstream sResponseStream;
-static auto              sResponseSink =
-  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
 
 void init()
 {
@@ -208,10 +220,8 @@ void init()
 
 void draw(GLFWwindow* window)
 {
-  static std::string cmdline    = "";
-  static std::string response   = "";
-  static bool        isVisible  = true;
-  static float       sCmdHeight = 50.f;
+  static bool  isVisible  = false;
+  static float sCmdHeight = 50.f;
 
   // Get the parent window size.
   int width = 0, height = 0;
@@ -219,7 +229,7 @@ void draw(GLFWwindow* window)
   float  fwidth = float(width), fheight = float(height);
   float  cmdWidth = std::min(fwidth, 960.f);
   size_t nLines =
-    std::max(size_t(1), size_t(std::count(response.begin(), response.end(), '\n')));
+    std::max(size_t(1), size_t(std::count(sResponse.begin(), sResponse.end(), '\n')));
   float cmdHeight = sCmdHeight + float(nLines) * 17.f;
 
   ImGuiWindowFlags wflags =
@@ -232,7 +242,7 @@ void draw(GLFWwindow* window)
   ImGui::Begin("command-window", &isVisible, wflags);
 
   ImGui::PushStyleColor(ImGuiCol_Text, 0xff999999);
-  ImGui::Text("%s", response.c_str());
+  ImGui::Text("%s", sResponse.c_str());
   ImGui::PopStyleColor();
 
   if (sFontLarge) {
@@ -244,15 +254,16 @@ void draw(GLFWwindow* window)
                                ImGuiInputTextFlags_CallbackCompletion;
   ImGui::Text(">>> ");
   ImGui::SameLine();
-  if (ImGui::InputText(
-        "", cmdline.data(), cmdline.size(), tflags, cmdLineCallback, (void*)(&cmdline))) {
-    cmdline.erase(std::remove(cmdline.begin(), cmdline.end(), '\0'), cmdline.end());
-
-    runCommand(cmdline);
-
-    response = sResponseStream.str();
-    sResponseStream.str("");
-    cmdline.clear();
+  if (ImGui::InputText("",
+                       sCmdline.data(),
+                       sCmdline.size(),
+                       tflags,
+                       cmdLineCallback,
+                       (void*)(&sCmdline))) {
+    sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
+    runCommand(sCmdline);
+    captureResponseStream();
+    sCmdline.clear();
   }
   if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {
     ImGui::SetKeyboardFocusHere(0);
