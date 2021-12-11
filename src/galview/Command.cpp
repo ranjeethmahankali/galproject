@@ -43,16 +43,19 @@ void reload(int, char**)
 
 void twoDMode(int, char**)
 {
+  view::logger().info("Enabling 2d viewer mode...");
   view::Context::get().set2dMode(true);
 }
 
 void threeDMode(int, char**)
 {
+  view::logger().info("Enabling 3d viewer mode...");
   view::Context::get().set2dMode(false);
 }
 
 void zoomExtents(int, char**)
 {
+  view::logger().info("Zooming to extents...");
   view::Context::get().zoomExtents();
 }
 
@@ -182,6 +185,7 @@ void runCommand(const std::string& cmd)
     return;
   }
 
+  view::logger().info(">>> {}", cmd);
   match->second(int(sArgV.size()), sArgV.data());
 }
 

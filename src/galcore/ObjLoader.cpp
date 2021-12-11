@@ -5,10 +5,14 @@
 #include <glm/gtx/transform.hpp>
 #include <iostream>
 
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
 namespace gal {
 namespace io {
 
-using CStrIter = std::string::const_iterator;
+using CStrIter      = std::string::const_iterator;
+static auto sLogger = spdlog::stdout_color_mt("objloader");
 
 static std::filesystem::path makeAbsolute(const std::filesystem::path& path)
 {
@@ -29,7 +33,7 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
   }
 
   if (!mReader.Warning().empty()) {
-    std::cout << "TinyObjReader warning: " << mReader.Warning();
+    sLogger->warn("TinyObjReader warns: {}", mReader.Warning());
   }
 };
 

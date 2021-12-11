@@ -73,6 +73,10 @@ void setPanelVisibility(const std::string& name, bool visible)
     });
   if (match != sPanels.end()) {
     match->mVisible = visible;
+    view::logger().info("Visibility of {} panel set to {}.", name, visible);
+  }
+  else {
+    view::logger().error("No panel named {} was found.", name);
   }
 }
 

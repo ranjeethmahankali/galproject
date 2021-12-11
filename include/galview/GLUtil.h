@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 
+#include <galview/Command.h>
+
 #ifdef _MSVC
 #else
 #define DEBUG_BREAK __builtin_trap()
@@ -19,7 +21,7 @@
     fncall;                                                   \
     if (gal::glutil::log_errors(#fncall, __FILE__, __LINE__)) \
       DEBUG_BREAK;                                            \
-    std::cout << #fncall << ": " << __FILE__ << std::endl;    \
+    view::logger().debug("{}: {}", #fncall, __FILE__);        \
   }
 #elif defined NDEBUG
 #define GL_CALL(fncall) fncall
