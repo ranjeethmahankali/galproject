@@ -210,6 +210,7 @@ static auto              sResponseSink =
 
 void init()
 {
+  sResponseSink->set_pattern("[%l] %v");
   addLogSink(sResponseSink);
 }
 
@@ -224,6 +225,7 @@ void draw(GLFWwindow* window)
   int width = 0, height = 0;
   glfwGetWindowSize(window, &width, &height);
   float  fwidth = float(width), fheight = float(height);
+  float  cmdWidth = std::min(fwidth, 960.f);
   size_t nLines =
     std::max(size_t(1), size_t(std::count(response.begin(), response.end(), '\n')));
   float cmdHeight = sCmdHeight + float(nLines) * 17.f;
@@ -231,8 +233,8 @@ void draw(GLFWwindow* window)
   ImGuiWindowFlags wflags =
     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
   // ImGuiWindowFlags wflags = 0;
-  ImGui::SetNextWindowPos(ImVec2(0.f, fheight - cmdHeight));
-  ImGui::SetNextWindowSize(ImVec2(fwidth, cmdHeight));
+  ImGui::SetNextWindowPos(ImVec2(0.5f * (fwidth - cmdWidth), fheight - cmdHeight));
+  ImGui::SetNextWindowSize(ImVec2(cmdWidth, cmdHeight));
   ImGui::SetNextWindowBgAlpha(0.4f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", &isVisible, wflags);
@@ -244,11 +246,11 @@ void draw(GLFWwindow* window)
   if (sFontLarge) {
     ImGui::PushFont(sFontLarge);
   }
-  ImGui::PushItemWidth(fwidth - 120.f);
+  ImGui::PushItemWidth(cmdWidth - 70.f);
   ImGuiInputTextFlags tflags = ImGuiInputTextFlags_CallbackResize |
                                ImGuiInputTextFlags_EnterReturnsTrue |
                                ImGuiInputTextFlags_CallbackCompletion;
-  ImGui::Text("Command: ");
+  ImGui::Text(">>> ");
   ImGui::SameLine();
   if (ImGui::InputText(
         "", cmdline.data(), cmdline.size(), tflags, cmdLineCallback, (void*)(&cmdline))) {

@@ -20,7 +20,7 @@ void addLogSink(const spdlog::sink_ptr& sink)
   sLogger.sinks().push_back(sink);
 }
 
-static void runCommandInternal(size_t argc, char** argv)
+static void runCommandInternal(int argc, char** argv)
 {
   sLogger.info("Received the following command args:");
   for (size_t i = 0; i < argc; i++) {
@@ -36,16 +36,13 @@ void runCommand(const std::string& cmd)
 
   sParsed = cmd;
   sIndices.clear();
-  bool inWord = false;
   for (size_t i = 0; i < sParsed.size(); i++) {
     char& c = sParsed[i];
     if (c == ' ') {
-      c      = '\0';
-      inWord = false;
+      c = '\0';
     }
-    else if (!inWord) {
+    else if (i == 0 || (sParsed[i - 1] == '\0')) {
       sIndices.push_back(i);
-      inWord = true;
     }
   }
   sArgV.resize(sIndices.size());
@@ -53,7 +50,7 @@ void runCommand(const std::string& cmd)
     return i + sParsed.data();
   });
 
-  runCommandInternal(sArgV.size(), sArgV.data());
+  runCommandInternal(int(sArgV.size()), sArgV.data());
 }
 
 }  // namespace view
