@@ -21,7 +21,7 @@ static ImFont* sFontLarge = nullptr;
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
-  std::cout << "Setting up ImGui...\n";
+  view::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
@@ -237,7 +237,7 @@ void draw(GLFWwindow* window)
   // ImGuiWindowFlags wflags = 0;
   ImGui::SetNextWindowPos(ImVec2(0.5f * (fwidth - cmdWidth), fheight - cmdHeight));
   ImGui::SetNextWindowSize(ImVec2(cmdWidth, cmdHeight));
-  ImGui::SetNextWindowBgAlpha(0.4f);
+  ImGui::SetNextWindowBgAlpha(0.75f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", &isVisible, wflags);
 

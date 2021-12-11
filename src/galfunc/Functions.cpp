@@ -12,8 +12,13 @@
 #include <galfunc/MapMacro.h>
 #include <galfunc/TypeManager.h>
 
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
 namespace gal {
 namespace func {
+
+static auto sLogger = spdlog::stdout_color_mt("galfunc");
 
 Function::Function()
     : mContextPath(python::getcontextpath())
@@ -70,7 +75,7 @@ void markDirty(const Function* fn)
 
 void unloadAllFunctions()
 {
-  std::cout << "Unloading all functions...\n";
+  sLogger->debug("Unloading all functions...");
   store::sFunctionMap.clear();
   store::sSubscriberMap.clear();
 }

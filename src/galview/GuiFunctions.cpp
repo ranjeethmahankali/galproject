@@ -12,6 +12,7 @@
 #include <galfunc/Functions.h>
 #include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
+#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Views.h>
@@ -104,7 +105,7 @@ void evalOutputs()
 
 void unloadAllOutputs()
 {
-  std::cout << "Unloading all output data...\n";
+  gal::view::logger().debug("Unloading all output data...");
   sOutputFuncs.clear();
   sShowCheckboxes.clear();
   sInputPanel->clear();
