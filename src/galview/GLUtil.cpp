@@ -7,7 +7,7 @@
 namespace gal {
 namespace glutil {
 
-static auto sLogger = spdlog::stdout_color_mt("renderer");
+static auto sLogger = spdlog::stdout_color_mt("viewer");
 
 spdlog::logger logger()
 {

@@ -32,7 +32,7 @@ static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
 
 static std::vector<Panel> sPanels;
 
-void initializeImGui(GLFWwindow* window, const char* glslVersion)
+static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
   glutil::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
@@ -238,14 +238,14 @@ Panel& panelByName(const std::string& name)
   return *match;
 }
 
-void drawPanels()
+static void drawPanels()
 {
   for (const auto& panel : sPanels) {
     panel.draw();
   }
 }
 
-void setPanelVisibility(const std::string& name, bool visible)
+static void setPanelVisibility(const std::string& name, bool visible)
 {
   auto match = panelIterByName(name);
   if (match != sPanels.end()) {
@@ -414,8 +414,6 @@ void history(int argc, char** argv)
 
 }  // namespace cmdfuncs
 
-namespace cmdinterface {
-
 static std::string sCmdline  = "";
 static std::string sResponse = "";
 
@@ -438,8 +436,9 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 
 static std::string* sHistoryPtr = nullptr;
 
-void init()
+void init(GLFWwindow* window, const char* glslVersion)
 {
+  initializeImGui(window, glslVersion);
   initPanels();
   sResponseSink->set_pattern("[%l] %v");
   Panel& historyPanel = panelByName("history");
@@ -517,9 +516,10 @@ void draw(GLFWwindow* window)
     ImGui::PopFont();
   }
   ImGui::End();
-}
 
-}  // namespace cmdinterface
+  // Draw all panels.
+  drawPanels();
+}
 
 }  // namespace view
 }  // namespace gal

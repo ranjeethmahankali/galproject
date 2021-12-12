@@ -19,14 +19,11 @@
 namespace gal {
 namespace view {
 
-void initializeImGui(GLFWwindow* window, const char* glslVersion);
-
 void imGuiNewFrame();
 
 spdlog::logger& logger();
 int             runPythonDemoFile(const std::filesystem::path& demoPath);
 void            setDemoFilepath(const std::filesystem::path& path);
-void            drawPanels();
 
 class Widget
 {
@@ -301,12 +298,8 @@ public:
   const bool* checkedPtr() const;
 };
 
-namespace cmdinterface {
-
-void init();
+void init(GLFWwindow* window, const char* glslVersion);
 void draw(GLFWwindow* window);
-
-}  // namespace cmdinterface
 
 }  // namespace view
 }  // namespace gal

@@ -104,9 +104,8 @@ int loadDemo(const fs::path& demoPath)
     return err;
   }
 
-  // Setup IMGUI
-  view::initializeImGui(window, glslVersion);
-  view::cmdinterface::init();
+  // Initialize all the user interface elements.
+  view::init(window, glslVersion);
 
   // Initialize Embedded Python and the demo
   initPythonEnvironment();
@@ -123,8 +122,7 @@ int loadDemo(const fs::path& demoPath)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
-      view::cmdinterface::draw(window);
-      view::drawPanels();
+      view::draw(window);
       ImGui::Render();
       viewfunc::evalOutputs();
       view::Views::render();
