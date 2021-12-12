@@ -6,7 +6,7 @@
 #include <iostream>
 #include <vector>
 
-#include <galview/Command.h>
+#include <spdlog/spdlog.h>
 
 #ifdef _MSVC
 #else
@@ -21,7 +21,7 @@
     fncall;                                                   \
     if (gal::glutil::log_errors(#fncall, __FILE__, __LINE__)) \
       DEBUG_BREAK;                                            \
-    view::logger().debug("{}: {}", #fncall, __FILE__);        \
+    gal::glutil::logger().debug("{}: {}", #fncall, __FILE__); \
   }
 #elif defined NDEBUG
 #define GL_CALL(fncall) fncall
@@ -40,8 +40,9 @@ using uint = GLuint;
 namespace gal {
 namespace glutil {
 
-bool log_errors(const char* function, const char* file, uint line);
-void clear_errors();
+spdlog::logger logger();
+bool           log_errors(const char* function, const char* file, uint line);
+void           clear_errors();
 
 struct DefaultVertex
 {

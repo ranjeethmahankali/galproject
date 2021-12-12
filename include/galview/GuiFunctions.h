@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 #include <galfunc/Functions.h>
-#include <galview/Widget.h>
+#include <galview/Interaction.h>
 
 namespace gal {
 namespace viewfunc {
@@ -15,6 +15,7 @@ void         drawPanels();
 void         setPanelVisibility(const std::string& name, bool visible);
 view::Panel& inputPanel();
 view::Panel& outputPanel();
+view::Panel& canvasPanel();
 void         evalOutputs();
 
 /**

@@ -2,17 +2,19 @@
 
 #include <algorithm>
 #include <atomic>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <galview/GLUtil.h>
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
-
-#include <galview/GLUtil.h>
 
 namespace gal {
 namespace view {
@@ -21,7 +23,9 @@ void initializeImGui(GLFWwindow* window, const char* glslVersion);
 
 void imGuiNewFrame();
 
-void imGuiRender();
+spdlog::logger& logger();
+int             runPythonDemoFile(const std::filesystem::path& demoPath);
+void            setDemoFilepath(const std::filesystem::path& path);
 
 class Widget
 {

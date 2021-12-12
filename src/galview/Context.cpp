@@ -10,7 +10,6 @@
 
 #include <galcore/Mesh.h>
 #include <galcore/Util.h>
-#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/Views.h>
 
@@ -101,7 +100,7 @@ void Context::useShader(size_t shaderId)
     setOrthoModeUniform();
   }
   else {
-    view::logger().error("{} is an invalid shader id.", shaderId);
+    glutil::logger().error("{} is an invalid shader id.", shaderId);
   }
 }
 
@@ -315,7 +314,7 @@ static void checkCompilation(uint32_t id, uint32_t type)
 
     std::string message(length + 1, '\0');
     glGetShaderInfoLog(id, length, &length, message.data());
-    view::logger().error("Failed to compile {} shader:\n{}", shaderType, message);
+    glutil::logger().error("Failed to compile {} shader:\n{}", shaderType, message);
 
     GL_CALL(glDeleteShader(id));
   }
@@ -328,13 +327,13 @@ static void checkLinking(uint32_t progId)
   glGetProgramiv(progId, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(progId, 1024, NULL, infoLog);
-    view::logger().error("Error linking shader program:\n{}", infoLog);
+    glutil::logger().error("Error linking shader program:\n{}", infoLog);
   }
 };
 
 static std::string readfile(const std::string& filepath)
 {
-  view::logger().debug("Reading shader source: {}", filepath);
+  glutil::logger().debug("Reading shader source: {}", filepath);
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   std::stringstream file_stream;
@@ -344,7 +343,7 @@ static std::string readfile(const std::string& filepath)
     file.close();
   }
   catch (std::ifstream::failure e) {
-    view::logger().error("Error reading shader source file:\n{}", e.what());
+    glutil::logger().error("Error reading shader source file:\n{}", e.what());
   }
   return file_stream.str();
 };

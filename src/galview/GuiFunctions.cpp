@@ -12,17 +12,18 @@
 #include <galfunc/Functions.h>
 #include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
-#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Interaction.h>
 #include <galview/Views.h>
-#include <galview/Widget.h>
 
 namespace gal {
 namespace viewfunc {
 
-static std::shared_ptr<view::Panel>                           sInputPanel  = nullptr;
-static std::shared_ptr<view::Panel>                           sOutputPanel = nullptr;
+static std::shared_ptr<view::Panel> sInputPanel  = nullptr;
+static std::shared_ptr<view::Panel> sOutputPanel = nullptr;
+static std::shared_ptr<view::Panel> sCanvasPanel = nullptr;
+
 static bool                                                   sShowInputs  = true;
 static bool                                                   sShowOutputs = true;
 static std::vector<const func::Function*>                     sOutputFuncs;
@@ -36,6 +37,12 @@ struct PanelInfo
   PanelInfo(const std::shared_ptr<view::Panel>& panel)
       : mPanel(panel)
   {}
+
+  PanelInfo(const std::shared_ptr<view::Panel>& panel, bool visible)
+      : mPanel(panel)
+      , mVisible(visible)
+  {}
+
   const std::string& title() const { return mPanel->title(); }
 };
 
@@ -63,6 +70,9 @@ void initPanels()
   sPanels.emplace_back(sInputPanel);
   sOutputPanel = std::make_shared<view::Panel>("outputs");
   sPanels.emplace_back(sOutputPanel);
+
+  sCanvasPanel = std::make_shared<view::Panel>("canvas");
+  sPanels.emplace_back(sCanvasPanel, false);
 }
 
 void setPanelVisibility(const std::string& name, bool visible)
@@ -98,6 +108,11 @@ view::Panel& inputPanel()
 view::Panel& outputPanel()
 {
   return *sOutputPanel;
+}
+
+view::Panel& canvasPanel()
+{
+  return *sCanvasPanel;
 }
 
 void evalOutputs()

@@ -1,15 +1,24 @@
-#include <galview/GLUtil.h>
 #include <iostream>
+
+#include <galview/GLUtil.h>
+
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace gal {
 namespace glutil {
+
+static auto sLogger = spdlog::stdout_color_mt("renderer");
+
+spdlog::logger logger()
+{
+  return *sLogger;
+}
 
 bool log_errors(const char* function, const char* file, uint line)
 {
   static bool found_error = false;
   while (GLenum error = glGetError()) {
-    view::logger().error(
-      "OpenGL Error 0x{:x} in {} at {}:{}", error, function, file, line);
+    logger().error("OpenGL Error 0x{:x} in {} at {}:{}", error, function, file, line);
     found_error = true;
   }
   if (found_error) {
