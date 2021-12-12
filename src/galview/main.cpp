@@ -30,7 +30,7 @@ void initPythonEnvironment()
   Py_Initialize();
 
   using namespace std::string_literals;
-  gal::viewfunc::initPanels();
+  gal::view::initPanels();
 };
 
 void glfw_error_cb(int error, const char* desc)
@@ -127,7 +127,7 @@ int loadDemo(const fs::path& demoPath)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
       view::cmdinterface::draw(window);
-      viewfunc::drawPanels();
+      view::drawPanels();
       ImGui::Render();
       viewfunc::evalOutputs();
       view::Views::render();

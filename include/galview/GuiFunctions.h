@@ -10,13 +10,9 @@
 namespace gal {
 namespace viewfunc {
 
-void         initPanels();
-void         drawPanels();
-void         setPanelVisibility(const std::string& name, bool visible);
-view::Panel& inputPanel();
-view::Panel& outputPanel();
-view::Panel& canvasPanel();
-void         evalOutputs();
+view::Panel& inputsPanel();
+
+void evalOutputs();
 
 /**
  * @brief Clears all output registers.
@@ -107,7 +103,7 @@ struct makeSlider
 
     std::shared_ptr<SliderFunc<T>> fn = gal::func::store::makeFunction<SliderFunc<T>>(
       "slider_" + TypeInfo<T>::name(), label, min, max, value);
-    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+    inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
     return fn->pythonOutputRegs();
   }
 };
@@ -139,7 +135,7 @@ struct makeSlider<glm::vec<N, T, Q>>
 
     auto fn = gal::func::store::makeFunction<SliderFunc<glm::vec<N, T, Q>>>(
       "slider_" + TypeInfo<glm::vec<N, T, Q>>::name(), label, min, max, value);
-    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+    inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
     return fn->pythonOutputRegs();
   }
 };

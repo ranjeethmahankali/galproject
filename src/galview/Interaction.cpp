@@ -1,6 +1,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
 
 #include <imgui.h>
 #include <spdlog/common.h>
@@ -28,6 +29,8 @@ static fs::path sCurrentDemoPath = "";
 
 using CmdFnType = void (*)(int, char**);
 static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
+
+static std::vector<Panel> sPanels;
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -58,8 +61,16 @@ void imGuiNewFrame()
 Panel::Panel(const std::string& title)
     : mTitle(title) {};
 
-void Panel::draw()
+Panel::Panel(const std::string& title, bool visible)
+    : mTitle(title)
+    , mIsVisible(visible)
+{}
+
+void Panel::draw() const
 {
+  if (!mIsVisible) {
+    return;
+  }
   ImGui::Begin(mTitle.c_str());
   if (sFont)
     ImGui::PushFont(sFont);
@@ -86,6 +97,16 @@ void Panel::clear()
 const std::string& Panel::title() const
 {
   return mTitle;
+}
+
+bool Panel::visibility() const
+{
+  return mIsVisible;
+}
+
+void Panel::visibility(bool visible)
+{
+  mIsVisible = visible;
 }
 
 Text::Text(const std::string& value)
@@ -185,6 +206,50 @@ const bool* CheckBox::checkedPtr() const
 spdlog::logger& logger()
 {
   return *sLogger;
+}
+
+void initPanels()
+{
+  sPanels.clear();
+  sPanels.emplace_back("inputs");
+  sPanels.emplace_back("outputs");
+  sPanels.emplace_back("canvas", false);
+  sPanels.emplace_back("history", false);
+}
+
+static auto panelIterByName(const std::string& name)
+{
+  return std::find_if(sPanels.begin(), sPanels.end(), [&name](const Panel& panel) {
+    return panel.title() == name;
+  });
+}
+
+Panel& panelByName(const std::string& name)
+{
+  auto match = panelIterByName(name);
+  if (match == sPanels.end()) {
+    throw std::runtime_error("Cannot find panel with the given name");
+  }
+  return *match;
+}
+
+void drawPanels()
+{
+  for (const auto& panel : sPanels) {
+    panel.draw();
+  }
+}
+
+void setPanelVisibility(const std::string& name, bool visible)
+{
+  auto match = panelIterByName(name);
+  if (match != sPanels.end()) {
+    match->visibility(visible);
+    view::logger().info("Visibility of {} panel set to {}.", name, visible);
+  }
+  else {
+    view::logger().error("No panel named {} was found.", name);
+  }
 }
 
 void setDemoFilepath(const fs::path& path)
@@ -321,7 +386,7 @@ void show(int argc, char** argv)
     logger().error("show commands expects the name of the panel as an argument.");
     return;
   }
-  viewfunc::setPanelVisibility(argv[1], true);
+  setPanelVisibility(argv[1], true);
 }
 
 void hide(int argc, char** argv)
@@ -330,7 +395,7 @@ void hide(int argc, char** argv)
     logger().error("hide commands expects the name of the panel as an argument.");
     return;
   }
-  viewfunc::setPanelVisibility(argv[1], false);
+  setPanelVisibility(argv[1], false);
 }
 
 void history(int argc, char** argv)
@@ -429,6 +494,7 @@ void draw(GLFWwindow* window)
     sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
     runCommand(sCmdline);
     sCmdline.clear();
+    sResponse.clear();
   }
   if (sResponseStream.rdbuf()->in_avail() > 0) {
     sResponse = sResponseStream.str();

@@ -26,6 +26,8 @@ void imGuiNewFrame();
 spdlog::logger& logger();
 int             runPythonDemoFile(const std::filesystem::path& demoPath);
 void            setDemoFilepath(const std::filesystem::path& path);
+void            initPanels();
+void            drawPanels();
 
 class Widget
 {
@@ -34,17 +36,18 @@ public:
   virtual void draw() = 0;
 };
 
-class Panel final : public Widget
+class Panel
 {
 public:
   Panel(const std::string& title);
-  virtual ~Panel() = default;
+  Panel(const std::string& title, bool visible);
 
-  void draw();
+  void draw() const;
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
   std::string                          mTitle;
+  bool                                 mIsVisible = true;
 
 public:
   void addWidget(const std::shared_ptr<Widget>& widget);
@@ -65,7 +68,11 @@ public:
   };
 
   const std::string& title() const;
+  bool               visibility() const;
+  void               visibility(bool visible);
 };
+
+Panel& panelByName(const std::string& name);
 
 class Text : public Widget
 {

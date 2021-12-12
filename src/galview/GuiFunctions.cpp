@@ -20,33 +20,20 @@
 namespace gal {
 namespace viewfunc {
 
-static std::shared_ptr<view::Panel> sInputPanel  = nullptr;
-static std::shared_ptr<view::Panel> sOutputPanel = nullptr;
-static std::shared_ptr<view::Panel> sCanvasPanel = nullptr;
-
 static bool                                                   sShowInputs  = true;
 static bool                                                   sShowOutputs = true;
 static std::vector<const func::Function*>                     sOutputFuncs;
 static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
 
-struct PanelInfo
+view::Panel& outputsPanel()
 {
-  std::shared_ptr<view::Panel> mPanel;
-  bool                         mVisible = true;
+  return view::panelByName("outputs");
+}
 
-  PanelInfo(const std::shared_ptr<view::Panel>& panel)
-      : mPanel(panel)
-  {}
-
-  PanelInfo(const std::shared_ptr<view::Panel>& panel, bool visible)
-      : mPanel(panel)
-      , mVisible(visible)
-  {}
-
-  const std::string& title() const { return mPanel->title(); }
-};
-
-static std::vector<PanelInfo> sPanels;
+view::Panel& inputsPanel()
+{
+  return view::panelByName("inputs");
+}
 
 /**
  * @brief Gets the visibility checkbox from the output panel with the given name.
@@ -59,60 +46,9 @@ static const view::CheckBox& getCheckBox(const std::string name)
   if (match != sShowCheckboxes.end()) {
     return match->second;
   }
-  auto pair =
-    sShowCheckboxes.emplace(name, *(outputPanel().newWidget<view::CheckBox>(name, true)));
+  auto pair = sShowCheckboxes.emplace(
+    name, *(outputsPanel().newWidget<view::CheckBox>(name, true)));
   return pair.first->second;
-}
-
-void initPanels()
-{
-  sInputPanel = std::make_shared<view::Panel>("inputs");
-  sPanels.emplace_back(sInputPanel);
-  sOutputPanel = std::make_shared<view::Panel>("outputs");
-  sPanels.emplace_back(sOutputPanel);
-
-  sCanvasPanel = std::make_shared<view::Panel>("canvas");
-  sPanels.emplace_back(sCanvasPanel, false);
-}
-
-void setPanelVisibility(const std::string& name, bool visible)
-{
-  auto match =
-    std::find_if(sPanels.begin(), sPanels.end(), [&name](const PanelInfo& pinfo) {
-      return pinfo.mPanel->title() == name;
-    });
-  if (match != sPanels.end()) {
-    match->mVisible = visible;
-    view::logger().info("Visibility of {} panel set to {}.", name, visible);
-  }
-  else {
-    view::logger().error("No panel named {} was found.", name);
-  }
-}
-
-void drawPanels()
-{
-  for (const auto& pinfo : sPanels) {
-    if (pinfo.mVisible) {
-      pinfo.mPanel->draw();
-    }
-  }
-  // Incomplete.
-}
-
-view::Panel& inputPanel()
-{
-  return *sInputPanel;
-}
-
-view::Panel& outputPanel()
-{
-  return *sOutputPanel;
-}
-
-view::Panel& canvasPanel()
-{
-  return *sCanvasPanel;
 }
 
 void evalOutputs()
@@ -127,8 +63,8 @@ void unloadAllOutputs()
   gal::view::logger().debug("Unloading all output data...");
   sOutputFuncs.clear();
   sShowCheckboxes.clear();
-  sInputPanel->clear();
-  sOutputPanel->clear();
+  inputsPanel().clear();
+  outputsPanel().clear();
 }
 
 /**
@@ -225,7 +161,7 @@ void py_usePerspectiveCam()
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
   auto fn = gal::func::store::makeFunction<TextFieldFunc>("textfield", label);
-  inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
+  inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
 };
 
@@ -355,7 +291,7 @@ typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
     "print_" + TypeInfo<T>::name(), label, reg);
   auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
   sOutputFuncs.push_back(fn.get());
-  outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
+  outputsPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
   return pfn->pythonOutputRegs();
 }
 
