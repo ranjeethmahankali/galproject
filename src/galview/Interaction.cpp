@@ -21,10 +21,10 @@ namespace view {
 static ImFont* sFont      = nullptr;
 static ImFont* sFontLarge = nullptr;
 
-static std::stringstream sHistoryStream;
-static auto              sHistorySink =
-  std::make_shared<spdlog::sinks::ostream_sink_mt>(sHistoryStream);
-static auto     sLogger = std::make_shared<spdlog::logger>("galview", sHistorySink);
+static std::stringstream sResponseStream;
+static auto              sResponseSink =
+  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
+static auto     sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
 static fs::path sCurrentDemoPath = "";
 
 using CmdFnType = void (*)(int, char**);
@@ -34,7 +34,7 @@ static std::vector<Panel> sPanels;
 
 void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
-  view::logger().info("Setting up ImGui...");
+  glutil::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
@@ -112,15 +112,20 @@ void Panel::visibility(bool visible)
 Text::Text(const std::string& value)
     : mValue(value) {};
 
-void Text::set(const std::string& text)
-{
-  mValue = text;
-}
-
 void Text::draw()
 {
   ImGui::Text("%s", mValue.c_str());
 };
+
+const std::string& Text::value() const
+{
+  return mValue;
+}
+
+std::string& Text::value()
+{
+  return mValue;
+}
 
 Button::Button(const std::string& label, const std::function<void()>& onClick)
     : mLabel(label)
@@ -208,7 +213,7 @@ spdlog::logger& logger()
   return *sLogger;
 }
 
-void initPanels()
+static void initPanels()
 {
   sPanels.clear();
   sPanels.emplace_back("inputs");
@@ -411,9 +416,6 @@ void history(int argc, char** argv)
 
 namespace cmdinterface {
 
-static std::stringstream sResponseStream;
-static auto              sResponseSink =
-  std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
 static std::string sCmdline  = "";
 static std::string sResponse = "";
 
@@ -434,10 +436,15 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
   return 0;
 }
 
+static std::string* sHistoryPtr = nullptr;
+
 void init()
 {
+  initPanels();
   sResponseSink->set_pattern("[%l] %v");
-  logger().sinks().push_back(sResponseSink);
+  Panel& historyPanel = panelByName("history");
+  auto   history      = historyPanel.newWidget<Text>("");
+  sHistoryPtr         = &(history->value());
 
   // Initialize the command map.
   sCommandFnMap.emplace("reload", cmdfuncs::reload);
@@ -498,6 +505,7 @@ void draw(GLFWwindow* window)
   }
   if (sResponseStream.rdbuf()->in_avail() > 0) {
     sResponse = sResponseStream.str();
+    *(sHistoryPtr) += sResponse;
     sResponseStream.str("");
   }
   if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {

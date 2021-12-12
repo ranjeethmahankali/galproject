@@ -26,7 +26,6 @@ void imGuiNewFrame();
 spdlog::logger& logger();
 int             runPythonDemoFile(const std::filesystem::path& demoPath);
 void            setDemoFilepath(const std::filesystem::path& path);
-void            initPanels();
 void            drawPanels();
 
 class Widget
@@ -80,9 +79,10 @@ public:
   Text(const std::string& text);
   virtual ~Text() = default;
 
-  void set(const std::string& text);
-
   void draw();
+
+  const std::string& value() const;
+  std::string&       value();
 
 protected:
   std::string mValue;

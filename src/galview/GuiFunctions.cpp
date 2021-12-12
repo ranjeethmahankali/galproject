@@ -251,7 +251,7 @@ struct PrintCallable
     stream.clear();
     stream.str("");
     stream << mLabel << ": \n" << obj;
-    mTextPtr->set(stream.str());
+    mTextPtr->value() = stream.str();
   }
 };
 

@@ -28,9 +28,6 @@ void initPythonEnvironment()
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
   PyImport_AppendInittab("pygalview", &PyInit_pygalview);
   Py_Initialize();
-
-  using namespace std::string_literals;
-  gal::view::initPanels();
 };
 
 void glfw_error_cb(int error, const char* desc)
