@@ -176,7 +176,7 @@ struct ShowCallable
       : mDrawableIndex(view::Views::create<T>(visibilityFlag))
   {}
 
-  void operator()(const func::data::Tree<T>& objs, uint64_t&) const
+  void operator()(const func::data::Tree<T>& objs) const
   {
     view::Views::update<T>(mDrawableIndex, objs.values());
   }
@@ -189,11 +189,10 @@ struct ShowCallable
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc
-    : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>
+struct ShowFunc : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using BaseT = func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>;
+  using BaseT        = func::TFunction<ShowCallable<T>, const func::data::Tree<T>>;
   using PyOutputType = typename BaseT::PyOutputType;
 
   uint64_t mDrawId = 0;
@@ -202,11 +201,8 @@ struct ShowFunc
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : BaseT(ShowCallable<T>(visibilityFlag), std::make_tuple(reg))
-  {
-    auto& tree = std::get<0>(this->mOutputs);
-    tree.resize(1);
-    tree.value(0) = 0;
-  }
+  {}
+
   virtual ~ShowFunc() = default;
 };
 
@@ -245,7 +241,7 @@ struct PrintCallable
       , mTextPtr(textLabelPtr)
   {}
 
-  void operator()(const func::data::Tree<T>& obj, uint8_t&) const
+  void operator()(const func::data::Tree<T>& obj) const
   {
     std::stringstream stream;
     stream.clear();
@@ -261,11 +257,10 @@ struct PrintCallable
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc
-    : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>,
-      public view::Text
+struct PrintFunc : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>>,
+                   public view::Text
 {
-  using BaseT = func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>;
+  using BaseT        = func::TFunction<PrintCallable<T>, const func::data::Tree<T>>;
   using PyOutputType = typename BaseT::PyOutputType;
 
   PrintFunc(const std::string& label, const func::Register<T>& reg)

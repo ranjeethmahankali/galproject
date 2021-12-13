@@ -395,14 +395,19 @@ struct TFunction : public Function
   static constexpr size_t NArgs   = TArgList::NumTypes;
   static_assert(NInputs <= NArgs,
                 "Number of inputs is larger than the number of arguments!");
-  static constexpr bool   HasInputs  = NInputs > 0;
-  static constexpr size_t NOutputs   = NArgs - NInputs;
-  static constexpr bool   HasOutputs = NOutputs > 0;
+  static constexpr bool   HasInputs = NInputs > 0;
+  static constexpr size_t NOutputs  = NArgs - NInputs;
 
-  using PyOutputType =
-    std::conditional_t<(NOutputs > 1),
-                       boost::python::tuple,
-                       ArgRegisterT<typename TArgList::template Type<NInputs>>>;
+  using PyOutputType = std::conditional_t<
+    (NOutputs == 0),
+    void,
+    std::conditional_t<
+      (NOutputs > 1),
+      boost::python::tuple,
+      /* The ternary expression is just in case NOutputs is zero, to make
+         sure the code will still compile. It should never lead to a wrong type index
+         being used because NOutputs == 0 case is already handled above. */
+      ArgRegisterT<typename TArgList::template Type<(NOutputs > 0 ? NInputs : 0)>>>>;
 
 protected:
   /* Some fields are marked mutable because the function is considered changed only if the
@@ -505,6 +510,9 @@ public:
     if constexpr (NOutputs == 1) {
       return ArgRegisterT<typename TArgList::template Type<NInputs>>(
         dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
+    }
+    else if constexpr (NOutputs == 0) {
+      return;
     }
     else {
       return pythonOutputTuple(this, mOutputs);
