@@ -46,19 +46,36 @@ struct Function
   const fs::path& contextpath() const;
 
   const std::string& name() const;
+  void               name(std::string name);
 
-  void name(std::string name);
+  size_t depth() const;
+
+  virtual void calcDepth() const = 0;
+
+  void clearDepth();
 
   virtual size_t numInputs() const = 0;
 
   virtual size_t numOutputs() const = 0;
 
+  virtual void getUpstreamFunctions(std::vector<const Function*> dst) const = 0;
+
 protected:
   Function();
+
+protected:
+  mutable size_t mDepth = SIZE_MAX;
 
 private:
   fs::path    mContextPath;
   std::string mName;
+};
+
+struct FunctionGraphData
+{
+  const Function* mFunc = nullptr;
+  int             mCol  = 0;
+  int             mRow  = 0;
 };
 
 namespace store {
@@ -72,7 +89,7 @@ namespace store {
 std::shared_ptr<Function> addFunction(std::string                      name,
                                       const std::shared_ptr<Function>& fn);
 
-const std::vector<std::shared_ptr<Function>>& allFunctions();
+std::vector<FunctionGraphData> getGraphData();
 
 /**
  * @brief Unloads all loaded function instances.
@@ -504,6 +521,37 @@ public:
   size_t numInputs() const override { return NInputs; }
 
   size_t numOutputs() const override { return NOutputs; }
+
+  void getUpstreamFunctions(std::vector<const Function*> dst) const override
+  {
+    dst.clear();
+    if constexpr (HasInputs) {
+      std::apply([&dst](const auto&... inputs) { (dst.push_back(inputs.mOwner), ...); },
+                 mInputs);
+      std::sort(dst.begin(), dst.end());
+      dst.erase(std::unique(dst.begin(), dst.end()), dst.end());
+    }
+  }
+
+  void calcDepth() const override
+  {
+    if constexpr (NInputs == 0) {
+      this->mDepth = 0;
+    }
+    else {
+      if (this->mDepth != SIZE_MAX) {
+        return;
+      }
+      size_t maxd       = 0;
+      auto   captureMax = [&maxd](const auto& input) {
+        input.mOwner->calcDepth();
+        maxd = std::max(maxd, input.mOwner->depth());
+      };
+      std::apply([&captureMax](const auto&... inputs) { (captureMax(inputs), ...); },
+                 mInputs);
+      this->mDepth = maxd + 1;
+    }
+  }
 
   PyOutputType pythonOutputRegs() const
   {

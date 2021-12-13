@@ -403,15 +403,6 @@ void hide(int argc, char** argv)
   setPanelVisibility(argv[1], false);
 }
 
-void history(int argc, char** argv)
-{
-  if (argc != 1) {
-    logger().error("history command expects 0 arguments.");
-    return;
-  }
-  // TODO: Incomplete.
-}
-
 void wireframe(int argc, char** argv)
 {
   if (argc != 2) {
@@ -472,8 +463,7 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
   }
   else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
     static std::string sCharsToInsert = "";
-    // TODO: Implement proper auto completion here.
-    std::string* cmd = (std::string*)data->UserData;
+    std::string*       cmd            = (std::string*)data->UserData;
     autocompleteCommand(*cmd, sCharsToInsert);
     data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
   }

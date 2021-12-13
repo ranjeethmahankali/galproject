@@ -39,6 +39,16 @@ void Function::name(std::string name)
   mName = std::move(name);
 }
 
+size_t Function::depth() const
+{
+  return mDepth;
+}
+
+void Function::clearDepth()
+{
+  mDepth = SIZE_MAX;
+}
+
 namespace store {
 
 static std::vector<std::shared_ptr<Function>> sFunctions;
@@ -56,9 +66,67 @@ std::shared_ptr<Function> addFunction(std::string                      name,
   return fn;
 };
 
-const std::vector<std::shared_ptr<Function>>& allFunctions()
+std::vector<FunctionGraphData> getGraphData()
 {
-  return sFunctions;
+  // Clear previously computed depths.
+  for (const auto& fn : sFunctions) {
+    fn->clearDepth();
+  }
+
+  // Recompute depths.
+  for (auto& fn : sFunctions) {
+    fn->calcDepth();
+  }
+
+  std::vector<FunctionGraphData> gdata;
+  gdata.resize(sFunctions.size());
+  std::transform(sFunctions.begin(),
+                 sFunctions.end(),
+                 gdata.begin(),
+                 [](const std::shared_ptr<Function>& fn) {
+                   return FunctionGraphData {fn.get(), int(fn->depth()), int(0)};
+                 });
+  std::sort(gdata.begin(),
+            gdata.end(),
+            [](const FunctionGraphData& a, const FunctionGraphData& b) {
+              return a.mCol < b.mCol;
+            });
+  std::vector<const Function*>                         upstream;
+  std::unordered_map<uint64_t, float, CustomSizeTHash> rscores;
+  for (auto colbegin = gdata.begin(); colbegin != gdata.end();) {
+    size_t curCol   = colbegin->mCol;
+    size_t colstart = std::distance(gdata.begin(), colbegin);
+    auto   colend =
+      std::find_if(colbegin, gdata.end(), [&curCol](const FunctionGraphData& fn) {
+        return fn.mCol != curCol;
+      });
+    size_t colsize = std::distance(colbegin, colend);
+    if (curCol > 0) {
+      for (auto begin = colbegin; begin != colend; begin++) {
+        begin->mFunc->getUpstreamFunctions(upstream);
+        float rsum = 0.f;
+        for (const auto upfn : upstream) {
+          rsum += rscores[uint64_t(upfn)];
+        }
+        rscores.emplace(uint64_t(begin->mFunc), rsum / float(upstream.size()));
+      }
+      std::sort(colbegin,
+                colend,
+                [&rscores](const FunctionGraphData& a, const FunctionGraphData& b) {
+                  return rscores[uint64_t(a.mFunc)] < rscores[uint64_t(b.mFunc)];
+                });
+    }
+    int nrows  = int(colsize);
+    int center = nrows / 2;
+    colbegin   = gdata.begin() + colstart;
+    colend     = colbegin + colsize;
+    for (int ri = 0; ri < nrows; ri++, colbegin++) {
+      colbegin->mRow                     = ri - center;
+      rscores[uint64_t(colbegin->mFunc)] = float(colbegin->mRow);
+    }
+    colbegin = colend;
+  }
+  return gdata;
 }
 
 void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag)
