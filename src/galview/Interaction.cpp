@@ -72,7 +72,7 @@ void Panel::draw() const
     return;
   }
   ImGui::SetNextWindowBgAlpha(0.8f);
-  ImGui::Begin(mTitle.c_str());
+  ImGui::Begin(mTitle.c_str(), &mIsVisible, ImGuiWindowFlags_HorizontalScrollbar);
   if (sFont)
     ImGui::PushFont(sFont);
 
@@ -430,8 +430,10 @@ void wireframe(int argc, char** argv)
     logger().error(
       "Unrecognized option {} for the wireframe command. Expected either on or off.",
       argv[1]);
+    return;
   }
   Context::get().setWireframeMode(flag);
+  logger().info("Wireframe mode flag set to {}.", flag);
 }
 
 void meshEdges(int argc, char** argv)
@@ -451,8 +453,10 @@ void meshEdges(int argc, char** argv)
     logger().error(
       "Unrecognized option {} for the meshedges command. Expected either on or off.",
       argv[1]);
+    return;
   }
   Context::get().setMeshEdgeMode(flag);
+  logger().info("Mesh edge visibility flag set to {}.", flag);
 }
 
 }  // namespace cmdfuncs
@@ -502,7 +506,6 @@ void init(GLFWwindow* window, const char* glslVersion)
 
 void draw(GLFWwindow* window)
 {
-  static bool  isVisible  = false;
   static float sCmdHeight = 50.f;
 
   // Get the parent window size.
@@ -521,7 +524,7 @@ void draw(GLFWwindow* window)
   ImGui::SetNextWindowSize(ImVec2(cmdWidth, cmdHeight));
   ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-  ImGui::Begin("command-window", &isVisible, wflags);
+  ImGui::Begin("command-window", nullptr, wflags);
 
   ImGui::PushStyleColor(ImGuiCol_Text, 0xff999999);
   ImGui::Text("%s", sResponse.c_str());

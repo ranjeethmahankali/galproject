@@ -43,7 +43,7 @@ public:
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
   std::string                          mTitle;
-  bool                                 mIsVisible = true;
+  mutable bool                         mIsVisible = true;
 
 public:
   void addWidget(const std::shared_ptr<Widget>& widget);

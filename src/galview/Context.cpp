@@ -163,8 +163,10 @@ void Context::registerCallbacks(GLFWwindow* window)
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
 {
-  if (ImGui::GetIO().WantCaptureMouse)
+  if (ImGui::GetIO().WantCaptureMouse) {
+    // Mouse is interacting with ImGui elements, so the camera should not react.
     return;
+  }
   static constexpr float     sRotSpeed = 0.002f;
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
   static constexpr glm::vec4 sXAxis    = {1.0f, 0.0f, 0.0f, 0.0};
@@ -216,6 +218,11 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
 {
+  if (ImGui::GetIO().WantCaptureMouse) {
+    // Mouse is interacting with ImGui elements, so the camera should not react.
+    return;
+  }
+
   static constexpr float zoomUp   = 1.2f;
   static constexpr float zoomDown = 1.0f / zoomUp;
 
