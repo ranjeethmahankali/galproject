@@ -79,8 +79,8 @@ public:
 
   void draw() const
   {
-    static RenderSettings settings;
-    settings.edgeMode = false;
+    static RenderSettings settings = renderSettings();
+    settings.edgeMode              = false;
     mVBuf.bindVao();
     mIBuf.bind();
     if (Context::get().wireframeMode()) {
