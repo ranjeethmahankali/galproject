@@ -49,6 +49,10 @@ struct Function
 
   void name(std::string name);
 
+  virtual size_t numInputs() const = 0;
+
+  virtual size_t numOutputs() const = 0;
+
 protected:
   Function();
 
@@ -67,6 +71,8 @@ namespace store {
  */
 std::shared_ptr<Function> addFunction(std::string                      name,
                                       const std::shared_ptr<Function>& fn);
+
+const std::vector<std::shared_ptr<Function>>& allFunctions();
 
 /**
  * @brief Unloads all loaded function instances.
@@ -118,6 +124,8 @@ struct Register
     mOwner->update();
     return *mData;
   }
+
+  const Function* owner() const { return mOwner; }
 };
 
 /**
@@ -487,6 +495,10 @@ public:
       store::addSubscriber(this, dirtyFlag);
     }
   }
+
+  size_t numInputs() const override { return NInputs; }
+
+  size_t numOutputs() const override { return NOutputs; }
 
   PyOutputType pythonOutputRegs() const
   {

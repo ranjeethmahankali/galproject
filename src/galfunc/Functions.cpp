@@ -41,8 +41,7 @@ void Function::name(std::string name)
 
 namespace store {
 
-static std::unordered_map<uint64_t, std::shared_ptr<Function>, CustomSizeTHash>
-  sFunctionMap;
+static std::vector<std::shared_ptr<Function>> sFunctions;
 
 static std::unordered_map<uint64_t,
                           std::vector<std::reference_wrapper<std::atomic_bool>>,
@@ -53,9 +52,14 @@ std::shared_ptr<Function> addFunction(std::string                      name,
                                       const std::shared_ptr<Function>& fn)
 {
   fn->name(std::move(name));  // Name the function.
-  sFunctionMap.emplace(uint64_t(fn.get()), fn);
+  sFunctions.push_back(fn);
   return fn;
 };
+
+const std::vector<std::shared_ptr<Function>>& allFunctions()
+{
+  return sFunctions;
+}
 
 void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag)
 {
@@ -76,7 +80,7 @@ void markDirty(const Function* fn)
 void unloadAllFunctions()
 {
   sLogger->debug("Unloading all functions...");
-  store::sFunctionMap.clear();
+  store::sFunctions.clear();
   store::sSubscriberMap.clear();
 }
 
