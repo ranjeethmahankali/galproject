@@ -69,7 +69,7 @@ public:
   {
     int loc = glGetUniformLocation(mShaders[mShaderIndex].mId, name.c_str());
     if (loc == -1) {
-      //   std::cerr << "Uniform " << name << " not found.\n";
+      // glutil::logger().error("OpenGL uniform '{}' not found.", name);
       return;
     }
     setUniformInternal<T>(loc, val);
