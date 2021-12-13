@@ -44,8 +44,9 @@ static float      sTransScale = 500.f;
 static glm::mat4  sTrans      = glm::identity<glm::mat4>();
 static glm::mat4  sInvTrans   = glm::identity<glm::mat4>();
 
-static bool s2dMode   = false;
-static bool sEdgeMode = false;
+static bool s2dMode        = false;
+static bool sWireFrameMode = false;
+static bool sMeshEdgeMode  = false;
 
 static void captureMousePos(double x, double y)
 {
@@ -136,7 +137,7 @@ Context::Context()
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, 1.0f));
 
-  setWireframeMode(sEdgeMode);
+  setWireframeMode(sWireFrameMode);
 };
 
 void Context::useCamera(const glm::vec3& eye,
@@ -261,13 +262,23 @@ void Context::setUniformInternal<bool>(int location, const bool& flag)
 
 void Context::setWireframeMode(bool flag)
 {
-  sEdgeMode = flag;
+  sWireFrameMode = flag;
+}
+
+void Context::setMeshEdgeMode(bool flag)
+{
+  sMeshEdgeMode = flag;
 }
 
 bool Context::wireframeMode()
 {
-  return sEdgeMode;
+  return sWireFrameMode;
 };
+
+bool Context::meshEdgeMode()
+{
+  return sMeshEdgeMode;
+}
 
 void Context::setPerspective(float fovy, float aspect, float near, float far)
 {

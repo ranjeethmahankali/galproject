@@ -60,7 +60,9 @@ public:
   static void registerCallbacks(GLFWwindow* window);
 
   void setWireframeMode(bool flag);
+  void setMeshEdgeMode(bool flag);
   bool wireframeMode();
+  bool meshEdgeMode();
 
   template<typename T>
   void setUniform(const std::string& name, const T& val)

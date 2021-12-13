@@ -71,6 +71,7 @@ void Panel::draw() const
   if (!mIsVisible) {
     return;
   }
+  ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::Begin(mTitle.c_str());
   if (sFont)
     ImGui::PushFont(sFont);
@@ -412,6 +413,48 @@ void history(int argc, char** argv)
   // TODO: Incomplete.
 }
 
+void wireframe(int argc, char** argv)
+{
+  if (argc != 2) {
+    logger().error("wireframe command expacts a on/off argument.");
+    return;
+  }
+  bool flag = false;
+  if (0 == std::strcmp(argv[1], "on")) {
+    flag = true;
+  }
+  else if (0 == std::strcmp(argv[1], "off")) {
+    flag = false;
+  }
+  else {
+    logger().error(
+      "Unrecognized option {} for the wireframe command. Expected either on or off.",
+      argv[1]);
+  }
+  Context::get().setWireframeMode(flag);
+}
+
+void meshEdges(int argc, char** argv)
+{
+  if (argc != 2) {
+    logger().error("meshedges command expacts a on/off argument.");
+    return;
+  }
+  bool flag = false;
+  if (0 == std::strcmp(argv[1], "on")) {
+    flag = true;
+  }
+  else if (0 == std::strcmp(argv[1], "off")) {
+    flag = false;
+  }
+  else {
+    logger().error(
+      "Unrecognized option {} for the meshedges command. Expected either on or off.",
+      argv[1]);
+  }
+  Context::get().setMeshEdgeMode(flag);
+}
+
 }  // namespace cmdfuncs
 
 static std::string sCmdline  = "";
@@ -453,6 +496,8 @@ void init(GLFWwindow* window, const char* glslVersion)
   sCommandFnMap.emplace("zoomextents", cmdfuncs::zoomExtents);
   sCommandFnMap.emplace("show", cmdfuncs::show);
   sCommandFnMap.emplace("hide", cmdfuncs::hide);
+  sCommandFnMap.emplace("wireframe", cmdfuncs::wireframe);
+  sCommandFnMap.emplace("meshedges", cmdfuncs::meshEdges);
 }
 
 void draw(GLFWwindow* window)
@@ -474,7 +519,7 @@ void draw(GLFWwindow* window)
   // ImGuiWindowFlags wflags = 0;
   ImGui::SetNextWindowPos(ImVec2(0.5f * (fwidth - cmdWidth), fheight - cmdHeight));
   ImGui::SetNextWindowSize(ImVec2(cmdWidth, cmdHeight));
-  ImGui::SetNextWindowBgAlpha(0.75f);
+  ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", &isVisible, wflags);
 
