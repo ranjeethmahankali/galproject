@@ -88,6 +88,7 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
 
 void wrapUp(GLFWwindow* window)
 {
+  glutil::logger().info("Cleaning up...\n");
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
