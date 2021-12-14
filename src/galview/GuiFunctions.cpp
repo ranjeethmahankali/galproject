@@ -290,6 +290,18 @@ typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
   return pfn->pythonOutputRegs();
 }
 
+void py_runCommands(const std::string& commands)
+{
+  for (auto begin = commands.begin(); begin != commands.end();) {
+    auto lend = std::find(begin, commands.end(), '\n');
+    view::runCommand(std::string(begin, lend));
+    if (lend == commands.end()) {
+      break;
+    }
+    begin = lend + 1;
+  }
+}
+
 namespace python {
 using namespace boost::python;
 
@@ -331,8 +343,6 @@ BOOST_PYTHON_MODULE(pygalview)
   GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
-  // Viewer controls.
-  GAL_DEF_PY_FN(set2dMode);
-  GAL_DEF_PY_FN(useOrthoCam);
-  GAL_DEF_PY_FN(usePerspectiveCam);
+  // Allows demos to run viewer commands.
+  GAL_DEF_PY_FN(runCommands);
 };

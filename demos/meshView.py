@@ -8,3 +8,8 @@ mesh = pgf.loadObjFile(path)
 box = pgf.bounds(mesh)
 pgv.show("mesh", mesh)
 pgv.show("bounds", box)
+
+pgv.runCommands("""
+perspective off
+wireframe on
+""");

@@ -449,6 +449,29 @@ void meshEdges(int argc, char** argv)
   logger().info("Mesh edge visibility flag set to {}.", flag);
 }
 
+void perspective(int argc, char** argv)
+{
+  if (argc != 2) {
+    logger().error("perspective command expects an on/off argument.");
+    return;
+  }
+
+  if (0 == std::strcmp(argv[1], "on")) {
+    Context::get().setPerspective();
+    logger().info("Now using a perspective camera.");
+  }
+  else if (0 == std::strcmp(argv[1], "off")) {
+    Context::get().setOrthographic();
+    logger().info("Now using an orthographic camera.");
+  }
+  else {
+    logger().error(
+      "Unrecorgnized option {} for the perspective command. Expected either on or off.",
+      argv[1]);
+    return;
+  }
+}
+
 }  // namespace cmdfuncs
 
 static std::string sCmdline  = "";
@@ -491,6 +514,7 @@ void init(GLFWwindow* window, const char* glslVersion)
   sCommandFnMap.emplace("hide", cmdfuncs::hide);
   sCommandFnMap.emplace("wireframe", cmdfuncs::wireframe);
   sCommandFnMap.emplace("meshedges", cmdfuncs::meshEdges);
+  sCommandFnMap.emplace("perspective", cmdfuncs::perspective);
 }
 
 void draw(GLFWwindow* window)

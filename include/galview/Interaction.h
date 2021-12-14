@@ -24,6 +24,7 @@ void imGuiNewFrame();
 spdlog::logger& logger();
 int             runPythonDemoFile(const std::filesystem::path& demoPath);
 void            setDemoFilepath(const std::filesystem::path& path);
+void            runCommand(const std::string& cmd);
 
 class Widget
 {
