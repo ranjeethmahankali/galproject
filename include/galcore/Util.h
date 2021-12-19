@@ -316,5 +316,12 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
   }
 }
 
+template<typename T, typename... Ts>
+constexpr std::array<T, sizeof...(Ts)> make_array(const Ts&... vals)
+{
+  static_assert((std::is_constructible_v<T, Ts> && ...));
+  return {{T(vals)...}};
+};
+
 }  // namespace utils
 }  // namespace gal

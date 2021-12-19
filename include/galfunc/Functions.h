@@ -2,11 +2,13 @@
 
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
 
+#include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
 #include <galfunc/TypeManager.h>
@@ -28,6 +30,20 @@ fs::path getcontextpath();
 
 }  // namespace python
 
+struct FuncInfo
+{
+  std::string_view mName;
+  std::string_view mDesc;
+
+  size_t                  mNumInputs;
+  const std::string_view* mInputNames;
+  const std::string_view* mInputDescriptions;
+
+  size_t                  mNumOutputs;
+  const std::string_view* mOutputNames;
+  const std::string_view* mOutputDescriptions;
+};
+
 /**
  * @brief Base class for all functions.
  */
@@ -45,8 +61,8 @@ struct Function
 
   const fs::path& contextpath() const;
 
-  const std::string& name() const;
-  void               name(std::string name);
+  const FuncInfo& info() const;
+  void            info(const FuncInfo& info);
 
   size_t depth() const;
 
@@ -54,9 +70,9 @@ struct Function
 
   void clearDepth();
 
-  virtual size_t numInputs() const = 0;
+  size_t numInputs() const;
 
-  virtual size_t numOutputs() const = 0;
+  size_t numOutputs() const;
 
   virtual void getUpstreamFunctions(std::vector<const Function*> dst) const = 0;
 
@@ -67,8 +83,8 @@ protected:
   mutable size_t mDepth = SIZE_MAX;
 
 private:
-  fs::path    mContextPath;
-  std::string mName;
+  fs::path mContextPath;
+  FuncInfo mInfo;
 };
 
 struct FunctionGraphData
@@ -86,7 +102,7 @@ namespace store {
  *
  * @param fn
  */
-std::shared_ptr<Function> addFunction(std::string                      name,
+std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn);
 
 std::vector<FunctionGraphData> getGraphData();
@@ -518,10 +534,6 @@ public:
     }
   }
 
-  size_t numInputs() const override { return NInputs; }
-
-  size_t numOutputs() const override { return NOutputs; }
-
   void getUpstreamFunctions(std::vector<const Function*> dst) const override
   {
     dst.clear();
@@ -649,36 +661,55 @@ namespace store {
  * @param args The arguments to be passed to the constructor.
  */
 template<typename TFunc, typename... TArgs>
-std::shared_ptr<TFunc> makeFunction(std::string name, const TArgs&... args)
+std::shared_ptr<TFunc> makeFunction(const FuncInfo& fnInfo, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
   auto fn = std::make_shared<TFunc>(args...);
-  store::addFunction(std::move(name), std::dynamic_pointer_cast<Function>(fn));
+  store::addFunction(fnInfo, std::dynamic_pointer_cast<Function>(fn));
   return fn;
 };
 
 }  // namespace store
 
-template<typename T>
-std::string varfnName()
+template<typename T, bool HasValue>
+FuncInfo varfnInfo()
 {
-  return "var_" + TypeInfo<T>::name();
+  static const std::string sName = "var_" + TypeInfo<T>::name();
+  static const std::string sDescEmpty =
+    "Empty variable of type " + TypeInfo<T>::name() + ".";
+  static const std::string sDescValue =
+    "Variable of type " + TypeInfo<T>::name() + " with the given value.";
+  static const auto sOutputNames = gal::utils::make_array<std::string_view>("value");
+  static const auto sOutputDesc =
+    gal::utils::make_array<std::string_view>("The value output of the variable");
+
+  return {{sName.data(), sName.size()},
+          {HasValue ? sDescValue.data() : sDescEmpty.data(),
+           HasValue ? sDescValue.size() : sDescEmpty.size()},
+          0,
+          nullptr,
+          nullptr,
+          1,
+          sOutputNames.data(),
+          sOutputDesc.data()};
 }
 
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
-  auto fn = std::make_shared<TVariable<TVal>>(obj);
-  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
+  static const auto sInfo = varfnInfo<TVal, true>();
+  auto              fn    = std::make_shared<TVariable<TVal>>(obj);
+  store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 };
 
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
-  auto fn = std::make_shared<TVariable<TVal>>();
-  store::addFunction(varfnName<TVal>(), std::dynamic_pointer_cast<Function>(fn));
+  static const auto sInfo = varfnInfo<TVal, false>();
+  auto              fn    = std::make_shared<TVariable<TVal>>();
+  store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
 }
 
@@ -697,9 +728,7 @@ struct FuncDocString
    * @param inputs Names and descriptions of inputs.
    * @param outputs Names and descriptions of outputs.
    */
-  FuncDocString(const std::string&                                      desc,
-                const std::vector<std::pair<std::string, std::string>>& inputs,
-                const std::vector<std::pair<std::string, std::string>>& outputs);
+  FuncDocString(const FuncInfo& finfo);
 
   /**
    * @brief Gets the c-string representation of the python doc-string.
@@ -740,6 +769,9 @@ void bindOverloads(const char*                             fnName,
 // Get the name from an arg-tuple.
 #define _GAL_ARG_NAME(type, name, desc) name
 #define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple
+// Get the description from an arg-tuple.
+#define _GAL_ARG_DESC(type, name, desc) desc
+#define GAL_ARG_DESC(tup) _GAL_ARG_DESC tup
 // Expand types from a list of arg-tuples.
 #define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
 #define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
@@ -786,13 +818,43 @@ void bindOverloads(const char*                             fnName,
 #define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)
 #define GAL_EXPAND_ARG_INFOS(args) _GAL_EXPAND_ARG_INFOS args
 
+// Expands the names of arguments as c-strings.
+#define _GAL_ARG_NAME_STR(type, argname, desc) #argname
+#define GAL_ARG_NAME_STR(arg) _GAL_ARG_NAME_STR arg
+// Expand the names of arguments as c-strings.
+#define _GAL_EXPAND_ARG_NAMES(...) MAP_LIST(GAL_ARG_NAME_STR, __VA_ARGS__)
+#define GAL_EXPAND_ARG_NAMES(args) _GAL_EXPAND_ARG_NAMES args
+// Expand the descriptions of the arguments.
+#define _GAL_EXPAND_ARG_DESCS(...) MAP_LIST(GAL_ARG_DESC, __VA_ARGS__)
+#define GAL_EXPAND_ARG_DESCS(args) _GAL_EXPAND_ARG_DESCS args
+
 // Documentation info of the function
-#define GAL_FN_INFO_DECL(fnName, desc, inputs, outputs)                   \
-  static const auto pyfnInfo_##fnName = gal::func::python::FuncDocString( \
-    desc, {GAL_EXPAND_ARG_INFOS(inputs)}, {GAL_EXPAND_ARG_INFOS(outputs)});
+#define GAL_PY_FN_DOC_STR(fnName)       \
+  static const auto pyfnInfo_##fnName = \
+    gal::func::python::FuncDocString(sFnInfo_##fnName);
+
+#define GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                      \
+  static auto sInputNames_##fnName =                                                 \
+    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_NAMES(inputArgs));       \
+  static auto sInputDescriptions_##fnName =                                          \
+    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_DESCS(inputArgs));       \
+  static auto sOutputNames_##fnName =                                                \
+    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_NAMES(outputArgs));      \
+  static auto sOutputDescriptions_##fnName =                                         \
+    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_DESCS(outputArgs));      \
+  static gal::func::FuncInfo sFnInfo_##fnName = {#fnName,                            \
+                                                 fnDesc,                             \
+                                                 sInputNames_##fnName.size(),        \
+                                                 sInputNames_##fnName.data(),        \
+                                                 sInputDescriptions_##fnName.data(), \
+                                                 sOutputNames_##fnName.size(),       \
+                                                 sOutputNames_##fnName.data(),       \
+                                                 sOutputDescriptions_##fnName.data()};
 
 // Declartion of a gal function.
 #define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                                  \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs);                               \
+  GAL_PY_FN_DOC_STR(fnName)                                                              \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                            \
   static gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),           \
                                        GAL_EXPAND_TYPE_TUPLE(outputArgs)>::PyOutputType  \
@@ -802,12 +864,11 @@ void bindOverloads(const char*                             fnName,
     using FType = TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),             \
                                      GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                 \
     auto fn =                                                                            \
-      store::makeFunction<FType>(#fnName,                                                \
+      store::makeFunction<FType>(sFnInfo_##fnName,                                       \
                                  GAL_FN_IMPL_NAME(fnName),                               \
                                  std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));       \
     return fn->pythonOutputRegs();                                                       \
   };                                                                                     \
-  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                                \
   static constexpr gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
                                                  GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
     PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =           \
@@ -827,10 +888,12 @@ void bindOverloads(const char*                             fnName,
 #define GAL_TEMPL_ARG(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)
 #define GAL_EXPAND_TEMPL_ARGS(...) MAP_LIST(GAL_TEMPL_ARG, __VA_ARGS__)
 
-#define GAL_FUNC_TEMPLATE(templateParams, fnName, fnDesc, inputArgs, outputArgs)        \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+#define GAL_FUNC_TEMPLATE(tparams, fnName, fnDesc, inputArgs, outputArgs)               \
+  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs);                              \
+  GAL_PY_FN_DOC_STR(fnName)                                                             \
+  template<GAL_EXPAND_TEMPL_PARAMS tparams>                                             \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs);                                           \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+  template<GAL_EXPAND_TEMPL_PARAMS tparams>                                             \
   static typename gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs), \
                                                 GAL_EXPAND_TYPE_TUPLE(outputArgs)>::    \
     PyOutputType py_##fnName(GAL_EXPAND_PY_REGISTER_ARGS inputArgs)                     \
@@ -839,19 +902,18 @@ void bindOverloads(const char*                             fnName,
     using FType = TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),            \
                                      GAL_EXPAND_TYPE_TUPLE(outputArgs)>;                \
     auto fn     = store::makeFunction<FType>(                                           \
-      #fnName,                                                                      \
-      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS templateParams >,            \
+      sFnInfo_##fnName,                                                             \
+      GAL_FN_IMPL_NAME(fnName) < GAL_EXPAND_TEMPL_ARGS tparams >,                   \
       std::make_tuple(GAL_EXPAND_REG_NAMES inputArgs));                             \
     return fn->pythonOutputRegs();                                                      \
   };                                                                                    \
-  GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                               \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+  template<GAL_EXPAND_TEMPL_PARAMS tparams>                                             \
   static constexpr                                                                      \
     typename gal::func::TFunctionWithFnPtr<GAL_EXPAND_CONST_TYPE_TUPLE(inputArgs),      \
                                            GAL_EXPAND_TYPE_TUPLE(outputArgs)>::         \
       PyOutputType (*pyfnptr_##fnName)(GAL_EXPAND_PY_REGISTER_TYPES inputArgs) =        \
-        &py_##fnName<GAL_EXPAND_TEMPL_ARGS templateParams>;                             \
-  template<GAL_EXPAND_TEMPL_PARAMS templateParams>                                      \
+        &py_##fnName<GAL_EXPAND_TEMPL_ARGS tparams>;                                    \
+  template<GAL_EXPAND_TEMPL_PARAMS tparams>                                             \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
@@ -925,13 +987,10 @@ struct defClass
     // implementation of the << operator.
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Functions to create a varable of the type.
-    static const std::string varname = varfnName<T>();
-    static const std::string vardocVal =
-      "A variable of type " + TypeInfo<T>::name() + " with the given value.";
-    static const std::string vardocEmpty =
-      "Empty variable of type " + TypeInfo<T>::name();
-    def(varname.c_str(), py_varWithValue<T>, vardocVal.c_str());
-    def(varname.c_str(), py_varEmpty<T>, vardocEmpty.c_str());
+    static const FuncInfo varInfoVal   = varfnInfo<T, true>();
+    static const FuncInfo varInfoEmpty = varfnInfo<T, false>();
+    def(varInfoVal.mName.data(), py_varWithValue<T>, varInfoVal.mDesc.data());
+    def(varInfoEmpty.mName.data(), py_varEmpty<T>, varInfoEmpty.mDesc.data());
     // Read value into python if conversion is available.
     def("read",
         read<T>,

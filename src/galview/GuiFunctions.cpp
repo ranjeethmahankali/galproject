@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include <galcore/Annotations.h>
 #include <galcore/Types.h>
@@ -160,7 +161,18 @@ void py_usePerspectiveCam()
 
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
-  auto fn = gal::func::store::makeFunction<TextFieldFunc>("textfield", label);
+  static const std::string_view sOutputName = "text";
+  static const std::string_view sOutputDesc = "The text from the text field input.";
+
+  static const func::FuncInfo sFnInfo = {"text",
+                                         "Text field input widget",
+                                         0,
+                                         nullptr,
+                                         nullptr,
+                                         1,
+                                         &sOutputName,
+                                         &sOutputDesc};
+  auto fn = gal::func::store::makeFunction<TextFieldFunc>(sFnInfo, label);
   inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
   return fn->pythonOutputRegs();
 };
@@ -220,9 +232,24 @@ template<typename T>
 typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                            const func::Register<T>& reg)
 {
+  static const std::string sName = "show_" + TypeInfo<T>::name();
+  static const std::string sDesc = "Shows an object of type " + TypeInfo<T>::name() +
+                                   " in the viewer, using the given label as the key.";
+  static const std::string_view sInputName = "obj";
+  static const std::string_view sInputDesc = "Object to be shown in the viewer.";
+
+  static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                       {sDesc.data(), sDesc.size()},
+                                       1,
+                                       &sInputName,
+                                       &sInputDesc,
+                                       0,
+                                       nullptr,
+                                       nullptr};
+
   static_assert(view::Views::IsDrawableType<T>);
   std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
-    "show_" + TypeInfo<T>::name(), label, getCheckBox(label).checkedPtr(), reg);
+    sInfo, label, getCheckBox(label).checkedPtr(), reg);
 
   auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
   sOutputFuncs.push_back(fn.get());
@@ -282,8 +309,24 @@ template<typename T>
 typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
                                              const func::Register<T>& reg)
 {
-  std::shared_ptr<PrintFunc<T>> pfn = gal::func::store::makeFunction<PrintFunc<T>>(
-    "print_" + TypeInfo<T>::name(), label, reg);
+  static const std::string sName = "print_" + TypeInfo<T>::name();
+  static const std::string sDesc =
+    "Prints an object of type " + TypeInfo<T>::name() +
+    " in the outputs panel, using the given label as the key.";
+  static const std::string_view sInputName = "obj";
+  static const std::string_view sInputDesc = "Object to be printed to the output panel.";
+
+  static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                       {sDesc.data(), sDesc.size()},
+                                       1,
+                                       &sInputName,
+                                       &sInputDesc,
+                                       0,
+                                       nullptr,
+                                       nullptr};
+
+  std::shared_ptr<PrintFunc<T>> pfn =
+    gal::func::store::makeFunction<PrintFunc<T>>(sInfo, label, reg);
   auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
   sOutputFuncs.push_back(fn.get());
   outputsPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));

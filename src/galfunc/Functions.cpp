@@ -29,14 +29,14 @@ const fs::path& Function::contextpath() const
   return mContextPath;
 }
 
-const std::string& Function::name() const
+const FuncInfo& Function::info() const
 {
-  return mName;
+  return mInfo;
 }
 
-void Function::name(std::string name)
+void Function::info(const FuncInfo& info)
 {
-  mName = std::move(name);
+  mInfo = info;
 }
 
 size_t Function::depth() const
@@ -49,6 +49,16 @@ void Function::clearDepth()
   mDepth = SIZE_MAX;
 }
 
+size_t Function::numInputs() const
+{
+  return mInfo.mNumInputs;
+}
+
+size_t Function::numOutputs() const
+{
+  return mInfo.mNumOutputs;
+}
+
 namespace store {
 
 static std::vector<std::shared_ptr<Function>> sFunctions;
@@ -58,10 +68,9 @@ static std::unordered_map<uint64_t,
                           CustomSizeTHash>
   sSubscriberMap;
 
-std::shared_ptr<Function> addFunction(std::string                      name,
+std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn)
 {
-  fn->name(std::move(name));  // Name the function.
   sFunctions.push_back(fn);
   return fn;
 };
@@ -183,21 +192,30 @@ fs::path getcontextpath()
   return result;
 }
 
-FuncDocString::FuncDocString(
-  const std::string&                                      desc,
-  const std::vector<std::pair<std::string, std::string>>& inputs,
-  const std::vector<std::pair<std::string, std::string>>& outputs)
+FuncDocString::FuncDocString(const FuncInfo& fnInfo)
 {
-  mDocString = desc + "\n";
-  for (const auto& argpair : inputs) {
-    mDocString += argpair.first + ": " + argpair.second + "\n";
+  static constexpr std::string_view sColon = ": ";
+
+  mDocString = fnInfo.mDesc;
+  mDocString.push_back('\n');
+  for (size_t i = 0; i < fnInfo.mNumInputs; i++) {
+    const auto& name = fnInfo.mInputNames[i];
+    const auto& desc = fnInfo.mInputDescriptions[i];
+    std::copy(name.begin(), name.end(), std::back_inserter(mDocString));
+    std::copy(sColon.begin(), sColon.end(), std::back_inserter(mDocString));
+    std::copy(desc.begin(), desc.end(), std::back_inserter(mDocString));
+    mDocString.push_back('\n');
   }
-  mDocString +=
-    "\n****"
-    " Return values "
-    "****\n";
-  for (const auto& argpair : outputs) {
-    mDocString += argpair.first + ": " + argpair.second + "\n";
+
+  mDocString += "\n**** Return values ****\n";
+
+  for (size_t i = 0; i < fnInfo.mNumOutputs; i++) {
+    const auto& name = fnInfo.mOutputNames[i];
+    const auto& desc = fnInfo.mOutputDescriptions[i];
+    std::copy(name.begin(), name.end(), std::back_inserter(mDocString));
+    std::copy(sColon.begin(), sColon.end(), std::back_inserter(mDocString));
+    std::copy(desc.begin(), desc.end(), std::back_inserter(mDocString));
+    mDocString.push_back('\n');
   }
 }
 
