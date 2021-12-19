@@ -353,9 +353,15 @@ struct defOutputFuncs
 {
   static void invoke()
   {
-    def("print", py_print<T>);
+    def("print",
+        py_print<T>,
+        "Prints the given object (second arg) to the output panel with the given label "
+        "(first arg)");
     if constexpr (view::Views::IsDrawableType<T>) {
-      def("show", py_show<T>);
+      def("show",
+          py_show<T>,
+          "Shows the given object (second arg) in the viewer, with checkbox with the "
+          "given label (first arg) to control the visibility.");
     }
   }
 };
@@ -366,6 +372,7 @@ struct defOutputFuncs
 }  // namespace gal
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
+#define GAL_DEF_PY_FN_DOC(fnName, docstr) def(#fnName, py_##fnName, docstr);
 
 BOOST_PYTHON_MODULE(pygalview)
 {
@@ -373,15 +380,23 @@ BOOST_PYTHON_MODULE(pygalview)
   using namespace gal::viewfunc;
   using namespace gal::viewfunc::python;
   // Sliders for float input
-  def("sliderf32", gal::viewfunc::py_slider<float>);
-  def("slideri32", gal::viewfunc::py_slider<int32_t>);
-  def("sliderVec3", gal::viewfunc::py_slider<glm::vec3>);
-  def("sliderVec2", gal::viewfunc::py_slider<glm::vec2>);
+  def("sliderf32",
+      gal::viewfunc::py_slider<float>,
+      "Float-32 slider with the given label, min value, max value and initial value.");
+  def("slideri32",
+      gal::viewfunc::py_slider<int32_t>,
+      "Int-32 slider with the given label, min value, max value and initial value.");
+  def("sliderVec3",
+      gal::viewfunc::py_slider<glm::vec3>,
+      "Vec3 slider with the given label, min value, max value and initial value.");
+  def("sliderVec2",
+      gal::viewfunc::py_slider<glm::vec2>,
+      "Vec2 slider with the given label, min value, max value and initial value.");
 
   gal::func::typemanager::invoke<defOutputFuncs>();
 
   // Text fields for string inputs
-  GAL_DEF_PY_FN(textField);
+  GAL_DEF_PY_FN_DOC(textField, "Creates a text field with the given label.");
   // Viewer annotations
   GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(glyphs);
