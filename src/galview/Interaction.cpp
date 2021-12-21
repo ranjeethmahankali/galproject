@@ -1,3 +1,4 @@
+#include <galfunc/Functions.h>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -298,6 +299,13 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
   }
 }
 
+static void updateCanvas()
+{
+  auto   gdata = func::store::getGraphData();
+  size_t count = gdata.size();
+  // TODO: Incomplete.
+}
+
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
@@ -306,6 +314,10 @@ int runPythonDemoFile(const fs::path& demoPath)
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
     boost::python::exec_file(demoPath.c_str(), global);
+
+    // Update the canvas panel.
+    updateCanvas();
+
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }

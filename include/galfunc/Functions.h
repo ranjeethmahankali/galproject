@@ -672,21 +672,17 @@ std::shared_ptr<TFunc> makeFunction(const FuncInfo& fnInfo, const TArgs&... args
 
 }  // namespace store
 
-template<typename T, bool HasValue>
+template<typename T>
 FuncInfo varfnInfo()
 {
   static const std::string sName = "var_" + TypeInfo<T>::name();
-  static const std::string sDescEmpty =
-    "Empty variable of type " + TypeInfo<T>::name() + ".";
-  static const std::string sDescValue =
-    "Variable of type " + TypeInfo<T>::name() + " with the given value.";
+  static const std::string sDesc = "Variable of type " + TypeInfo<T>::name() + ".";
   static const auto sOutputNames = gal::utils::make_array<std::string_view>("value");
   static const auto sOutputDesc =
     gal::utils::make_array<std::string_view>("The value output of the variable");
 
   return {{sName.data(), sName.size()},
-          {HasValue ? sDescValue.data() : sDescEmpty.data(),
-           HasValue ? sDescValue.size() : sDescEmpty.size()},
+          {sDesc.data(), sDesc.size()},
           0,
           nullptr,
           nullptr,
@@ -698,7 +694,7 @@ FuncInfo varfnInfo()
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
-  static const auto sInfo = varfnInfo<TVal, true>();
+  static const auto sInfo = varfnInfo<TVal>();
   auto              fn    = std::make_shared<TVariable<TVal>>(obj);
   store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
@@ -707,7 +703,7 @@ typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::obje
 template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
-  static const auto sInfo = varfnInfo<TVal, false>();
+  static const auto sInfo = varfnInfo<TVal>();
   auto              fn    = std::make_shared<TVariable<TVal>>();
   store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
   return fn->pythonOutputRegs();
@@ -987,10 +983,14 @@ struct defClass
     // implementation of the << operator.
     pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
     // Functions to create a varable of the type.
-    static const FuncInfo varInfoVal   = varfnInfo<T, true>();
-    static const FuncInfo varInfoEmpty = varfnInfo<T, false>();
-    def(varInfoVal.mName.data(), py_varWithValue<T>, varInfoVal.mDesc.data());
-    def(varInfoEmpty.mName.data(), py_varEmpty<T>, varInfoEmpty.mDesc.data());
+    static const FuncInfo    varInfo = varfnInfo<T>();
+    static const std::string sVarDesc =
+      "Create a variable of type " + TypeInfo<T>::name() + " with the given value.";
+    static const std::string sVarEmptyDesc =
+      "Create an empty variable of the type " + TypeInfo<T>::name() + ".";
+
+    def(varInfo.mName.data(), py_varWithValue<T>, sVarDesc.c_str());
+    def(varInfo.mName.data(), py_varEmpty<T>, sVarEmptyDesc.c_str());
     // Read value into python if conversion is available.
     def("read",
         read<T>,

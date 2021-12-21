@@ -71,6 +71,7 @@ static std::unordered_map<uint64_t,
 std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn)
 {
+  fn->info(fnInfo);
   sFunctions.push_back(fn);
   return fn;
 };

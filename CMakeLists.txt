@@ -40,6 +40,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 include_directories(include)
+
+# TODO: https://github.com/Nelarius/imnodes.git
 # Dependencies and Includes - end
 
 # GALCORE - begin
