@@ -36,6 +36,8 @@ public:
 class Panel
 {
 public:
+  using DrawCBType = void (*)();
+
   Panel(const std::string& title);
   Panel(const std::string& title, bool visible);
 
@@ -43,11 +45,14 @@ public:
 
 private:
   std::vector<std::shared_ptr<Widget>> mWidgets;
+  std::vector<DrawCBType>              mCallbacks;
   std::string                          mTitle;
   mutable bool                         mIsVisible = true;
 
 public:
   void addWidget(const std::shared_ptr<Widget>& widget);
+
+  void addCallback(DrawCBType cb);
 
   /**
    * @brief Clears all widgets / contents inside this panel.
@@ -301,6 +306,7 @@ public:
 
 void init(GLFWwindow* window, const char* glslVersion);
 void draw(GLFWwindow* window);
+void destroy(GLFWwindow* window);
 
 }  // namespace view
 }  // namespace gal

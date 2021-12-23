@@ -86,16 +86,6 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   return 0;
 }
 
-void wrapUp(GLFWwindow* window)
-{
-  glutil::logger().info("Cleaning up...\n");
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  glfwDestroyWindow(window);
-  glfwTerminate();
-}
-
 int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
@@ -132,7 +122,7 @@ int loadDemo(const fs::path& demoPath)
     glfwSwapBuffers(window);
   }
 
-  wrapUp(window);
+  view::destroy(window);
   return 0;
 }
 

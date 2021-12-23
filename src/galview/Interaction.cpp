@@ -1,15 +1,16 @@
-#include <galfunc/Functions.h>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
 
 #include <imgui.h>
+#include <imnodes.h>
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <galcore/Util.h>
+#include <galfunc/Functions.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Interaction.h>
@@ -37,6 +38,7 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
   glutil::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImNodes::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
   std::string absPath = utils::absPath("CascadiaMono.ttf");
   if (!sFont) {
@@ -80,6 +82,10 @@ void Panel::draw() const
     w->draw();
   }
 
+  for (DrawCBType cb : mCallbacks) {
+    cb();
+  }
+
   if (sFont)
     ImGui::PopFont();
   ImGui::End();
@@ -89,6 +95,11 @@ void Panel::addWidget(const std::shared_ptr<Widget>& widget)
 {
   mWidgets.push_back(widget);
 };
+
+void Panel::addCallback(DrawCBType cb)
+{
+  mCallbacks.push_back(cb);
+}
 
 void Panel::clear()
 {
@@ -214,12 +225,25 @@ spdlog::logger& logger()
   return *sLogger;
 }
 
+static void drawCanvas()
+{
+  ImNodes::BeginNodeEditor();
+  ImNodes::BeginNode(10);
+  ImGui::Dummy(ImVec2(80.f, 45.f));
+  ImNodes::EndNode();
+  ImNodes::EndNodeEditor();
+}
+
 static void initPanels()
 {
   sPanels.clear();
   sPanels.emplace_back("inputs");
   sPanels.emplace_back("outputs");
   sPanels.emplace_back("canvas", false);
+
+  Panel& canvas = sPanels.back();
+  canvas.addCallback(&drawCanvas);
+
   sPanels.emplace_back("history", false);
 }
 
@@ -592,6 +616,17 @@ void draw(GLFWwindow* window)
 
   // Draw all panels.
   drawPanels();
+}
+
+void destroy(GLFWwindow* window)
+{
+  glutil::logger().info("Cleaning up...\n");
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImNodes::DestroyContext();
+  ImGui::DestroyContext();
+  glfwDestroyWindow(window);
+  glfwTerminate();
 }
 
 }  // namespace view
