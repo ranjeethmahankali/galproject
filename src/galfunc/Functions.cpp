@@ -76,7 +76,7 @@ std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
   return fn;
 };
 
-std::vector<FunctionGraphData> getGraphData()
+void getGraphData(std::vector<FunctionGraphData>& gdata)
 {
   // Clear previously computed depths.
   for (const auto& fn : sFunctions) {
@@ -88,7 +88,6 @@ std::vector<FunctionGraphData> getGraphData()
     fn->calcDepth();
   }
 
-  std::vector<FunctionGraphData> gdata;
   gdata.resize(sFunctions.size());
   std::transform(sFunctions.begin(),
                  sFunctions.end(),
@@ -136,7 +135,21 @@ std::vector<FunctionGraphData> getGraphData()
     }
     colbegin = colend;
   }
-  return gdata;
+
+  if (gdata.empty()) {
+    return;
+  }
+
+  auto minRowNode =
+    std::min_element(gdata.begin(),
+                     gdata.end(),
+                     [](const FunctionGraphData& a, const FunctionGraphData& b) {
+                       return a.mRow < b.mRow;
+                     });
+  int minRow = -minRowNode->mRow + 1;
+  for (auto& g : gdata) {
+    g.mRow += minRow;
+  }
 }
 
 void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag)

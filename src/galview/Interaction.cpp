@@ -33,6 +33,27 @@ static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
 
 static std::vector<Panel> sPanels;
 
+static std::vector<func::FunctionGraphData> sGraphData;
+
+static constexpr int imNodeId(int index)
+{
+  /* This will break if there are more than two million nodes due to
+     integer overflow. But that is a reasonable limit for now. */
+  return 1000 * index;
+}
+
+static constexpr int imNodeInputId(int nodeIdx, int inputIdx)
+{
+  /* This assumes a maximum of 500 inputs. Reasonable limit for now. */
+  return 1000 * nodeIdx + inputIdx;
+}
+
+static constexpr int imNodeOutputId(int nodeIdx, int outputIdx)
+{
+  /* This assumes a maximum of 500 outputs. Reasonalble limit for now. */
+  return 1000 * nodeIdx + 500 + outputIdx;
+}
+
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
   glutil::logger().info("Setting up ImGui...");
@@ -51,6 +72,12 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glslVersion);
+
+  // ImNodes customizations.
+  ImNodesStyle& style = ImNodes::GetStyle();
+  style.Flags &= ~ImNodesStyleFlags_GridLines;
+  style.Flags &= ~ImNodesStyleFlags_NodeOutline;
+  style.Colors[ImNodesCol_GridBackground] = IM_COL32(0, 0, 0, 0);
 };
 
 void imGuiNewFrame()
@@ -228,9 +255,31 @@ spdlog::logger& logger()
 static void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  ImNodes::BeginNode(10);
-  ImGui::Dummy(ImVec2(80.f, 45.f));
-  ImNodes::EndNode();
+  int count = int(sGraphData.size());
+  for (int ni = 0; ni < count; ni++) {
+    const auto& gdata = sGraphData[ni];
+    const auto& info  = gdata.mFunc->info();
+
+    ImNodes::BeginNode(imNodeId(ni));
+
+    ImNodes::BeginNodeTitleBar();
+    ImGui::TextUnformatted(info.mName.data());
+    ImNodes::EndNodeTitleBar();
+
+    for (int i = 0; i < info.mNumInputs; i++) {
+      ImNodes::BeginInputAttribute(imNodeInputId(ni, i));
+      ImGui::Text("%s", info.mInputNames[i].data());
+      ImNodes::EndInputAttribute();
+    }
+
+    for (int i = 0; i < info.mNumOutputs; i++) {
+      ImNodes::BeginOutputAttribute(imNodeOutputId(ni, i));
+      ImGui::Text("%s", info.mOutputNames[i].data());
+      ImNodes::EndOutputAttribute();
+    }
+
+    ImNodes::EndNode();
+  }
   ImNodes::EndNodeEditor();
 }
 
@@ -325,8 +374,20 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
 
 static void updateCanvas()
 {
-  auto   gdata = func::store::getGraphData();
-  size_t count = gdata.size();
+  func::store::getGraphData(sGraphData);
+
+  if (sGraphData.empty()) {
+    return;
+  }
+
+  int count = int(sGraphData.size());
+  for (int i = 0; i < count; i++) {
+    int         nodeId = imNodeId(i);
+    const auto& gdata  = sGraphData[i];
+    ImNodes::SetNodeDraggable(nodeId, false);
+    ImNodes::SetNodeGridSpacePos(
+      nodeId, ImVec2(200.f * float(gdata.mCol), 200.f * float(gdata.mRow)));
+  }
   // TODO: Incomplete.
 }
 

@@ -105,7 +105,7 @@ namespace store {
 std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn);
 
-std::vector<FunctionGraphData> getGraphData();
+void getGraphData(std::vector<FunctionGraphData>& dst);
 
 /**
  * @brief Unloads all loaded function instances.
