@@ -132,7 +132,8 @@ void markDirty(const Function* fn);
 };  // namespace store
 
 /**
- * @brief Wrapper that points to readonly data owned by a function. These are passed down
+ * @brief Wrapper that points to readonly data owned by a
+ * function. This is an output of that function. These are passed down
  * to python to construct the function graph.
  *
  * @tparam T
@@ -144,12 +145,14 @@ struct Register
                 "Can't have registers of views.");
   const Function*      mOwner = nullptr;
   const data::Tree<T>* mData  = nullptr;
+  size_t               mIndex = 0;  // Index of the output.
 
   Register() = default;
 
-  Register(const Function* fn, const data::Tree<T>* dref)
+  Register(const Function* fn, const data::Tree<T>* dref, size_t index)
       : mOwner(fn)
       , mData(dref)
+      , mIndex(index)
   {}
 
   const data::Tree<T>& read() const
@@ -386,7 +389,7 @@ boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
 {
   return boost::python::make_tuple(
     ArgRegisterT<typename std::tuple_element_t<Is, OutputTupleT>::Type>(
-      fn, &(std::get<Is>(src)))...);
+      fn, &(std::get<Is>(src)), Is)...);
 }
 
 /**
@@ -569,7 +572,7 @@ public:
   {
     if constexpr (NOutputs == 1) {
       return ArgRegisterT<typename TArgList::template Type<NInputs>>(
-        dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)));
+        dynamic_cast<const Function*>(this), &(std::get<0>(mOutputs)), 0);
     }
     else if constexpr (NOutputs == 0) {
       return;
@@ -583,7 +586,7 @@ public:
   ArgRegisterT<typename TArgList::template Type<N + NInputs>> outputRegister()
   {
     return ArgRegisterT<typename TArgList::template Type<N + NInputs>>(
-      this, &(std::get<N>(mOutputs)));
+      this, &(std::get<N>(mOutputs)), N);
   }
 };
 
