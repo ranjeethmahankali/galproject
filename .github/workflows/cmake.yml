@@ -71,4 +71,15 @@ jobs:
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
       run: pytest -n 4
-      
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: galproject-build
+        path: |
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/galview
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/pygalfunc.so
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/CascadiaMono.ttf
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/*.glsl
+          ${{github.workspace}}/${{env.BUILD_TYPE}}/setup.py
+        retention-days: 2
