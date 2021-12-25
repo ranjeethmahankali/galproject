@@ -44,6 +44,19 @@ struct FuncInfo
   const std::string_view* mOutputDescriptions;
 };
 
+struct Function;
+
+struct InputInfo
+{
+  const Function* mFunc;
+  const int       mOutputIdx;
+
+  InputInfo(const Function* func, const int outIdx)
+      : mFunc(func)
+      , mOutputIdx(outIdx)
+  {}
+};
+
 /**
  * @brief Base class for all functions.
  */
@@ -75,6 +88,8 @@ struct Function
   size_t numOutputs() const;
 
   virtual void getUpstreamFunctions(std::vector<const Function*> dst) const = 0;
+
+  virtual void getInputs(std::vector<InputInfo>& dst) const = 0;
 
 protected:
   Function();
@@ -545,6 +560,18 @@ public:
                  mInputs);
       std::sort(dst.begin(), dst.end());
       dst.erase(std::unique(dst.begin(), dst.end()), dst.end());
+    }
+  }
+
+  void getInputs(std::vector<InputInfo>& dst) const override
+  {
+    dst.clear();
+    if constexpr (HasInputs) {
+      std::apply(
+        [&dst](const auto&... inputs) {
+          (dst.emplace_back(inputs.mOwner, inputs.mIndex), ...);
+        },
+        mInputs);
     }
   }
 
