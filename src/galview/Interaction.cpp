@@ -33,8 +33,16 @@ static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
 
 static std::vector<Panel> sPanels;
 
-static std::vector<func::FunctionGraphData> sGraphData;
-static std::vector<std::pair<int, int>>     sLinks;
+struct NodeData
+{
+  func::FunctionGraphData mGraphData;
+  float                   mWidth = 0.f;
+
+  NodeData() = default;
+};
+
+static std::vector<NodeData>            sNodeData;
+static std::vector<std::pair<int, int>> sLinks;
 
 static constexpr int imNodeId(int index)
 {
@@ -256,10 +264,10 @@ spdlog::logger& logger()
 static void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  int count = int(sGraphData.size());
+  int count = int(sNodeData.size());
   for (int ni = 0; ni < count; ni++) {
-    const auto& gdata = sGraphData[ni];
-    const auto& info  = gdata.mFunc->info();
+    const auto& ndata = sNodeData[ni];
+    const auto& info  = ndata.mGraphData.mFunc->info();
 
     ImNodes::BeginNode(imNodeId(ni));
 
@@ -275,6 +283,7 @@ static void drawCanvas()
 
     for (int i = 0; i < info.mNumOutputs; i++) {
       ImNodes::BeginOutputAttribute(imNodeOutputId(ni, i));
+      ImGui::Indent(ndata.mWidth - ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
       ImGui::Text("%s", info.mOutputNames[i].data());
       ImNodes::EndOutputAttribute();
     }
@@ -381,24 +390,42 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
 
 static void updateCanvas()
 {
+  static std::vector<func::FunctionGraphData> sGraphData;
   func::store::getGraphData(sGraphData);
   static std::unordered_map<uint64_t, int> sPtrIndexMap;
   static std::vector<func::InputInfo>      sInputs;
 
   sLinks.clear();
+  sNodeData.resize(sGraphData.size());
   sPtrIndexMap.clear();
   if (sGraphData.empty()) {
     return;
   }
 
+  imGuiNewFrame();
+  ImGui::PushFont(sFont);
+
   sPtrIndexMap.reserve(sGraphData.size());
   int count = int(sGraphData.size());
-  for (int i = 0; i < count; i++) {
-    int         nodeId = imNodeId(i);
-    const auto& gdata  = sGraphData[i];
-    sPtrIndexMap.emplace(uint64_t(gdata.mFunc), i);
-    // ImNodes::SetNodeDraggable(nodeId, false);
-    ImNodes::SetNodeGridSpacePos(
+  for (int ni = 0; ni < count; ni++) {
+    auto&       ndata  = sNodeData[ni];
+    int         nodeId = imNodeId(ni);
+    const auto& gdata  = sGraphData[ni];
+    const auto& info   = gdata.mFunc->info();
+    sPtrIndexMap.emplace(uint64_t(gdata.mFunc), ni);
+
+    ndata.mGraphData = sGraphData[ni];
+    ndata.mWidth     = ImGui::CalcTextSize(info.mName.data()).x;
+    for (size_t ii = 0; ii < info.mNumInputs; ii++) {
+      ndata.mWidth =
+        std::max(ndata.mWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
+    }
+    for (size_t oi = 0; oi < info.mNumOutputs; oi++) {
+      ndata.mWidth =
+        std::max(ndata.mWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
+    }
+
+    ImNodes::SetNodeScreenSpacePos(
       nodeId, ImVec2(200.f * float(gdata.mCol), 200.f * float(gdata.mRow)));
 
     sInputs.clear();
@@ -406,10 +433,13 @@ static void updateCanvas()
     int ii = 0;
     for (const auto& inp : sInputs) {
       int nodeIdx = sPtrIndexMap[uint64_t(inp.mFunc)];
-      sLinks.emplace_back(imNodeOutputId(nodeIdx, inp.mOutputIdx), imNodeInputId(i, ii));
+      sLinks.emplace_back(imNodeOutputId(nodeIdx, inp.mOutputIdx), imNodeInputId(ni, ii));
       ii++;
     }
   }
+
+  ImGui::PopFont();
+  ImGui::EndFrame();
 }
 
 int runPythonDemoFile(const fs::path& demoPath)
