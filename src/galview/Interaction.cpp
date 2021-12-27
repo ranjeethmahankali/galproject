@@ -11,6 +11,7 @@
 
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
+#include <galview/Command.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Interaction.h>
@@ -25,11 +26,7 @@ static ImFont* sFontLarge = nullptr;
 static std::stringstream sResponseStream;
 static auto              sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
-static auto     sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
-static fs::path sCurrentDemoPath = "";
-
-using CmdFnType = void (*)(int, char**);
-static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
+static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
 
 static std::vector<Panel> sPanels;
 
@@ -335,7 +332,7 @@ static void drawPanels()
   }
 }
 
-static void setPanelVisibility(const std::string& name, bool visible)
+void setPanelVisibility(const std::string& name, bool visible)
 {
   auto match = panelIterByName(name);
   if (match != sPanels.end()) {
@@ -344,47 +341,6 @@ static void setPanelVisibility(const std::string& name, bool visible)
   }
   else {
     view::logger().error("No panel named {} was found.", name);
-  }
-}
-
-void setDemoFilepath(const fs::path& path)
-{
-  sCurrentDemoPath = path;
-}
-
-void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
-{
-  static std::string sSuggestions = "";
-  charsToInsert.clear();
-  sSuggestions.clear();
-  for (const auto& pair : sCommandFnMap) {
-    const std::string& match   = std::get<0>(pair);
-    auto               cmdend  = std::find(cmd.begin(), cmd.end(), '\0');
-    size_t             cmdsize = std::distance(cmd.begin(), cmdend);
-    if (cmdsize > match.size()) {
-      continue;
-    }
-    if (std::equal(cmd.begin(), cmdend, match.begin())) {
-      auto diffbegin = match.begin() + cmdsize;
-      sSuggestions += " " + match;
-      if (charsToInsert.empty()) {
-        std::copy(diffbegin, match.end(), std::back_inserter(charsToInsert));
-      }
-      else {
-        for (auto left = charsToInsert.begin();
-             left != charsToInsert.end() && diffbegin != match.end();
-             left++, diffbegin++) {
-          if (*left != *diffbegin) {
-            charsToInsert.erase(left, charsToInsert.end());
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  if (!sSuggestions.empty()) {
-    logger().info("Possible completions:{}", sSuggestions);
   }
 }
 
@@ -464,166 +420,22 @@ int runPythonDemoFile(const fs::path& demoPath)
   }
 }
 
-void runCommand(const std::string& cmd)
-{
-  static std::string         sParsed;
-  static std::vector<size_t> sIndices;
-  static std::vector<char*>  sArgV;
-
-  sParsed = cmd;
-  sIndices.clear();
-  for (size_t i = 0; i < sParsed.size(); i++) {
-    char& c = sParsed[i];
-    if (c == ' ') {
-      c = '\0';
-    }
-    else if (i == 0 || (sParsed[i - 1] == '\0')) {
-      sIndices.push_back(i);
-    }
-  }
-  sArgV.resize(sIndices.size());
-  std::transform(sIndices.begin(), sIndices.end(), sArgV.begin(), [](size_t i) {
-    return i + sParsed.data();
-  });
-
-  if (sArgV.empty()) {
-    // No command received.
-    return;
-  }
-  std::string command = sArgV[0];
-  auto        match   = sCommandFnMap.find(command);
-  if (match == sCommandFnMap.end()) {
-    logger().error("Unrecognized command {}", command);
-    return;
-  }
-
-  view::logger().info(">>> {}", cmd);
-  match->second(int(sArgV.size()), sArgV.data());
-}
-
-namespace cmdfuncs {
-
-void reload(int, char**)
-{
-  gal::viewfunc::unloadAllOutputs();
-  gal::func::store::unloadAllFunctions();
-  gal::view::Views::clear();
-  int err = runPythonDemoFile(sCurrentDemoPath);
-  if (err != 0) {
-    logger().error("Unable to run the demo file. Aborting...\n");
-    std::exit(err);
-  }
-}
-
-void twoDMode(int, char**)
-{
-  view::logger().info("Enabling 2d viewer mode...");
-  view::Context::get().set2dMode(true);
-}
-
-void threeDMode(int, char**)
-{
-  view::logger().info("Enabling 3d viewer mode...");
-  view::Context::get().set2dMode(false);
-}
-
-void zoomExtents(int, char**)
-{
-  view::logger().info("Zooming to extents...");
-  view::Context::get().zoomExtents();
-}
-
-void show(int argc, char** argv)
-{
-  if (argc != 2) {
-    logger().error("show commands expects the name of the panel as an argument.");
-    return;
-  }
-  setPanelVisibility(argv[1], true);
-}
-
-void hide(int argc, char** argv)
-{
-  if (argc != 2) {
-    logger().error("hide commands expects the name of the panel as an argument.");
-    return;
-  }
-  setPanelVisibility(argv[1], false);
-}
-
-void wireframe(int argc, char** argv)
-{
-  if (argc != 2) {
-    logger().error("wireframe command expacts a on/off argument.");
-    return;
-  }
-  bool flag = false;
-  if (0 == std::strcmp(argv[1], "on")) {
-    flag = true;
-  }
-  else if (0 == std::strcmp(argv[1], "off")) {
-    flag = false;
-  }
-  else {
-    logger().error(
-      "Unrecognized option {} for the wireframe command. Expected either on or off.",
-      argv[1]);
-    return;
-  }
-  Context::get().setWireframeMode(flag);
-  logger().info("Wireframe mode flag set to {}.", flag);
-}
-
-void meshEdges(int argc, char** argv)
-{
-  if (argc != 2) {
-    logger().error("meshedges command expacts a on/off argument.");
-    return;
-  }
-  bool flag = false;
-  if (0 == std::strcmp(argv[1], "on")) {
-    flag = true;
-  }
-  else if (0 == std::strcmp(argv[1], "off")) {
-    flag = false;
-  }
-  else {
-    logger().error(
-      "Unrecognized option {} for the meshedges command. Expected either on or off.",
-      argv[1]);
-    return;
-  }
-  Context::get().setMeshEdgeMode(flag);
-  logger().info("Mesh edge visibility flag set to {}.", flag);
-}
-
-void perspective(int argc, char** argv)
-{
-  if (argc != 2) {
-    logger().error("perspective command expects an on/off argument.");
-    return;
-  }
-
-  if (0 == std::strcmp(argv[1], "on")) {
-    Context::get().setPerspective();
-    logger().info("Now using a perspective camera.");
-  }
-  else if (0 == std::strcmp(argv[1], "off")) {
-    Context::get().setOrthographic();
-    logger().info("Now using an orthographic camera.");
-  }
-  else {
-    logger().error(
-      "Unrecorgnized option {} for the perspective command. Expected either on or off.",
-      argv[1]);
-    return;
-  }
-}
-
-}  // namespace cmdfuncs
-
 static std::string sCmdline  = "";
 static std::string sResponse = "";
+
+static std::string* sHistoryPtr = nullptr;
+
+void init(GLFWwindow* window, const char* glslVersion)
+{
+  initializeImGui(window, glslVersion);
+  initPanels();
+  sResponseSink->set_pattern("[%l] %v");
+  Panel& historyPanel = panelByName("history");
+  auto   history      = historyPanel.newWidget<Text>("");
+  sHistoryPtr         = &(history->value());
+
+  initCommands();
+}
 
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 {
@@ -639,30 +451,6 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
     data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
   }
   return 0;
-}
-
-static std::string* sHistoryPtr = nullptr;
-
-void init(GLFWwindow* window, const char* glslVersion)
-{
-  initializeImGui(window, glslVersion);
-  initPanels();
-  sResponseSink->set_pattern("[%l] %v");
-  Panel& historyPanel = panelByName("history");
-  auto   history      = historyPanel.newWidget<Text>("");
-  sHistoryPtr         = &(history->value());
-
-  // Initialize the command map.
-  sCommandFnMap.emplace("reload", cmdfuncs::reload);
-  sCommandFnMap.emplace("2d", cmdfuncs::twoDMode);
-  sCommandFnMap.emplace("3d", cmdfuncs::threeDMode);
-  sCommandFnMap.emplace("ze", cmdfuncs::zoomExtents);
-  sCommandFnMap.emplace("zoomextents", cmdfuncs::zoomExtents);
-  sCommandFnMap.emplace("show", cmdfuncs::show);
-  sCommandFnMap.emplace("hide", cmdfuncs::hide);
-  sCommandFnMap.emplace("wireframe", cmdfuncs::wireframe);
-  sCommandFnMap.emplace("meshedges", cmdfuncs::meshEdges);
-  sCommandFnMap.emplace("perspective", cmdfuncs::perspective);
 }
 
 void draw(GLFWwindow* window)
