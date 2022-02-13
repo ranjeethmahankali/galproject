@@ -33,12 +33,12 @@ static std::vector<Panel> sPanels;
 struct NodeData
 {
   func::FunctionGraphData mGraphData;
-  float                   mWidth = 0.f;
+  float                   mInnerWidth = 0.f;
 
   NodeData() = default;
 };
 
-static std::vector<NodeData>            sNodeData;
+static std::vector<NodeData>            sNodes;
 static std::vector<std::pair<int, int>> sLinks;
 
 static constexpr int imNodeId(int index)
@@ -110,19 +110,18 @@ void Panel::draw() const
   }
   ImGui::SetNextWindowBgAlpha(0.9f);
   ImGui::Begin(mTitle.c_str(), &mIsVisible, ImGuiWindowFlags_HorizontalScrollbar);
-  if (sFont)
+  if (sFont) {
     ImGui::PushFont(sFont);
-
+  }
   for (auto& w : mWidgets) {
     w->draw();
   }
-
   for (DrawCBType cb : mCallbacks) {
     cb();
   }
-
-  if (sFont)
+  if (sFont) {
     ImGui::PopFont();
+  }
   ImGui::End();
 };
 
@@ -260,41 +259,36 @@ spdlog::logger& logger()
   return *sLogger;
 }
 
-static void drawCanvas()
+template<bool UpdatePass = false>
+void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  int count = int(sNodeData.size());
+  int count = int(sNodes.size());
   for (int ni = 0; ni < count; ni++) {
-    const auto& ndata = sNodeData[ni];
-    const auto& info  = ndata.mGraphData.mFunc->info();
-
+    const auto& node = sNodes[ni];
+    const auto& info = node.mGraphData.mFunc->info();
     ImNodes::BeginNode(imNodeId(ni));
-
     ImNodes::BeginNodeTitleBar();
     ImGui::TextUnformatted(info.mName.data());
     ImNodes::EndNodeTitleBar();
-
     for (int i = 0; i < info.mNumInputs; i++) {
       ImNodes::BeginInputAttribute(imNodeInputId(ni, i));
       ImGui::Text("%s", info.mInputNames[i].data());
       ImNodes::EndInputAttribute();
     }
-
     for (int i = 0; i < info.mNumOutputs; i++) {
       ImNodes::BeginOutputAttribute(imNodeOutputId(ni, i));
-      ImGui::Indent(ndata.mWidth - ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
+      ImGui::Indent(node.mInnerWidth -
+                    ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
       ImGui::Text("%s", info.mOutputNames[i].data());
       ImNodes::EndOutputAttribute();
     }
-
     ImNodes::EndNode();
   }
-
   for (int i = 0; i < sLinks.size(); i++) {
     const auto& link = sLinks[i];
     ImNodes::Link(i, link.first, link.second);
   }
-
   ImNodes::EndNodeEditor();
 }
 
@@ -303,10 +297,10 @@ static void initPanels()
   sPanels.clear();
   sPanels.emplace_back("inputs");
   sPanels.emplace_back("outputs");
-  sPanels.emplace_back("canvas", false);
 
+  sPanels.emplace_back("canvas", false);
   Panel& canvas = sPanels.back();
-  canvas.addCallback(&drawCanvas);
+  canvas.addCallback(&drawCanvas<false>);
 
   sPanels.emplace_back("history", false);
 }
@@ -354,7 +348,7 @@ static void updateCanvas()
   static std::vector<func::InputInfo>      sInputs;
 
   sLinks.clear();
-  sNodeData.resize(sGraphData.size());
+  sNodes.resize(sGraphData.size());
   sPtrIndexMap.clear();
   if (sGraphData.empty()) {
     return;
@@ -366,21 +360,21 @@ static void updateCanvas()
   sPtrIndexMap.reserve(sGraphData.size());
   int count = int(sGraphData.size());
   for (int ni = 0; ni < count; ni++) {
-    auto&       ndata  = sNodeData[ni];
+    auto&       ndata  = sNodes[ni];
     int         nodeId = imNodeId(ni);
     const auto& gdata  = sGraphData[ni];
     const auto& info   = gdata.mFunc->info();
     sPtrIndexMap.emplace(uint64_t(gdata.mFunc), ni);
 
-    ndata.mGraphData = sGraphData[ni];
-    ndata.mWidth     = ImGui::CalcTextSize(info.mName.data()).x;
+    ndata.mGraphData  = sGraphData[ni];
+    ndata.mInnerWidth = ImGui::CalcTextSize(info.mName.data()).x;
     for (size_t ii = 0; ii < info.mNumInputs; ii++) {
-      ndata.mWidth =
-        std::max(ndata.mWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
+      ndata.mInnerWidth =
+        std::max(ndata.mInnerWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
     }
     for (size_t oi = 0; oi < info.mNumOutputs; oi++) {
-      ndata.mWidth =
-        std::max(ndata.mWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
+      ndata.mInnerWidth =
+        std::max(ndata.mInnerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
     }
 
     ImNodes::SetNodeScreenSpacePos(
@@ -395,6 +389,8 @@ static void updateCanvas()
       ii++;
     }
   }
+
+  drawCanvas<true>();
 
   ImGui::PopFont();
   ImGui::EndFrame();
