@@ -75,15 +75,17 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
     sFontLarge = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 19.f);
   }
   ImGui::StyleColorsDark();  // Dark Mode
+  ImGuiStyle& style    = ImGui::GetStyle();
+  style.WindowRounding = 0.0f;
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glslVersion);
 
   // ImNodes customizations.
-  ImNodesStyle& style = ImNodes::GetStyle();
-  style.Flags &= ~ImNodesStyleFlags_GridLines;
-  style.Flags &= ~ImNodesStyleFlags_NodeOutline;
-  style.Colors[ImNodesCol_GridBackground] = IM_COL32(0, 0, 0, 0);
+  ImNodesStyle& nstyle = ImNodes::GetStyle();
+  nstyle.Flags &= ~ImNodesStyleFlags_GridLines;
+  nstyle.Flags &= ~ImNodesStyleFlags_NodeOutline;
+  nstyle.Colors[ImNodesCol_GridBackground] = IM_COL32(0, 0, 0, 0);
 };
 
 void imGuiNewFrame()
