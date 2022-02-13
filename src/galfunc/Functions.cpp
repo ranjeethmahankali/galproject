@@ -1,5 +1,8 @@
+#include <assert.h>
 #include <string>
 
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <boost/python/class.hpp>
 #include <boost/python/import.hpp>
 
@@ -11,9 +14,6 @@
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
 #include <galfunc/TypeManager.h>
-
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 
 namespace gal {
 namespace func {
@@ -39,14 +39,20 @@ void Function::info(const FuncInfo& info)
   mInfo = info;
 }
 
-size_t Function::depth() const
+int Function::depth() const
 {
   return mDepth;
 }
 
+int Function::height() const
+{
+  return mHeight;
+}
+
 void Function::clearDepth()
 {
-  mDepth = SIZE_MAX;
+  mDepth  = -1;
+  mHeight = -1;
 }
 
 size_t Function::numInputs() const
@@ -83,17 +89,27 @@ void getGraphData(std::vector<FunctionGraphData>& gdata)
     fn->clearDepth();
   }
 
-  // Recompute depths.
+  // Recompute depths and heights.
   for (auto& fn : sFunctions) {
     fn->calcDepth();
+    fn->updateHeight();
   }
+  int maxd = -1;
+  int maxh = -1;
+  for (const auto& fn : sFunctions) {
+    maxd = std::max(maxd, fn->depth());
+    maxh = std::max(maxh, fn->height());
+  }
+  assert(maxd == maxh);
 
   gdata.resize(sFunctions.size());
   std::transform(sFunctions.begin(),
                  sFunctions.end(),
                  gdata.begin(),
-                 [](const std::shared_ptr<Function>& fn) {
-                   return FunctionGraphData {fn.get(), int(fn->depth()), int(0)};
+                 [maxd](const std::shared_ptr<Function>& fn) {
+                   int d = fn->depth();
+                   int h = fn->height();
+                   return FunctionGraphData {fn.get(), d != 0 ? d : maxd - h - 1, int(0)};
                  });
   std::sort(gdata.begin(),
             gdata.end(),

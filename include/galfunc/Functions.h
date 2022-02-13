@@ -77,9 +77,13 @@ struct Function
   const FuncInfo& info() const;
   void            info(const FuncInfo& info);
 
-  size_t depth() const;
+  int depth() const;
+
+  int height() const;
 
   virtual void calcDepth() const = 0;
+
+  virtual void updateHeight(int h = -1) const = 0;
 
   void clearDepth();
 
@@ -87,7 +91,7 @@ struct Function
 
   size_t numOutputs() const;
 
-  virtual void getUpstreamFunctions(std::vector<const Function*> dst) const = 0;
+  virtual void getUpstreamFunctions(std::vector<const Function*>& dst) const = 0;
 
   virtual void getInputs(std::vector<InputInfo>& dst) const = 0;
 
@@ -95,13 +99,16 @@ protected:
   Function();
 
 protected:
-  mutable size_t mDepth = SIZE_MAX;
+  // TODO: Remove these after implementing the property pattern.
+  mutable int mDepth  = -1;
+  mutable int mHeight = -1;
 
 private:
   fs::path mContextPath;
   FuncInfo mInfo;
 };
 
+// TODO: Move this to galview after implementing the property pattern.
 struct FunctionGraphData
 {
   const Function* mFunc = nullptr;
@@ -552,7 +559,7 @@ public:
     }
   }
 
-  void getUpstreamFunctions(std::vector<const Function*> dst) const override
+  void getUpstreamFunctions(std::vector<const Function*>& dst) const override
   {
     dst.clear();
     if constexpr (HasInputs) {
@@ -584,14 +591,31 @@ public:
       if (this->mDepth != SIZE_MAX) {
         return;
       }
-      size_t maxd       = 0;
-      auto   captureMax = [&maxd](const auto& input) {
+      int  maxd       = 0;
+      auto captureMax = [&maxd](const auto& input) {
         input.mOwner->calcDepth();
         maxd = std::max(maxd, input.mOwner->depth());
       };
       std::apply([&captureMax](const auto&... inputs) { (captureMax(inputs), ...); },
                  mInputs);
       this->mDepth = maxd + 1;
+    }
+  }
+
+  void updateHeight(int h = -1) const override
+  {
+    int oldH = this->mHeight;
+    if constexpr (NOutputs == 0) {
+      this->mHeight = 0;
+    }
+    else {
+      this->mHeight = std::max(this->mHeight, h);
+    }
+
+    if (this->mHeight > oldH) {
+      std::apply(
+        [h](const auto&... inputs) { (inputs.mOwner->updateHeight(h + 1), ...); },
+        mInputs);
     }
   }
 
