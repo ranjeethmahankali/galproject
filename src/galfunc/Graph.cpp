@@ -114,7 +114,22 @@ LinkIterator Graph::pinLinkIter(int pi) const
   return LinkIterator(*this, pin(pi).link);
 }
 
-PinIterator::PinIterator(const Graph& g, int i)
+Range<PinIterator> Graph::nodeInputs(int ni) const
+{
+  return Range<PinIterator>(nodeInputIter(ni), PinIterator(*this));
+}
+
+Range<PinIterator> Graph::nodeOutputs(int ni) const
+{
+  return Range<PinIterator>(nodeOutputIter(ni), PinIterator(*this));
+}
+
+Range<LinkIterator> Graph::pinLinks(int pi) const
+{
+  return Range<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
+}
+
+PinIterator::PinIterator(const Graph& g, int i /* = -1*/)
     : BaseIterator(g, i)
 {}
 
@@ -158,7 +173,7 @@ PinIterator PinIterator::operator--(int)
   return tmp;
 }
 
-LinkIterator::LinkIterator(const Graph& g, int i)
+LinkIterator::LinkIterator(const Graph& g, int i /* = -1*/)
     : BaseIterator(g, i)
 {}
 

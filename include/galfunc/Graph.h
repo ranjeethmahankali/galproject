@@ -89,6 +89,23 @@ struct BaseIterator
 struct PinIterator;
 struct LinkIterator;
 
+template<typename IterT>
+class Range
+{
+  IterT mBegin;
+  IterT mEnd;
+
+public:
+  Range(IterT b, IterT e)
+      : mBegin(b)
+      , mEnd(e)
+  {}
+
+  IterT begin() const { return mBegin; }
+
+  IterT end() const { return mEnd; }
+};
+
 class Graph
 {
 public:
@@ -115,10 +132,13 @@ public:
   int linkNext(int li) const;
 
   // Iterators and ranges.
-  PinIterator nodeInputIter(int ni) const;
-  PinIterator nodeOutputIter(int ni) const;
-
+  PinIterator  nodeInputIter(int ni) const;
+  PinIterator  nodeOutputIter(int ni) const;
   LinkIterator pinLinkIter(int pi) const;
+
+  Range<PinIterator>  nodeInputs(int ni) const;
+  Range<PinIterator>  nodeOutputs(int ni) const;
+  Range<LinkIterator> pinLinks(int pi) const;
 
 private:
   std::vector<Pin>  mPins;
