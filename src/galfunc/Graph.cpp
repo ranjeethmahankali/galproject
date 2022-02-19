@@ -129,6 +129,85 @@ Range<LinkIterator> Graph::pinLinks(int pi) const
   return Range<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
 }
 
+int Graph::newNode()
+{
+  int ni = int(mNodes.size());
+  mNodes.emplace_back();
+  return ni;
+}
+
+int Graph::newPin()
+{
+  int pi = int(mPins.size());
+  mPins.emplace_back();
+  return pi;
+}
+
+int Graph::newLink()
+{
+  int li = int(mLinks.size());
+  mLinks.emplace_back();
+  return li;
+}
+
+void Graph::setNodeInput(int ni, int i)
+{
+  node(ni).input = i;
+  setPinNode(i, ni);
+}
+
+void Graph::setNodeOutput(int ni, int i)
+{
+  node(ni).output = i;
+  setPinNode(i, ni);
+}
+
+void Graph::setPinNode(int pi, int i)
+{
+  pin(pi).node = i;
+}
+
+void Graph::setPinLink(int pi, int i)
+{
+  pin(pi).link = i;
+}
+
+void Graph::setPinPrev(int pi, int i)
+{
+  pin(pi).prev = i;
+  pin(i).next  = pi;
+}
+
+void Graph::setPinNext(int pi, int i)
+{
+  pin(pi).next = i;
+  pin(i).prev  = i;
+}
+
+void Graph::setLinkStart(int li, int i)
+{
+  link(li).start = i;
+  setPinLink(i, li);
+}
+
+void Graph::setLinkEnd(int li, int i)
+{
+  link(li).end = i;
+  setPinLink(i, li);
+}
+
+void Graph::setLinkPrev(int li, int i)
+{
+  link(li).prev = i;
+  link(i).next  = li;
+}
+
+void Graph::setLinkNext(int li, int i)
+{
+  link(li).next = i;
+  link(i).prev  = li;
+}
+
 PinIterator::PinIterator(const Graph& g, int i /* = -1*/)
     : BaseIterator(g, i)
 {}

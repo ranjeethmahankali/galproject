@@ -3,53 +3,11 @@
 #include <utility>
 #include <vector>
 
+#include <galfunc/Property.h>
+
 namespace gal {
 namespace func {
 namespace graph {
-
-struct IPropData
-{
-  virtual void reserve(size_t n) = 0;
-  virtual void resize(size_t n)  = 0;
-  virtual void clear()           = 0;
-};
-
-template<typename T>
-struct PropData : public IPropData, public std::vector<T>
-{
-};
-
-template<typename T>
-struct Property
-{
-  int index = -1;
-
-public:
-  Property()
-  {
-    // TODO: Add a new propdata to the store and capture index and reference to propdata.
-  }
-  ~Property()
-  {
-    // TODO: delete property from the store using the index.
-  }
-  // Forbid copy.
-  Property(const Property&) = delete;
-  const Property& operator=(const Property&) = delete;
-  // Move semantics.
-  const Property& operator=(Property&& other)
-  {
-    if (index == other.index && this == &other) {
-      return *this;
-    }
-    if (index != -1) {
-      // TODO: delete this property from the store using the index.
-    }
-    index = std::exchange(other.index, -1);
-    return *this;
-  }
-  Property(Property&& other) { *this = other; }
-};
 
 struct Node
 {
@@ -131,7 +89,6 @@ public:
   int linkPrev(int li) const;
   int linkNext(int li) const;
 
-  // Iterators and ranges.
   PinIterator  nodeInputIter(int ni) const;
   PinIterator  nodeOutputIter(int ni) const;
   LinkIterator pinLinkIter(int pi) const;
@@ -140,14 +97,29 @@ public:
   Range<PinIterator>  nodeOutputs(int ni) const;
   Range<LinkIterator> pinLinks(int pi) const;
 
+  int newNode();
+  int newPin();
+  int newLink();
+
+  void setNodeInput(int ni, int i);
+  void setNodeOutput(int ni, int i);
+  void setPinNode(int pi, int i);
+  void setPinLink(int pi, int i);
+  void setPinPrev(int pi, int i);
+  void setPinNext(int pi, int i);
+  void setLinkStart(int li, int i);
+  void setLinkEnd(int li, int i);
+  void setLinkPrev(int li, int i);
+  void setLinkNext(int li, int i);
+
 private:
   std::vector<Pin>  mPins;
   std::vector<Link> mLinks;
   std::vector<Node> mNodes;
 
-  std::vector<IPropData> mPinProps;
-  std::vector<IPropData> mLinkProps;
-  std::vector<IPropData> mNodeProps;
+  Properties mPinProps;
+  Properties mLinkProps;
+  Properties mNodeProps;
 };
 
 struct PinIterator : public BaseIterator
