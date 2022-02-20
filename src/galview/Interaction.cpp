@@ -11,6 +11,7 @@
 
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
+#include <galfunc/Graph.h>
 #include <galview/Command.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
@@ -30,34 +31,40 @@ static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink)
 
 static std::vector<Panel> sPanels;
 
-struct NodeData
-{
-  func::FunctionGraphData mGraphData;
-  float                   mInnerWidth = 0.f;
+static func::graph::Graph sGraph;
 
-  NodeData() = default;
+struct NodeInfo
+{
+  const func::Function* func       = nullptr;
+  int                   col        = -1;
+  int                   row        = -1;
+  float                 innerWidth = 0.f;
 };
 
-static std::vector<NodeData>            sNodes;
-static std::vector<std::pair<int, int>> sLinks;
-
-static constexpr int imNodeId(int index)
+static func::Property<NodeInfo>& nodeProps()
 {
-  /* This will break if there are more than two million nodes due to
-     integer overflow. But that is a reasonable limit for now. */
-  return 1000 * index;
+  static func::Property<NodeInfo> sProp = sGraph.addNodeProperty<NodeInfo>();
+  return sProp;
 }
 
-static constexpr int imNodeInputId(int nodeIdx, int inputIdx)
+static constexpr int imNodeId(int i)
 {
-  /* This assumes a maximum of 500 inputs. Reasonable limit for now. */
-  return 1000 * nodeIdx + inputIdx;
+  return 0xfe783b1e ^ i;
 }
 
-static constexpr int imNodeOutputId(int nodeIdx, int outputIdx)
+static constexpr int imNodeInputId(int i)
 {
-  /* This assumes a maximum of 500 outputs. Reasonalble limit for now. */
-  return 1000 * nodeIdx + 500 + outputIdx;
+  return 0x14b907bf ^ i;
+}
+
+static constexpr int imNodeOutputId(int i)
+{
+  return 0x7e59e22a ^ i;
+}
+
+static constexpr int imLinkId(int i)
+{
+  return 0x876836b5 ^ i;
 }
 
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)
@@ -263,31 +270,35 @@ template<bool UpdatePass = false>
 void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  int count = int(sNodes.size());
+  int   count  = int(sGraph.numNodes());
+  auto& nprops = nodeProps();
   for (int ni = 0; ni < count; ni++) {
-    const auto& node = sNodes[ni];
-    const auto& info = node.mGraphData.mFunc->info();
+    const auto& ndata = nprops[ni];
+    const auto& info  = ndata.func->info();
     ImNodes::BeginNode(imNodeId(ni));
     ImNodes::BeginNodeTitleBar();
     ImGui::TextUnformatted(info.mName.data());
     ImNodes::EndNodeTitleBar();
-    for (int i = 0; i < info.mNumInputs; i++) {
-      ImNodes::BeginInputAttribute(imNodeInputId(ni, i));
+
+    for (auto i : sGraph.nodeInputs(ni)) {
+      ImNodes::BeginInputAttribute(imNodeInputId(i));
       ImGui::Text("%s", info.mInputNames[i].data());
       ImNodes::EndInputAttribute();
     }
-    for (int i = 0; i < info.mNumOutputs; i++) {
-      ImNodes::BeginOutputAttribute(imNodeOutputId(ni, i));
-      ImGui::Indent(node.mInnerWidth -
+
+    for (int i : sGraph.nodeOutputs(ni)) {
+      ImNodes::BeginOutputAttribute(imNodeOutputId(i));
+      ImGui::Indent(ndata.innerWidth -
                     ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
       ImGui::Text("%s", info.mOutputNames[i].data());
       ImNodes::EndOutputAttribute();
     }
     ImNodes::EndNode();
   }
-  for (int i = 0; i < sLinks.size(); i++) {
-    const auto& link = sLinks[i];
-    ImNodes::Link(i, link.first, link.second);
+  count = int(sGraph.numLinks());
+  for (int i = 0; i < count; i++) {
+    const auto& link = sGraph.link(i);
+    ImNodes::Link(imLinkId(i), link.start, link.end);
   }
   ImNodes::EndNodeEditor();
 }
@@ -342,52 +353,30 @@ void setPanelVisibility(const std::string& name, bool visible)
 
 static void updateCanvas()
 {
-  static std::vector<func::FunctionGraphData> sGraphData;
-  func::store::getGraphData(sGraphData);
-  static std::unordered_map<uint64_t, int> sPtrIndexMap;
-  static std::vector<func::InputInfo>      sInputs;
-
-  sLinks.clear();
-  sNodes.resize(sGraphData.size());
-  sPtrIndexMap.clear();
-  if (sGraphData.empty()) {
-    return;
-  }
+  using namespace gal::func::graph;
+  Graph::build(sGraph);
 
   imGuiNewFrame();
   ImGui::PushFont(sFont);
 
-  sPtrIndexMap.reserve(sGraphData.size());
-  int count = int(sGraphData.size());
-  for (int ni = 0; ni < count; ni++) {
-    auto&       ndata  = sNodes[ni];
+  auto& nprops = nodeProps();
+  for (int ni = 0; ni < sGraph.numNodes(); ni++) {
+    auto&       ndata  = nprops[ni];
     int         nodeId = imNodeId(ni);
-    const auto& gdata  = sGraphData[ni];
-    const auto& info   = gdata.mFunc->info();
-    sPtrIndexMap.emplace(uint64_t(gdata.mFunc), ni);
+    const auto& info   = ndata.func->info();
 
-    ndata.mGraphData  = sGraphData[ni];
-    ndata.mInnerWidth = ImGui::CalcTextSize(info.mName.data()).x;
+    ndata.innerWidth = ImGui::CalcTextSize(info.mName.data()).x;
     for (size_t ii = 0; ii < info.mNumInputs; ii++) {
-      ndata.mInnerWidth =
-        std::max(ndata.mInnerWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
+      ndata.innerWidth =
+        std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
     }
     for (size_t oi = 0; oi < info.mNumOutputs; oi++) {
-      ndata.mInnerWidth =
-        std::max(ndata.mInnerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
+      ndata.innerWidth =
+        std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
     }
 
     ImNodes::SetNodeScreenSpacePos(
-      nodeId, ImVec2(200.f * float(gdata.mCol), 200.f * float(gdata.mRow)));
-
-    sInputs.clear();
-    gdata.mFunc->getInputs(sInputs);
-    int ii = 0;
-    for (const auto& inp : sInputs) {
-      int nodeIdx = sPtrIndexMap[uint64_t(inp.mFunc)];
-      sLinks.emplace_back(imNodeOutputId(nodeIdx, inp.mOutputIdx), imNodeInputId(ni, ii));
-      ii++;
-    }
+      nodeId, ImVec2(200.f * float(ndata.col), 200.f * float(ndata.row)));
   }
 
   drawCanvas<true>();

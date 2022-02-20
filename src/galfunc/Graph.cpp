@@ -1,4 +1,6 @@
+#include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
+#include <numeric>
 
 namespace gal {
 namespace func {
@@ -17,6 +19,14 @@ int BaseIterator::operator*() const
 bool BaseIterator::valid() const
 {
   return mIndex != -1;
+}
+
+Graph::Graph()
+    : mNodeProps(mNodePropContainer)
+{
+  mNodePropContainer.resize(mNodes.size());
+  mPinPropContainer.resize(mPins.size());
+  mLinkPropContainer.resize(mLinks.size());
 }
 
 const Node& Graph::node(int i) const
@@ -129,10 +139,16 @@ Range<LinkIterator> Graph::pinLinks(int pi) const
   return Range<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
 }
 
+const std::vector<Node>& Graph::nodes() const
+{
+  return mNodes;
+}
+
 int Graph::newNode()
 {
   int ni = int(mNodes.size());
   mNodes.emplace_back();
+  mNodePropContainer.resize(mNodes.size());
   return ni;
 }
 
@@ -140,6 +156,7 @@ int Graph::newPin()
 {
   int pi = int(mPins.size());
   mPins.emplace_back();
+  mPinPropContainer.resize(mPins.size());
   return pi;
 }
 
@@ -147,6 +164,7 @@ int Graph::newLink()
 {
   int li = int(mLinks.size());
   mLinks.emplace_back();
+  mLinkPropContainer.resize(mLinks.size());
   return li;
 }
 
@@ -206,6 +224,76 @@ void Graph::setLinkNext(int li, int i)
 {
   link(li).next = i;
   link(i).prev  = li;
+}
+
+size_t Graph::numNodes() const
+{
+  return mNodes.size();
+}
+
+size_t Graph::numPins() const
+{
+  return mPins.size();
+}
+
+size_t Graph::numLinks() const
+{
+  return mLinks.size();
+}
+
+int Graph::nodeDepth(int ni) const
+{
+  return mNodeProps[ni].depth;
+}
+
+int Graph::nodeHeight(int ni) const
+{
+  return mNodeProps[ni].height;
+}
+
+void Graph::clear()
+{
+  mPins.clear();
+  mLinks.clear();
+  mNodes.clear();
+
+  mPinPropContainer.clear();
+  mLinkPropContainer.clear();
+  mNodePropContainer.clear();
+}
+
+void Graph::reserve(size_t nNodes, size_t nPins, size_t nLinks)
+{
+  mNodes.reserve(nNodes);
+  mPins.reserve(nPins);
+  mLinks.reserve(nLinks);
+
+  mNodePropContainer.reserve(nNodes);
+  mPinPropContainer.reserve(nPins);
+  mLinkPropContainer.reserve(nLinks);
+}
+
+void Graph::build(Graph& g)
+{
+  g.clear();
+  const auto& allfunc  = store::allFunctions();
+  size_t      nInputs  = std::accumulate(allfunc.begin(),
+                                   allfunc.end(),
+                                   size_t(0),
+                                   [](size_t total, const std::shared_ptr<Function>& f) {
+                                     return total + f->numInputs();
+                                   });
+  size_t      nOutputs = std::accumulate(allfunc.begin(),
+                                    allfunc.end(),
+                                    size_t(0),
+                                    [](size_t total, const std::shared_ptr<Function>& f) {
+                                      return total + f->numOutputs();
+                                    });
+  g.reserve(allfunc.size(), nInputs + nOutputs, nInputs);
+
+  for (const auto& fn : allfunc) {
+    fn->info();
+  }
 }
 
 PinIterator::PinIterator(const Graph& g, int i /* = -1*/)

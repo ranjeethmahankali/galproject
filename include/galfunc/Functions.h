@@ -11,6 +11,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
+#include <galfunc/Property.h>
 #include <galfunc/TypeManager.h>
 
 namespace gal {
@@ -75,45 +76,21 @@ struct Function
   const fs::path& contextpath() const;
 
   const FuncInfo& info() const;
-  void            info(const FuncInfo& info);
-
-  int depth() const;
-
-  int height() const;
-
-  virtual void calcDepth() const = 0;
-
-  virtual void updateHeight(int h = -1) const = 0;
-
-  void clearDepth();
+  FuncInfo&       info();
 
   size_t numInputs() const;
 
   size_t numOutputs() const;
-
-  virtual void getUpstreamFunctions(std::vector<const Function*>& dst) const = 0;
 
   virtual void getInputs(std::vector<InputInfo>& dst) const = 0;
 
 protected:
   Function();
 
-protected:
-  // TODO: Remove these after implementing the property pattern.
-  mutable int mDepth  = -1;
-  mutable int mHeight = -1;
-
 private:
   fs::path mContextPath;
   FuncInfo mInfo;
-};
-
-// TODO: Move this to galview after implementing the property pattern.
-struct FunctionGraphData
-{
-  const Function* mFunc = nullptr;
-  int             mCol  = 0;
-  int             mRow  = 0;
+  int      mIndex = -1;
 };
 
 namespace store {
@@ -127,7 +104,17 @@ namespace store {
 std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn);
 
-void getGraphData(std::vector<FunctionGraphData>& dst);
+const std::vector<std::shared_ptr<Function>>& allFunctions();
+
+Properties& properties();
+
+template<typename T>
+Property<T> addProperty()
+{
+  Property<T> p(properties());
+  properties().resize(allFunctions().size());
+  return p;
+}
 
 /**
  * @brief Unloads all loaded function instances.
@@ -559,17 +546,6 @@ public:
     }
   }
 
-  void getUpstreamFunctions(std::vector<const Function*>& dst) const override
-  {
-    dst.clear();
-    if constexpr (HasInputs) {
-      std::apply([&dst](const auto&... inputs) { (dst.push_back(inputs.mOwner), ...); },
-                 mInputs);
-      std::sort(dst.begin(), dst.end());
-      dst.erase(std::unique(dst.begin(), dst.end()), dst.end());
-    }
-  }
-
   void getInputs(std::vector<InputInfo>& dst) const override
   {
     dst.clear();
@@ -578,43 +554,6 @@ public:
         [&dst](const auto&... inputs) {
           (dst.emplace_back(inputs.mOwner, inputs.mIndex), ...);
         },
-        mInputs);
-    }
-  }
-
-  void calcDepth() const override
-  {
-    if constexpr (NInputs == 0) {
-      this->mDepth = 0;
-    }
-    else {
-      if (this->mDepth != SIZE_MAX) {
-        return;
-      }
-      int  maxd       = 0;
-      auto captureMax = [&maxd](const auto& input) {
-        input.mOwner->calcDepth();
-        maxd = std::max(maxd, input.mOwner->depth());
-      };
-      std::apply([&captureMax](const auto&... inputs) { (captureMax(inputs), ...); },
-                 mInputs);
-      this->mDepth = maxd + 1;
-    }
-  }
-
-  void updateHeight(int h = -1) const override
-  {
-    int oldH = this->mHeight;
-    if constexpr (NOutputs == 0) {
-      this->mHeight = 0;
-    }
-    else {
-      this->mHeight = std::max(this->mHeight, h);
-    }
-
-    if (this->mHeight > oldH) {
-      std::apply(
-        [h](const auto&... inputs) { (inputs.mOwner->updateHeight(h + 1), ...); },
         mInputs);
     }
   }

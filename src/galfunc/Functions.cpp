@@ -34,25 +34,9 @@ const FuncInfo& Function::info() const
   return mInfo;
 }
 
-void Function::info(const FuncInfo& info)
+FuncInfo& Function::info()
 {
-  mInfo = info;
-}
-
-int Function::depth() const
-{
-  return mDepth;
-}
-
-int Function::height() const
-{
-  return mHeight;
-}
-
-void Function::clearDepth()
-{
-  mDepth  = -1;
-  mHeight = -1;
+  return mInfo;
 }
 
 size_t Function::numInputs() const
@@ -67,6 +51,7 @@ size_t Function::numOutputs() const
 
 namespace store {
 
+// TODO: Change these to unique pointers later.
 static std::vector<std::shared_ptr<Function>> sFunctions;
 
 static std::unordered_map<uint64_t,
@@ -77,95 +62,21 @@ static std::unordered_map<uint64_t,
 std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
                                       const std::shared_ptr<Function>& fn)
 {
-  fn->info(fnInfo);
+  fn->info() = fnInfo;
   sFunctions.push_back(fn);
+  properties().resize(sFunctions.size());
   return fn;
 };
 
-void getGraphData(std::vector<FunctionGraphData>& gdata)
+const std::vector<std::shared_ptr<Function>>& allFunctions()
 {
-  // Clear previously computed depths.
-  for (const auto& fn : sFunctions) {
-    fn->clearDepth();
-  }
+  return sFunctions;
+}
 
-  // Recompute depths and heights.
-  for (auto& fn : sFunctions) {
-    fn->calcDepth();
-    fn->updateHeight();
-  }
-  int maxd = -1;
-  int maxh = -1;
-  for (const auto& fn : sFunctions) {
-    maxd = std::max(maxd, fn->depth());
-    maxh = std::max(maxh, fn->height());
-  }
-  assert(maxd == maxh);
-
-  gdata.resize(sFunctions.size());
-  std::transform(sFunctions.begin(),
-                 sFunctions.end(),
-                 gdata.begin(),
-                 [maxd](const std::shared_ptr<Function>& fn) {
-                   int d = fn->depth();
-                   int h = fn->height();
-                   return FunctionGraphData {fn.get(), d != 0 ? d : maxd - h - 1, int(0)};
-                 });
-  std::sort(gdata.begin(),
-            gdata.end(),
-            [](const FunctionGraphData& a, const FunctionGraphData& b) {
-              return a.mCol < b.mCol;
-            });
-  std::vector<const Function*>                         upstream;
-  std::unordered_map<uint64_t, float, CustomSizeTHash> rscores;
-  for (auto colbegin = gdata.begin(); colbegin != gdata.end();) {
-    size_t curCol   = colbegin->mCol;
-    size_t colstart = std::distance(gdata.begin(), colbegin);
-    auto   colend =
-      std::find_if(colbegin, gdata.end(), [&curCol](const FunctionGraphData& fn) {
-        return fn.mCol != curCol;
-      });
-    size_t colsize = std::distance(colbegin, colend);
-    if (curCol > 0) {
-      for (auto begin = colbegin; begin != colend; begin++) {
-        begin->mFunc->getUpstreamFunctions(upstream);
-        float rsum = 0.f;
-        for (const auto upfn : upstream) {
-          rsum += rscores[uint64_t(upfn)];
-        }
-        rscores.emplace(uint64_t(begin->mFunc), rsum / float(upstream.size()));
-      }
-      std::sort(colbegin,
-                colend,
-                [&rscores](const FunctionGraphData& a, const FunctionGraphData& b) {
-                  return rscores[uint64_t(a.mFunc)] < rscores[uint64_t(b.mFunc)];
-                });
-    }
-    int nrows  = int(colsize);
-    int center = nrows / 2;
-    colbegin   = gdata.begin() + colstart;
-    colend     = colbegin + colsize;
-    for (int ri = 0; ri < nrows; ri++, colbegin++) {
-      colbegin->mRow                     = ri - center;
-      rscores[uint64_t(colbegin->mFunc)] = float(colbegin->mRow);
-    }
-    colbegin = colend;
-  }
-
-  if (gdata.empty()) {
-    return;
-  }
-
-  auto minRowNode =
-    std::min_element(gdata.begin(),
-                     gdata.end(),
-                     [](const FunctionGraphData& a, const FunctionGraphData& b) {
-                       return a.mRow < b.mRow;
-                     });
-  int minRow = -minRowNode->mRow + 1;
-  for (auto& g : gdata) {
-    g.mRow += minRow;
-  }
+Properties& properties()
+{
+  static Properties sProps;
+  return sProps;
 }
 
 void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag)

@@ -42,10 +42,23 @@ struct BaseIterator
 
   int  operator*() const;
   bool valid() const;
+
+  bool operator==(const BaseIterator& other)
+  {
+    return &(other.mGraph) == &mGraph && other.mIndex == mIndex;
+  }
+
+  bool operator!=(const BaseIterator& other) { return *this != other; }
 };
 
 struct PinIterator;
 struct LinkIterator;
+
+struct NodeProps
+{
+  int depth  = -1;
+  int height = -1;
+};
 
 template<typename IterT>
 class Range
@@ -59,14 +72,16 @@ public:
       , mEnd(e)
   {}
 
-  IterT begin() const { return mBegin; }
+  IterT begin() { return mBegin; }
 
-  IterT end() const { return mEnd; }
+  IterT end() { return mEnd; }
 };
 
 class Graph
 {
 public:
+  Graph();
+
   const Node& node(int idx) const;
   Node&       node(int idx);
 
@@ -97,6 +112,8 @@ public:
   Range<PinIterator>  nodeOutputs(int ni) const;
   Range<LinkIterator> pinLinks(int pi) const;
 
+  const std::vector<Node>& nodes() const;
+
   int newNode();
   int newPin();
   int newLink();
@@ -112,14 +129,36 @@ public:
   void setLinkPrev(int li, int i);
   void setLinkNext(int li, int i);
 
+  size_t numNodes() const;
+  size_t numPins() const;
+  size_t numLinks() const;
+
+  int nodeDepth(int ni) const;
+  int nodeHeight(int ni) const;
+
+  void clear();
+  void reserve(size_t nNodes, size_t nPins, size_t nLinks);
+
+  static void build(Graph& g);
+
 private:
   std::vector<Pin>  mPins;
   std::vector<Link> mLinks;
   std::vector<Node> mNodes;
 
-  Properties mPinProps;
-  Properties mLinkProps;
-  Properties mNodeProps;
+  Properties mPinPropContainer;
+  Properties mLinkPropContainer;
+  Properties mNodePropContainer;
+
+  Property<NodeProps> mNodeProps;
+
+public:
+  template<typename T>
+  Property<T> addNodeProperty()
+  {
+    mNodePropContainer.resize(mNodes.size());
+    return Property<T>(mNodePropContainer);
+  }
 };
 
 struct PinIterator : public BaseIterator
