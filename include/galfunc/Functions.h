@@ -101,10 +101,11 @@ namespace store {
  *
  * @param fn
  */
-std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
-                                      const std::shared_ptr<Function>& fn);
+Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn);
 
-const std::vector<std::shared_ptr<Function>>& allFunctions();
+size_t numFunctions();
+
+const Function& function(size_t i);
 
 Properties& properties();
 
@@ -112,7 +113,7 @@ template<typename T>
 Property<T> addProperty()
 {
   Property<T> p(properties());
-  properties().resize(allFunctions().size());
+  properties().resize(numFunctions());
   return p;
 }
 
@@ -654,13 +655,12 @@ namespace store {
  * @param args The arguments to be passed to the constructor.
  */
 template<typename TFunc, typename... TArgs>
-std::shared_ptr<TFunc> makeFunction(const FuncInfo& fnInfo, const TArgs&... args)
+TFunc* makeFunction(const FuncInfo& fnInfo, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
 
-  auto fn = std::make_shared<TFunc>(args...);
-  store::addFunction(fnInfo, std::dynamic_pointer_cast<Function>(fn));
-  return fn;
+  return dynamic_cast<TFunc*>(
+    store::addFunction(fnInfo, std::make_unique<TFunc>(args...)));
 };
 
 }  // namespace store
@@ -688,8 +688,8 @@ template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
 {
   static const auto sInfo = varfnInfo<TVal>();
-  auto              fn    = std::make_shared<TVariable<TVal>>(obj);
-  store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
+  auto              fn    = dynamic_cast<const TVariable<TVal>*>(
+    store::addFunction(sInfo, std::make_unique<TVariable<TVal>>(obj)));
   return fn->pythonOutputRegs();
 };
 
@@ -697,8 +697,8 @@ template<typename TVal>
 typename TVariable<TVal>::PyOutputType py_varEmpty()
 {
   static const auto sInfo = varfnInfo<TVal>();
-  auto              fn    = std::make_shared<TVariable<TVal>>();
-  store::addFunction(sInfo, std::dynamic_pointer_cast<Function>(fn));
+  auto              fn    = dynamic_cast<const TVariable<TVal>*>(
+    store::addFunction(sInfo, std::make_unique<TVariable<TVal>>()));
   return fn->pythonOutputRegs();
 }
 

@@ -1,6 +1,7 @@
 #include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
 #include <numeric>
+#include <stdexcept>
 
 namespace gal {
 namespace func {
@@ -276,24 +277,18 @@ void Graph::reserve(size_t nNodes, size_t nPins, size_t nLinks)
 void Graph::build(Graph& g)
 {
   g.clear();
-  const auto& allfunc  = store::allFunctions();
-  size_t      nInputs  = std::accumulate(allfunc.begin(),
-                                   allfunc.end(),
-                                   size_t(0),
-                                   [](size_t total, const std::shared_ptr<Function>& f) {
-                                     return total + f->numInputs();
-                                   });
-  size_t      nOutputs = std::accumulate(allfunc.begin(),
-                                    allfunc.end(),
-                                    size_t(0),
-                                    [](size_t total, const std::shared_ptr<Function>& f) {
-                                      return total + f->numOutputs();
-                                    });
-  g.reserve(allfunc.size(), nInputs + nOutputs, nInputs);
-
-  for (const auto& fn : allfunc) {
-    fn->info();
+  size_t nfunc    = store::numFunctions();
+  size_t nInputs  = 0;
+  size_t nOutputs = 0;
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f = store::function(i);
+    nInputs += f.numInputs();
+    nOutputs = f.numOutputs();
   }
+  g.reserve(nfunc, nInputs + nOutputs, nInputs);
+
+  // TODO: Incomplete
+  throw std::logic_error("Not Implemented");
 }
 
 PinIterator::PinIterator(const Graph& g, int i /* = -1*/)

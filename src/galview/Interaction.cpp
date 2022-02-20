@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 
 #include <imgui.h>
@@ -132,7 +133,7 @@ void Panel::draw() const
   ImGui::End();
 };
 
-void Panel::addWidget(const std::shared_ptr<Widget>& widget)
+void Panel::addWidget(Widget* widget)
 {
   mWidgets.push_back(widget);
 };
@@ -414,12 +415,14 @@ static std::string* sHistoryPtr = nullptr;
 
 void init(GLFWwindow* window, const char* glslVersion)
 {
+  static std::unique_ptr<Text> sHistoryWidget;
   initializeImGui(window, glslVersion);
   initPanels();
   sResponseSink->set_pattern("[%l] %v");
   Panel& historyPanel = panelByName("history");
-  auto   history      = historyPanel.newWidget<Text>("");
-  sHistoryPtr         = &(history->value());
+  sHistoryWidget      = std::make_unique<Text>("");
+  historyPanel.addWidget(sHistoryWidget.get());
+  sHistoryPtr = &(sHistoryWidget->value());
 
   initCommands();
 }

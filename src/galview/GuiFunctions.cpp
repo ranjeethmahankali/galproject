@@ -21,10 +21,10 @@
 namespace gal {
 namespace viewfunc {
 
-static bool                                                   sShowInputs  = true;
-static bool                                                   sShowOutputs = true;
-static std::vector<const func::Function*>                     sOutputFuncs;
-static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
+static bool                               sShowInputs  = true;
+static bool                               sShowOutputs = true;
+static std::vector<const func::Function*> sOutputFuncs;
+static std::unordered_map<std::string, std::unique_ptr<view::CheckBox>> sShowCheckboxes;
 
 view::Panel& outputsPanel()
 {
@@ -45,11 +45,11 @@ static const view::CheckBox& getCheckBox(const std::string name)
 {
   auto match = sShowCheckboxes.find(name);
   if (match != sShowCheckboxes.end()) {
-    return match->second;
+    return *(match->second);
   }
-  auto pair = sShowCheckboxes.emplace(
-    name, *(outputsPanel().newWidget<view::CheckBox>(name, true)));
-  return pair.first->second;
+  auto pair = sShowCheckboxes.emplace(name, std::make_unique<view::CheckBox>(name, true));
+  outputsPanel().addWidget(pair.first->second.get());
+  return *(pair.first->second);
 }
 
 void evalOutputs()
@@ -173,8 +173,8 @@ typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
                                          &sOutputName,
                                          &sOutputDesc};
   auto fn = gal::func::store::makeFunction<TextFieldFunc>(sFnInfo, label);
-  inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return fn->pythonOutputRegs();
+  inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+  return dynamic_cast<const TextFieldFunc*>(fn)->pythonOutputRegs();
 };
 
 template<typename T>
@@ -248,12 +248,10 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                        nullptr};
 
   static_assert(view::Views::IsDrawableType<T>);
-  std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
+  auto fn = gal::func::store::makeFunction<ShowFunc<T>>(
     sInfo, label, getCheckBox(label).checkedPtr(), reg);
-
-  auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
-  sOutputFuncs.push_back(fn.get());
-  return sfn->pythonOutputRegs();
+  sOutputFuncs.push_back(fn);
+  return dynamic_cast<ShowFunc<T>*>(fn)->pythonOutputRegs();
 }
 
 template<typename T>
@@ -325,12 +323,10 @@ typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
                                        nullptr,
                                        nullptr};
 
-  std::shared_ptr<PrintFunc<T>> pfn =
-    gal::func::store::makeFunction<PrintFunc<T>>(sInfo, label, reg);
-  auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
-  sOutputFuncs.push_back(fn.get());
-  outputsPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
-  return pfn->pythonOutputRegs();
+  auto fn = gal::func::store::makeFunction<PrintFunc<T>>(sInfo, label, reg);
+  sOutputFuncs.push_back(fn);
+  outputsPanel().addWidget(dynamic_cast<view::Widget*>(fn));
+  return dynamic_cast<PrintFunc<T>*>(fn)->pythonOutputRegs();
 }
 
 void py_runCommands(const std::string& commands)

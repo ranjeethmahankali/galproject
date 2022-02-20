@@ -51,26 +51,29 @@ size_t Function::numOutputs() const
 
 namespace store {
 
-// TODO: Change these to unique pointers later.
-static std::vector<std::shared_ptr<Function>> sFunctions;
+static std::vector<std::unique_ptr<Function>> sFunctions;
 
 static std::unordered_map<uint64_t,
                           std::vector<std::reference_wrapper<std::atomic_bool>>,
                           CustomSizeTHash>
   sSubscriberMap;
 
-std::shared_ptr<Function> addFunction(const FuncInfo&                  fnInfo,
-                                      const std::shared_ptr<Function>& fn)
+Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn)
 {
   fn->info() = fnInfo;
-  sFunctions.push_back(fn);
+  sFunctions.push_back(std::move(fn));
   properties().resize(sFunctions.size());
-  return fn;
+  return sFunctions.back().get();
 };
 
-const std::vector<std::shared_ptr<Function>>& allFunctions()
+size_t numFunctions()
 {
-  return sFunctions;
+  return sFunctions.size();
+}
+
+const Function& function(size_t i)
+{
+  return *(sFunctions[i]);
 }
 
 Properties& properties()

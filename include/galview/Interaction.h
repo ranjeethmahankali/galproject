@@ -44,13 +44,13 @@ public:
   void draw() const;
 
 private:
-  std::vector<std::shared_ptr<Widget>> mWidgets;
-  std::vector<DrawCBType>              mCallbacks;
-  std::string                          mTitle;
-  mutable bool                         mIsVisible = true;
+  std::vector<Widget*>    mWidgets;
+  std::vector<DrawCBType> mCallbacks;
+  std::string             mTitle;
+  mutable bool            mIsVisible = true;
 
 public:
-  void addWidget(const std::shared_ptr<Widget>& widget);
+  void addWidget(Widget* widget);
 
   void addCallback(DrawCBType cb);
 
@@ -59,15 +59,6 @@ public:
    * Expect the panel to be emptied.
    */
   void clear();
-
-  template<typename T, typename... TArgs>
-  std::shared_ptr<T> newWidget(const TArgs&... args)
-  {
-    static_assert(std::is_base_of_v<Widget, T>, "Type must inherit from Widget.");
-    auto w = std::make_shared<T>(args...);
-    addWidget(w);
-    return w;
-  };
 
   const std::string& title() const;
   bool               visibility() const;

@@ -115,10 +115,10 @@ struct makeSlider
                                          &sOutputName,
                                          &sOutputDesc};
 
-    std::shared_ptr<SliderFunc<T>> fn =
+    auto fn =
       gal::func::store::makeFunction<SliderFunc<T>>(sInfo, label, min, max, value);
-    inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return fn->pythonOutputRegs();
+    inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+    return dynamic_cast<const SliderFunc<T>*>(fn)->pythonOutputRegs();
   }
 };
 
@@ -164,8 +164,8 @@ struct makeSlider<glm::vec<N, T, Q>>
 
     auto fn = gal::func::store::makeFunction<SliderFunc<glm::vec<N, T, Q>>>(
       sInfo, label, min, max, value);
-    inputsPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return fn->pythonOutputRegs();
+    inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+    return dynamic_cast<const SliderFunc<glm::vec<N, T, Q>>*>(fn)->pythonOutputRegs();
   }
 };
 
