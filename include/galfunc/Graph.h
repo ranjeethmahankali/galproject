@@ -41,8 +41,10 @@ struct BaseIterator
   const Graph& mGraph;
   int          mIndex = -1;
 
+protected:
   BaseIterator(const Graph& graph, int i = -1);
 
+public:
   int  operator*() const;
   bool valid() const;
 
@@ -51,7 +53,7 @@ struct BaseIterator
     return &(other.mGraph) == &mGraph && other.mIndex == mIndex;
   }
 
-  bool operator!=(const BaseIterator& other) { return *this != other; }
+  bool operator!=(const BaseIterator& other) { return !(*this == other); }
 };
 
 struct PinIterator;
@@ -147,7 +149,9 @@ public:
   void clear();
   void reserve(size_t nNodes, size_t nPins, size_t nLinks);
 
-  static void build(Graph& g, Property<int>& funcNodeIndices);
+  static void build(Graph&                     g,
+                    Property<int>&             funcNodeIndices,
+                    Property<const Function*>& nodeFuncs);
 
 private:
   std::vector<Pin>  mPins;

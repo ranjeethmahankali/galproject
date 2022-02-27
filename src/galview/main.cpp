@@ -1,3 +1,4 @@
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -90,40 +91,46 @@ int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if ((err = initViewer(window, demoPath.filename().string()))) {
-    glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
-    return err;
-  }
-
-  // Initialize all the user interface elements.
-  view::init(window, glslVersion);
-
-  // Initialize Embedded Python and the demo
-  initPythonEnvironment();
-  err = view::runPythonDemoFile(demoPath);
-  if (err != 0) {
-    glutil::logger().error("Unable to run the demo file. Error code {}.", err);
-    return err;
-  }
-
-  glutil::logger().info("Starting the render loop...");
-  while (!glfwWindowShouldClose(window)) {
-    glfwPollEvents();
-    view::imGuiNewFrame();
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    {
-      view::draw(window);
-      ImGui::Render();
-      viewfunc::evalOutputs();
-      view::Views::render();
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  try {
+    if ((err = initViewer(window, demoPath.filename().string()))) {
+      glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
+      return err;
     }
-    glfwSwapBuffers(window);
+
+    // Initialize all the user interface elements.
+    view::init(window, glslVersion);
+
+    // Initialize Embedded Python and the demo
+    initPythonEnvironment();
+    err = view::runPythonDemoFile(demoPath);
+    if (err != 0) {
+      glutil::logger().error("Unable to run the demo file. Error code {}.", err);
+      return err;
+    }
+
+    glutil::logger().info("Starting the render loop...");
+    while (!glfwWindowShouldClose(window)) {
+      glfwPollEvents();
+      view::imGuiNewFrame();
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      {
+        view::draw(window);
+        ImGui::Render();
+        viewfunc::evalOutputs();
+        view::Views::render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+      }
+      glfwSwapBuffers(window);
+    }
+  }
+  catch (std::exception e) {
+    glutil::logger().critical("Fatal error: {}", e.what());
+    err = -1;
   }
 
   view::destroy(window);
-  return 0;
+  return err;
 }
 
 int main(int argc, char** argv)

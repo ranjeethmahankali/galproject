@@ -40,9 +40,9 @@ using uint = GLuint;
 namespace gal {
 namespace glutil {
 
-spdlog::logger logger();
-bool           log_errors(const char* function, const char* file, uint line);
-void           clear_errors();
+spdlog::logger& logger();
+bool            log_errors(const char* function, const char* file, uint line);
+void            clear_errors();
 
 struct DefaultVertex
 {

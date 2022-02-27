@@ -8,6 +8,8 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <galcore/Util.h>
 #include <galfunc/Data.h>
 #include <galfunc/MapMacro.h>
@@ -57,6 +59,8 @@ struct InputInfo
       , mOutputIdx(outIdx)
   {}
 };
+
+spdlog::logger& logger();
 
 /**
  * @brief Base class for all functions.

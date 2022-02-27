@@ -35,11 +35,12 @@ private:
 };
 
 template<typename T>
-struct Property : public IProperty, private std::vector<T>
+struct Property : public IProperty
 {
 private:
-  Properties* mContainer = nullptr;
-  int         mIndex     = -1;
+  std::vector<T> mData;
+  Properties*    mContainer = nullptr;
+  int            mIndex     = -1;
 
   template<typename U>
   static size_t getIndex(const U& item)
@@ -49,6 +50,13 @@ private:
     }
     else {
       return size_t(item.index());
+    }
+  }
+
+  void removeFromContainer()
+  {
+    if (mContainer) {
+      mContainer->remove(mIndex);
     }
   }
 
@@ -70,37 +78,39 @@ public:
   // Move semantics.
   const Property& operator=(Property&& other)
   {
-    if (mIndex == other.index() && this == &other) {
+    if (this == &other) {
       return *this;
     }
-    mContainer->remove(mIndex);
-    mIndex = std::exchange(other.index(), -1);
+    removeFromContainer();
+    mData      = std::move(other.mData);
+    mContainer = std::exchange(other.mContainer, nullptr);
+    mIndex     = std::exchange(other.index(), -1);
     return *this;
   }
   Property(Property&& other) { *this = std::move(other); }
 
-  ~Property() { mContainer->remove(mIndex); }
+  virtual ~Property() { removeFromContainer(); }
 
-  void reserve(size_t n) override { std::vector<T>::reserve(n); }
+  void reserve(size_t n) override { mData.reserve(n); }
 
-  void resize(size_t n) override { std::vector<T>::resize(n); }
+  void resize(size_t n) override { mData.resize(n); }
 
-  void clear() override { std::vector<T>::clear(); }
+  void clear() override { mData.clear(); }
 
-  void swap(size_t i, size_t j) override { std::swap(this->at(i), this->at(j)); }
+  void swap(size_t i, size_t j) override { std::swap(mData[i], mData[j]); }
 
-  size_t size() const override { return std::vector<T>::size(); }
+  size_t size() const override { return mData.size(); }
 
   template<typename U>
   T& operator[](const U& item)
   {
-    return std::vector<T>::at(getIndex(item));
+    return mData[getIndex(item)];
   }
 
   template<typename U>
   const T& operator[](const U& item) const
   {
-    return std::vector<T>::at(getIndex(item));
+    return mData[getIndex(item)];
   }
 };
 

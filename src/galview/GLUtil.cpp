@@ -9,7 +9,7 @@ namespace glutil {
 
 static auto sLogger = spdlog::stdout_color_mt("viewer");
 
-spdlog::logger logger()
+spdlog::logger& logger()
 {
   return *sLogger;
 }

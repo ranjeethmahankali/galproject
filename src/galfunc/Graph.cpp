@@ -337,7 +337,9 @@ void Graph::reserve(size_t nNodes, size_t nPins, size_t nLinks)
   mLinkPropContainer.reserve(nLinks);
 }
 
-void Graph::build(Graph& g, Property<int>& funcNodeIndices)
+void Graph::build(Graph&                     g,
+                  Property<int>&             funcNodeIndices,
+                  Property<const Function*>& nodeFuncs)
 {
   g.clear();
   // Reserve memory.
@@ -356,6 +358,7 @@ void Graph::build(Graph& g, Property<int>& funcNodeIndices)
     const auto& f      = store::function(i);
     int         ni     = g.addNode(f.numInputs(), f.numOutputs());
     funcNodeIndices[f] = ni;
+    nodeFuncs[ni]      = &f;
   }
   // Add links.
   for (size_t i = 0; i < nfunc; i++) {

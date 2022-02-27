@@ -14,6 +14,7 @@
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
+#include <galfunc/Property.h>
 #include <galview/Command.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
@@ -29,22 +30,33 @@ static std::stringstream sResponseStream;
 static auto              sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
 static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
-static std::vector<Panel>  sPanels;
-static func::graph::Graph  sGraph;
-static func::Property<int> sFuncNodeIndices;
+static std::vector<Panel> sPanels;
+static func::graph::Graph sGraph;
 
 struct NodeInfo
 {
-  const func::Function* func       = nullptr;
-  int                   col        = -1;
-  int                   row        = -1;
-  float                 innerWidth = 0.f;
+  int   col        = -1;
+  int   row        = -1;
+  float innerWidth = 0.f;
 };
 
-static func::Property<NodeInfo>& nodeProps()
+func::Property<NodeInfo>& nodeProps()
 {
   static func::Property<NodeInfo> sProp = sGraph.addNodeProperty<NodeInfo>();
   return sProp;
+}
+
+func::Property<const func::Function*>& nodeFuncs()
+{
+  static func::Property<const func::Function*> sNodeFuncs =
+    sGraph.addNodeProperty<const func::Function*>();
+  return sNodeFuncs;
+}
+
+func::Property<int>& funcNodeIndices()
+{
+  static func::Property<int> sFuncNodeIndices = func::store::addProperty<int>();
+  return sFuncNodeIndices;
 }
 
 static constexpr int imNodeId(int i)
@@ -52,14 +64,9 @@ static constexpr int imNodeId(int i)
   return 0xfe783b1e ^ i;
 }
 
-static constexpr int imNodeInputId(int i)
+static constexpr int imPinId(int i)
 {
   return 0x14b907bf ^ i;
-}
-
-static constexpr int imNodeOutputId(int i)
-{
-  return 0x7e59e22a ^ i;
 }
 
 static constexpr int imLinkId(int i)
@@ -272,33 +279,37 @@ void drawCanvas()
   ImNodes::BeginNodeEditor();
   int   count  = int(sGraph.numNodes());
   auto& nprops = nodeProps();
+  auto& nfuncs = nodeFuncs();
   for (int ni = 0; ni < count; ni++) {
     const auto& ndata = nprops[ni];
-    const auto& info  = ndata.func->info();
+    const auto& info  = nfuncs[ni]->info();
     ImNodes::BeginNode(imNodeId(ni));
     ImNodes::BeginNodeTitleBar();
     ImGui::TextUnformatted(info.mName.data());
     ImNodes::EndNodeTitleBar();
 
-    for (auto i : sGraph.nodeInputs(ni)) {
-      ImNodes::BeginInputAttribute(imNodeInputId(i));
+    int i = 0;
+    for (int pi : sGraph.nodeInputs(ni)) {
+      ImNodes::BeginInputAttribute(imPinId(pi));
       ImGui::Text("%s", info.mInputNames[i].data());
       ImNodes::EndInputAttribute();
+      i++;
     }
 
-    for (int i : sGraph.nodeOutputs(ni)) {
-      ImNodes::BeginOutputAttribute(imNodeOutputId(i));
+    i = 0;
+    for (int pi : sGraph.nodeOutputs(ni)) {
+      ImNodes::BeginOutputAttribute(imPinId(pi));
       ImGui::Indent(ndata.innerWidth -
                     ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
       ImGui::Text("%s", info.mOutputNames[i].data());
       ImNodes::EndOutputAttribute();
+      i++;
     }
     ImNodes::EndNode();
   }
   count = int(sGraph.numLinks());
   for (int i = 0; i < count; i++) {
-    const auto& link = sGraph.link(i);
-    ImNodes::Link(imLinkId(i), link.start, link.end);
+    ImNodes::Link(imLinkId(i), imPinId(sGraph.linkStart(i)), imPinId(sGraph.linkEnd(i)));
   }
   ImNodes::EndNodeEditor();
 }
@@ -354,7 +365,8 @@ void setPanelVisibility(const std::string& name, bool visible)
 static void updateCanvas()
 {
   using namespace gal::func::graph;
-  Graph::build(sGraph, sFuncNodeIndices);
+  auto& nfuncs = nodeFuncs();
+  Graph::build(sGraph, funcNodeIndices(), nfuncs);
   imGuiNewFrame();
   ImGui::PushFont(sFont);
 
@@ -362,7 +374,7 @@ static void updateCanvas()
   for (int ni = 0; ni < sGraph.numNodes(); ni++) {
     auto&       ndata  = nprops[ni];
     int         nodeId = imNodeId(ni);
-    const auto& info   = ndata.func->info();
+    const auto& info   = nfuncs[ni]->info();
 
     ndata.innerWidth = ImGui::CalcTextSize(info.mName.data()).x;
     for (size_t ii = 0; ii < info.mNumInputs; ii++) {
@@ -420,8 +432,7 @@ void init(GLFWwindow* window, const char* glslVersion)
   Panel& historyPanel = panelByName("history");
   sHistoryWidget      = std::make_unique<Text>("");
   historyPanel.addWidget(sHistoryWidget.get());
-  sHistoryPtr      = &(sHistoryWidget->value());
-  sFuncNodeIndices = func::store::addProperty<int>();
+  sHistoryPtr = &(sHistoryWidget->value());
   initCommands();
 }
 
@@ -513,7 +524,9 @@ void destroy(GLFWwindow* window)
   ImGui_ImplGlfw_Shutdown();
   ImNodes::DestroyContext();
   ImGui::DestroyContext();
-  glfwDestroyWindow(window);
+  if (window) {
+    glfwDestroyWindow(window);
+  }
   glfwTerminate();
 }
 

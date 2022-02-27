@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <string>
 
+#include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 #include <boost/python/class.hpp>
 #include <boost/python/import.hpp>
 
@@ -14,11 +14,18 @@
 #include <galfunc/Functions.h>
 #include <galfunc/MapMacro.h>
 #include <galfunc/TypeManager.h>
+#include <spdlog/spdlog.h>
 
 namespace gal {
 namespace func {
 
 static auto sLogger = spdlog::stdout_color_mt("galfunc");
+
+spdlog::logger& logger()
+{
+  spdlog::set_level(spdlog::level::level_enum::debug);
+  return *sLogger;
+}
 
 Function::Function()
     : mContextPath(python::getcontextpath())

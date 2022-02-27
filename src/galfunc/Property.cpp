@@ -1,3 +1,6 @@
+#include <iostream>
+
+#include <galfunc/Functions.h>
 #include <galfunc/Property.h>
 
 namespace gal {
@@ -59,8 +62,11 @@ size_t Properties::size() const
   if (mProps.empty()) {
     return 0;
   }
-  else {
+  else if (mProps.back()) {
     return mProps.back()->size();
+  }
+  else {
+    return 0;
   }
 }
 
