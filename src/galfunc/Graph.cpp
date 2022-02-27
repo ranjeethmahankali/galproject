@@ -1,5 +1,6 @@
 #include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
+#include <cstddef>
 #include <numeric>
 #include <stdexcept>
 
@@ -65,9 +66,27 @@ int Graph::nodeInput(int ni) const
   return node(ni).input;
 }
 
+int Graph::nodeInput(int ni, int ii) const
+{
+  int input = nodeInput(ni);
+  for (int i = 0; i < ii && input != -1; i++, input = pinNext(input)) {
+    // Do nothing
+  }
+  return input;
+}
+
 int Graph::nodeOutput(int ni) const
 {
   return node(ni).output;
+}
+
+int Graph::nodeOutput(int ni, int oi) const
+{
+  int output = nodeOutput(ni);
+  for (int i = 0; i < oi && output != -1; i++, output = pinNext(output)) {
+    // Do nothing.
+  }
+  return output;
 }
 
 int Graph::pinNode(int pi) const
@@ -169,6 +188,52 @@ int Graph::newLink()
   return li;
 }
 
+int Graph::addNode(size_t nInputs, size_t nOutputs)
+{
+  int ni  = newNode();
+  int lpi = -1;
+  for (size_t i = 0; i < nInputs; i++) {
+    int pi = newPin();
+    if (i == 0) {
+      setNodeInput(ni, pi);
+    }
+    else {
+      setPinNode(pi, ni);
+      setPinPrev(pi, lpi);
+    }
+    lpi = pi;
+  }
+
+  lpi = -1;
+  for (size_t i = 0; i < nOutputs; i++) {
+    int pi = newPin();
+    if (i == 0) {
+      setNodeOutput(ni, pi);
+      lpi = pi;
+    }
+    else {
+      setPinNode(pi, ni);
+      setPinPrev(pi, lpi);
+    }
+    lpi = pi;
+  }
+  return ni;
+}
+
+int Graph::addLink(int start, int end)
+{
+  int li = newLink();
+  setLinkStart(li, start);
+  if (pinLink(start) == -1) {
+    setPinLink(start, li);
+  }
+  setLinkEnd(li, end);
+  if (pinLink(end) == -1) {
+    setPinLink(end, li);
+  }
+  return li;
+}
+
 void Graph::setNodeInput(int ni, int i)
 {
   node(ni).input = i;
@@ -206,13 +271,11 @@ void Graph::setPinNext(int pi, int i)
 void Graph::setLinkStart(int li, int i)
 {
   link(li).start = i;
-  setPinLink(i, li);
 }
 
 void Graph::setLinkEnd(int li, int i)
 {
   link(li).end = i;
-  setPinLink(i, li);
 }
 
 void Graph::setLinkPrev(int li, int i)
@@ -274,9 +337,10 @@ void Graph::reserve(size_t nNodes, size_t nPins, size_t nLinks)
   mLinkPropContainer.reserve(nLinks);
 }
 
-void Graph::build(Graph& g)
+void Graph::build(Graph& g, Property<int>& funcNodeIndices)
 {
   g.clear();
+  // Reserve memory.
   size_t nfunc    = store::numFunctions();
   size_t nInputs  = 0;
   size_t nOutputs = 0;
@@ -286,9 +350,25 @@ void Graph::build(Graph& g)
     nOutputs = f.numOutputs();
   }
   g.reserve(nfunc, nInputs + nOutputs, nInputs);
-
-  // TODO: Incomplete
-  throw std::logic_error("Not Implemented");
+  // Add nodes.
+  std::vector<InputInfo> inputs;
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f      = store::function(i);
+    int         ni     = g.addNode(f.numInputs(), f.numOutputs());
+    funcNodeIndices[f] = ni;
+  }
+  // Add links.
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f = store::function(i);
+    f.getInputs(inputs);
+    int fni = funcNodeIndices[f];
+    int end = g.nodeInput(fni);
+    for (const auto& input : inputs) {
+      int start = g.nodeOutput(funcNodeIndices[*(input.mFunc)], input.mOutputIdx);
+      g.addLink(start, end);
+      end = g.pinNext(end);
+    }
+  }
 }
 
 PinIterator::PinIterator(const Graph& g, int i /* = -1*/)

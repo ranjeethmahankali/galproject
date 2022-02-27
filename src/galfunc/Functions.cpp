@@ -49,6 +49,16 @@ size_t Function::numOutputs() const
   return mInfo.mNumOutputs;
 }
 
+int Function::index() const
+{
+  return mIndex;
+}
+
+int& Function::index()
+{
+  return mIndex;
+}
+
 namespace store {
 
 static std::vector<std::unique_ptr<Function>> sFunctions;
@@ -60,7 +70,8 @@ static std::unordered_map<uint64_t,
 
 Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn)
 {
-  fn->info() = fnInfo;
+  fn->info()  = fnInfo;
+  fn->index() = sFunctions.size();
   sFunctions.push_back(std::move(fn));
   properties().resize(sFunctions.size());
   return sFunctions.back().get();

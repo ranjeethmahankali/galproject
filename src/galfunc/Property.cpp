@@ -21,28 +21,36 @@ void Properties::remove(int i)
 void Properties::clear()
 {
   for (auto p : mProps) {
-    p->clear();
+    if (p) {
+      p->clear();
+    }
   }
 }
 
 void Properties::reserve(size_t n)
 {
   for (auto p : mProps) {
-    p->reserve(n);
+    if (p) {
+      p->reserve(n);
+    }
   }
 }
 
 void Properties::resize(size_t n)
 {
   for (auto p : mProps) {
-    p->resize(n);
+    if (p) {
+      p->resize(n);
+    }
   }
 }
 
 void Properties::swap(size_t i, size_t j)
 {
   for (auto p : mProps) {
-    p->swap(i, j);
+    if (p) {
+      p->swap(i, j);
+    }
   }
 }
 

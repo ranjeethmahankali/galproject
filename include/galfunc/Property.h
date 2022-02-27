@@ -16,6 +16,8 @@ struct IProperty
   virtual void   clear()                  = 0;
   virtual void   swap(size_t i, size_t j) = 0;
   virtual size_t size() const             = 0;
+
+  virtual ~IProperty() = default;
 };
 
 struct Properties
@@ -36,8 +38,8 @@ template<typename T>
 struct Property : public IProperty, private std::vector<T>
 {
 private:
-  Properties* mContainer;
-  int         mIndex = -1;
+  Properties* mContainer = nullptr;
+  int         mIndex     = -1;
 
   template<typename U>
   static size_t getIndex(const U& item)
@@ -60,6 +62,8 @@ public:
       , mIndex(container.add(this))
   {}
 
+  Property() = default;
+
   // Forbid copy.
   Property(const Property&) = delete;
   const Property& operator=(const Property&) = delete;
@@ -74,6 +78,8 @@ public:
     return *this;
   }
   Property(Property&& other) { *this = std::move(other); }
+
+  ~Property() { mContainer->remove(mIndex); }
 
   void reserve(size_t n) override { std::vector<T>::reserve(n); }
 

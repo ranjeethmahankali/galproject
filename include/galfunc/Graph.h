@@ -1,12 +1,15 @@
 #pragma once
+#include <cstddef>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include <galfunc/Property.h>
 
 namespace gal {
 namespace func {
+
+struct Function;  // Forward decl.
+
 namespace graph {
 
 struct Node
@@ -92,7 +95,9 @@ public:
   Link&       link(int idx);
 
   int nodeInput(int ni) const;
+  int nodeInput(int ni, int ii) const;
   int nodeOutput(int ni) const;
+  int nodeOutput(int ni, int oi) const;
 
   int pinNode(int pi) const;
   int pinLink(int pi) const;
@@ -118,6 +123,9 @@ public:
   int newPin();
   int newLink();
 
+  int addNode(size_t nInputs, size_t nOutputs);
+  int addLink(int start, int end);
+
   void setNodeInput(int ni, int i);
   void setNodeOutput(int ni, int i);
   void setPinNode(int pi, int i);
@@ -139,7 +147,7 @@ public:
   void clear();
   void reserve(size_t nNodes, size_t nPins, size_t nLinks);
 
-  static void build(Graph& g);
+  static void build(Graph& g, Property<int>& funcNodeIndices);
 
 private:
   std::vector<Pin>  mPins;

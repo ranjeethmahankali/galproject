@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -22,17 +23,15 @@
 namespace gal {
 namespace view {
 
-static ImFont* sFont      = nullptr;
-static ImFont* sFontLarge = nullptr;
-
+static ImFont*           sFont      = nullptr;
+static ImFont*           sFontLarge = nullptr;
 static std::stringstream sResponseStream;
 static auto              sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
 static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
-
-static std::vector<Panel> sPanels;
-
-static func::graph::Graph sGraph;
+static std::vector<Panel>  sPanels;
+static func::graph::Graph  sGraph;
+static func::Property<int> sFuncNodeIndices;
 
 struct NodeInfo
 {
@@ -355,8 +354,7 @@ void setPanelVisibility(const std::string& name, bool visible)
 static void updateCanvas()
 {
   using namespace gal::func::graph;
-  Graph::build(sGraph);
-
+  Graph::build(sGraph, sFuncNodeIndices);
   imGuiNewFrame();
   ImGui::PushFont(sFont);
 
@@ -422,8 +420,8 @@ void init(GLFWwindow* window, const char* glslVersion)
   Panel& historyPanel = panelByName("history");
   sHistoryWidget      = std::make_unique<Text>("");
   historyPanel.addWidget(sHistoryWidget.get());
-  sHistoryPtr = &(sHistoryWidget->value());
-
+  sHistoryPtr      = &(sHistoryWidget->value());
+  sFuncNodeIndices = func::store::addProperty<int>();
   initCommands();
 }
 

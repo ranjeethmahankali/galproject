@@ -84,6 +84,9 @@ struct Function
 
   virtual void getInputs(std::vector<InputInfo>& dst) const = 0;
 
+  int  index() const;
+  int& index();
+
 protected:
   Function();
 
