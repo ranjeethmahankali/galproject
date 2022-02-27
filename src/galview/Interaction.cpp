@@ -367,10 +367,16 @@ static void updateCanvas()
   using namespace gal::func::graph;
   auto& nfuncs = nodeFuncs();
   Graph::build(sGraph, funcNodeIndices(), nfuncs);
+  auto& nprops = nodeProps();
+
+  for (size_t i = 0; i < nfuncs.size(); i++) {
+    nprops[i].col = sGraph.nodeDepth(int(i));
+    nprops[i].row = 1;
+  }
+
   imGuiNewFrame();
   ImGui::PushFont(sFont);
 
-  auto& nprops = nodeProps();
   for (int ni = 0; ni < sGraph.numNodes(); ni++) {
     auto&       ndata  = nprops[ni];
     int         nodeId = imNodeId(ni);
@@ -385,9 +391,8 @@ static void updateCanvas()
       ndata.innerWidth =
         std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
     }
-
     ImNodes::SetNodeScreenSpacePos(
-      nodeId, ImVec2(200.f * float(ndata.col), 200.f * float(ndata.row)));
+      imNodeId(ni), ImVec2(200.f * float(ndata.col), 200.f * float(ndata.row)));
   }
 
   drawCanvas<true>();

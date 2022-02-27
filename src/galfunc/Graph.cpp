@@ -223,13 +223,29 @@ int Graph::addNode(size_t nInputs, size_t nOutputs)
 int Graph::addLink(int start, int end)
 {
   int li = newLink();
+
   setLinkStart(li, start);
-  if (pinLink(start) == -1) {
+  int pli = pinLink(start);
+  if (pli == -1) {
     setPinLink(start, li);
   }
+  else {
+    while (linkNext(pli) != -1) {
+      pli = linkNext(pli);
+    }
+    setLinkNext(pli, li);
+  }
+
   setLinkEnd(li, end);
-  if (pinLink(end) == -1) {
+  pli = pinLink(end);
+  if (pli == -1) {
     setPinLink(end, li);
+  }
+  else {
+    while (linkNext(pli) != -1) {
+      pli = linkNext(pli);
+    }
+    setLinkNext(pli, li);
   }
   return li;
 }
@@ -315,6 +331,56 @@ int Graph::nodeHeight(int ni) const
   return mNodeProps[ni].height;
 }
 
+void Graph::calcNodeProps()
+{
+  struct Candidate
+  {
+    int node;
+    int value;
+  };
+  std::vector<Candidate> q;
+  q.reserve(numNodes());
+  int nNodes = int(numNodes());
+
+  // Heights.
+  for (int i = 0; i < nNodes; i++) {
+    if (!nodeHasOutputs(i)) {
+      q.push_back(Candidate {i, 0});
+    }
+  }
+  while (!q.empty()) {
+    Candidate c = q.back();
+    q.pop_back();
+    int& height = mNodeProps[c.node].height;
+    height      = std::max(c.value, height);
+    int h2      = height + 1;
+    for (int pi : nodeInputs(c.node)) {
+      for (int li : pinLinks(pi)) {
+        q.push_back(Candidate {pinNode(linkStart(li)), h2});
+      }
+    }
+  }
+
+  // Depths.
+  for (int i = 0; i < nNodes; i++) {
+    if (!nodeHasInputs(i)) {
+      q.push_back(Candidate {i, 0});
+    }
+  }
+  while (!q.empty()) {
+    Candidate c = q.back();
+    q.pop_back();
+    int& depth = mNodeProps[c.node].depth;
+    depth      = std::max(c.value, depth);
+    int d2     = depth + 1;
+    for (int pi : nodeOutputs(c.node)) {
+      for (int li : pinLinks(pi)) {
+        q.push_back(Candidate {pinNode(linkEnd(li)), d2});
+      }
+    }
+  }
+}
+
 void Graph::clear()
 {
   mPins.clear();
@@ -372,6 +438,27 @@ void Graph::build(Graph&                     g,
       end = g.pinNext(end);
     }
   }
+  g.calcNodeProps();
+}
+
+bool Graph::nodeHasInputs(int ni) const
+{
+  for (int pi : nodeInputs(ni)) {
+    for (int li : pinLinks(pi)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Graph::nodeHasOutputs(int ni) const
+{
+  for (int pi : nodeOutputs(ni)) {
+    for (int li : pinLinks(pi)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 PinIterator::PinIterator(const Graph& g, int i /* = -1*/)

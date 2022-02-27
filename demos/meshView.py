@@ -12,4 +12,4 @@ pgv.show("bounds", box)
 pgv.runCommands("""
 perspective off
 wireframe on
-""");
+""")

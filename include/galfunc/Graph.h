@@ -143,8 +143,9 @@ public:
   size_t numPins() const;
   size_t numLinks() const;
 
-  int nodeDepth(int ni) const;
-  int nodeHeight(int ni) const;
+  int  nodeDepth(int ni) const;
+  int  nodeHeight(int ni) const;
+  void calcNodeProps();
 
   void clear();
   void reserve(size_t nNodes, size_t nPins, size_t nLinks);
@@ -163,6 +164,9 @@ private:
   Properties mNodePropContainer;
 
   Property<NodeProps> mNodeProps;
+
+  bool nodeHasOutputs(int ni) const;
+  bool nodeHasInputs(int ni) const;
 
 public:
   template<typename T>
