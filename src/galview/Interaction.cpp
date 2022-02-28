@@ -1,4 +1,7 @@
+#include <assert.h>
 #include <algorithm>
+#include <boost/range/adaptor/filtered.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -10,6 +13,8 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/spdlog.h>
+#include <boost/iterator/counting_iterator.hpp>
+#include <boost/range/adaptors.hpp>
 
 #include <galcore/Util.h>
 #include <galfunc/Functions.h>
@@ -33,24 +38,27 @@ static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink)
 static std::vector<Panel> sPanels;
 static func::graph::Graph sGraph;
 
-struct NodeInfo
+struct NodeProps
 {
-  int   col        = -1;
-  int   row        = -1;
-  float innerWidth = 0.f;
+  const func::Function* func       = nullptr;
+  int                   depth      = -1;
+  int                   height     = -1;
+  int                   col        = -1;
+  int                   row        = -1;
+  float                 innerWidth = 0.f;
+
+  /**
+   * @brief Gets the span (i.e. sum of depth and height) of the node.
+   *
+   * @return int Span if height and depth are assigned, -1 otherwise.
+   */
+  int span() const { return (depth == -1 || height == -1) ? -1 : (depth + height); }
 };
 
-func::Property<NodeInfo>& nodeProps()
+func::Property<NodeProps>& nodeProps()
 {
-  static func::Property<NodeInfo> sProp = sGraph.addNodeProperty<NodeInfo>();
+  static func::Property<NodeProps> sProp = sGraph.addNodeProperty<NodeProps>();
   return sProp;
-}
-
-func::Property<const func::Function*>& nodeFuncs()
-{
-  static func::Property<const func::Function*> sNodeFuncs =
-    sGraph.addNodeProperty<const func::Function*>();
-  return sNodeFuncs;
 }
 
 func::Property<int>& funcNodeIndices()
@@ -279,10 +287,9 @@ void drawCanvas()
   ImNodes::BeginNodeEditor();
   int   count  = int(sGraph.numNodes());
   auto& nprops = nodeProps();
-  auto& nfuncs = nodeFuncs();
   for (int ni = 0; ni < count; ni++) {
     const auto& ndata = nprops[ni];
-    const auto& info  = nfuncs[ni]->info();
+    const auto& info  = ndata.func->info();
     ImNodes::BeginNode(imNodeId(ni));
     ImNodes::BeginNodeTitleBar();
     ImGui::TextUnformatted(info.mName.data());
@@ -362,25 +369,202 @@ void setPanelVisibility(const std::string& name, bool visible)
   }
 }
 
+static void calcDepthsAndHeights()
+{
+  auto& g      = sGraph;
+  auto& nprops = nodeProps();
+  struct Candidate
+  {
+    int node;
+    int value;
+  };
+  std::vector<Candidate> q;
+  q.reserve(g.numNodes());
+  int nNodes = int(g.numNodes());
+
+  // Heights.
+  for (int i = 0; i < nNodes; i++) {
+    if (!g.nodeHasOutputs(i)) {
+      q.push_back(Candidate {i, 0});
+    }
+  }
+  while (!q.empty()) {
+    Candidate c = q.back();
+    q.pop_back();
+    int& height = nprops[c.node].height;
+    height      = std::max(c.value, height);
+    int h2      = height + 1;
+    for (int pi : g.nodeInputs(c.node)) {
+      for (int li : g.pinLinks(pi)) {
+        q.push_back(Candidate {g.pinNode(g.linkStart(li)), h2});
+      }
+    }
+  }
+
+  // Depths.
+  for (int i = 0; i < nNodes; i++) {
+    if (!g.nodeHasInputs(i)) {
+      q.push_back(Candidate {i, 0});
+    }
+  }
+  while (!q.empty()) {
+    Candidate c = q.back();
+    q.pop_back();
+    int& depth = nprops[c.node].depth;
+    depth      = std::max(c.value, depth);
+    int d2     = depth + 1;
+    for (int pi : g.nodeOutputs(c.node)) {
+      for (int li : g.pinLinks(pi)) {
+        q.push_back(Candidate {g.pinNode(g.linkEnd(li)), d2});
+      }
+    }
+  }
+}
+
+static void buildGraph()
+{
+  auto& g         = sGraph;
+  auto& fnNodeIdx = funcNodeIndices();
+  auto& nprops    = nodeProps();
+  g.clear();
+  // Reserve memory.
+  size_t nfunc    = func::store::numFunctions();
+  size_t nInputs  = 0;
+  size_t nOutputs = 0;
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f = func::store::function(i);
+    nInputs += f.numInputs();
+    nOutputs = f.numOutputs();
+  }
+  g.reserve(nfunc, nInputs + nOutputs, nInputs);
+  // Add nodes.
+  std::vector<func::InputInfo> inputs;
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f   = func::store::function(i);
+    int         ni  = g.addNode(f.numInputs(), f.numOutputs());
+    fnNodeIdx[f]    = ni;
+    nprops[ni].func = &f;
+  }
+  // Add links.
+  for (size_t i = 0; i < nfunc; i++) {
+    const auto& f = func::store::function(i);
+    f.getInputs(inputs);
+    int fni = fnNodeIdx[f];
+    int end = g.nodeInput(fni);
+    for (const auto& input : inputs) {
+      int start = g.nodeOutput(fnNodeIdx[*(input.mFunc)], input.mOutputIdx);
+      g.addLink(start, end);
+      end = g.pinNext(end);
+    }
+  }
+}
+
+static void calcColumns()
+{
+  namespace ba = boost::adaptors;
+  using namespace gal::utils;
+  using IntIter = boost::counting_iterator<int>;
+
+  struct Candidate
+  {
+    int node;
+    int value;
+  };
+
+  std::vector<Candidate> nodes;  // Queue for processing all nodes.
+
+  auto&       nprops = nodeProps();
+  const auto& g      = sGraph;
+  assert(g.numNodes() == nprops.size());
+  int nNodes = int(g.numNodes());
+
+  int maxt = 0;
+  for (int ni = 0; ni < nNodes; ni++) {
+    maxt = std::max(maxt, nprops[ni].span());
+  }
+  auto pushUpstream = [&](int ni, int val) {
+    for (int pi : g.nodeInputs(ni)) {
+      for (int li : g.pinLinks(pi)) {
+        nodes.push_back(Candidate {g.pinNode(g.linkStart(li)), val});
+      }
+    }
+  };
+  auto pushDownstream = [&](int ni, int val) {
+    for (int pi : g.nodeOutputs(ni)) {
+      for (int li : g.pinLinks(pi)) {
+        nodes.push_back(Candidate {g.pinNode(g.linkEnd(li)), val});
+      }
+    }
+  };
+  auto assignCol = [&](Candidate c) -> int {
+    int& col = nprops[c.node].col;
+    if (c.value < 0) {
+      col = col == -1 ? maxt + c.value : std::min(maxt + c.value, col);
+    }
+    else {
+      col = std::max(c.value, col);
+    }
+    return col;
+  };
+
+  std::vector<int> seeds = utils::makeVector<int>(
+    Span<IntIter>(IntIter(0), IntIter(nNodes)) |
+    ba::filtered([&](int ni) { return nprops[ni].span() == maxt; }));
+
+  for (int s : seeds) {
+    int& col = nprops[s].col;
+    col      = nprops[s].depth;
+    pushUpstream(s, col - maxt - 1);
+  }
+  while (!nodes.empty()) {
+    Candidate c = nodes.back();
+    nodes.pop_back();
+    int col = assignCol(c);
+    // Push upstream candidates with negative offsets measured from right.
+    pushUpstream(c.node, col - maxt - 1);
+  }
+
+  for (int s : seeds) {
+    pushDownstream(s, nprops[s].col + 1);
+  }
+  while (!nodes.empty()) {
+    Candidate c = nodes.back();
+    nodes.pop_back();
+    int col = assignCol(c);
+    // Push downstream candidaets with positive offsets measured from left.
+    pushDownstream(c.node, col + 1);
+  }
+}
+
+static void calcRows()
+{
+  auto&       nprops = nodeProps();
+  const auto& g      = sGraph;
+  assert(g.numNodes() == nprops.size());
+  int nNodes = int(g.numNodes());
+
+  for (size_t i = 0; i < nNodes; i++) {
+    nprops[i].row = 1;
+  }
+}
+
 static void updateCanvas()
 {
   using namespace gal::func::graph;
-  auto& nfuncs = nodeFuncs();
-  Graph::build(sGraph, funcNodeIndices(), nfuncs);
-  auto& nprops = nodeProps();
-
-  for (size_t i = 0; i < nfuncs.size(); i++) {
-    nprops[i].col = sGraph.nodeDepth(int(i));
-    nprops[i].row = 1;
-  }
+  // Build graph and compute layout.
+  buildGraph();
+  calcDepthsAndHeights();
+  calcColumns();
+  calcRows();
 
   imGuiNewFrame();
   ImGui::PushFont(sFont);
 
+  auto& nprops = nodeProps();
   for (int ni = 0; ni < sGraph.numNodes(); ni++) {
     auto&       ndata  = nprops[ni];
     int         nodeId = imNodeId(ni);
-    const auto& info   = nfuncs[ni]->info();
+    const auto& info   = ndata.func->info();
 
     ndata.innerWidth = ImGui::CalcTextSize(info.mName.data()).x;
     for (size_t ii = 0; ii < info.mNumInputs; ii++) {
@@ -396,7 +580,6 @@ static void updateCanvas()
   }
 
   drawCanvas<true>();
-
   ImGui::PopFont();
   ImGui::EndFrame();
 }

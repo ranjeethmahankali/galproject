@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <type_traits>
 #include <vector>
@@ -317,10 +318,41 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
 }
 
 template<typename T, typename... Ts>
-constexpr std::array<T, sizeof...(Ts)> make_array(const Ts&... vals)
+constexpr std::array<T, sizeof...(Ts)> makeArray(const Ts&... vals)
 {
   static_assert((std::is_constructible_v<T, Ts> && ...));
   return {{T(vals)...}};
+};
+
+template<typename T, typename ContainerT>
+std::vector<T> makeVector(const ContainerT& c)
+{
+  return std::vector<T>(c.begin(), c.end());
+}
+
+// TODO: Replace with std::span after moving to C++20.
+template<typename Iter>
+struct Span
+{
+  using const_iterator = Iter;
+  using iterator       = Iter;
+  using type           = typename std::iterator_traits<Iter>::value_type;
+
+private:
+  Iter mBegin;
+  Iter mEnd;
+
+public:
+  Span(Iter begin, Iter end)
+      : mBegin(begin)
+      , mEnd(end)
+  {}
+
+  iterator       begin() { return mBegin; }
+  iterator       end() { return mEnd; }
+  const_iterator begin() const { return mBegin; }
+  const_iterator end() const { return mEnd; }
+  size_t         size() const { return std::distance(mBegin, mEnd); }
 };
 
 }  // namespace utils

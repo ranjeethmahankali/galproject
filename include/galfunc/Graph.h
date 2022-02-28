@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <galcore/Util.h>
 #include <galfunc/Property.h>
 
 namespace gal {
@@ -36,51 +37,62 @@ struct Link
 
 struct Graph;
 
-struct BaseIterator
+template<typename ElemT>
+struct IteratorTraverse
 {
+  static int increment(const Graph& g, int idx);
+  static int decrement(const Graph& g, int idx);
+};
+
+template<typename ElemT>
+struct Iterator
+{
+private:
+  using Traverse = IteratorTraverse<ElemT>;
+
   const Graph& mGraph;
   int          mIndex = -1;
 
-protected:
-  BaseIterator(const Graph& graph, int i = -1);
-
 public:
-  int  operator*() const;
-  bool valid() const;
+  Iterator(const Graph& graph, int i = -1)
+      : mGraph(graph)
+      , mIndex(i)
+  {}
 
-  bool operator==(const BaseIterator& other)
+  int  operator*() const { return mIndex; }
+  bool operator==(const Iterator& other)
   {
     return &(other.mGraph) == &mGraph && other.mIndex == mIndex;
   }
-
-  bool operator!=(const BaseIterator& other) { return !(*this == other); }
+  bool     operator!=(const Iterator& other) { return !(*this == other); }
+  void     increment() { mIndex = Traverse::increment(mGraph, mIndex); }
+  Iterator operator++()
+  {
+    increment();
+    return *this;
+  }
+  Iterator operator++(int)
+  {
+    Iterator tmp(mGraph, mIndex);
+    increment();
+    return tmp;
+  }
+  void     decrement() { mIndex = Traverse::decrement(mGraph, mIndex); }
+  Iterator operator--()
+  {
+    decrement();
+    return *this;
+  }
+  Iterator operator--(int)
+  {
+    Iterator tmp(mGraph, mIndex);
+    decrement();
+    return tmp;
+  }
 };
 
-struct PinIterator;
-struct LinkIterator;
-
-struct NodeProps
-{
-  int depth  = -1;
-  int height = -1;
-};
-
-template<typename IterT>
-class Range
-{
-  IterT mBegin;
-  IterT mEnd;
-
-public:
-  Range(IterT b, IterT e)
-      : mBegin(b)
-      , mEnd(e)
-  {}
-
-  IterT begin() { return mBegin; }
-
-  IterT end() { return mEnd; }
-};
+using PinIterator  = Iterator<Pin>;
+using LinkIterator = Iterator<Link>;
 
 class Graph
 {
@@ -115,9 +127,9 @@ public:
   PinIterator  nodeOutputIter(int ni) const;
   LinkIterator pinLinkIter(int pi) const;
 
-  Range<PinIterator>  nodeInputs(int ni) const;
-  Range<PinIterator>  nodeOutputs(int ni) const;
-  Range<LinkIterator> pinLinks(int pi) const;
+  utils::Span<PinIterator>  nodeInputs(int ni) const;
+  utils::Span<PinIterator>  nodeOutputs(int ni) const;
+  utils::Span<LinkIterator> pinLinks(int pi) const;
 
   const std::vector<Node>& nodes() const;
 
@@ -143,16 +155,11 @@ public:
   size_t numPins() const;
   size_t numLinks() const;
 
-  int  nodeDepth(int ni) const;
-  int  nodeHeight(int ni) const;
-  void calcNodeProps();
-
   void clear();
   void reserve(size_t nNodes, size_t nPins, size_t nLinks);
 
-  static void build(Graph&                     g,
-                    Property<int>&             funcNodeIndices,
-                    Property<const Function*>& nodeFuncs);
+  bool nodeHasOutputs(int ni) const;
+  bool nodeHasInputs(int ni) const;
 
 private:
   std::vector<Pin>  mPins;
@@ -163,11 +170,6 @@ private:
   Properties mLinkPropContainer;
   Properties mNodePropContainer;
 
-  Property<NodeProps> mNodeProps;
-
-  bool nodeHasOutputs(int ni) const;
-  bool nodeHasInputs(int ni) const;
-
 public:
   template<typename T>
   Property<T> addNodeProperty()
@@ -177,32 +179,58 @@ public:
   }
 };
 
-struct PinIterator : public BaseIterator
+template<>
+struct IteratorTraverse<Pin>
 {
-  PinIterator(const Graph& g, int i = -1);
-
-  void        increment();
-  PinIterator operator++();
-  PinIterator operator++(int);
-
-  void        decrement();
-  PinIterator operator--();
-  PinIterator operator--(int);
+  static int increment(const Graph& g, int idx)
+  {
+    if (idx != -1) {
+      return g.pinNext(idx);
+    }
+    return -1;
+  }
+  static int decrement(const Graph& g, int idx)
+  {
+    if (idx != -1) {
+      return g.pinPrev(idx);
+    }
+    return -1;
+  }
 };
 
-struct LinkIterator : public BaseIterator
+template<>
+struct IteratorTraverse<Link>
 {
-  LinkIterator(const Graph& g, int i = -1);
-
-  void         increment();
-  LinkIterator operator++();
-  LinkIterator operator++(int);
-
-  void         decrement();
-  LinkIterator operator--();
-  LinkIterator operator--(int);
+  static int increment(const Graph& g, int idx)
+  {
+    if (idx != -1) {
+      return g.linkNext(idx);
+    }
+    return -1;
+  }
+  static int decrement(const Graph& g, int idx)
+  {
+    if (idx != -1) {
+      return g.linkPrev(idx);
+    }
+    return -1;
+  }
 };
 
 }  // namespace graph
 }  // namespace func
 }  // namespace gal
+
+namespace std {
+
+template<typename T>
+struct iterator_traits<gal::func::graph::Iterator<T>>
+{
+  using iterator_type     = int;
+  using iterator_category = std::input_iterator_tag;
+  using value_type        = int;
+  using pointer           = int*;
+  using reference         = int&;
+};
+
+}  // namespace std

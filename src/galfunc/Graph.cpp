@@ -8,23 +8,7 @@ namespace gal {
 namespace func {
 namespace graph {
 
-BaseIterator::BaseIterator(const Graph& graph, int i)
-    : mGraph(graph)
-    , mIndex(i)
-{}
-
-int BaseIterator::operator*() const
-{
-  return mIndex;
-}
-
-bool BaseIterator::valid() const
-{
-  return mIndex != -1;
-}
-
 Graph::Graph()
-    : mNodeProps(mNodePropContainer)
 {
   mNodePropContainer.resize(mNodes.size());
   mPinPropContainer.resize(mPins.size());
@@ -144,19 +128,21 @@ LinkIterator Graph::pinLinkIter(int pi) const
   return LinkIterator(*this, pin(pi).link);
 }
 
-Range<PinIterator> Graph::nodeInputs(int ni) const
+using namespace gal::utils;
+
+Span<PinIterator> Graph::nodeInputs(int ni) const
 {
-  return Range<PinIterator>(nodeInputIter(ni), PinIterator(*this));
+  return Span<PinIterator>(nodeInputIter(ni), PinIterator(*this));
 }
 
-Range<PinIterator> Graph::nodeOutputs(int ni) const
+Span<PinIterator> Graph::nodeOutputs(int ni) const
 {
-  return Range<PinIterator>(nodeOutputIter(ni), PinIterator(*this));
+  return Span<PinIterator>(nodeOutputIter(ni), PinIterator(*this));
 }
 
-Range<LinkIterator> Graph::pinLinks(int pi) const
+Span<LinkIterator> Graph::pinLinks(int pi) const
 {
-  return Range<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
+  return Span<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
 }
 
 const std::vector<Node>& Graph::nodes() const
@@ -321,66 +307,6 @@ size_t Graph::numLinks() const
   return mLinks.size();
 }
 
-int Graph::nodeDepth(int ni) const
-{
-  return mNodeProps[ni].depth;
-}
-
-int Graph::nodeHeight(int ni) const
-{
-  return mNodeProps[ni].height;
-}
-
-void Graph::calcNodeProps()
-{
-  struct Candidate
-  {
-    int node;
-    int value;
-  };
-  std::vector<Candidate> q;
-  q.reserve(numNodes());
-  int nNodes = int(numNodes());
-
-  // Heights.
-  for (int i = 0; i < nNodes; i++) {
-    if (!nodeHasOutputs(i)) {
-      q.push_back(Candidate {i, 0});
-    }
-  }
-  while (!q.empty()) {
-    Candidate c = q.back();
-    q.pop_back();
-    int& height = mNodeProps[c.node].height;
-    height      = std::max(c.value, height);
-    int h2      = height + 1;
-    for (int pi : nodeInputs(c.node)) {
-      for (int li : pinLinks(pi)) {
-        q.push_back(Candidate {pinNode(linkStart(li)), h2});
-      }
-    }
-  }
-
-  // Depths.
-  for (int i = 0; i < nNodes; i++) {
-    if (!nodeHasInputs(i)) {
-      q.push_back(Candidate {i, 0});
-    }
-  }
-  while (!q.empty()) {
-    Candidate c = q.back();
-    q.pop_back();
-    int& depth = mNodeProps[c.node].depth;
-    depth      = std::max(c.value, depth);
-    int d2     = depth + 1;
-    for (int pi : nodeOutputs(c.node)) {
-      for (int li : pinLinks(pi)) {
-        q.push_back(Candidate {pinNode(linkEnd(li)), d2});
-      }
-    }
-  }
-}
-
 void Graph::clear()
 {
   mPins.clear();
@@ -403,44 +329,6 @@ void Graph::reserve(size_t nNodes, size_t nPins, size_t nLinks)
   mLinkPropContainer.reserve(nLinks);
 }
 
-void Graph::build(Graph&                     g,
-                  Property<int>&             funcNodeIndices,
-                  Property<const Function*>& nodeFuncs)
-{
-  g.clear();
-  // Reserve memory.
-  size_t nfunc    = store::numFunctions();
-  size_t nInputs  = 0;
-  size_t nOutputs = 0;
-  for (size_t i = 0; i < nfunc; i++) {
-    const auto& f = store::function(i);
-    nInputs += f.numInputs();
-    nOutputs = f.numOutputs();
-  }
-  g.reserve(nfunc, nInputs + nOutputs, nInputs);
-  // Add nodes.
-  std::vector<InputInfo> inputs;
-  for (size_t i = 0; i < nfunc; i++) {
-    const auto& f      = store::function(i);
-    int         ni     = g.addNode(f.numInputs(), f.numOutputs());
-    funcNodeIndices[f] = ni;
-    nodeFuncs[ni]      = &f;
-  }
-  // Add links.
-  for (size_t i = 0; i < nfunc; i++) {
-    const auto& f = store::function(i);
-    f.getInputs(inputs);
-    int fni = funcNodeIndices[f];
-    int end = g.nodeInput(fni);
-    for (const auto& input : inputs) {
-      int start = g.nodeOutput(funcNodeIndices[*(input.mFunc)], input.mOutputIdx);
-      g.addLink(start, end);
-      end = g.pinNext(end);
-    }
-  }
-  g.calcNodeProps();
-}
-
 bool Graph::nodeHasInputs(int ni) const
 {
   for (int pi : nodeInputs(ni)) {
@@ -459,94 +347,6 @@ bool Graph::nodeHasOutputs(int ni) const
     }
   }
   return false;
-}
-
-PinIterator::PinIterator(const Graph& g, int i /* = -1*/)
-    : BaseIterator(g, i)
-{}
-
-void PinIterator::increment()
-{
-  if (valid()) {
-    mIndex = mGraph.pinNext(mIndex);
-  }
-}
-
-PinIterator PinIterator::operator++()
-{
-  increment();
-  return *this;
-}
-
-PinIterator PinIterator::operator++(int)
-{
-  PinIterator tmp(mGraph, mIndex);
-  increment();
-  return tmp;
-}
-
-void PinIterator::decrement()
-{
-  if (valid()) {
-    mIndex = mGraph.pinPrev(mIndex);
-  }
-}
-
-PinIterator PinIterator::operator--()
-{
-  decrement();
-  return *this;
-}
-
-PinIterator PinIterator::operator--(int)
-{
-  PinIterator tmp(mGraph, mIndex);
-  decrement();
-  return tmp;
-}
-
-LinkIterator::LinkIterator(const Graph& g, int i /* = -1*/)
-    : BaseIterator(g, i)
-{}
-
-void LinkIterator::increment()
-{
-  if (valid()) {
-    mIndex = mGraph.linkNext(mIndex);
-  }
-}
-
-LinkIterator LinkIterator::operator++()
-{
-  increment();
-  return *this;
-}
-
-LinkIterator LinkIterator::operator++(int)
-{
-  LinkIterator temp(mGraph, mIndex);
-  increment();
-  return temp;
-}
-
-void LinkIterator::decrement()
-{
-  if (valid()) {
-    mIndex = mGraph.linkPrev(mIndex);
-  }
-}
-
-LinkIterator LinkIterator::operator--()
-{
-  decrement();
-  return *this;
-}
-
-LinkIterator LinkIterator::operator--(int)
-{
-  LinkIterator temp(mGraph, mIndex);
-  decrement();
-  return temp;
 }
 
 }  // namespace graph

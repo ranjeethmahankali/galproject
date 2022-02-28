@@ -677,9 +677,9 @@ FuncInfo varfnInfo()
 {
   static const std::string sName = "var_" + TypeInfo<T>::name();
   static const std::string sDesc = "Variable of type " + TypeInfo<T>::name() + ".";
-  static const auto sOutputNames = gal::utils::make_array<std::string_view>("value");
+  static const auto sOutputNames = gal::utils::makeArray<std::string_view>("value");
   static const auto sOutputDesc =
-    gal::utils::make_array<std::string_view>("The value output of the variable");
+    gal::utils::makeArray<std::string_view>("The value output of the variable");
 
   return {{sName.data(), sName.size()},
           {sDesc.data(), sDesc.size()},
@@ -829,23 +829,23 @@ void bindOverloads(const char*                             fnName,
   static const auto pyfnInfo_##fnName = \
     gal::func::python::FuncDocString(sFnInfo_##fnName);
 
-#define GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                 \
-  static auto sInputNames_##fnName =                                            \
-    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_NAMES(inputArgs));  \
-  static auto sInputDescriptions_##fnName =                                     \
-    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_DESCS(inputArgs));  \
-  static auto sOutputNames_##fnName =                                           \
-    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_NAMES(outputArgs)); \
-  static auto sOutputDescriptions_##fnName =                                    \
-    gal::utils::make_array<std::string_view>(GAL_EXPAND_ARG_DESCS(outputArgs)); \
-  static const gal::func::FuncInfo sFnInfo_##fnName = {                         \
-    #fnName,                                                                    \
-    fnDesc,                                                                     \
-    sInputNames_##fnName.size(),                                                \
-    sInputNames_##fnName.data(),                                                \
-    sInputDescriptions_##fnName.data(),                                         \
-    sOutputNames_##fnName.size(),                                               \
-    sOutputNames_##fnName.data(),                                               \
+#define GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                \
+  static auto sInputNames_##fnName =                                           \
+    gal::utils::makeArray<std::string_view>(GAL_EXPAND_ARG_NAMES(inputArgs));  \
+  static auto sInputDescriptions_##fnName =                                    \
+    gal::utils::makeArray<std::string_view>(GAL_EXPAND_ARG_DESCS(inputArgs));  \
+  static auto sOutputNames_##fnName =                                          \
+    gal::utils::makeArray<std::string_view>(GAL_EXPAND_ARG_NAMES(outputArgs)); \
+  static auto sOutputDescriptions_##fnName =                                   \
+    gal::utils::makeArray<std::string_view>(GAL_EXPAND_ARG_DESCS(outputArgs)); \
+  static const gal::func::FuncInfo sFnInfo_##fnName = {                        \
+    #fnName,                                                                   \
+    fnDesc,                                                                    \
+    sInputNames_##fnName.size(),                                               \
+    sInputNames_##fnName.data(),                                               \
+    sInputDescriptions_##fnName.data(),                                        \
+    sOutputNames_##fnName.size(),                                              \
+    sOutputNames_##fnName.data(),                                              \
     sOutputDescriptions_##fnName.data()};
 
 // Declartion of a gal function.
