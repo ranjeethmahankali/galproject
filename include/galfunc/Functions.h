@@ -75,7 +75,7 @@ struct Function
    */
   virtual void update() const = 0;
 
-  virtual void addSubscriber(std::atomic_bool& dirtyFlag) const = 0;
+  virtual void addSubscriber(bool& dirtyFlag) const = 0;
 
   const fs::path& contextpath() const;
 
@@ -128,23 +128,6 @@ Property<T> addProperty()
  * @brief Unloads all loaded function instances.
  */
 void unloadAllFunctions();
-
-/**
- * @brief Subscribes a boolean flag to the function. When the function is dirty (not upto
- * date), the subscribed boolean flag will be set to true. Its upto the owning function to
- * recompute itself and set the flag back to true.
- *
- * @param fn The function to subscribe to.
- * @param dirtyFlag The flag to subscribe.
- */
-void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag);
-
-/**
- * @brief Lets all subscribers of this function know that this function is dirty.
- *
- * @param fn the function to be marked dirty.
- */
-void markDirty(const Function* fn);
 
 };  // namespace store
 
@@ -462,6 +445,9 @@ struct TFunction : public Function
          being used because NOutputs == 0 case is already handled above. */
       ArgRegisterT<typename TArgList::template Type<(NOutputs > 0 ? NInputs : 0)>>>>;
 
+  using ExpirationT =
+    std::conditional_t<HasInputs, bool, std::vector<std::reference_wrapper<bool>>>;
+
 protected:
   /* Some fields are marked mutable because the function is considered changed only if the
    * inputs are changed. Running the function, which changes the output, or the status of
@@ -471,7 +457,7 @@ protected:
   mutable OutputTupleT                                                    mOutputs;
   InputRegTupleT                                                          mInputs;
   mutable data::repeat::Combinations<NInputs, ArgTreeRefTupleT, TArgs...> mCombinations;
-  mutable std::atomic_bool                                                mIsDirty = true;
+  mutable ExpirationT                                                     mExpiration;
 
   template<size_t N = 0>
   inline void clearOutputs() const
@@ -520,37 +506,60 @@ public:
       , mInputs(inputs)
       , mCombinations(makeArgTreeRefTuple<TArgList>(mInputs, mOutputs))
   {
-    this->addSubscriber(mIsDirty);
+    if constexpr (HasInputs) {
+      mExpiration = true;
+      this->addSubscriber(mExpiration);
+    }
   };
 
   virtual ~TFunction() = default;
 
-  void update() const override
+  void expire() const
   {
-    if (mIsDirty) {
-      if constexpr (HasInputs) {
-        updateUpstream();
+    if constexpr (!HasInputs) {
+      // Expire all downstream functions.
+      for (bool& flag : mExpiration) {
+        flag = true;
       }
-      else {
-        store::markDirty(this);
-      }
-      run();
-      mIsDirty = false;
     }
   }
 
-  void addSubscriber(std::atomic_bool& dirtyFlag) const override
+  void unexpire() const
+  {
+    if constexpr (HasInputs) {
+      mExpiration = false;
+    }
+  }
+
+  bool isExpired() const
+  {
+    if constexpr (HasInputs) {
+      return mExpiration;
+    }
+    else {
+      return false;
+    }
+  }
+
+  void update() const override
+  {
+    if (isExpired()) {
+      updateUpstream();
+      run();
+      unexpire();
+    }
+  }
+
+  void addSubscriber(bool& flag) const override
   {
     if constexpr (HasInputs) {
       // Propagate the flag upstream.
       std::apply(
-        [&dirtyFlag](const auto&... inputs) {
-          (inputs.mOwner->addSubscriber(dirtyFlag), ...);
-        },
+        [&flag](const auto&... inputs) { (inputs.mOwner->addSubscriber(flag), ...); },
         mInputs);
     }
     else {
-      store::addSubscriber(this, dirtyFlag);
+      mExpiration.push_back(flag);
     }
   }
 
@@ -639,16 +648,16 @@ public:
 
   void set(const boost::python::object& obj)
   {
-    store::markDirty(this);
+    this->expire();
     setInternal(obj);
-    this->mIsDirty = false;
+    this->unexpire();
   }
 
   void set(const TVal& val)
   {
-    store::markDirty(this);
+    this->expire();
     setInternal(val);
-    this->mIsDirty = false;
+    this->unexpire();
   }
 };
 

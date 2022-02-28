@@ -70,11 +70,6 @@ namespace store {
 
 static std::vector<std::unique_ptr<Function>> sFunctions;
 
-static std::unordered_map<uint64_t,
-                          std::vector<std::reference_wrapper<std::atomic_bool>>,
-                          CustomSizeTHash>
-  sSubscriberMap;
-
 Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn)
 {
   fn->info()  = fnInfo;
@@ -100,27 +95,10 @@ Properties& properties()
   return sProps;
 }
 
-void addSubscriber(const Function* fn, std::atomic_bool& dirtyFlag)
-{
-  sSubscriberMap[uint64_t(fn)].push_back(dirtyFlag);
-}
-
-void markDirty(const Function* fn)
-{
-  auto match = sSubscriberMap.find(uint64_t(fn));
-  if (match != sSubscriberMap.end()) {
-    auto& flags = std::get<1>(*match);
-    for (std::atomic_bool& flag : flags) {
-      flag = true;
-    }
-  }
-}
-
 void unloadAllFunctions()
 {
   sLogger->debug("Unloading all functions...");
-  store::sFunctions.clear();
-  store::sSubscriberMap.clear();
+  sFunctions.clear();
 }
 
 }  // namespace store
