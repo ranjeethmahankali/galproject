@@ -543,8 +543,40 @@ static void calcRows()
   assert(g.numNodes() == nprops.size());
   int nNodes = int(g.numNodes());
 
-  for (size_t i = 0; i < nNodes; i++) {
-    nprops[i].row = 1;
+  std::vector<int> nodes(boost::counting_iterator<int>(0),
+                         boost::counting_iterator<int>(nNodes));
+  std::sort(std::execution::par, nodes.begin(), nodes.end(), [&](int a, int b) {
+    return nprops[a].col < nprops[b].col;
+  });
+  std::vector<float> scores(nodes.size());
+  int                col      = 0;
+  auto               colbegin = std::find_if(
+    nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
+  for (auto it = nodes.begin(); it != colbegin; it++) {
+    nprops[*it].row = int(std::distance(it, nodes.begin()));
+  }
+  while (colbegin != nodes.end()) {
+    col++;
+    auto colend = std::find_if(
+      nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
+    for (auto it = colbegin; it != colend; it++) {
+      int      ni     = *it;
+      auto&    score  = scores[ni];
+      uint32_t nlinks = 0;
+      for (int pi : g.nodeInputs(ni)) {
+        for (int li : g.pinLinks(pi)) {
+          int uni = g.pinNode(g.linkStart(li));
+          score += float(nprops[uni].row);
+          nlinks++;
+        }
+      }
+      score /= float(nlinks);
+    }
+    std::sort(colbegin, colend, [&](int a, int b) { return scores[a] < scores[b]; });
+    for (auto it = colbegin; it != colend; it++) {
+      nprops[*it].row = std::distance(it, colbegin);
+    }
+    colbegin = colend;
   }
 }
 
@@ -576,7 +608,7 @@ static void updateCanvas()
         std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
     }
     ImNodes::SetNodeScreenSpacePos(
-      imNodeId(ni), ImVec2(200.f * float(ndata.col), 200.f * float(ndata.row)));
+      imNodeId(ni), ImVec2(200.f * float(ndata.col), 100.f * float(ndata.row)));
   }
 
   drawCanvas<true>();
