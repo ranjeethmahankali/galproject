@@ -553,7 +553,7 @@ static void calcRows()
   auto               colbegin = std::find_if(
     nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
   for (auto it = nodes.begin(); it != colbegin; it++) {
-    nprops[*it].row = int(std::distance(it, nodes.begin()));
+    nprops[*it].row = int(std::distance(nodes.begin(), it));
   }
   while (colbegin != nodes.end()) {
     col++;
@@ -574,7 +574,7 @@ static void calcRows()
     }
     std::sort(colbegin, colend, [&](int a, int b) { return scores[a] < scores[b]; });
     for (auto it = colbegin; it != colend; it++) {
-      nprops[*it].row = std::distance(it, colbegin);
+      nprops[*it].row = std::distance(colbegin, it);
     }
     colbegin = colend;
   }
