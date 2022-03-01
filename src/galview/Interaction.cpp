@@ -40,7 +40,8 @@ static func::graph::Graph sGraph;
 
 struct NodeProps
 {
-  const func::Function* func       = nullptr;
+  const func::Function* func = nullptr;
+  glm::vec2             pos;
   int                   depth      = -1;
   int                   height     = -1;
   int                   col        = -1;
@@ -55,6 +56,11 @@ struct NodeProps
   int span() const { return (depth == -1 || height == -1) ? -1 : (depth + height); }
 };
 
+struct PinProps
+{
+  glm::vec2 pos;
+};
+
 func::Property<NodeProps>& nodeProps()
 {
   static func::Property<NodeProps> sProp = sGraph.addNodeProperty<NodeProps>();
@@ -65,6 +71,12 @@ func::Property<int>& funcNodeIndices()
 {
   static func::Property<int> sFuncNodeIndices = func::store::addProperty<int>();
   return sFuncNodeIndices;
+}
+
+func::Property<PinProps>& pinProps()
+{
+  static func::Property<PinProps> sPinProps = sGraph.addPinProperty<PinProps>();
+  return sPinProps;
 }
 
 static constexpr int imNodeId(int i)
@@ -281,12 +293,18 @@ spdlog::logger& logger()
   return *sLogger;
 }
 
+inline glm::vec2 toGlm(ImVec2 v)
+{
+  return {v.x, v.y};
+}
+
 template<bool UpdatePass = false>
 void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
   int   count  = int(sGraph.numNodes());
   auto& nprops = nodeProps();
+  auto& pprops = pinProps();
   for (int ni = 0; ni < count; ni++) {
     const auto& ndata = nprops[ni];
     const auto& info  = ndata.func->info();
@@ -300,6 +318,10 @@ void drawCanvas()
       ImNodes::BeginInputAttribute(imPinId(pi));
       ImGui::Text("%s", info.mInputNames[i].data());
       ImNodes::EndInputAttribute();
+      if constexpr (UpdatePass) {
+        pprops[pi].pos =
+          0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
+      }
       i++;
     }
 
@@ -310,6 +332,10 @@ void drawCanvas()
                     ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
       ImGui::Text("%s", info.mOutputNames[i].data());
       ImNodes::EndOutputAttribute();
+      if constexpr (UpdatePass) {
+        pprops[pi].pos =
+          0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
+      }
       i++;
     }
     ImNodes::EndNode();
@@ -319,6 +345,10 @@ void drawCanvas()
     ImNodes::Link(imLinkId(i), imPinId(sGraph.linkStart(i)), imPinId(sGraph.linkEnd(i)));
   }
   ImNodes::EndNodeEditor();
+
+  if constexpr (UpdatePass) {
+    // TODO: Update positions with iterative optimization.
+  }
 }
 
 static void initPanels()
@@ -580,6 +610,14 @@ static void calcRows()
   }
 }
 
+static void updateNodePositions()
+{
+  const auto& nprops = nodeProps();
+  for (size_t i = 0; i < nprops.size(); i++) {
+    ImNodes::SetNodeScreenSpacePos(imNodeId(i), ImVec2(nprops[i].pos.x, nprops[i].pos.y));
+  }
+}
+
 static void updateCanvas()
 {
   using namespace gal::func::graph;
@@ -607,9 +645,9 @@ static void updateCanvas()
       ndata.innerWidth =
         std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
     }
-    ImNodes::SetNodeScreenSpacePos(
-      imNodeId(ni), ImVec2(200.f * float(ndata.col), 100.f * float(ndata.row)));
+    nprops[ni].pos = {200.f * float(ndata.col), 100.f * float(ndata.row)};
   }
+  updateNodePositions();
 
   drawCanvas<true>();
   ImGui::PopFont();

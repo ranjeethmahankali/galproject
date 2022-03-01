@@ -177,6 +177,13 @@ public:
     mNodePropContainer.resize(mNodes.size());
     return Property<T>(mNodePropContainer);
   }
+
+  template<typename T>
+  Property<T> addPinProperty()
+  {
+    mPinPropContainer.resize(mPins.size());
+    return Property<T>(mPinPropContainer);
+  }
 };
 
 template<>
