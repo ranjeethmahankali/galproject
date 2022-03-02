@@ -174,15 +174,17 @@ public:
   template<typename T>
   Property<T> addNodeProperty()
   {
+    auto p = Property<T>(mNodePropContainer);
     mNodePropContainer.resize(mNodes.size());
-    return Property<T>(mNodePropContainer);
+    return p;
   }
 
   template<typename T>
   Property<T> addPinProperty()
   {
+    auto p = Property<T>(mPinPropContainer);
     mPinPropContainer.resize(mPins.size());
-    return Property<T>(mPinPropContainer);
+    return p;
   }
 };
 
