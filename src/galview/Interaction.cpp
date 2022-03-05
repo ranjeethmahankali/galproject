@@ -42,6 +42,7 @@ struct NodeProps
 {
   const func::Function* func = nullptr;
   glm::vec2             pos;
+  glm::vec2             size;
   int                   depth      = -1;
   int                   height     = -1;
   int                   col        = -1;
@@ -298,14 +299,25 @@ inline glm::vec2 toGlm(ImVec2 v)
   return {v.x, v.y};
 }
 
+static void updateNodePositions()
+{
+  static constexpr float yOffset = 25.f;
+  static constexpr float xOffset = 25.f;
+  const auto&            nprops  = nodeProps();
+  for (size_t i = 0; i < nprops.size(); i++) {
+    ImNodes::SetNodeScreenSpacePos(
+      imNodeId(i), ImVec2(xOffset + nprops[i].pos.x, yOffset + nprops[i].pos.y));
+  }
+}
+
 template<bool UpdatePass = false>
 void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  int         count  = int(sGraph.numNodes());
-  const auto& nprops = nodeProps();
-  auto&       pprops = pinProps();
-  for (int ni = 0; ni < count; ni++) {
+  int   nNodes = int(sGraph.numNodes());
+  auto& nprops = nodeProps();
+  auto& pprops = pinProps();
+  for (int ni = 0; ni < nNodes; ni++) {
     const auto& ndata = nprops[ni];
     const auto& info  = ndata.func->info();
     ImNodes::BeginNode(imNodeId(ni));
@@ -324,7 +336,6 @@ void drawCanvas()
       }
       i++;
     }
-
     i = 0;
     for (int pi : sGraph.nodeOutputs(ni)) {
       ImNodes::BeginOutputAttribute(imPinId(pi));
@@ -339,15 +350,45 @@ void drawCanvas()
       i++;
     }
     ImNodes::EndNode();
+    if constexpr (UpdatePass) {
+      nprops[ni].size = toGlm(ImGui::GetItemRectMax()) - toGlm(ImGui::GetItemRectMin());
+    }
   }
-  count = int(sGraph.numLinks());
-  for (int i = 0; i < count; i++) {
+  int nlinks = int(sGraph.numLinks());
+  for (int i = 0; i < nlinks; i++) {
     ImNodes::Link(imLinkId(i), imPinId(sGraph.linkStart(i)), imPinId(sGraph.linkEnd(i)));
   }
   ImNodes::EndNodeEditor();
 
   if constexpr (UpdatePass) {
-    // TODO: Update positions with iterative optimization.
+    static std::vector<int> sNodes;
+    static constexpr float  xOffset = 75.f;
+    static constexpr float  yOffset = 50.f;
+    sNodes.resize(nNodes);
+    std::iota(sNodes.begin(), sNodes.end(), 0);
+    std::sort(sNodes.begin(), sNodes.end(), [&](int a, int b) {
+      const auto& pa = nprops[a];
+      const auto& pb = nprops[b];
+      return pa.col == pb.col ? pa.row < pb.row : pa.col < pb.col;
+    });
+    float left  = 25.f;
+    float top   = yOffset;
+    float width = 0.f;
+    int   lci   = 0;
+    for (int ni : sNodes) {
+      auto& nprop = nprops[ni];
+      if (nprop.col > lci) {
+        left += width;
+        width = 0.f;
+        top   = yOffset;
+      }
+      width       = std::max(nprop.size.x + xOffset, width);
+      nprop.pos.x = left + xOffset;
+      nprop.pos.y = top + yOffset;
+      top += nprop.size.y + yOffset;
+      lci = nprop.col;
+    }
+    updateNodePositions();
   }
 }
 
@@ -613,17 +654,6 @@ static void calcRows()
       nprops[*it].row = std::distance(colbegin, it);
     }
     colbegin = colend;
-  }
-}
-
-static void updateNodePositions()
-{
-  static constexpr float yOffset = 25.f;
-  static constexpr float xOffset = 25.f;
-  const auto&            nprops  = nodeProps();
-  for (size_t i = 0; i < nprops.size(); i++) {
-    ImNodes::SetNodeScreenSpacePos(
-      imNodeId(i), ImVec2(xOffset + nprops[i].pos.x, yOffset + nprops[i].pos.y));
   }
 }
 
