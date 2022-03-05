@@ -17,16 +17,74 @@
 namespace gal {
 namespace view {
 
-using CmdFnType = void (*)(int, char**);
-static std::unordered_map<std::string, CmdFnType> sCommandFnMap;
-static fs::path                                   sCurrentDemoPath = "";
+using CmdFnPtr = void (*)(int, char**);
+
+std::vector<std::string>& cmdQueue()
+{
+  static std::vector<std::string> sQueue;
+  return sQueue;
+}
+
+std::unordered_map<std::string, CmdFnPtr>& cmdFuncMap()
+{
+  static std::unordered_map<std::string, CmdFnPtr> sCommandFnMap;
+  return sCommandFnMap;
+}
+
+fs::path& currentDemoPath()
+{
+  static fs::path sCurrentDemoPath = "";
+  return sCurrentDemoPath;
+}
+
+static void runCommand(const std::string& cmd)
+{
+  static std::string         sParsed;
+  static std::vector<size_t> sIndices;
+  static std::vector<char*>  sArgV;
+  sParsed = cmd;
+  sIndices.clear();
+  for (size_t i = 0; i < sParsed.size(); i++) {
+    char& c = sParsed[i];
+    if (c == ' ') {
+      c = '\0';
+    }
+    else if (i == 0 || (sParsed[i - 1] == '\0')) {
+      sIndices.push_back(i);
+    }
+  }
+  sArgV.resize(sIndices.size());
+  std::transform(sIndices.begin(), sIndices.end(), sArgV.begin(), [](size_t i) {
+    return i + sParsed.data();
+  });
+  if (sArgV.empty()) {
+    // No command received.
+    return;
+  }
+  std::string command = sArgV[0];
+  auto        match   = cmdFuncMap().find(command);
+  if (match == cmdFuncMap().end()) {
+    logger().error("Unrecognized command {}", command);
+    return;
+  }
+  view::logger().info(">>> {}", cmd);
+  match->second(int(sArgV.size()), sArgV.data());
+}
+
+void runQueuedCommands()
+{
+  for (const auto& cmd : cmdQueue()) {
+    runCommand(cmd);
+  }
+  cmdQueue().clear();
+}
 
 void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
 {
   static std::string sSuggestions = "";
   charsToInsert.clear();
   sSuggestions.clear();
-  for (const auto& pair : sCommandFnMap) {
+  for (const auto& pair : cmdFuncMap()) {
     const std::string& match   = std::get<0>(pair);
     auto               cmdend  = std::find(cmd.begin(), cmd.end(), '\0');
     size_t             cmdsize = std::distance(cmd.begin(), cmdend);
@@ -57,41 +115,9 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
   }
 }
 
-void runCommand(const std::string& cmd)
+void queueCommand(const std::string& cmd)
 {
-  static std::string         sParsed;
-  static std::vector<size_t> sIndices;
-  static std::vector<char*>  sArgV;
-
-  sParsed = cmd;
-  sIndices.clear();
-  for (size_t i = 0; i < sParsed.size(); i++) {
-    char& c = sParsed[i];
-    if (c == ' ') {
-      c = '\0';
-    }
-    else if (i == 0 || (sParsed[i - 1] == '\0')) {
-      sIndices.push_back(i);
-    }
-  }
-  sArgV.resize(sIndices.size());
-  std::transform(sIndices.begin(), sIndices.end(), sArgV.begin(), [](size_t i) {
-    return i + sParsed.data();
-  });
-
-  if (sArgV.empty()) {
-    // No command received.
-    return;
-  }
-  std::string command = sArgV[0];
-  auto        match   = sCommandFnMap.find(command);
-  if (match == sCommandFnMap.end()) {
-    logger().error("Unrecognized command {}", command);
-    return;
-  }
-
-  view::logger().info(">>> {}", cmd);
-  match->second(int(sArgV.size()), sArgV.data());
+  cmdQueue().push_back(cmd);
 }
 
 struct ArgDesc
@@ -324,11 +350,11 @@ void perspective(int argc, char** argv)
   }
 }
 
-void help(int argc, char** argv)
+void help(int argc, char** argv0)
 {
   static auto opts =
     optionsWithoutArgs("help", "Shows the help info for all available commands");
-  auto parsed = parseOptions(argc, argv, opts);
+  auto parsed = parseOptions(argc, argv0, opts);
   if (!parsed) {
     return;
   }
@@ -340,13 +366,13 @@ void help(int argc, char** argv)
 
   sTempStream.str("");
   std::swap(logger().sinks(), sTempSinks);
-  for (const auto& pair : sCommandFnMap) {
+  for (const auto& pair : cmdFuncMap()) {
     sArgs[0] = pair.first;
-    std::array<char*, 2> argv;
+    std::array<char*, 2> argv1;
     std::transform(
-      sArgs.begin(), sArgs.end(), argv.begin(), [](std::string& s) { return s.data(); });
+      sArgs.begin(), sArgs.end(), argv1.begin(), [](std::string& s) { return s.data(); });
     logger().info("\n{}", pair.first);
-    pair.second(int(argv.size()), argv.data());
+    pair.second(int(argv1.size()), argv1.data());
   }
   std::swap(logger().sinks(), sTempSinks);
 
@@ -358,27 +384,27 @@ void help(int argc, char** argv)
 
 void setDemoFilepath(const fs::path& path)
 {
-  sCurrentDemoPath = path;
+  currentDemoPath() = path;
 }
 
 const std::filesystem::path& demoFilePath()
 {
-  return sCurrentDemoPath;
+  return currentDemoPath();
 }
 
 void initCommands()
 {
-  sCommandFnMap.emplace("reload", cmdfuncs::reload);
-  sCommandFnMap.emplace("2d", cmdfuncs::twoDMode);
-  sCommandFnMap.emplace("3d", cmdfuncs::threeDMode);
-  sCommandFnMap.emplace("ze", cmdfuncs::zoomExtents);
-  sCommandFnMap.emplace("zoomextents", cmdfuncs::zoomExtents);
-  sCommandFnMap.emplace("show", cmdfuncs::show);
-  sCommandFnMap.emplace("hide", cmdfuncs::hide);
-  sCommandFnMap.emplace("wireframe", cmdfuncs::wireframe);
-  sCommandFnMap.emplace("meshedges", cmdfuncs::meshEdges);
-  sCommandFnMap.emplace("perspective", cmdfuncs::perspective);
-  sCommandFnMap.emplace("help", cmdfuncs::help);
+  cmdFuncMap().emplace("reload", cmdfuncs::reload);
+  cmdFuncMap().emplace("2d", cmdfuncs::twoDMode);
+  cmdFuncMap().emplace("3d", cmdfuncs::threeDMode);
+  cmdFuncMap().emplace("ze", cmdfuncs::zoomExtents);
+  cmdFuncMap().emplace("zoomextents", cmdfuncs::zoomExtents);
+  cmdFuncMap().emplace("show", cmdfuncs::show);
+  cmdFuncMap().emplace("hide", cmdfuncs::hide);
+  cmdFuncMap().emplace("wireframe", cmdfuncs::wireframe);
+  cmdFuncMap().emplace("meshedges", cmdfuncs::meshEdges);
+  cmdFuncMap().emplace("perspective", cmdfuncs::perspective);
+  cmdFuncMap().emplace("help", cmdfuncs::help);
 }
 
 }  // namespace view

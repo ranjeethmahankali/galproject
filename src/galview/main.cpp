@@ -122,9 +122,10 @@ int loadDemo(const fs::path& demoPath)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
       }
       glfwSwapBuffers(window);
+      gal::view::runQueuedCommands();
     }
   }
-  catch (std::exception e) {
+  catch (const std::exception& e) {
     glutil::logger().critical("Fatal error: {}", e.what());
     err = -1;
   }

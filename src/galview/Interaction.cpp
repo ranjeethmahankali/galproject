@@ -302,9 +302,9 @@ template<bool UpdatePass = false>
 void drawCanvas()
 {
   ImNodes::BeginNodeEditor();
-  int   count  = int(sGraph.numNodes());
-  auto& nprops = nodeProps();
-  auto& pprops = pinProps();
+  int         count  = int(sGraph.numNodes());
+  const auto& nprops = nodeProps();
+  auto&       pprops = pinProps();
   for (int ni = 0; ni < count; ni++) {
     const auto& ndata = nprops[ni];
     const auto& info  = ndata.func->info();
@@ -425,9 +425,10 @@ static void calcDepthsAndHeights()
     height      = std::max(c.value, height);
     int h2      = height + 1;
     for (int pi : g.nodeInputs(c.node)) {
-      for (int li : g.pinLinks(pi)) {
-        q.push_back(Candidate {g.pinNode(g.linkStart(li)), h2});
-      }
+      auto plinks = g.pinLinks(pi);
+      std::transform(plinks.begin(), plinks.end(), std::back_inserter(q), [&](int li) {
+        return Candidate {g.pinNode(g.linkStart(li)), h2};
+      });
     }
   }
 
@@ -444,9 +445,10 @@ static void calcDepthsAndHeights()
     depth      = std::max(c.value, depth);
     int d2     = depth + 1;
     for (int pi : g.nodeOutputs(c.node)) {
-      for (int li : g.pinLinks(pi)) {
-        q.push_back(Candidate {g.pinNode(g.linkEnd(li)), d2});
-      }
+      auto plinks = g.pinLinks(pi);
+      std::transform(plinks.begin(), plinks.end(), std::back_inserter(q), [&](int li) {
+        return Candidate {g.pinNode(g.linkEnd(li)), d2};
+      });
     }
   }
 }
@@ -514,16 +516,20 @@ static void calcColumns()
   }
   auto pushUpstream = [&](int ni, int val) {
     for (int pi : g.nodeInputs(ni)) {
-      for (int li : g.pinLinks(pi)) {
-        nodes.push_back(Candidate {g.pinNode(g.linkStart(li)), val});
-      }
+      auto plinks = g.pinLinks(pi);
+      std::transform(
+        plinks.begin(), plinks.end(), std::back_inserter(nodes), [&](int li) {
+          return Candidate {g.pinNode(g.linkStart(li)), val};
+        });
     }
   };
   auto pushDownstream = [&](int ni, int val) {
     for (int pi : g.nodeOutputs(ni)) {
-      for (int li : g.pinLinks(pi)) {
-        nodes.push_back(Candidate {g.pinNode(g.linkEnd(li)), val});
-      }
+      auto plinks = g.pinLinks(pi);
+      std::transform(
+        plinks.begin(), plinks.end(), std::back_inserter(nodes), [&](int li) {
+          return Candidate {g.pinNode(g.linkEnd(li)), val};
+        });
     }
   };
   auto assignCol = [&](Candidate c) -> int {
@@ -612,9 +618,12 @@ static void calcRows()
 
 static void updateNodePositions()
 {
-  const auto& nprops = nodeProps();
+  static constexpr float yOffset = 25.f;
+  static constexpr float xOffset = 25.f;
+  const auto&            nprops  = nodeProps();
   for (size_t i = 0; i < nprops.size(); i++) {
-    ImNodes::SetNodeScreenSpacePos(imNodeId(i), ImVec2(nprops[i].pos.x, nprops[i].pos.y));
+    ImNodes::SetNodeScreenSpacePos(
+      imNodeId(i), ImVec2(xOffset + nprops[i].pos.x, yOffset + nprops[i].pos.y));
   }
 }
 
@@ -752,7 +761,7 @@ void draw(GLFWwindow* window)
                        cmdLineCallback,
                        (void*)(&sCmdline))) {
     sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
-    runCommand(sCmdline);
+    queueCommand(sCmdline);
     sCmdline.clear();
     sResponse.clear();
   }

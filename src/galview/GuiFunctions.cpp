@@ -333,7 +333,7 @@ void py_runCommands(const std::string& commands)
 {
   for (auto begin = commands.begin(); begin != commands.end();) {
     auto lend = std::find(begin, commands.end(), '\n');
-    view::runCommand(std::string(begin, lend));
+    view::queueCommand(std::string(begin, lend));
     if (lend == commands.end()) {
       break;
     }

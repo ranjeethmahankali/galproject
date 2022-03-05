@@ -24,7 +24,8 @@ void imGuiNewFrame();
 spdlog::logger& logger();
 int             runPythonDemoFile(const std::filesystem::path& demoPath);
 void            setPanelVisibility(const std::string& name, bool visible);
-void            runCommand(const std::string& cmd);
+void            queueCommand(const std::string& cmd);
+void            runQueuedCommands();
 
 class Widget
 {
