@@ -10,6 +10,10 @@
 namespace gal {
 namespace func {
 
+/**
+ * @brief Property interface.
+ *
+ */
 struct IProperty
 {
   virtual void   reserve(size_t n)        = 0;
@@ -21,6 +25,10 @@ struct IProperty
   virtual ~IProperty() = default;
 };
 
+/**
+ * @brief Container for all properties that apply to the same set of elements.
+ * The properties within will all be of the same size, equal to the number of elements.
+ */
 struct Properties
 {
   int    add(IProperty* ptr);
@@ -35,6 +43,11 @@ private:
   std::vector<IProperty*> mProps;
 };
 
+/**
+ * @brief Property of give type.
+ *
+ * @tparam T
+ */
 template<typename T>
 struct Property : public IProperty
 {
@@ -66,7 +79,7 @@ public:
 
   int& index() { return mIndex; }
 
-  Property(Properties& container)
+  explicit Property(Properties& container)
       : mContainer(&container)
       , mIndex(container.add(this))
   {}
