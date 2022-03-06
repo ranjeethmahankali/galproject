@@ -10,7 +10,6 @@
 
 #include <galcore/Mesh.h>
 #include <galcore/Util.h>
-#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/Views.h>
 
@@ -45,8 +44,9 @@ static float      sTransScale = 500.f;
 static glm::mat4  sTrans      = glm::identity<glm::mat4>();
 static glm::mat4  sInvTrans   = glm::identity<glm::mat4>();
 
-static bool s2dMode   = false;
-static bool sEdgeMode = false;
+static bool s2dMode        = false;
+static bool sWireFrameMode = false;
+static bool sMeshEdgeMode  = false;
 
 static void captureMousePos(double x, double y)
 {
@@ -101,7 +101,7 @@ void Context::useShader(size_t shaderId)
     setOrthoModeUniform();
   }
   else {
-    view::logger().error("{} is an invalid shader id.", shaderId);
+    glutil::logger().error("{} is an invalid shader id.", shaderId);
   }
 }
 
@@ -137,7 +137,7 @@ Context::Context()
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, 1.0f));
 
-  setWireframeMode(sEdgeMode);
+  setWireframeMode(sWireFrameMode);
 };
 
 void Context::useCamera(const glm::vec3& eye,
@@ -163,8 +163,10 @@ void Context::registerCallbacks(GLFWwindow* window)
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
 {
-  if (ImGui::GetIO().WantCaptureMouse)
+  if (ImGui::GetIO().WantCaptureMouse) {
+    // Mouse is interacting with ImGui elements, so the camera should not react.
     return;
+  }
   static constexpr float     sRotSpeed = 0.002f;
   static constexpr glm::vec3 sZAxis    = {0.0f, 0.0f, 1.0f};
   static constexpr glm::vec4 sXAxis    = {1.0f, 0.0f, 0.0f, 0.0};
@@ -216,6 +218,11 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
 
 void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
 {
+  if (ImGui::GetIO().WantCaptureMouse) {
+    // Mouse is interacting with ImGui elements, so the camera should not react.
+    return;
+  }
+
   static constexpr float zoomUp   = 1.2f;
   static constexpr float zoomDown = 1.0f / zoomUp;
 
@@ -262,13 +269,23 @@ void Context::setUniformInternal<bool>(int location, const bool& flag)
 
 void Context::setWireframeMode(bool flag)
 {
-  sEdgeMode = flag;
+  sWireFrameMode = flag;
+}
+
+void Context::setMeshEdgeMode(bool flag)
+{
+  sMeshEdgeMode = flag;
 }
 
 bool Context::wireframeMode()
 {
-  return sEdgeMode;
+  return sWireFrameMode;
 };
+
+bool Context::meshEdgeMode()
+{
+  return sMeshEdgeMode;
+}
 
 void Context::setPerspective(float fovy, float aspect, float near, float far)
 {
@@ -315,7 +332,7 @@ static void checkCompilation(uint32_t id, uint32_t type)
 
     std::string message(length + 1, '\0');
     glGetShaderInfoLog(id, length, &length, message.data());
-    view::logger().error("Failed to compile {} shader:\n{}", shaderType, message);
+    glutil::logger().error("Failed to compile {} shader:\n{}", shaderType, message);
 
     GL_CALL(glDeleteShader(id));
   }
@@ -328,13 +345,13 @@ static void checkLinking(uint32_t progId)
   glGetProgramiv(progId, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(progId, 1024, NULL, infoLog);
-    view::logger().error("Error linking shader program:\n{}", infoLog);
+    glutil::logger().error("Error linking shader program:\n{}", infoLog);
   }
 };
 
 static std::string readfile(const std::string& filepath)
 {
-  view::logger().debug("Reading shader source: {}", filepath);
+  glutil::logger().debug("Reading shader source: {}", filepath);
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   std::stringstream file_stream;
@@ -344,7 +361,7 @@ static std::string readfile(const std::string& filepath)
     file.close();
   }
   catch (std::ifstream::failure e) {
-    view::logger().error("Error reading shader source file:\n{}", e.what());
+    glutil::logger().error("Error reading shader source file:\n{}", e.what());
   }
   return file_stream.str();
 };

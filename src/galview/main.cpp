@@ -1,3 +1,4 @@
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -12,12 +13,11 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Util.h>
-#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Interaction.h>
 #include <galview/Views.h>
-#include <galview/Widget.h>
 
 using namespace gal;
 namespace fs = std::filesystem;
@@ -29,24 +29,21 @@ void initPythonEnvironment()
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
   PyImport_AppendInittab("pygalview", &PyInit_pygalview);
   Py_Initialize();
-
-  using namespace std::string_literals;
-  gal::viewfunc::initPanels();
 };
 
 void glfw_error_cb(int error, const char* desc)
 {
-  view::logger().error("GLFW Error {}: {}", error, desc);
+  glutil::logger().error("GLFW Error {}: {}", error, desc);
 }
 
 int initViewer(GLFWwindow*& window, const std::string& filename)
 {
   glfwSetErrorCallback(glfw_error_cb);
   if (!glfwInit()) {
-    view::logger().error("Failed to initialize GLFW.");
+    glutil::logger().error("Failed to initialize GLFW.");
     return 1;
   }
-  view::logger().info("Initialized GLFW.");
+  glutil::logger().info("Initialized GLFW.");
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -61,10 +58,10 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   glfwSwapInterval(0);
 
   if (glewInit() != GLEW_OK) {
-    view::logger().error("Failed to initialize OpenGL bindings.");
+    glutil::logger().error("Failed to initialize OpenGL bindings.");
     return 1;
   }
-  view::logger().info("Initialized OpenGL bindings.");
+  glutil::logger().info("OpenGL bindings are ready.");
 
   // Init shader.
   view::Context& ctx      = view::Context::get();
@@ -72,7 +69,8 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   ctx.useShader(shaderId);
 
   view::Context::registerCallbacks(window);
-  view::logger().debug("Registered mouse event callbacks to allow viewer interactions.");
+  glutil::logger().debug(
+    "Registered mouse event callbacks to allow viewer interactions.");
   view::Context::get().setPerspective();
 
   int W, H;
@@ -81,63 +79,59 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //   glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_LINE_SMOOTH);
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_POINT_SMOOTH);
   glPointSize(3.0f);
-  glLineWidth(1.5f);
+  glLineWidth(1.0f);
   return 0;
-}
-
-void wrapUp(GLFWwindow* window)
-{
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  glfwDestroyWindow(window);
-  glfwTerminate();
 }
 
 int loadDemo(const fs::path& demoPath)
 {
   int         err    = 0;
   GLFWwindow* window = nullptr;
-  if ((err = initViewer(window, demoPath.filename().string()))) {
-    view::logger().error("Failed to initialize the viewer. Error code {}.", err);
-    return err;
-  }
-
-  // Setup IMGUI
-  view::initializeImGui(window, glslVersion);
-
-  // Initialize Embedded Python and the demo
-  initPythonEnvironment();
-  err = view::runPythonDemoFile(demoPath);
-  if (err != 0) {
-    view::logger().error("Unable to run the demo file. Error code {}.", err);
-    return err;
-  }
-
-  view::logger().info("Starting the command interface and render loop...");
-  view::cmdinterface::init();
-  while (!glfwWindowShouldClose(window)) {
-    glfwPollEvents();
-    view::imGuiNewFrame();
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    {
-      view::cmdinterface::draw(window);
-      viewfunc::drawPanels();
-      view::imGuiRender();
-      viewfunc::evalOutputs();
-      view::Views::render();
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  try {
+    if ((err = initViewer(window, demoPath.filename().string()))) {
+      glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
+      return err;
     }
-    glfwSwapBuffers(window);
+
+    // Initialize all the user interface elements.
+    view::init(window, glslVersion);
+
+    // Initialize Embedded Python and the demo
+    initPythonEnvironment();
+    err = view::runPythonDemoFile(demoPath);
+    if (err != 0) {
+      glutil::logger().error("Unable to run the demo file. Error code {}.", err);
+      return err;
+    }
+
+    glutil::logger().info("Starting the render loop...");
+    while (!glfwWindowShouldClose(window)) {
+      glfwPollEvents();
+      view::imGuiNewFrame();
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      {
+        view::draw(window);
+        ImGui::Render();
+        viewfunc::evalOutputs();
+        view::Views::render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+      }
+      glfwSwapBuffers(window);
+      gal::view::runQueuedCommands();
+    }
+  }
+  catch (const std::exception& e) {
+    glutil::logger().critical("Fatal error: {}", e.what());
+    err = -1;
   }
 
-  wrapUp(window);
-  return 0;
+  view::destroy(window);
+  return err;
 }
 
 int main(int argc, char** argv)

@@ -8,6 +8,7 @@ compile_commands.json
 launch.json
 vcpkg/
 localAssets/
+external/
 
 Debug/
 Release/

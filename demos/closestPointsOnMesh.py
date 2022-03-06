@@ -7,8 +7,8 @@ path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)
 scale = pgf.var_float(10.0)
 scaled = pgf.scale(mesh, scale)
-
 box = pgf.bounds(scaled)
+
 npts = pgv.slideri32("Point count", 1000, 25000, 100)
 inpts = pgf.randomPointsInBox(box, npts)
 

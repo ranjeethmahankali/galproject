@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include <galcore/Annotations.h>
 #include <galcore/Types.h>
@@ -12,34 +13,28 @@
 #include <galfunc/Functions.h>
 #include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
-#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
+#include <galview/Interaction.h>
 #include <galview/Views.h>
-#include <galview/Widget.h>
 
 namespace gal {
 namespace viewfunc {
 
-static std::shared_ptr<view::Panel>                           sInputPanel  = nullptr;
-static std::shared_ptr<view::Panel>                           sOutputPanel = nullptr;
-static bool                                                   sShowInputs  = true;
-static bool                                                   sShowOutputs = true;
-static std::vector<const func::Function*>                     sOutputFuncs;
-static std::unordered_map<std::string, const view::CheckBox&> sShowCheckboxes;
+static bool                               sShowInputs  = true;
+static bool                               sShowOutputs = true;
+static std::vector<const func::Function*> sOutputFuncs;
+static std::unordered_map<std::string, std::unique_ptr<view::CheckBox>> sShowCheckboxes;
 
-struct PanelInfo
+view::Panel& outputsPanel()
 {
-  std::shared_ptr<view::Panel> mPanel;
-  bool                         mVisible = true;
+  return view::panelByName("outputs");
+}
 
-  PanelInfo(const std::shared_ptr<view::Panel>& panel)
-      : mPanel(panel)
-  {}
-  const std::string& title() const { return mPanel->title(); }
-};
-
-static std::vector<PanelInfo> sPanels;
+view::Panel& inputsPanel()
+{
+  return view::panelByName("inputs");
+}
 
 /**
  * @brief Gets the visibility checkbox from the output panel with the given name.
@@ -50,54 +45,11 @@ static const view::CheckBox& getCheckBox(const std::string name)
 {
   auto match = sShowCheckboxes.find(name);
   if (match != sShowCheckboxes.end()) {
-    return match->second;
+    return *(match->second);
   }
-  auto pair =
-    sShowCheckboxes.emplace(name, *(outputPanel().newWidget<view::CheckBox>(name, true)));
-  return pair.first->second;
-}
-
-void initPanels()
-{
-  sInputPanel = std::make_shared<view::Panel>("inputs");
-  sPanels.emplace_back(sInputPanel);
-  sOutputPanel = std::make_shared<view::Panel>("outputs");
-  sPanels.emplace_back(sOutputPanel);
-}
-
-void setPanelVisibility(const std::string& name, bool visible)
-{
-  auto match =
-    std::find_if(sPanels.begin(), sPanels.end(), [&name](const PanelInfo& pinfo) {
-      return pinfo.mPanel->title() == name;
-    });
-  if (match != sPanels.end()) {
-    match->mVisible = visible;
-    view::logger().info("Visibility of {} panel set to {}.", name, visible);
-  }
-  else {
-    view::logger().error("No panel named {} was found.", name);
-  }
-}
-
-void drawPanels()
-{
-  for (const auto& pinfo : sPanels) {
-    if (pinfo.mVisible) {
-      pinfo.mPanel->draw();
-    }
-  }
-  // Incomplete.
-}
-
-view::Panel& inputPanel()
-{
-  return *sInputPanel;
-}
-
-view::Panel& outputPanel()
-{
-  return *sOutputPanel;
+  auto pair = sShowCheckboxes.emplace(name, std::make_unique<view::CheckBox>(name, true));
+  outputsPanel().addWidget(pair.first->second.get());
+  return *(pair.first->second);
 }
 
 void evalOutputs()
@@ -112,8 +64,8 @@ void unloadAllOutputs()
   gal::view::logger().debug("Unloading all output data...");
   sOutputFuncs.clear();
   sShowCheckboxes.clear();
-  sInputPanel->clear();
-  sOutputPanel->clear();
+  inputsPanel().clear();
+  outputsPanel().clear();
 }
 
 /**
@@ -209,9 +161,20 @@ void py_usePerspectiveCam()
 
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)
 {
-  auto fn = gal::func::store::makeFunction<TextFieldFunc>("textfield", label);
-  inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-  return fn->pythonOutputRegs();
+  static const std::string_view sOutputName = "text";
+  static const std::string_view sOutputDesc = "The text from the text field input.";
+
+  static const func::FuncInfo sFnInfo = {"text",
+                                         "Text field input widget",
+                                         0,
+                                         nullptr,
+                                         nullptr,
+                                         1,
+                                         &sOutputName,
+                                         &sOutputDesc};
+  auto fn = gal::func::store::makeFunction<TextFieldFunc>(sFnInfo, label);
+  inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+  return dynamic_cast<const TextFieldFunc*>(fn)->pythonOutputRegs();
 };
 
 template<typename T>
@@ -225,7 +188,7 @@ struct ShowCallable
       : mDrawableIndex(view::Views::create<T>(visibilityFlag))
   {}
 
-  void operator()(const func::data::Tree<T>& objs, uint64_t&) const
+  void operator()(const func::data::Tree<T>& objs) const
   {
     view::Views::update<T>(mDrawableIndex, objs.values());
   }
@@ -238,11 +201,10 @@ struct ShowCallable
  * @tparam T The object to be drawn.
  */
 template<typename T>
-struct ShowFunc
-    : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>
+struct ShowFunc : public func::TFunction<ShowCallable<T>, const func::data::Tree<T>>
 {
   static_assert(TypeInfo<T>::value, "Unknown type");
-  using BaseT = func::TFunction<ShowCallable<T>, const func::data::Tree<T>, uint64_t>;
+  using BaseT        = func::TFunction<ShowCallable<T>, const func::data::Tree<T>>;
   using PyOutputType = typename BaseT::PyOutputType;
 
   uint64_t mDrawId = 0;
@@ -251,11 +213,8 @@ struct ShowFunc
            const bool*              visibilityFlag,
            const func::Register<T>& reg)
       : BaseT(ShowCallable<T>(visibilityFlag), std::make_tuple(reg))
-  {
-    auto& tree = std::get<0>(this->mOutputs);
-    tree.resize(1);
-    tree.value(0) = 0;
-  }
+  {}
+
   virtual ~ShowFunc() = default;
 };
 
@@ -273,13 +232,26 @@ template<typename T>
 typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                            const func::Register<T>& reg)
 {
-  static_assert(view::Views::IsDrawableType<T>);
-  std::shared_ptr<ShowFunc<T>> sfn = gal::func::store::makeFunction<ShowFunc<T>>(
-    "show_" + TypeInfo<T>::name(), label, getCheckBox(label).checkedPtr(), reg);
+  static const std::string sName = "show_" + TypeInfo<T>::name();
+  static const std::string sDesc = "Shows an object of type " + TypeInfo<T>::name() +
+                                   " in the viewer, using the given label as the key.";
+  static const std::string_view sInputName = "obj";
+  static const std::string_view sInputDesc = "Object to be shown in the viewer.";
 
-  auto fn = std::dynamic_pointer_cast<func::Function>(sfn);
-  sOutputFuncs.push_back(fn.get());
-  return sfn->pythonOutputRegs();
+  static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                       {sDesc.data(), sDesc.size()},
+                                       1,
+                                       &sInputName,
+                                       &sInputDesc,
+                                       0,
+                                       nullptr,
+                                       nullptr};
+
+  static_assert(view::Views::IsDrawableType<T>);
+  auto fn = gal::func::store::makeFunction<ShowFunc<T>>(
+    sInfo, label, getCheckBox(label).checkedPtr(), reg);
+  sOutputFuncs.push_back(fn);
+  return dynamic_cast<ShowFunc<T>*>(fn)->pythonOutputRegs();
 }
 
 template<typename T>
@@ -294,13 +266,13 @@ struct PrintCallable
       , mTextPtr(textLabelPtr)
   {}
 
-  void operator()(const func::data::Tree<T>& obj, uint8_t&) const
+  void operator()(const func::data::Tree<T>& obj) const
   {
     std::stringstream stream;
     stream.clear();
     stream.str("");
     stream << mLabel << ": \n" << obj;
-    mTextPtr->set(stream.str());
+    mTextPtr->value() = stream.str();
   }
 };
 
@@ -310,11 +282,10 @@ struct PrintCallable
  * @tparam T The type of the object to be printed.
  */
 template<typename T>
-struct PrintFunc
-    : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>,
-      public view::Text
+struct PrintFunc : public func::TFunction<PrintCallable<T>, const func::data::Tree<T>>,
+                   public view::Text
 {
-  using BaseT = func::TFunction<PrintCallable<T>, const func::data::Tree<T>, uint8_t>;
+  using BaseT        = func::TFunction<PrintCallable<T>, const func::data::Tree<T>>;
   using PyOutputType = typename BaseT::PyOutputType;
 
   PrintFunc(const std::string& label, const func::Register<T>& reg)
@@ -336,12 +307,38 @@ template<typename T>
 typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
                                              const func::Register<T>& reg)
 {
-  std::shared_ptr<PrintFunc<T>> pfn = gal::func::store::makeFunction<PrintFunc<T>>(
-    "print_" + TypeInfo<T>::name(), label, reg);
-  auto fn = std::dynamic_pointer_cast<func::Function>(pfn);
-  sOutputFuncs.push_back(fn.get());
-  outputPanel().addWidget(std::dynamic_pointer_cast<view::Widget>(pfn));
-  return pfn->pythonOutputRegs();
+  static const std::string sName = "print_" + TypeInfo<T>::name();
+  static const std::string sDesc =
+    "Prints an object of type " + TypeInfo<T>::name() +
+    " in the outputs panel, using the given label as the key.";
+  static const std::string_view sInputName = "obj";
+  static const std::string_view sInputDesc = "Object to be printed to the output panel.";
+
+  static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                       {sDesc.data(), sDesc.size()},
+                                       1,
+                                       &sInputName,
+                                       &sInputDesc,
+                                       0,
+                                       nullptr,
+                                       nullptr};
+
+  auto fn = gal::func::store::makeFunction<PrintFunc<T>>(sInfo, label, reg);
+  sOutputFuncs.push_back(fn);
+  outputsPanel().addWidget(dynamic_cast<view::Widget*>(fn));
+  return dynamic_cast<PrintFunc<T>*>(fn)->pythonOutputRegs();
+}
+
+void py_runCommands(const std::string& commands)
+{
+  for (auto begin = commands.begin(); begin != commands.end();) {
+    auto lend = std::find(begin, commands.end(), '\n');
+    view::queueCommand(std::string(begin, lend));
+    if (lend == commands.end()) {
+      break;
+    }
+    begin = lend + 1;
+  }
 }
 
 namespace python {
@@ -352,9 +349,15 @@ struct defOutputFuncs
 {
   static void invoke()
   {
-    def("print", py_print<T>);
+    def("print",
+        py_print<T>,
+        "Prints the given object (second arg) to the output panel with the given label "
+        "(first arg)");
     if constexpr (view::Views::IsDrawableType<T>) {
-      def("show", py_show<T>);
+      def("show",
+          py_show<T>,
+          "Shows the given object (second arg) in the viewer, with checkbox with the "
+          "given label (first arg) to control the visibility.");
     }
   }
 };
@@ -365,6 +368,7 @@ struct defOutputFuncs
 }  // namespace gal
 
 #define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
+#define GAL_DEF_PY_FN_DOC(fnName, docstr) def(#fnName, py_##fnName, docstr);
 
 BOOST_PYTHON_MODULE(pygalview)
 {
@@ -372,21 +376,27 @@ BOOST_PYTHON_MODULE(pygalview)
   using namespace gal::viewfunc;
   using namespace gal::viewfunc::python;
   // Sliders for float input
-  def("sliderf32", gal::viewfunc::py_slider<float>);
-  def("slideri32", gal::viewfunc::py_slider<int32_t>);
-  def("sliderVec3", gal::viewfunc::py_slider<glm::vec3>);
-  def("sliderVec2", gal::viewfunc::py_slider<glm::vec2>);
+  def("sliderf32",
+      gal::viewfunc::py_slider<float>,
+      "Float-32 slider with the given label, min value, max value and initial value.");
+  def("slideri32",
+      gal::viewfunc::py_slider<int32_t>,
+      "Int-32 slider with the given label, min value, max value and initial value.");
+  def("sliderVec3",
+      gal::viewfunc::py_slider<glm::vec3>,
+      "Vec3 slider with the given label, min value, max value and initial value.");
+  def("sliderVec2",
+      gal::viewfunc::py_slider<glm::vec2>,
+      "Vec2 slider with the given label, min value, max value and initial value.");
 
   gal::func::typemanager::invoke<defOutputFuncs>();
 
   // Text fields for string inputs
-  GAL_DEF_PY_FN(textField);
+  GAL_DEF_PY_FN_DOC(textField, "Creates a text field with the given label.");
   // Viewer annotations
   GAL_DEF_PY_FN(tags);
   GAL_DEF_PY_FN(glyphs);
   GAL_DEF_PY_FN(loadGlyphs);
-  // Viewer controls.
-  GAL_DEF_PY_FN(set2dMode);
-  GAL_DEF_PY_FN(useOrthoCam);
-  GAL_DEF_PY_FN(usePerspectiveCam);
+  // Allows demos to run viewer commands.
+  GAL_DEF_PY_FN(runCommands);
 };

@@ -5,17 +5,14 @@
 #include <glm/glm.hpp>
 
 #include <galfunc/Functions.h>
-#include <galview/Widget.h>
+#include <galview/Interaction.h>
 
 namespace gal {
 namespace viewfunc {
 
-void         initPanels();
-void         drawPanels();
-void         setPanelVisibility(const std::string& name, bool visible);
-view::Panel& inputPanel();
-view::Panel& outputPanel();
-void         evalOutputs();
+view::Panel& inputsPanel();
+
+void evalOutputs();
 
 /**
  * @brief Clears all output registers.
@@ -104,10 +101,24 @@ struct makeSlider
     gal::func::Converter<decltype(pymax), T>::assign(pymax, max);
     gal::func::Converter<decltype(pyvalue), T>::assign(pyvalue, value);
 
-    std::shared_ptr<SliderFunc<T>> fn = gal::func::store::makeFunction<SliderFunc<T>>(
-      "slider_" + TypeInfo<T>::name(), label, min, max, value);
-    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return fn->pythonOutputRegs();
+    static const std::string      sName = "slider_" + TypeInfo<T>::name();
+    static const std::string      sDesc = "Slider for type " + TypeInfo<T>::name() + ".";
+    static const std::string_view sOutputName = "value";
+    static const std::string_view sOutputDesc = "Value output from the slider";
+
+    static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                         {sDesc.data(), sDesc.size()},
+                                         0,
+                                         nullptr,
+                                         nullptr,
+                                         1,
+                                         &sOutputName,
+                                         &sOutputDesc};
+
+    auto fn =
+      gal::func::store::makeFunction<SliderFunc<T>>(sInfo, label, min, max, value);
+    inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+    return dynamic_cast<const SliderFunc<T>*>(fn)->pythonOutputRegs();
   }
 };
 
@@ -136,10 +147,25 @@ struct makeSlider<glm::vec<N, T, Q>>
     gal::func::Converter<decltype(pymax), T>::assign(pymax, max);
     gal::func::Converter<decltype(pyvalue), T>::assign(pyvalue, value);
 
+    static const std::string sName = "slider_" + TypeInfo<glm::vec<N, T, Q>>::name();
+    static const std::string sDesc =
+      "Slider for type " + TypeInfo<glm::vec<N, T, Q>>::name() + ".";
+    static const std::string_view sOutputName = "value";
+    static const std::string_view sOutputDesc = "Value output from the slider";
+
+    static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
+                                         {sDesc.data(), sDesc.size()},
+                                         0,
+                                         nullptr,
+                                         nullptr,
+                                         1,
+                                         &sOutputName,
+                                         &sOutputDesc};
+
     auto fn = gal::func::store::makeFunction<SliderFunc<glm::vec<N, T, Q>>>(
-      "slider_" + TypeInfo<glm::vec<N, T, Q>>::name(), label, min, max, value);
-    inputPanel().addWidget(std::dynamic_pointer_cast<gal::view::Widget>(fn));
-    return fn->pythonOutputRegs();
+      sInfo, label, min, max, value);
+    inputsPanel().addWidget(dynamic_cast<gal::view::Widget*>(fn));
+    return dynamic_cast<const SliderFunc<glm::vec<N, T, Q>>*>(fn)->pythonOutputRegs();
   }
 };
 

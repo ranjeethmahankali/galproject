@@ -2,26 +2,30 @@
 
 #include <algorithm>
 #include <atomic>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <galview/GLUtil.h>
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
-
-#include <galview/GLUtil.h>
 
 namespace gal {
 namespace view {
 
-void initializeImGui(GLFWwindow* window, const char* glslVersion);
-
 void imGuiNewFrame();
 
-void imGuiRender();
+spdlog::logger& logger();
+int             runPythonDemoFile(const std::filesystem::path& demoPath);
+void            setPanelVisibility(const std::string& name, bool visible);
+void            queueCommand(const std::string& cmd);
+void            runQueuedCommands();
 
 class Widget
 {
@@ -30,20 +34,26 @@ public:
   virtual void draw() = 0;
 };
 
-class Panel final : public Widget
+class Panel
 {
 public:
-  Panel(const std::string& title);
-  virtual ~Panel() = default;
+  using DrawCBType = void (*)();
 
-  void draw();
+  Panel(const std::string& title);
+  Panel(const std::string& title, bool visible);
+
+  void draw() const;
 
 private:
-  std::vector<std::shared_ptr<Widget>> mWidgets;
-  std::string                          mTitle;
+  std::vector<Widget*>    mWidgets;
+  std::vector<DrawCBType> mCallbacks;
+  std::string             mTitle;
+  mutable bool            mIsVisible = true;
 
 public:
-  void addWidget(const std::shared_ptr<Widget>& widget);
+  void addWidget(Widget* widget);
+
+  void addCallback(DrawCBType cb);
 
   /**
    * @brief Clears all widgets / contents inside this panel.
@@ -51,17 +61,12 @@ public:
    */
   void clear();
 
-  template<typename T, typename... TArgs>
-  std::shared_ptr<T> newWidget(const TArgs&... args)
-  {
-    static_assert(std::is_base_of_v<Widget, T>, "Type must inherit from Widget.");
-    auto w = std::make_shared<T>(args...);
-    addWidget(w);
-    return w;
-  };
-
   const std::string& title() const;
+  bool               visibility() const;
+  void               visibility(bool visible);
 };
+
+Panel& panelByName(const std::string& name);
 
 class Text : public Widget
 {
@@ -69,9 +74,10 @@ public:
   Text(const std::string& text);
   virtual ~Text() = default;
 
-  void set(const std::string& text);
-
   void draw();
+
+  const std::string& value() const;
+  std::string&       value();
 
 protected:
   std::string mValue;
@@ -290,12 +296,9 @@ public:
   const bool* checkedPtr() const;
 };
 
-namespace cmdinterface {
-
-void init();
+void init(GLFWwindow* window, const char* glslVersion);
 void draw(GLFWwindow* window);
-
-}  // namespace cmdinterface
+void destroy(GLFWwindow* window);
 
 }  // namespace view
 }  // namespace gal

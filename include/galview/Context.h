@@ -60,14 +60,16 @@ public:
   static void registerCallbacks(GLFWwindow* window);
 
   void setWireframeMode(bool flag);
+  void setMeshEdgeMode(bool flag);
   bool wireframeMode();
+  bool meshEdgeMode();
 
   template<typename T>
   void setUniform(const std::string& name, const T& val)
   {
     int loc = glGetUniformLocation(mShaders[mShaderIndex].mId, name.c_str());
     if (loc == -1) {
-      //   std::cerr << "Uniform " << name << " not found.\n";
+      // glutil::logger().error("OpenGL uniform '{}' not found.", name);
       return;
     }
     setUniformInternal<T>(loc, val);

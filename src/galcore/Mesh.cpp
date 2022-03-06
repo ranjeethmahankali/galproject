@@ -1,5 +1,5 @@
-#include "galcore/Mesh.h"
 #define _USE_MATH_DEFINES
+#include <galcore/Mesh.h>
 #include <galcore/ObjLoader.h>
 #include <math.h>
 #include <array>
@@ -90,8 +90,6 @@ void Mesh::computeTopology()
   mVertFaces.resize(numVertices());
   mFaceEdges.resize(numFaces());
 
-  size_t nVertices = numVertices();
-  size_t curEi     = 0;
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
     Face f = mFaces[fi];
     mVertFaces[f.a].push_back(fi);

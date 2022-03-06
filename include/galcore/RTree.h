@@ -5,12 +5,59 @@
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/geometries/point.hpp>
 #include <glm/glm.hpp>
+#include <utility>
+
+namespace gal {
 
 constexpr unsigned int RTREE_NUM_ELEMENTS_PER_NODE = 16;
 namespace bg                                       = boost::geometry;
 namespace bgi                                      = boost::geometry::index;
 namespace bgm                                      = boost::geometry::model;
 namespace rtree                                    = bgi::detail::rtree;
+
+template<typename TSrc, typename TDst>
+struct Convert
+{
+  TDst operator()(const TSrc& v) const { return TDst(v); }
+};
+
+template<int N, typename T, glm::qualifier Q>
+struct Convert<glm::vec<N, T, Q>, bgm::point<float, size_t(N), bg::cs::cartesian>>
+{
+  using BoostPointT = bgm::point<float, size_t(N), bg::cs::cartesian>;
+  using GlmT        = glm::vec<N, T, Q>;
+
+  template<int... Is>
+  inline BoostPointT convert(const GlmT& p, std::integer_sequence<int, Is...>) const
+  {
+    return BoostPointT(p[Is]...);
+  }
+
+public:
+  BoostPointT operator()(const GlmT& p) const
+  {
+    return convert(p, std::make_integer_sequence<int, N> {});
+  }
+};
+
+template<int N, typename T, glm::qualifier Q>
+struct Convert<bgm::point<float, size_t(N), bg::cs::cartesian>, glm::vec<N, T, Q>>
+{
+  using BoostPointT = bgm::point<float, size_t(N), bg::cs::cartesian>;
+  using GlmT        = glm::vec<N, T, Q>;
+
+  template<int... Is>
+  inline GlmT convert(const BoostPointT& p, std::integer_sequence<int, Is...>) const
+  {
+    return GlmT(p.template get<Is>()...);
+  }
+
+public:
+  GlmT operator()(const BoostPointT& p) const
+  {
+    return convert(p, std::make_integer_sequence<int, N> {});
+  }
+};
 
 template<typename Predicate,
          typename Value,
@@ -80,10 +127,10 @@ template<class BoostPointT, typename VecT, typename BoxT>
 class RTree
 {
 public:
-  typedef BoostPointT                                                       PointType;
-  typedef bgm::box<BoostPointT>                                             BoxType;
-  typedef std::pair<BoxType, size_t>                                        ItemType;
-  typedef bgi::rtree<ItemType, bgi::quadratic<RTREE_NUM_ELEMENTS_PER_NODE>> BoostTreeType;
+  using PointType     = BoostPointT;
+  using BoxType       = bgm::box<BoostPointT>;
+  using ItemType      = std::pair<BoxType, size_t>;
+  using BoostTreeType = bgi::rtree<ItemType, bgi::quadratic<RTREE_NUM_ELEMENTS_PER_NODE>>;
 
   void insert(const BoxT& b, size_t i) { mTree.insert(std::make_pair(toBoost(b), i)); };
 
@@ -123,37 +170,35 @@ private:
     }
   }
 
-  // Because we created the specializations of these templates, we don't need
-  // definitions here.
-  static BoostPointT toBoost(const VecT&);
-  static VecT        fromBoost(const BoostPointT&);
+  static BoostPointT toBoost(const VecT& p)
+  {
+    static Convert<VecT, BoostPointT> sToBoost;
+    return sToBoost(p);
+  }
+
+  static VecT fromBoost(const BoostPointT& p)
+  {
+    static Convert<BoostPointT, VecT> sFromBoost;
+    return sFromBoost(p);
+  }
 
   static BoxType toBoost(const BoxT& b)
   {
     return BoxType(toBoost(b.min), toBoost(b.max));
-  };
+  }
+
   static BoxT fromBoost(const BoxType& b)
   {
     return BoxT(fromBoost(b.min_corner()), fromBoost(b.max_corner()));
-  };
+  }
 
 public:
   void clear() { mTree.clear(); };
 };
 
-template class RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::Box2>;
-typedef RTree<bgm::point<float, 2, bg::cs::cartesian>, glm::vec2, gal::Box2> RTree2d;
-template class RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::Box3>;
-typedef RTree<bgm::point<float, 3, bg::cs::cartesian>, glm::vec3, gal::Box3> RTree3d;
+using BoostPoint2d = bgm::point<float, 2, bg::cs::cartesian>;
+using BoostPoint3d = bgm::point<float, 3, bg::cs::cartesian>;
+using RTree2d      = RTree<BoostPoint2d, glm::vec2, gal::Box2>;
+using RTree3d      = RTree<BoostPoint3d, glm::vec3, gal::Box3>;
 
-template<>
-RTree2d::PointType RTree2d::toBoost(const glm::vec2&);
-
-template<>
-glm::vec2 RTree2d::fromBoost(const PointType&);
-
-template<>
-RTree3d::PointType RTree3d::toBoost(const glm::vec3&);
-
-template<>
-glm::vec3 RTree3d::fromBoost(const PointType&);
+}  // namespace gal

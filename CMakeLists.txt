@@ -2,16 +2,9 @@ cmake_minimum_required(VERSION 3.16.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(NOT DEFINED ENV{VCPKG_PATH})
-  message(FATAL_ERROR "Please clone vcpkg and set the VCPKG_PATH environment variable")
-endif()
-
-set(VCPKG_FEATURE_FLAGS versions)
-set(VCPKG_TARGET_TRIPLET x64-linux)
-set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+include(vcpkg.cmake)
 
 # Dependencies and Includes - begin
 project(gal)
@@ -40,6 +33,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 include_directories(include)
+
+include(external.cmake)
 # Dependencies and Includes - end
 
 # GALCORE - begin
@@ -97,7 +92,8 @@ target_link_libraries(galview PRIVATE
   imgui::imgui
   GLEW::GLEW
   glfw
-  freetype)
+  freetype
+  imnodes)
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview

@@ -2,8 +2,6 @@ import pygalfunc as pgf
 import pygalview as pgv
 
 
-pgv.set2dMode(True)
-
 pt = pgf.var_vec3((0., 0., 0.))
 norm = pgf.var_vec3((0., 0., 1.))
 plane = pgf.plane(pt, norm)
@@ -36,3 +34,5 @@ circ, *_ = pgf.boundingCircle(cloud)
 pgv.show("cloud", cloud)
 pgv.show("colored", colored)
 pgv.show("circle", circ)
+
+pgv.runCommands("2d")
