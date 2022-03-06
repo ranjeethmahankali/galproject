@@ -304,7 +304,7 @@ static void updateNodePositions()
   static constexpr float yOffset = 25.f;
   static constexpr float xOffset = 25.f;
   const auto&            nprops  = nodeProps();
-  for (size_t i = 0; i < nprops.size(); i++) {
+  for (size_t i = 0; i < nprops.size(); ++i) {
     ImNodes::SetNodeScreenSpacePos(
       imNodeId(i), ImVec2(xOffset + nprops[i].pos.x, yOffset + nprops[i].pos.y));
   }
@@ -317,7 +317,7 @@ void drawCanvas()
   int   nNodes = int(sGraph.numNodes());
   auto& nprops = nodeProps();
   auto& pprops = pinProps();
-  for (int ni = 0; ni < nNodes; ni++) {
+  for (int ni = 0; ni < nNodes; ++ni) {
     const auto& ndata = nprops[ni];
     const auto& info  = ndata.func->info();
     ImNodes::BeginNode(imNodeId(ni));
@@ -334,7 +334,7 @@ void drawCanvas()
         pprops[pi].pos =
           0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
       }
-      i++;
+      ++i;
     }
     i = 0;
     for (int pi : sGraph.nodeOutputs(ni)) {
@@ -347,7 +347,7 @@ void drawCanvas()
         pprops[pi].pos =
           0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
       }
-      i++;
+      ++i;
     }
     ImNodes::EndNode();
     if constexpr (UpdatePass) {
@@ -355,7 +355,7 @@ void drawCanvas()
     }
   }
   int nlinks = int(sGraph.numLinks());
-  for (int i = 0; i < nlinks; i++) {
+  for (int i = 0; i < nlinks; ++i) {
     ImNodes::Link(imLinkId(i), imPinId(sGraph.linkStart(i)), imPinId(sGraph.linkEnd(i)));
   }
   ImNodes::EndNodeEditor();
@@ -454,7 +454,7 @@ static void calcDepthsAndHeights()
   int nNodes = int(g.numNodes());
 
   // Heights.
-  for (int i = 0; i < nNodes; i++) {
+  for (int i = 0; i < nNodes; ++i) {
     if (!g.nodeHasOutputs(i)) {
       q.push_back(Candidate {i, 0});
     }
@@ -474,7 +474,7 @@ static void calcDepthsAndHeights()
   }
 
   // Depths.
-  for (int i = 0; i < nNodes; i++) {
+  for (int i = 0; i < nNodes; ++i) {
     if (!g.nodeHasInputs(i)) {
       q.push_back(Candidate {i, 0});
     }
@@ -504,7 +504,7 @@ static void buildGraph()
   size_t nfunc    = func::store::numFunctions();
   size_t nInputs  = 0;
   size_t nOutputs = 0;
-  for (size_t i = 0; i < nfunc; i++) {
+  for (size_t i = 0; i < nfunc; ++i) {
     const auto& f = func::store::function(i);
     nInputs += f.numInputs();
     nOutputs = f.numOutputs();
@@ -512,7 +512,7 @@ static void buildGraph()
   g.reserve(nfunc, nInputs + nOutputs, nInputs);
   // Add nodes.
   std::vector<func::InputInfo> inputs;
-  for (size_t i = 0; i < nfunc; i++) {
+  for (size_t i = 0; i < nfunc; ++i) {
     const auto& f   = func::store::function(i);
     int         ni  = g.addNode(f.numInputs(), f.numOutputs());
     fnNodeIdx[f]    = ni;
@@ -534,7 +534,6 @@ static void buildGraph()
 
 static void calcColumns()
 {
-  namespace ba = boost::adaptors;
   using namespace gal::utils;
   using IntIter = boost::counting_iterator<int>;
 
@@ -544,84 +543,69 @@ static void calcColumns()
     int value;
   };
 
-  std::vector<Candidate> nodes;  // Queue for processing all nodes.
-
   auto&       nprops = nodeProps();
   const auto& g      = sGraph;
   assert(g.numNodes() == nprops.size());
   int nNodes = int(g.numNodes());
-
-  int maxt = 0;
+  int maxt   = 0;
   for (int ni = 0; ni < nNodes; ni++) {
     maxt = std::max(maxt, nprops[ni].span());
   }
-  auto pushUpstream = [&](int ni, int val) {
-    for (int pi : g.nodeInputs(ni)) {
-      auto plinks = g.pinLinks(pi);
-      std::transform(
-        plinks.begin(), plinks.end(), std::back_inserter(nodes), [&](int li) {
-          return Candidate {g.pinNode(g.linkStart(li)), val};
-        });
+  for (int ni = 0; ni < nNodes; ni++) {
+    auto& np = nprops[ni];
+    if (np.depth == 0 && np.height > 0) {
+      np.col = 0;
     }
-  };
-  auto pushDownstream = [&](int ni, int val) {
-    for (int pi : g.nodeOutputs(ni)) {
-      auto plinks = g.pinLinks(pi);
-      std::transform(
-        plinks.begin(), plinks.end(), std::back_inserter(nodes), [&](int li) {
-          return Candidate {g.pinNode(g.linkEnd(li)), val};
-        });
-    }
-  };
-  auto assignCol = [&](Candidate c) -> int {
-    int& col = nprops[c.node].col;
-    if (c.value < 0) {
-      col = col == -1 ? maxt + c.value : std::min(maxt + c.value, col);
+    else if (np.height == 0 && np.depth > 0) {
+      np.col = maxt;
     }
     else {
-      col = std::max(c.value, col);
+      np.col = np.depth;
     }
-    return col;
-  };
-
-  std::vector<int> seeds = utils::makeVector<int>(
-    Span<IntIter>(IntIter(0), IntIter(nNodes)) |
-    ba::filtered([&](int ni) { return nprops[ni].span() == maxt; }));
-
-  for (int s : seeds) {
-    int& col = nprops[s].col;
-    col      = nprops[s].depth;
-    pushUpstream(s, col - maxt - 1);
-  }
-  while (!nodes.empty()) {
-    Candidate c = nodes.back();
-    nodes.pop_back();
-    int col = assignCol(c);
-    // Push upstream candidates with negative offsets measured from right.
-    pushUpstream(c.node, col - maxt - 1);
   }
 
-  for (int s : seeds) {
-    pushDownstream(s, nprops[s].col + 1);
-  }
-  while (!nodes.empty()) {
-    Candidate c = nodes.back();
-    nodes.pop_back();
-    int col = assignCol(c);
-    // Push downstream candidaets with positive offsets measured from left.
-    pushDownstream(c.node, col + 1);
-  }
+  bool modified = false;
+  do {
+    modified = false;
+    for (int ni = 0; ni < nNodes; ni++) {
+      auto& np   = nprops[ni];
+      int   minc = INT_MAX;
+      int   maxc = INT_MIN;
+      for (int pi : g.nodeOutputs(ni)) {
+        for (int li : g.pinLinks(pi)) {
+          minc = std::min(minc, nprops[g.pinNode(g.linkEnd(li))].col);
+        }
+      }
+      for (int pi : g.nodeInputs(ni)) {
+        for (int li : g.pinLinks(pi)) {
+          maxc = std::max(maxc, nprops[g.pinNode(g.linkStart(li))].col);
+        }
+      }
+      if (maxc != INT_MIN && maxc < np.col - 1) {
+        np.col   = maxc + 1;
+        modified = true;
+      }
+      else if (minc != INT_MAX && minc > np.col + 1) {
+        np.col   = minc - 1;
+        modified = true;
+      }
+    }
+  } while (modified);
 }
 
 static void calcRows()
 {
-  auto&       nprops = nodeProps();
-  const auto& g      = sGraph;
+  // This multiplier assumes that all nodes have fewer than 1000 outputs.
+  static constexpr float sNodeIdxMultiplier = 1000.f;
+  auto&                  nprops             = nodeProps();
+  const auto&            fnIndices          = funcNodeIndices();
+  const auto&            g                  = sGraph;
   assert(g.numNodes() == nprops.size());
   int nNodes = int(g.numNodes());
 
-  std::vector<int> nodes(boost::counting_iterator<int>(0),
+  std::vector<int>             nodes(boost::counting_iterator<int>(0),
                          boost::counting_iterator<int>(nNodes));
+  std::vector<func::InputInfo> inputs;  // Temporary storage.
   std::sort(std::execution::par, nodes.begin(), nodes.end(), [&](int a, int b) {
     return nprops[a].col < nprops[b].col;
   });
@@ -637,17 +621,14 @@ static void calcRows()
     auto colend = std::find_if(
       nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
     for (auto it = colbegin; it != colend; it++) {
-      int      ni     = *it;
-      auto&    score  = scores[ni];
-      uint32_t nlinks = 0;
-      for (int pi : g.nodeInputs(ni)) {
-        for (int li : g.pinLinks(pi)) {
-          int uni = g.pinNode(g.linkStart(li));
-          score += float(nprops[uni].row);
-          nlinks++;
-        }
+      int   ni    = *it;
+      auto& score = scores[ni];
+      nprops[ni].func->getInputs(inputs);
+      for (const auto& i : inputs) {
+        int uni = fnIndices[*(i.mFunc)];
+        score += sNodeIdxMultiplier * float(nprops[uni].row) + float(i.mOutputIdx);
       }
-      score /= float(nlinks);
+      score /= float(nprops[ni].func->numInputs());
     }
     std::sort(colbegin, colend, [&](int a, int b) { return scores[a] < scores[b]; });
     for (auto it = colbegin; it != colend; it++) {
