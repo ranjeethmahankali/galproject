@@ -6,7 +6,7 @@
 #include <numeric>
 
 static constexpr uint8_t                               X = UINT8_MAX;
-static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable {{
+static constexpr std::array<std::array<uint8_t, 6>, 8> sClipTriTable {{
   {X, X, X, X, X, X},
   {0, 3, 5, X, X, X},
   {3, 1, 4, X, X, X},
@@ -17,7 +17,7 @@ static constexpr std::array<std::array<uint8_t, 6>, 8> s_clipTriTable {{
   {0, 1, 2, X, X, X},
 }};
 
-static constexpr std::array<uint8_t, 8> s_clipVertCountTable {0, 3, 3, 6, 3, 6, 6, 3};
+static constexpr std::array<uint8_t, 8> sClipVertCountTable {0, 3, 3, 6, 3, 6, 6, 3};
 
 namespace gal {
 
@@ -183,13 +183,9 @@ void Mesh::getFaceCenter(const Face& f, glm::vec3& center) const
 
 void Mesh::checkSolid()
 {
-  for (const auto& faces : mEdgeFaces) {
-    if (faces.size() != 2) {
-      mIsSolid = false;
-      return;
-    }
-  }
-  mIsSolid = true;
+  mIsSolid = std::all_of(mEdgeFaces.begin(), mEdgeFaces.end(), [](const auto& faces) {
+    return faces.size() == 2;
+  });
 }
 
 glm::vec3 Mesh::areaCentroid() const
@@ -665,9 +661,10 @@ Mesh Mesh::clippedWithPlane(const Plane& plane) const
     });
 
   // Total number of triangle indices.
-  size_t nIndices = 0;
-  for (const uint8_t venum : venums)
-    nIndices += s_clipVertCountTable[venum];
+  size_t nIndices = std::accumulate(
+    venums.begin(), venums.end(), 0, [&](size_t total, const uint8_t venum) {
+      return total + sClipVertCountTable[venum];
+    });
   assert(nIndices % 3 == 0);
 
   std::vector<Face> faces(nIndices / 3);
@@ -677,9 +674,9 @@ Mesh Mesh::clippedWithPlane(const Plane& plane) const
   for (size_t fi = 0; fi < mFaces.size(); fi++) {
     const Face&          face  = mFaces.at(fi);
     uint8_t              venum = venums[fi];
-    const uint8_t* const row   = s_clipTriTable[venum].data();
+    const uint8_t* const row   = sClipTriTable[venum].data();
     std::transform(row,
-                   row + s_clipVertCountTable[venum],
+                   row + sClipVertCountTable[venum],
                    tempIndices.begin(),
                    [this, &trackedIdx, &face](const uint8_t vi) {
                      size_t ti;
@@ -699,7 +696,7 @@ Mesh Mesh::clippedWithPlane(const Plane& plane) const
                      }
                    });
 
-    for (size_t fvi = 0; fvi < s_clipVertCountTable[venum]; fvi += 3) {
+    for (size_t fvi = 0; fvi < sClipVertCountTable[venum]; fvi += 3) {
       faces.emplace_back(tempIndices.data() + fvi);
     }
   }
