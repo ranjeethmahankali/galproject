@@ -43,17 +43,26 @@ public:
     std::vector<size_t> mOffsets;
     const Tree<T>&      mTree;
 
-    Cache(const Tree<T>& tree)
+    explicit Cache(const Tree<T>& tree)
         : mTree(tree)
     {}
 
-    const Cache& operator=(const Cache& other)
+    Cache& operator=(const Cache& other)
     {
-      mDepthScan = other.mDepthScan;
       mOffsets   = other.mOffsets;
+      mDepthScan = other.mDepthScan;
       // Should not reassign mTree;
       return *this;
     }
+
+    Cache(const Cache& other)
+        : mTree(other.mTree)
+    {
+      *this = other;
+    }
+
+    Cache(Cache&& other) = delete;
+    Cache& operator=(Cache&& other) = delete;
 
     void clear()
     {
@@ -148,7 +157,7 @@ public:
       : mCache(*this)
   {}
 
-  const Tree& operator=(const Tree& other)
+  Tree& operator=(const Tree& other)
   {
     mValues       = other.mValues;
     mDepths       = other.mDepths;
@@ -160,9 +169,9 @@ public:
   }
 
   Tree(const Tree& other)
-      : mCache(*this)
+      : mCache(other.mCache)
   {
-    mCache = other.mCache;
+    *this = other;
   }
 
   const Cache& cache() const { return mCache; }
@@ -285,7 +294,7 @@ public:
   void graft()
   {
     for (auto& d : mDepths) {
-      d++;
+      ++d;
     }
     mIsCacheValid = false;
   }
@@ -386,7 +395,7 @@ private:
   }
 
 public:
-  ReadView(const Tree<T>& src)
+  explicit ReadView(const Tree<T>& src)
       : mTree(&src)
       , mIndex(0)
   {
@@ -400,7 +409,7 @@ public:
     setReadMode();
   }
 
-  ReadView(Iterator<T, Dim>& iter)
+  explicit ReadView(Iterator<T, Dim>& iter)
       : mTree(&(iter.mTree))
       , mIndex(iter.mIndex)
   {
@@ -423,7 +432,7 @@ public:
 
   ~ReadView() { releaseReadMode(); }
 
-  const ReadView& operator=(const ReadView& other)
+  ReadView& operator=(const ReadView& other)
   {
     releaseReadMode();
     mTree  = other.mTree;
@@ -632,7 +641,7 @@ protected:
     }
   }
 
-  WriteViewBase(Tree<T>* tree)
+  explicit WriteViewBase(Tree<T>* tree)
       : mTree(tree)
   {}
 
@@ -653,13 +662,13 @@ struct WriteView : public WriteViewBase<T, Dim>
   using BaseT = WriteViewBase<T, Dim>;
 
 public:
-  WriteView(Tree<T>* treeptr)
+  explicit WriteView(Tree<T>* treeptr)
       : BaseT(treeptr)
   {
     this->setWriteMode();
   }
 
-  WriteView(Tree<T>& tree)
+  explicit WriteView(Tree<T>& tree)
       : BaseT(&tree)
   {
     this->setWriteMode();
@@ -679,7 +688,7 @@ public:
 
   ~WriteView() { this->releaseWriteMode(); }
 
-  const WriteView& operator=(const WriteView& other)
+  WriteView& operator=(const WriteView& other)
   {
     this->releaseWriteMode();
     this->mTree = other.mTree;
@@ -718,14 +727,14 @@ public:
   using value_type = ValueType;
   using BaseT      = WriteViewBase<T, 1>;
 
-  WriteView(Tree<T>& tree)
+  explicit WriteView(Tree<T>& tree)
       : BaseT(&tree)
       , mStart(tree.size())
   {
     this->setWriteMode();
   }
 
-  WriteView(Tree<T>* treeptr)
+  explicit WriteView(Tree<T>* treeptr)
       : BaseT(treeptr)
       , mStart(treeptr->size())
   {
@@ -1251,7 +1260,7 @@ public:
    *
    * @param trees Data trees corresponding to the arguments of the function.
    */
-  Combinations(const TreeTupleT& trees)
+  explicit Combinations(const TreeTupleT& trees)
       : mTrees(trees)
   {}
 
@@ -1340,7 +1349,7 @@ struct TypeInfo<func::data::ReadView<T, Dim>> : public TypeInfo<T>
 struct Bool
 {
   Bool() = default;
-  Bool(bool b);
+  explicit Bool(bool b);
   operator bool&();
   operator bool() const;
 

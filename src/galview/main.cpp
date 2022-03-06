@@ -13,6 +13,7 @@
 #include <galcore/Plane.h>
 #include <galcore/PointCloud.h>
 #include <galcore/Util.h>
+#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GLUtil.h>
 #include <galview/GuiFunctions.h>

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstddef>
 #include <type_traits>
 #include <utility>
@@ -54,7 +55,7 @@ private:
   int          mIndex = -1;
 
 public:
-  Iterator(const Graph& graph, int i = -1)
+  explicit Iterator(const Graph& graph, int i = -1)
       : mGraph(graph)
       , mIndex(i)
   {}

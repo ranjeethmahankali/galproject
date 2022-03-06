@@ -172,7 +172,7 @@ struct Converter<boost::python::object, Bool>
 {
   static void assign(const boost::python::object& src, Bool& dst)
   {
-    dst = bool(boost::python::extract<bool>(src));
+    dst = Bool(boost::python::extract<bool>(src));
   }
 };
 
@@ -228,8 +228,8 @@ private:
         boost::python::object obj;
         assignLeaf(*vbegin, obj);
         dst.append(obj);
-        dbegin++;
-        vbegin++;
+        ++dbegin;
+        ++vbegin;
       } while (*dbegin == 0 && vbegin != vend);
     }
     else if (*dbegin > cdepth) {

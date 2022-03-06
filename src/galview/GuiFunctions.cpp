@@ -13,6 +13,7 @@
 #include <galfunc/Functions.h>
 #include <galfunc/TypeManager.h>
 #include <galview/AnnotationsView.h>
+#include <galview/Command.h>
 #include <galview/Context.h>
 #include <galview/GuiFunctions.h>
 #include <galview/Interaction.h>
@@ -331,14 +332,7 @@ typename PrintFunc<T>::PyOutputType py_print(const std::string&       label,
 
 void py_runCommands(const std::string& commands)
 {
-  for (auto begin = commands.begin(); begin != commands.end();) {
-    auto lend = std::find(begin, commands.end(), '\n');
-    view::queueCommand(std::string(begin, lend));
-    if (lend == commands.end()) {
-      break;
-    }
-    begin = lend + 1;
-  }
+  view::queueCommands(commands);
 }
 
 namespace python {

@@ -1,4 +1,5 @@
-#pragma Once
+#pragma once
+
 #include <galcore/Plane.h>
 #include <galview/Context.h>
 #include <galview/GLUtil.h>

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <galcore/Types.h>
 #include <galfunc/Converter.h>
 #include <galfunc/Data.h>

@@ -35,9 +35,8 @@ fs::path getcontextpath();
 
 struct FuncInfo
 {
-  std::string_view mName;
-  std::string_view mDesc;
-
+  std::string_view        mName;
+  std::string_view        mDesc;
   size_t                  mNumInputs;
   const std::string_view* mInputNames;
   const std::string_view* mInputDescriptions;

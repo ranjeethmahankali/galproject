@@ -677,15 +677,12 @@ static void updateCanvas()
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
-    view::setDemoFilepath(demoPath);
+    view::demoFilePath() = demoPath;
     boost::python::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
     boost::python::exec_file(demoPath.c_str(), global);
-
-    // Update the canvas panel.
     updateCanvas();
-
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
@@ -772,7 +769,7 @@ void draw(GLFWwindow* window)
                        cmdLineCallback,
                        (void*)(&sCmdline))) {
     sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
-    queueCommand(sCmdline);
+    queueCommands(sCmdline);
     sCmdline.clear();
     sResponse.clear();
   }

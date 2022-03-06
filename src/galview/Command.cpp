@@ -19,62 +19,60 @@ namespace view {
 
 using CmdFnPtr = void (*)(int, char**);
 
-std::vector<std::string>& cmdQueue()
+std::string& cmdQueue()
 {
-  static std::vector<std::string> sQueue;
+  static std::string sQueue;
   return sQueue;
 }
 
-std::unordered_map<std::string, CmdFnPtr>& cmdFuncMap()
+std::unordered_map<std::string_view, CmdFnPtr>& cmdFuncMap()
 {
-  static std::unordered_map<std::string, CmdFnPtr> sCommandFnMap;
+  static std::unordered_map<std::string_view, CmdFnPtr> sCommandFnMap;
   return sCommandFnMap;
 }
 
-fs::path& currentDemoPath()
+fs::path& demoFilePath()
 {
   static fs::path sCurrentDemoPath = "";
   return sCurrentDemoPath;
 }
 
-static void runCommand(const std::string& cmd)
+static void runCommand(std::string::iterator begin, std::string::iterator end)
 {
-  static std::string         sParsed;
-  static std::vector<size_t> sIndices;
-  static std::vector<char*>  sArgV;
-  sParsed = cmd;
-  sIndices.clear();
-  for (size_t i = 0; i < sParsed.size(); i++) {
-    char& c = sParsed[i];
+  static std::vector<char*> sArgV;
+
+  sArgV.clear();
+  for (auto it = begin; it != end; it++) {
+    char& c = *it;
     if (c == ' ') {
       c = '\0';
     }
-    else if (i == 0 || (sParsed[i - 1] == '\0')) {
-      sIndices.push_back(i);
+    else if (it == begin || *(it - 1) == '\0') {
+      sArgV.push_back(&c);
     }
   }
-  sArgV.resize(sIndices.size());
-  std::transform(sIndices.begin(), sIndices.end(), sArgV.begin(), [](size_t i) {
-    return i + sParsed.data();
-  });
   if (sArgV.empty()) {
     // No command received.
     return;
   }
-  std::string command = sArgV[0];
-  auto        match   = cmdFuncMap().find(command);
+  auto match = cmdFuncMap().find(sArgV[0]);
   if (match == cmdFuncMap().end()) {
-    logger().error("Unrecognized command {}", command);
+    logger().error("Unrecognized command {}", sArgV[0]);
     return;
   }
-  view::logger().info(">>> {}", cmd);
   match->second(int(sArgV.size()), sArgV.data());
 }
 
 void runQueuedCommands()
 {
-  for (const auto& cmd : cmdQueue()) {
-    runCommand(cmd);
+  auto& q = cmdQueue();
+  for (auto begin = q.begin(); begin != q.end();) {
+    auto lend = std::find(begin, q.end(), '\n');
+    *lend     = '\0';  // To use it like a c-string later.
+    view::logger().info(">>> {}",
+                        std::string_view(&(*begin), std::distance(begin, lend)));
+    runCommand(begin, lend);
+    begin = lend == q.end() ? lend : lend + 1;
   }
   cmdQueue().clear();
 }
@@ -85,15 +83,16 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
   charsToInsert.clear();
   sSuggestions.clear();
   for (const auto& pair : cmdFuncMap()) {
-    const std::string& match   = std::get<0>(pair);
-    auto               cmdend  = std::find(cmd.begin(), cmd.end(), '\0');
-    size_t             cmdsize = std::distance(cmd.begin(), cmdend);
+    const std::string_view& match   = std::get<0>(pair);
+    auto                    cmdend  = std::find(cmd.begin(), cmd.end(), '\0');
+    size_t                  cmdsize = std::distance(cmd.begin(), cmdend);
     if (cmdsize > match.size()) {
       continue;
     }
     if (std::equal(cmd.begin(), cmdend, match.begin())) {
       auto diffbegin = match.begin() + cmdsize;
-      sSuggestions += " " + match;
+      sSuggestions.push_back(' ');
+      sSuggestions.append(match);
       if (charsToInsert.empty()) {
         std::copy(diffbegin, match.end(), std::back_inserter(charsToInsert));
       }
@@ -115,9 +114,12 @@ void autocompleteCommand(const std::string& cmd, std::string& charsToInsert)
   }
 }
 
-void queueCommand(const std::string& cmd)
+void queueCommands(std::string_view cmd)
 {
-  cmdQueue().push_back(cmd);
+  if (!cmdFuncMap().empty()) {
+    cmdQueue().push_back('\n');
+  }
+  cmdQueue().append(cmd);
 }
 
 struct ArgDesc
@@ -381,16 +383,6 @@ void help(int argc, char** argv0)
 }
 
 }  // namespace cmdfuncs
-
-void setDemoFilepath(const fs::path& path)
-{
-  currentDemoPath() = path;
-}
-
-const std::filesystem::path& demoFilePath()
-{
-  return currentDemoPath();
-}
 
 void initCommands()
 {

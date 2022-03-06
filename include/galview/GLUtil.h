@@ -92,7 +92,7 @@ public:
 
   TVertexBuffer() = default;
 
-  TVertexBuffer(size_t nverts)
+  explicit TVertexBuffer(size_t nverts)
       : std::vector<V>(nverts)
   {}
 
@@ -164,7 +164,7 @@ class IndexBuffer : public std::vector<uint32_t>
 
 public:
   IndexBuffer() = default;
-  IndexBuffer(size_t nIndices);
+  explicit IndexBuffer(size_t nIndices);
   IndexBuffer(IndexBuffer&& other);
   ~IndexBuffer();
 
