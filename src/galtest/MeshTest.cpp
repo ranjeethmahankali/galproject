@@ -19,10 +19,7 @@ TEST(Mesh, Area)
 
 TEST(Mesh, Volume)
 {
-  auto mesh = gal::createRectangularMesh(
-    gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
-  mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toMesh();
-
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toMesh();
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392118f);
 }
 

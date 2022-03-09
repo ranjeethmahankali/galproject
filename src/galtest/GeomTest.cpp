@@ -54,9 +54,7 @@ TEST(Sphere, MinBoundingSphere)
   const static std::vector<glm::vec3> points {
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};
 
-  auto cloud = gal::PointCloud(points);
-  auto sp    = gal::Sphere::minBoundingSphere(points);
-
+  auto sp = gal::Sphere::minBoundingSphere(points);
   for (const auto& pt : points) {
     ASSERT_TRUE(sp.contains(pt, TOLERANCE));
   }

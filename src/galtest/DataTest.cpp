@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <glm/glm.hpp>
+#include <numeric>
 
 #include <galcore/Timer.h>
 #include <galcore/Util.h>
@@ -108,14 +109,17 @@ TEST(Data, ReadPerformance)
   ReadView<glm::vec3, 3> view(tree);
 
   std::chrono::nanoseconds accessTime;
-  glm::vec3                sum1 {0.f, 0.f, 0.f};
-  glm::vec3                sum2 {0.f, 0.f, 0.f};
+  glm::vec3                sum1;
+  glm::vec3                sum2 = {0.f, 0.f, 0.f};
   {
     gal::Timer timer("read-test", &accessTime);
-    for (auto l2 : view) {
-      for (auto lst : l2)
-        sum1 += lst[0];
-    }
+    sum1 = std::accumulate(
+      view.begin(), view.end(), glm::vec3(0.f), [](glm::vec3 s2, const auto& v2) {
+        return std::accumulate(
+          v2.begin(), v2.end(), s2, [](glm::vec3 s1, const auto& v1) {
+            return s1 + v1[0];
+          });
+      });
   }
 
   std::chrono::nanoseconds controlTime;

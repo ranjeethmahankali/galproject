@@ -458,7 +458,7 @@ public:
 
   Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(*mTree, mIndex); }
 
-  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
+  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i) const
   {
     return *(begin() + i);
   }

@@ -101,7 +101,6 @@ void ConvexHull::compute()
     faceQ.push(f.first);
   }
 
-  size_t                      fi, fpi;
   Face                        curFace, pFace, newFace;
   Face                        adjFaces[3];
   gal::IndexPair              edges[3];
@@ -111,7 +110,8 @@ void ConvexHull::compute()
   std::vector<Face>           poppedFaces, newFaces;
 
   while (!faceQ.empty()) {
-    fi = faceQ.front();
+    size_t fi = faceQ.front();
+    size_t fpi;
     faceQ.pop();
     if (!getFace(fi, curFace) || !getFarthestPt(curFace, farPt, fpi)) {
       continue;
@@ -381,9 +381,8 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
   }
 
   std::vector<size_t> removePts;
-  bool                outside;
   for (const size_t& opi : mOutsidePts) {
-    outside = false;
+    bool outside = false;
     for (size_t i = 0; i < 4; i++) {
       if (simplex[i].containsVertex(opi)) {
         removePts.push_back(opi);
