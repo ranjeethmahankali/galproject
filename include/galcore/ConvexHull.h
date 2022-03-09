@@ -75,9 +75,8 @@ public:
     compute();
   };
 
-  ConvexHull(const std::vector<glm::vec3>& points);
-
-  ConvexHull(std::vector<glm::vec3>&& points);
+  explicit ConvexHull(const std::vector<glm::vec3>& points);
+  explicit ConvexHull(std::vector<glm::vec3>&& points);
 
   glm::vec3 getPt(size_t index) const;
   size_t    numFaces() const;

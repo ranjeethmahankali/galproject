@@ -13,8 +13,8 @@ class PointCloud : public std::vector<glm::vec3>
 {
 public:
   PointCloud() = default;
-  PointCloud(const std::vector<glm::vec3>&);
-  PointCloud(const std::vector<glm::vec2>& pts2d);
+  explicit PointCloud(const std::vector<glm::vec3>&);
+  explicit PointCloud(const std::vector<glm::vec2>& pts2d);
 
   Box3 bounds() const;
 };

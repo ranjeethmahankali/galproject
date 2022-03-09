@@ -45,7 +45,7 @@ public:
 
     Face();
     Face(size_t v1, size_t v2, size_t v3);
-    Face(size_t const indices[3]);
+    explicit Face(size_t const indices[3]);
 
     void     flip();
     EdgeType edge(uint8_t edgeIndex) const;
@@ -58,7 +58,7 @@ public:
     size_t a = SIZE_MAX, b = SIZE_MAX, c = SIZE_MAX;
 
     EdgeTriplet() = default;
-    EdgeTriplet(size_t const (&indices)[3]);
+    explicit EdgeTriplet(size_t const (&indices)[3]);
     EdgeTriplet(size_t, size_t, size_t);
 
     void set(size_t, size_t, size_t);
@@ -125,8 +125,8 @@ public:
        const size_t* faceVertIndices,
        size_t        nFaces);
 
-  const Mesh& operator=(const Mesh& mesh);
-  const Mesh& operator=(Mesh&& mesh);
+  Mesh& operator=(const Mesh& mesh);
+  Mesh& operator=(Mesh&& mesh);
 
   size_t                        numVertices() const noexcept;
   size_t                        numFaces() const noexcept;

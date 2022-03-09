@@ -340,10 +340,10 @@ static void checkCompilation(uint32_t id, uint32_t type)
 
 static void checkLinking(uint32_t progId)
 {
-  int  success;
-  char infoLog[1024];
+  int success;
   glGetProgramiv(progId, GL_LINK_STATUS, &success);
   if (!success) {
+    char infoLog[1024];
     glGetProgramInfoLog(progId, 1024, NULL, infoLog);
     glutil::logger().error("Error linking shader program:\n{}", infoLog);
   }
@@ -360,7 +360,7 @@ static std::string readfile(const std::string& filepath)
     file_stream << file.rdbuf();
     file.close();
   }
-  catch (std::ifstream::failure e) {
+  catch (const std::ifstream::failure& e) {
     glutil::logger().error("Error reading shader source file:\n{}", e.what());
   }
   return file_stream.str();

@@ -25,7 +25,7 @@ struct TextureAtlas
   std::array<glm::vec4, NX * NY> mTexCoords;
 
   TextureAtlas() = default;
-  TextureAtlas(uint32_t tilesize)
+  explicit TextureAtlas(uint32_t tilesize)
       : mTileSize(tilesize)
   {
     allocate();
@@ -152,7 +152,6 @@ class CharAtlas
     const float    wf = float(mAtlas.width());
     const float    hf = float(mAtlas.height());
     const uint32_t w  = mAtlas.width();
-    const uint32_t h  = mAtlas.height();
     for (uint8_t c = 0; c < NUMCHARS; c++) {
       size_t      offset    = offsets[c];
       uint8_t*    src       = textureData.data() + offset;
@@ -209,8 +208,9 @@ private:
       : mAtlas(GLYPHSIZE)
   {}
 
+  // cppcheck-suppress unusedPrivateFunction
   /**
-   * @brief This is for debugging purposes.
+   * @brief This is for debugging purposes only.
    * @param path
    */
   void exportAtlasAsImage(const fs::path path)

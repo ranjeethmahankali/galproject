@@ -26,10 +26,10 @@ class Annotations : public std::vector<PositionalData<T>>
 {
 public:
   Annotations() = default;
-  Annotations(size_t size)
+  explicit Annotations(size_t size)
       : std::vector<PositionalData<T>>(size)
   {}
-  Annotations(std::vector<PositionalData<T>> tags)
+  explicit Annotations(std::vector<PositionalData<T>> tags)
       : std::vector<PositionalData<T>>(std::move(tags))
   {}
 };

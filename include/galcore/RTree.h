@@ -82,7 +82,7 @@ struct BFSQuery : public rtree::visitor<Value,
                                Allocators,
                                typename Options::node_tag>::type          leaf;
 
-  inline BFSQuery(Predicate const& p)
+  inline explicit BFSQuery(Predicate const& p)
       : pr(p)
   {}
 

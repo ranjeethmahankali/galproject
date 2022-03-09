@@ -26,7 +26,7 @@ public:
     for (const auto& line : lines) {
       *(vbegin++) = {glm::vec3(line.mStart, 0.f), sZero};
       *(vbegin++) = {glm::vec3(line.mEnd, 0.f), sZero};
-      mBounds.inflate(line.bounds());
+      mBounds.inflate(Box3(line.bounds()));
     }
     mVBuf.alloc();
   }

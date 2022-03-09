@@ -40,6 +40,5 @@ def test_flatten():
         assert tu.equal(expected, pgf.read(outtree))
 
 
-
 if __name__ == "__main__":
     test_flatten()

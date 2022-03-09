@@ -358,7 +358,7 @@ Mesh::Mesh(const float*  vertCoords,
   computeCache();
 }
 
-const Mesh& Mesh::operator=(const Mesh& other)
+Mesh& Mesh::operator=(const Mesh& other)
 {
   mVertices     = other.mVertices;
   mFaces        = other.mFaces;
@@ -367,7 +367,7 @@ const Mesh& Mesh::operator=(const Mesh& other)
   return *this;
 }
 
-const Mesh& Mesh::operator=(Mesh&& other)
+Mesh& Mesh::operator=(Mesh&& other)
 {
   mVertices     = std::move(other.mVertices);
   mFaces        = std::move(other.mFaces);
