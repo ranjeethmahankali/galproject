@@ -1,9 +1,6 @@
 #include <assert.h>
 #include <algorithm>
-#include <boost/range/adaptor/filtered.hpp>
-#include <boost/range/adaptor/reversed.hpp>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -16,7 +13,6 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/range/adaptors.hpp>
 
-#include <galcore/Util.h>
 #include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
 #include <galfunc/Property.h>

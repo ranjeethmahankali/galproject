@@ -21,6 +21,25 @@ static constexpr std::array<uint8_t, 8> sClipVertCountTable {0, 3, 3, 6, 3, 6, 6
 
 namespace gal {
 
+TriMesh TriMesh::subMesh(const std::span<FaceH>& faces) const
+{
+  std::vector<VertH> newVerts(n_vertices());
+  TriMesh            smesh;
+  smesh.reserve(faces.size() * 3, faces.size() * 3 / 2, faces.size());
+  for (FaceH fh : faces) {
+    std::array<VertH, 3> fvs;
+    std::transform(cfv_begin(fh), cfv_end(fh), fvs.begin(), [&](VertH vh) {
+      VertH& nv = newVerts[vh.idx()];
+      if (!nv.is_valid()) {
+        nv = smesh.add_vertex(point(vh));
+      }
+      return nv;
+    });
+    smesh.add_face(fvs.data(), fvs.size());
+  }
+  return smesh;
+}
+
 const Mesh::Face Mesh::Face::unset = Face(-1, -1, -1);
 
 Mesh::Face::Face()

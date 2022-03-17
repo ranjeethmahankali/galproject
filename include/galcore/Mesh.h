@@ -1,19 +1,36 @@
 #pragma once
+
+#include <filesystem>
+#include <glm/detail/qualifier.hpp>
+#include <glm/geometric.hpp>
+#include <limits>
+#include <span>
+#include <unordered_map>
+
 #include <galcore/Box.h>
+#include <galcore/OpenMeshAdaptor.h>
 #include <galcore/Plane.h>
 #include <galcore/RTree.h>
 #include <galcore/Sphere.h>
 #include <galcore/Util.h>
-#include <filesystem>
-#include <limits>
-#include <unordered_map>
-
-#include <galcore/Plane.h>
 
 using EdgeType     = gal::IndexPair;
 using EdgeTypeHash = gal::IndexPairHash;
 
 namespace gal {
+
+struct MeshTraits : public OpenMesh::DefaultTraits
+{
+  // Use glm for everything.
+  typedef glm::vec3 Point;
+  typedef glm::vec3 Normal;
+
+  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status |
+                   OpenMesh::Attributes::Color);
+  HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
+  EdgeAttributes(OpenMesh::Attributes::Status);
+  FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+};
 
 enum class eMeshCentroidType
 {
@@ -27,6 +44,42 @@ enum class eMeshElement
   vertex,
   face
 };
+
+struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
+{
+  using FaceH = OpenMesh::FaceHandle;
+  using VertH = OpenMesh::VertexHandle;
+  using HalfH = OpenMesh::HalfedgeHandle;
+  using EdgeH = OpenMesh::EdgeHandle;
+
+  TriMesh() = default;
+
+  bool      isSolid() const;
+  float     faceArea(FaceH f) const;
+  float     area() const;
+  float     volume() const;
+  glm::vec3 centroid(eMeshCentroidType ctype = eMeshCentroidType::vertexBased) const;
+  bool      contains(const glm::vec3& pt) const;
+  glm::vec3 closestPoint(const glm::vec3& pt) const;
+
+  // TODO: Query functions.
+
+  void clipWithPlane(const Plane& plane);
+  void transform(const glm::mat4& mat);
+
+  TriMesh subMesh(const std::span<FaceH>& faces) const;
+
+private:
+  RTree3d mFaceTree;
+  RTree3d mVertexTree;
+
+  void      initRTrees();
+  glm::vec3 faceCenter(FaceH f) const;
+};
+
+TriMesh makeRectangularMesh(const gal::Plane& plane,
+                            const gal::Box2&  box,
+                            float             edgelength);
 
 class Mesh
 {

@@ -22,6 +22,7 @@ find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
+find_package(openmesh REQUIRED)
 
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
@@ -42,13 +43,16 @@ file(GLOB GALCORE_SRC "src/galcore/*.cpp")
 add_library(galcore STATIC ${GALCORE_SRC})
 
 target_link_libraries(galcore PUBLIC
-    glm::glm
-    tinyobjloader::tinyobjloader
-    TBB::tbb
-    spdlog::spdlog
-    spdlog::spdlog_header_only)
+  ${OPENMESH_LIBRARIES}
+  glm::glm
+  tinyobjloader::tinyobjloader
+  TBB::tbb
+  spdlog::spdlog
+  spdlog::spdlog_header_only)
 
-target_include_directories(galcore PUBLIC ${PNGPP_INCLUDE_DIRS})
+target_include_directories(galcore PUBLIC
+  ${OPENMESH_INCLUDE_DIRS}
+  ${PNGPP_INCLUDE_DIRS})
 #GALCORE - end
 
 #GALFUNC - begin
