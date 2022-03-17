@@ -5,14 +5,16 @@
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
-#include <glm/detail/qualifier.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <type_traits>
 #include <vector>
+
+#include <boost/range/iterator_range_core.hpp>
+#include <glm/detail/qualifier.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include <galcore/Traits.h>
 
@@ -330,30 +332,8 @@ std::vector<T> makeVector(const ContainerT& c)
   return std::vector<T>(c.begin(), c.end());
 }
 
-// TODO: Replace with std::span after moving to C++20.
-template<typename Iter>
-struct Span
-{
-  using const_iterator = Iter;
-  using iterator       = Iter;
-  using type           = typename std::iterator_traits<Iter>::value_type;
-
-private:
-  Iter mBegin;
-  Iter mEnd;
-
-public:
-  Span(Iter begin, Iter end)
-      : mBegin(begin)
-      , mEnd(end)
-  {}
-
-  iterator       begin() { return mBegin; }
-  iterator       end() { return mEnd; }
-  const_iterator begin() const { return mBegin; }
-  const_iterator end() const { return mEnd; }
-  size_t         size() const { return std::distance(mBegin, mEnd); }
-};
+template<typename T>
+using IterSpan = boost::iterator_range<T>;
 
 }  // namespace utils
 }  // namespace gal
