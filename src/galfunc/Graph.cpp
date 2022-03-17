@@ -130,19 +130,19 @@ LinkIterator Graph::pinLinkIter(int pi) const
 
 using namespace gal::utils;
 
-Span<PinIterator> Graph::nodeInputs(int ni) const
+IterSpan<PinIterator> Graph::nodeInputs(int ni) const
 {
-  return Span<PinIterator>(nodeInputIter(ni), PinIterator(*this));
+  return IterSpan<PinIterator>(nodeInputIter(ni), PinIterator(*this));
 }
 
-Span<PinIterator> Graph::nodeOutputs(int ni) const
+IterSpan<PinIterator> Graph::nodeOutputs(int ni) const
 {
-  return Span<PinIterator>(nodeOutputIter(ni), PinIterator(*this));
+  return IterSpan<PinIterator>(nodeOutputIter(ni), PinIterator(*this));
 }
 
-Span<LinkIterator> Graph::pinLinks(int pi) const
+IterSpan<LinkIterator> Graph::pinLinks(int pi) const
 {
-  return Span<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
+  return IterSpan<LinkIterator>(pinLinkIter(pi), LinkIterator(*this));
 }
 
 const std::vector<Node>& Graph::nodes() const
@@ -195,7 +195,6 @@ int Graph::addNode(size_t nInputs, size_t nOutputs)
     int pi = newPin();
     if (i == 0) {
       setNodeOutput(ni, pi);
-      lpi = pi;
     }
     else {
       setPinNode(pi, ni);
