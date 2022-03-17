@@ -25,6 +25,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt update
+        sudo apt install -y gcc-10 g++-10
         sudo apt install -y inotify-tools libxmu-dev libxi-dev libgl-dev
         sudo apt install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
         pip3 install pytest-xdist
@@ -56,6 +57,9 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
+      env:
+        CC: gcc-10
+        CXX: g++-10
       run: |
         bash build.sh ${{env.BUILD_TYPE}}
         pip3 install -e ${{env.BUILD_TYPE}}
