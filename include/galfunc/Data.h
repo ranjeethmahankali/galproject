@@ -1,7 +1,9 @@
 #pragma once
 
 #include <execution>
+#include <memory>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include <galcore/Traits.h>
@@ -33,9 +35,15 @@ template<typename T>
 class Tree
 {
 public:
-  using Type       = T;
-  using ValueType  = SafeInstanceType<T>;
-  using value_type = ValueType;  // To support stl helper functions.
+  using Type                          = T;
+  static constexpr bool IsPolymorphic = std::is_polymorphic_v<T>;
+  /** You can't have polymorphic instances on the stack. Its inefficient to have
+   * non-polymorphic instances on the heap. This helper template can decide where to put
+   * what.
+   */
+  using ValueType        = std::conditional_t<IsPolymorphic, std::shared_ptr<T>, T>;
+  using value_type       = ValueType;  // To support stl helper functions.
+  using InternalStorageT = std::vector<ValueType>;
 
   struct Cache
   {
@@ -88,8 +96,6 @@ public:
   };
 
 private:
-  using InternalStorageT = std::vector<ValueType>;
-
   template<typename U, DepthT Dim>
   friend struct Iterator;
 
@@ -265,7 +271,12 @@ public:
    */
   void push_back(DepthT d, T item)
   {
-    mValues.emplace_back(std::move(item));
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>(std::move(item)));
+    }
+    else {
+      mValues.emplace_back(std::move(item));
+    }
     pushDepth(d);
   }
 
@@ -352,7 +363,8 @@ struct Dereferenced<T, 0>
 {
   // Dereferencing an iterator of 0 dimensions should return a reference to actual data
   // stored in the tree.
-  using Type = const typename Tree<T>::ValueType&;
+  using Type = std::
+    conditional_t<Tree<T>::IsPolymorphic, const T&, const typename Tree<T>::ValueType&>;
 };
 
 /**
@@ -368,6 +380,7 @@ struct ReadView
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
   static constexpr DepthT NDimensions = Dim;
+  using ValueType                     = typename Tree<T>::ValueType;
 
 private:
   const Tree<T>* mTree;
@@ -481,7 +494,7 @@ public:
 
   bool empty() const { return size() == 0; }
 
-  const T* data() const { return mTree->mValues.data() + mIndex; }
+  const ValueType* data() const { return mTree->mValues.data() + mIndex; }
 
   /**
    * @brief Index at which the sibling of this node begins.
@@ -529,8 +542,9 @@ public:
 template<typename T, DepthT Dim>
 struct Iterator
 {
-  using DereferenceT     = typename Dereferenced<T, Dim>::Type;
-  using InternalStorageT = typename Tree<T>::InternalStorageT;
+  using DereferenceT                  = typename Dereferenced<T, Dim>::Type;
+  using InternalStorageT              = typename Tree<T>::InternalStorageT;
+  static constexpr bool IsPolymorphic = Tree<T>::IsPolymorphic;
 
   const Tree<T>& mTree;
   size_t         mIndex;
@@ -594,7 +608,12 @@ public:
   DereferenceT operator*()
   {
     if constexpr (Dim == 0) {
-      return storage()[mIndex];
+      if constexpr (IsPolymorphic) {
+        return *(storage()[mIndex]);
+      }
+      else {
+        return storage()[mIndex];
+      }
     }
     else {
       return ReadView<T, Dim>(*this);
@@ -723,9 +742,11 @@ private:
   size_t mStart;
 
 public:
-  using ValueType  = typename Tree<T>::value_type;
-  using value_type = ValueType;
-  using BaseT      = WriteViewBase<T, 1>;
+  using ValueType                     = typename Tree<T>::ValueType;
+  static constexpr bool IsPolymorphic = Tree<T>::IsPolymorphic;
+  using BaseT                         = WriteViewBase<T, 1>;
+  /*IMPORTANT: This is only for STL. Do NOT use this anywhere else.*/
+  using value_type = T;
 
   explicit WriteView(Tree<T>& tree)
       : BaseT(&tree)
@@ -781,7 +802,7 @@ public:
    */
   size_t size() const { return this->mTree->size() - mStart; }
 
-  void push_back(ValueType val)
+  void push_back(T val)
   {
     this->mTree->push_back(DepthT(size() == 0 ? 1 : 0), std::move(val));
   }
@@ -792,10 +813,32 @@ public:
       return;
     }
     this->mTree->resize(n + this->mTree->size());
+    if constexpr (IsPolymorphic) {
+      size_t m = this->mTree->size();
+      for (size_t i = m - n; i < m; i++) {
+        this->mTree->value(i) = std::make_shared<T>();
+      }
+    }
   }
 
-  ValueType&       operator[](size_t i) { return this->mTree->value(mStart + i); }
-  const ValueType& operator[](size_t i) const { return this->mTree->value(mStart + i); }
+  T& operator[](size_t i)
+  {
+    if constexpr (IsPolymorphic) {
+      return *(this->mTree->value(mStart + i));
+    }
+    else {
+      return this->mTree->value(mStart + i);
+    }
+  }
+  const T& operator[](size_t i) const
+  {
+    if constexpr (IsPolymorphic) {
+      return *(this->mTree->value(mStart + i));
+    }
+    else {
+      return this->mTree->value(mStart + i);
+    }
+  }
 };
 
 /**
@@ -1023,9 +1066,11 @@ template<size_t NInputs, typename... TreeTs>
 struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
 {
   template<size_t N>
-  using ValueType = typename std::tuple_element_t<
+  using TreeType = typename std::tuple_element_t<
     N,
-    std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>::Type;
+    std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>;
+  template<size_t N>
+  using ValueType = typename TreeType<N>::Type;
 
   /**
    * Tuple of combi-views, one each into the data trees corresponding to the function
@@ -1067,6 +1112,8 @@ private:
   template<typename ArgType, size_t N>
   static ArgType getArg(Type& view, const TreeTupleT& trees)
   {
+    static constexpr bool IsSharedPtr = TreeType<N>::IsPolymorphic;
+
     auto& v = std::get<N>(view);
     if constexpr (N < NInputs) {
       std::get<N>(trees).ensureCache();
@@ -1083,15 +1130,30 @@ private:
     }
     else {
       if constexpr (N < NInputs) {
-        return std::get<N>(trees).value(v.index());
+        if constexpr (IsSharedPtr) {
+          return *(std::get<N>(trees).value(v.index()));
+        }
+        else {
+          return std::get<N>(trees).value(v.index());
+        }
       }
       else {
         if (v.index() == std::get<N>(trees).size()) {
           std::get<N>(trees).emplace_back(0);
-          return std::get<N>(trees).values().back();
+          if constexpr (IsSharedPtr) {
+            return *(std::get<N>(trees).values().back());
+          }
+          else {
+            return std::get<N>(trees).values().back();
+          }
         }
         else {
-          return std::get<N>(trees).value(v.index());
+          if constexpr (IsSharedPtr) {
+            return *(std::get<N>(trees).value(v.index()));
+          }
+          else {
+            return std::get<N>(trees).value(v.index());
+          }
         }
       }
     }

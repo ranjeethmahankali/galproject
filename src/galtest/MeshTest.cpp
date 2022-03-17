@@ -12,20 +12,20 @@ TEST(Mesh, Area)
   ASSERT_FLOAT_EQ(mesh.area(), 1.f);
 
   gal::fs::path fpath = GAL_ASSET_DIR / "bunny.obj";
-  mesh                = gal::io::ObjMeshData(fpath, true).toMesh();
+  mesh                = gal::io::ObjMeshData(fpath, true).toTriMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
 }
 
 TEST(Mesh, Volume)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toMesh();
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392118f);
 }
 
 TEST(Mesh, ClippedWithPlane)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toMesh();
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toTriMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
 
   auto clipped = mesh.clippedWithPlane(

@@ -82,7 +82,7 @@ public:
   size_t    numFaces() const;
   void      copyFaces(int* faceIndices) const;
 
-  Mesh toMesh() const;
+  TriMesh toMesh() const;
 };
 
 }  // namespace gal

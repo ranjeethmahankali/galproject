@@ -1,7 +1,9 @@
 #pragma once
+
+#include <span>
+
 #include <galcore/Serialization.h>
 #include <galcore/Util.h>
-
 namespace gal {
 
 struct Box2;
@@ -14,6 +16,7 @@ struct Box3
   Box3();
   Box3(const glm::vec3& min, const glm::vec3& max);
   Box3(const glm::vec3* points, size_t nPoints);
+  explicit Box3(const std::span<glm::vec3> points);
   explicit Box3(const glm::vec3& pt);
   explicit Box3(const Box2& b2);
 

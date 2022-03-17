@@ -69,7 +69,7 @@ GAL_TYPE_INFO(gal::PointCloud, ptcloud, 0xe6e934eb);
 GAL_TYPE_INFO(gal::Circle2d, circle2d, 0x3271dc29);
 GAL_TYPE_INFO(gal::Line2d, line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Line3d, line3d, 0x989fdbdd);
-GAL_TYPE_INFO(gal::Mesh, mesh, 0x45342367);
+GAL_TYPE_INFO(gal::TriMesh, mesh, 0x45342367);
 GAL_TYPE_INFO(gal::TextAnnotations, tags, 0x901da902);
 GAL_TYPE_INFO(gal::Glyph, glyphIcon, 0x71b91b77);
 GAL_TYPE_INFO(gal::GlyphAnnotations, glyph, 0x15301102);

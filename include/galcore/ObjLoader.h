@@ -20,7 +20,7 @@ public:
 
   explicit ObjMeshData(const std::filesystem::path& filepath, bool flipYAndZ = false);
 
-  Mesh toMesh() const;
+  TriMesh toTriMesh() const;
 
 private:
   std::filesystem::path mPath;

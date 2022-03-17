@@ -4,6 +4,7 @@
 #include <fstream>
 #include <glm/gtx/transform.hpp>
 #include <iostream>
+#include <numeric>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -37,26 +38,29 @@ ObjMeshData::ObjMeshData(const std::filesystem::path& pathIn, bool flipYZ)
   }
 };
 
-Mesh ObjMeshData::toMesh() const
+TriMesh ObjMeshData::toTriMesh() const
 {
-  std::vector<size_t> indices;
+  TriMesh     mesh;
+  glm::mat4   xform  = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
+  const auto& shapes = mReader.GetShapes();
+  const auto& attrib = mReader.GetAttrib();
 
-  const auto&        shapes     = mReader.GetShapes();
-  const auto&        attrib     = mReader.GetAttrib();
-  std::vector<float> vertCoords = attrib.vertices;
-
-  glm::mat4 xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
-  if (vertCoords.size() % 3) {
-    throw std::out_of_range("Invalid coordinate array");
-  }
-  static_assert(sizeof(glm::vec3) == 3 * sizeof(float), "Alignment problem");
-  if (mFlipYZ) {
-    glm::vec3* vptr   = (glm::vec3*)vertCoords.data();
-    size_t     nVerts = vertCoords.size() / 3;
-    for (size_t vi = 0; vi < nVerts; vi++) {
-      *vptr = glm::vec3(xform * glm::vec4 {vptr->x, vptr->y, vptr->z, 1.0f});
-      vptr++;
+  size_t nfaces = std::accumulate(
+    shapes.begin(), shapes.end(), size_t(0), [&](size_t total, const auto& shape) {
+      return std::accumulate(
+        shape.mesh.num_face_vertices.begin(),
+        shape.mesh.num_face_vertices.end(),
+        total,
+        [&](size_t t2, auto nv) { return t2 + std::max(0, nv - 2); });
+    });
+  size_t nedges = nfaces * 3 / 2;
+  mesh.reserve(attrib.vertices.size() / 3, nedges, nfaces);
+  for (size_t i = 0; i < attrib.vertices.size(); i += 3) {
+    glm::vec3 v(attrib.vertices[i], attrib.vertices[i + 1], attrib.vertices[i + 2]);
+    if (mFlipYZ) {
+      v = xform * glm::vec4(v, 1.f);
     }
+    mesh.add_vertex(v);
   }
 
   for (const auto& shape : shapes) {
@@ -68,18 +72,23 @@ Mesh ObjMeshData::toMesh() const
       }
       size_t fvi = 1;
       while (fvi < nfv) {
-        size_t a = fvi++;
-        size_t b = fvi++;
-        indices.push_back(size_t(shape.mesh.indices[indexOffset + 0].vertex_index));
-        indices.push_back(size_t(shape.mesh.indices[indexOffset + a].vertex_index));
-        indices.push_back(size_t(shape.mesh.indices[indexOffset + b].vertex_index));
+        size_t                a    = fvi++;
+        size_t                b    = fvi++;
+        std::array<size_t, 3> fvis = {
+          indexOffset + 0,
+          indexOffset + a,
+          indexOffset + b,
+        };
+        std::array<TriMesh::VertH, 3> fvs;
+        std::transform(fvis.begin(), fvis.end(), fvs.begin(), [&](size_t i) {
+          return mesh.vertex_handle(shape.mesh.indices[i].vertex_index);
+        });
+        mesh.add_face(fvs.begin(), fvs.size());
       }
       indexOffset += nfv;
     }
   }
-
-  return Mesh(
-    vertCoords.data(), vertCoords.size() / 3, indices.data(), indices.size() / 3);
+  return mesh;
 }
 
 }  // namespace io

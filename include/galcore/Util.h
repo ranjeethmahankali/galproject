@@ -319,6 +319,19 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
   }
 }
 
+/**
+ * @brief Check the sign of the value.
+ *
+ * @tparam T
+ * @param val
+ * @return int 1 if positive, 0 if 0, -1 if negative.
+ */
+template<typename T>
+int sign(T val)
+{
+  return (T(0) < val) - (val < T(0));
+}
+
 template<typename T, typename... Ts>
 constexpr std::array<T, sizeof...(Ts)> makeArray(const Ts&... vals)
 {

@@ -26,7 +26,7 @@
 #define GAL_MANAGED_TYPES                                                          \
   uint8_t, int32_t, uint64_t, float, gal::Bool, std::string, glm::vec3, glm::vec2, \
     gal::Sphere, gal::Plane, gal::Box3, gal::Box2, gal::PointCloud, gal::Circle2d, \
-    gal::Line2d, gal::Line3d, gal::Mesh, gal::TextAnnotations, gal::Glyph,         \
+    gal::Line2d, gal::Line3d, gal::TriMesh, gal::TextAnnotations, gal::Glyph,      \
     gal::GlyphAnnotations
 
 namespace gal {

@@ -129,19 +129,19 @@ class RTree
 public:
   using PointType     = BoostPointT;
   using BoxType       = bgm::box<BoostPointT>;
-  using ItemType      = std::pair<BoxType, size_t>;
+  using ItemType      = std::pair<BoxType, int>;
   using BoostTreeType = bgi::rtree<ItemType, bgi::quadratic<RTREE_NUM_ELEMENTS_PER_NODE>>;
 
-  void insert(const BoxT& b, size_t i) { mTree.insert(std::make_pair(toBoost(b), i)); };
+  void insert(const BoxT& b, int i) { mTree.insert(std::make_pair(toBoost(b), i)); };
 
-  template<typename SizeTIter>
-  void queryBoxIntersects(const BoxT& b, SizeTIter inserter) const
+  template<typename IntIter>
+  void queryBoxIntersects(const BoxT& b, IntIter inserter) const
   {
     query(bgi::intersects(toBoost(b)), inserter);
   };
 
-  template<typename SizeTIter>
-  void queryByDistance(const VecT& pt, float distance, SizeTIter inserter) const
+  template<typename IntIter>
+  void queryByDistance(const VecT& pt, float distance, IntIter inserter) const
   {
     PointType  center = toBoost(pt);
     const auto pred   = [&center, distance](const BoxType& bounds) {
@@ -153,8 +153,8 @@ public:
     doBfsQuery<BoostTreeType, decltype(pred), decltype(action)>(mTree, pred, action);
   };
 
-  template<typename SizeTIter>
-  void queryNearestN(const VecT& pt, size_t numResults, SizeTIter inserter) const
+  template<typename IntIter>
+  void queryNearestN(const VecT& pt, size_t numResults, IntIter inserter) const
   {
     query(bgi::nearest(toBoost(pt), (unsigned int)numResults), inserter);
   };
@@ -162,8 +162,8 @@ public:
 private:
   BoostTreeType mTree;
 
-  template<typename predicate_type, typename SizeTIter>
-  void query(predicate_type pred, SizeTIter inserter) const
+  template<typename predicate_type, typename IntIter>
+  void query(predicate_type pred, IntIter inserter) const
   {
     for (auto i = mTree.qbegin(pred); i != mTree.qend(); i++) {
       *(inserter++) = i->second;

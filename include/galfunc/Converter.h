@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <type_traits>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
@@ -209,12 +210,20 @@ struct Converter<data::Tree<T>, boost::python::object>
 {
 private:
   using DepthT    = data::DepthT;
-  using ValIter   = typename std::vector<T>::const_iterator;
+  using ValueType = typename data::Tree<T>::ValueType;
+  using ValIter   = typename data::Tree<T>::InternalStorageT::const_iterator;
   using DepthIter = typename std::vector<DepthT>::const_iterator;
+  static constexpr bool IsSharedPtr =
+    std::is_same_v<std::shared_ptr<T>, std::remove_const_t<ValueType>>;
 
-  static void assignLeaf(const T& val, boost::python::object& dst)
+  static void assignLeaf(const ValueType& val, boost::python::object& dst)
   {
-    Converter<T, boost::python::object>::assign(val, dst);
+    if constexpr (IsSharedPtr) {
+      Converter<T, boost::python::object>::assign(*val, dst);
+    }
+    else {
+      Converter<T, boost::python::object>::assign(val, dst);
+    }
   }
 
   static void copyValues(ValIter&             vbegin,
@@ -274,7 +283,12 @@ template<typename T>
 struct Converter<boost::python::object, data::Tree<T>>
 {
 private:
-  using DepthT = data::DepthT;
+  using DepthT    = data::DepthT;
+  using ValueType = typename data::Tree<T>::ValueType;
+  using ValIter   = typename data::Tree<T>::InternalStorageT::const_iterator;
+  using DepthIter = typename std::vector<DepthT>::const_iterator;
+  static constexpr bool IsSharedPtr =
+    std::is_same_v<std::shared_ptr<T>, std::remove_const_t<ValueType>>;
 
   static bool isList(const boost::python::object& obj)
   {
@@ -298,7 +312,7 @@ private:
   }
 
   static void assignInternal(const boost::python::object& src,
-                             std::vector<T>&              vals,
+                             std::vector<ValueType>&      vals,
                              std::vector<DepthT>&         depths,
                              DepthT                       depth = 0)
   {
@@ -310,8 +324,14 @@ private:
       }
     }
     else {
-      T val;
-      Converter<boost::python::object, T>::assign(src, val);
+      ValueType val;
+      if constexpr (IsSharedPtr) {
+        val = std::make_shared<T>();
+        Converter<boost::python::object, T>::assign(src, *val);
+      }
+      else {
+        Converter<boost::python::object, T>::assign(src, val);
+      }
       vals.push_back(std::move(val));
       depths.push_back(depth);
     }

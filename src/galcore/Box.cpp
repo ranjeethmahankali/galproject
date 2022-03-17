@@ -29,6 +29,14 @@ Box3::Box3(const glm::vec3* points, size_t nPoints)
   }
 }
 
+Box3::Box3(const std::span<glm::vec3> points)
+    : Box3()
+{
+  for (const auto& p : points) {
+    inflate(p);
+  }
+}
+
 Box3::Box3(const Box2& b2)
     : min(b2.min.x, b2.min.y, 0.f)
     , max(b2.max.x, b2.max.y, 0.f)
