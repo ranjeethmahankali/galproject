@@ -61,30 +61,30 @@ public:
   {}
 
   int  operator*() const { return mIndex; }
-  bool operator==(const Iterator& other)
+  bool operator==(const Iterator& other) const
   {
     return &(other.mGraph) == &mGraph && other.mIndex == mIndex;
   }
-  bool     operator!=(const Iterator& other) { return !(*this == other); }
-  void     increment() { mIndex = Traverse::increment(mGraph, mIndex); }
-  Iterator operator++()
+  bool      operator!=(const Iterator& other) const { return !(*this == other); }
+  void      increment() { mIndex = Traverse::increment(mGraph, mIndex); }
+  Iterator& operator++()
   {
     increment();
     return *this;
   }
-  Iterator operator++(int)
+  Iterator operator++(int) const
   {
     Iterator tmp(mGraph, mIndex);
     increment();
     return tmp;
   }
-  void     decrement() { mIndex = Traverse::decrement(mGraph, mIndex); }
-  Iterator operator--()
+  void      decrement() { mIndex = Traverse::decrement(mGraph, mIndex); }
+  Iterator& operator--()
   {
     decrement();
     return *this;
   }
-  Iterator operator--(int)
+  Iterator operator--(int) const
   {
     Iterator tmp(mGraph, mIndex);
     decrement();
@@ -128,9 +128,9 @@ public:
   PinIterator  nodeOutputIter(int ni) const;
   LinkIterator pinLinkIter(int pi) const;
 
-  utils::Span<PinIterator>  nodeInputs(int ni) const;
-  utils::Span<PinIterator>  nodeOutputs(int ni) const;
-  utils::Span<LinkIterator> pinLinks(int pi) const;
+  utils::IterSpan<PinIterator>  nodeInputs(int ni) const;
+  utils::IterSpan<PinIterator>  nodeOutputs(int ni) const;
+  utils::IterSpan<LinkIterator> pinLinks(int pi) const;
 
   const std::vector<Node>& nodes() const;
 
@@ -239,6 +239,7 @@ struct iterator_traits<gal::func::graph::Iterator<T>>
   using iterator_type     = int;
   using iterator_category = std::input_iterator_tag;
   using value_type        = int;
+  using difference_type   = int;
   using pointer           = int*;
   using reference         = int&;
 };
