@@ -37,13 +37,9 @@ class Tree
 public:
   using Type                          = T;
   static constexpr bool IsPolymorphic = std::is_polymorphic_v<T>;
-  /** You can't have polymorphic instances on the stack. Its inefficient to have
-   * non-polymorphic instances on the heap. This helper template can decide where to put
-   * what.
-   */
-  using ValueType        = std::conditional_t<IsPolymorphic, std::shared_ptr<T>, T>;
-  using value_type       = ValueType;  // To support stl helper functions.
-  using InternalStorageT = std::vector<ValueType>;
+  using ValueType                     = SafeInstanceType<T>;
+  using value_type                    = ValueType;  // To support stl helper functions.
+  using InternalStorageT              = std::vector<ValueType>;
 
   struct Cache
   {
