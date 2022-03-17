@@ -57,14 +57,13 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
-      env:
-        CC: gcc-10
-        CXX: g++-10
       run: |
         bash build.sh ${{env.BUILD_TYPE}}
         pip3 install -e ${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
+        CC: gcc-10
+        CXX: g++-10
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
