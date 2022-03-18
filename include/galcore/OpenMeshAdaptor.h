@@ -5,10 +5,19 @@
 
 namespace OpenMesh {
 
-template<typename T, int N, glm::qualifier Q = glm::qualifier::defaultp>
+template<typename T, int N, glm::qualifier Q>
 T norm(const glm::vec<N, T, Q>& v)
 {
   return glm::length(v);
+}
+
+template<typename T, int N, glm::qualifier Q>
+glm::vec<N, T, Q>& vectorize(glm::vec<N, T, Q>& v, T s)
+{
+  for (int i = 0; i < N; i++) {
+    v[i] = s;
+  }
+  return v;
 }
 
 /**

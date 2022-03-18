@@ -20,6 +20,8 @@ TEST(Mesh, Area)
 TEST(Mesh, Volume)
 {
   auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
+  // TODO: This should be replaced with the lazy evaluation pattern.
+  mesh.update_normals();
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392118f);
 }
 
