@@ -124,7 +124,6 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
   std::mutex         vmx;
   std::mutex         fmx;
   std::vector<VertH> edgepts(n_edges());
-  utils::logger().info("here");
   // tbb::parallel_for_each(faces(), [&](FaceH f)
   for (auto f : faces()) {
     uint8_t              fvi = 0;
@@ -138,13 +137,12 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
       fverts[fvi] = fv;
       fe |= (1 << fvi) * uint8_t(vdata[fv.idx()].inside);
     }
-    utils::logger().info("face: {}; enum: {}", f.idx(), fe);
     std::array<VertH, 6> tempV;
     const uint8_t* const row = sTriIndices[fe].data();
     std::transform(row, row + sNumVerts[fe], tempV.begin(), [&](const uint8_t vi) {
       VertH v;
       if (vi > 2) {
-        EdgeH  e  = fedges[vi - 2];
+        EdgeH  e  = fedges[vi - 3];
         VertH& ev = edgepts[e.idx()];
         if (!ev.is_valid()) {
           VertH a  = to_vertex_handle(halfedge_handle(e, 0));
@@ -155,20 +153,24 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
           float r = bd.distance / (bd.distance - ad.distance);
           {
             std::lock_guard<std::mutex> lock(vmx);
-            ev = clipped.new_vertex(point(a) * r + point(b) * (1.f - r));
+            ev = clipped.add_vertex(point(a) * r + point(b) * (1.f - r));
           }
         }
         return ev;
       }
       else {
-        return fverts[vi];
+        VertH  oldv = fverts[vi];
+        VertH& newv = vdata[oldv.idx()].mappedV;
+        if (!newv.is_valid()) {
+          std::lock_guard lock(vmx);
+          newv = clipped.add_vertex(point(oldv));
+        }
+        return newv;
       }
     });
     {
       std::lock_guard lock(fmx);
       for (size_t vi = 0; vi < sNumVerts[fe]; vi += 3) {
-        // utils::logger().info(
-        //   "face: {} {} {}", tempV[vi].idx(), tempV[vi + 1].idx(), tempV[vi + 2].idx());
         clipped.add_face(tempV[vi], tempV[vi + 1], tempV[vi + 2]);
       }
     }

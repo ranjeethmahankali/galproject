@@ -29,10 +29,8 @@ TEST(Mesh, ClippedWithPlane)
 {
   auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toTriMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
-
   auto clipped = mesh.clippedWithPlane(
     gal::Plane(glm::vec3 {.5f, .241f, .5f}, glm::vec3 {.5f, .638f, 1.f}));
-
   ASSERT_FLOAT_EQ(clipped.area(), 3.4405894f);
   ASSERT_FLOAT_EQ(clipped.volume(), 0.f);
 }

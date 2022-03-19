@@ -278,14 +278,24 @@ public:
 
   void emplace_back(DepthT d)
   {
-    mValues.emplace_back();
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>());
+    }
+    else {
+      mValues.emplace_back();
+    }
     pushDepth(d);
   }
 
   template<typename... TArgs>
   void emplace_back(DepthT d, TArgs... args)
   {
-    mValues.emplace_back(args...);
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>(args...));
+    }
+    else {
+      mValues.emplace_back(args...);
+    }
     pushDepth(d);
   }
 
