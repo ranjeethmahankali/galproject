@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <boost/range/iterator_range_core.hpp>
 #include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
@@ -123,6 +124,8 @@ struct Hash<size_t>
 using CustomSizeTHash = Hash<size_t>;
 
 namespace utils {
+
+spdlog::logger& logger();
 
 template<typename vtype>
 void barycentricCoords(vtype const (&tri)[3], const vtype& pt, float (&coords)[3])

@@ -1,3 +1,8 @@
+#include <OpenMesh/Core/Utils/Property.hh>
+#include <atomic>
+#include <glm/geometric.hpp>
+#include <mutex>
+#include "galcore/Util.h"
 #define _USE_MATH_DEFINES
 
 #include <math.h>
@@ -14,20 +19,6 @@
 #include <galcore/RTree.h>
 
 namespace gal {
-
-static constexpr uint8_t                               X = UINT8_MAX;
-static constexpr std::array<std::array<uint8_t, 6>, 8> sClipTriTable {{
-  {X, X, X, X, X, X},
-  {0, 3, 5, X, X, X},
-  {3, 1, 4, X, X, X},
-  {0, 1, 5, 1, 4, 5},
-  {4, 2, 5, X, X, X},
-  {0, 3, 4, 0, 4, 2},
-  {1, 5, 3, 1, 2, 5},
-  {0, 1, 2, X, X, X},
-}};
-
-static constexpr std::array<uint8_t, 8> sClipVertCountTable {0, 3, 3, 6, 3, 6, 6, 3};
 
 static float triangleArea(const std::array<glm::vec3, 3>& fvs)
 {
@@ -91,7 +82,99 @@ glm::vec3 TriMesh::closestPoint(const glm::vec3& pt, float maxDistance) const
 
 TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
 {
-  throw std::logic_error("Not Implemented");
+  static constexpr uint8_t                               X = UINT8_MAX;
+  static constexpr std::array<std::array<uint8_t, 6>, 8> sTriIndices {{
+    {X, X, X, X, X, X},
+    {0, 3, 5, X, X, X},
+    {3, 1, 4, X, X, X},
+    {0, 1, 5, 1, 4, 5},
+    {4, 2, 5, X, X, X},
+    {0, 3, 4, 0, 4, 2},
+    {1, 5, 3, 1, 2, 5},
+    {0, 1, 2, X, X, X},
+  }};
+  static constexpr std::array<uint8_t, 8> sNumVerts {0, 3, 3, 6, 3, 6, 6, 3};
+  static constexpr std::array<uint8_t, 8> sNumHedges {0, 1, 1, 1, 2, 2, 2, 0};
+  struct VData
+  {
+    float distance = 0.f;  // Away from the plane.
+    VertH mappedV  = VertH();
+    bool  inside   = false;
+  };
+  glm::vec3            origin = plane.origin();
+  glm::vec3            unorm  = glm::normalize(plane.normal());
+  std::atomic_uint32_t nverts = 0;
+  std::vector<VData>   vdata(n_vertices());
+  tbb::parallel_for_each(vertices(), [&](VertH v) {
+    auto& vd    = vdata[v.idx()];
+    vd.distance = glm::dot(point(v) - origin, unorm);
+    vd.inside   = vd.distance < 0.f;
+    if (vd.inside) {
+      nverts++;
+    }
+  });
+  TriMesh clipped;
+  {
+    float r = float(nverts) / float(n_vertices());
+    // Estimate face and edge counts based on the vertex count.
+    clipped.reserve(nverts,
+                    size_t(std::round(r * float(n_edges()))),
+                    size_t(std::round(r * float(size_t(n_faces())))));
+  }
+  std::mutex         vmx;
+  std::mutex         fmx;
+  std::vector<VertH> edgepts(n_edges());
+  utils::logger().info("here");
+  // tbb::parallel_for_each(faces(), [&](FaceH f)
+  for (auto f : faces()) {
+    uint8_t              fvi = 0;
+    uint8_t              fe  = 0;
+    std::array<EdgeH, 3> fedges;
+    std::array<VertH, 3> fverts;
+    for (auto it = cfh_begin(f); it != cfh_end(f) && fvi < 3; it++, fvi++) {
+      HalfH h     = *it;
+      VertH fv    = from_vertex_handle(h);
+      fedges[fvi] = edge_handle(h);
+      fverts[fvi] = fv;
+      fe |= (1 << fvi) * uint8_t(vdata[fv.idx()].inside);
+    }
+    utils::logger().info("face: {}; enum: {}", f.idx(), fe);
+    std::array<VertH, 6> tempV;
+    const uint8_t* const row = sTriIndices[fe].data();
+    std::transform(row, row + sNumVerts[fe], tempV.begin(), [&](const uint8_t vi) {
+      VertH v;
+      if (vi > 2) {
+        EdgeH  e  = fedges[vi - 2];
+        VertH& ev = edgepts[e.idx()];
+        if (!ev.is_valid()) {
+          VertH a  = to_vertex_handle(halfedge_handle(e, 0));
+          VertH b  = to_vertex_handle(halfedge_handle(e, 1));
+          auto& ad = vdata[a.idx()];
+          auto& bd = vdata[b.idx()];
+          assert(ad.inside != bd.inside);
+          float r = bd.distance / (bd.distance - ad.distance);
+          {
+            std::lock_guard<std::mutex> lock(vmx);
+            ev = clipped.new_vertex(point(a) * r + point(b) * (1.f - r));
+          }
+        }
+        return ev;
+      }
+      else {
+        return fverts[vi];
+      }
+    });
+    {
+      std::lock_guard lock(fmx);
+      for (size_t vi = 0; vi < sNumVerts[fe]; vi += 3) {
+        // utils::logger().info(
+        //   "face: {} {} {}", tempV[vi].idx(), tempV[vi + 1].idx(), tempV[vi + 2].idx());
+        clipped.add_face(tempV[vi], tempV[vi + 1], tempV[vi + 2]);
+      }
+    }
+  }  //);
+
+  return clipped;
 }
 
 void TriMesh::transform(const glm::mat4& mat)
