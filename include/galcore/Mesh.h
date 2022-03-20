@@ -52,10 +52,11 @@ enum class eMeshElement
 
 struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
 {
-  using FaceH = OpenMesh::FaceHandle;
-  using VertH = OpenMesh::VertexHandle;
-  using HalfH = OpenMesh::HalfedgeHandle;
-  using EdgeH = OpenMesh::EdgeHandle;
+  using BaseMesh = OpenMesh::TriMesh_ArrayKernelT<MeshTraits>;
+  using FaceH    = OpenMesh::FaceHandle;
+  using VertH    = OpenMesh::VertexHandle;
+  using HalfH    = OpenMesh::HalfedgeHandle;
+  using EdgeH    = OpenMesh::EdgeHandle;
 
   TriMesh() = default;
 

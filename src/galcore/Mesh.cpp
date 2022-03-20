@@ -114,7 +114,7 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
     }
   });
   TriMesh clipped;
-  {
+  if (nverts > 0 && n_vertices() > 0) {
     float r = float(nverts) / float(n_vertices());
     // Estimate face and edge counts based on the vertex count.
     clipped.reserve(nverts,
