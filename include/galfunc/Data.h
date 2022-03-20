@@ -60,6 +60,9 @@ public:
     void update()
     {
       clear();
+      if (tree().empty()) {
+        return;
+      }
       mDepthScan.resize(tree().mDepths.size());
       std::transform_exclusive_scan(std::execution::par,
                                     tree().mDepths.begin(),
@@ -184,7 +187,7 @@ public:
           *this)
   {}
 
-  const OffsetData& cache() const { return mCache; }
+  const OffsetData& cache() const { return *mCache; }
 
   DepthT maxDepth() const
   {
@@ -224,15 +227,17 @@ public:
 
   size_t size() const { return mValues.size(); }
 
+  bool empty() const { return size() == 0; }
+
   void reserve(size_t n)
   {
     mValues.reserve(n);
     mDepths.reserve(n);
   }
 
-  void expireCache() const { mCache.expireCache(); }
+  void expireCache() const { mCache.expire(); }
 
-  void ensureCache() const { mCache.ensureCache(); }
+  void ensureCache() const { mCache.ensure(); }
 
   /**
    * @brief Pushes an element into the tree.
@@ -280,7 +285,7 @@ public:
     mValues.clear();
     mDepths.clear();
     mQueuedDepths.clear();
-    mCache.clear();
+    mCache->clear();
     expireCache();
   }
 
@@ -463,13 +468,13 @@ public:
       size_t n = 0;
       size_t i = mIndex;
       do {
-        i += mTree->mCache.offset(i, Dim - 1);
+        i += mTree->mCache->offset(i, Dim - 1);
         n++;
       } while (i < mTree->size() && mTree->depth(i) == Dim - 1);
       return n;
     }
     else {
-      return mTree->mCache.offset(mIndex, Dim);
+      return mTree->mCache->offset(mIndex, Dim);
     }
   }
 
@@ -482,7 +487,7 @@ public:
    *
    * @return size_t
    */
-  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
+  size_t advanceIndex() const { return mIndex + mTree->mCache->offset(mIndex, Dim); }
 
   /**
    * @brief Checks whether this tree can advance into its sibling's position. If this node
@@ -560,7 +565,7 @@ public:
       ++mIndex;
     }
     else {
-      mIndex += mTree.mCache.offset(mIndex, Dim);
+      mIndex += mTree.mCache->offset(mIndex, Dim);
     }
     if (mIndex < storage().size() && depths()[mIndex] > Dim) {
       mIndex = storage().size();

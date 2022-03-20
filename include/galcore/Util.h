@@ -352,32 +352,60 @@ std::vector<T> makeVector(const ContainerT& c)
 template<typename T>
 using IterSpan = boost::iterator_range<T>;
 
+/**
+ * @brief Wrapper that treats the wrapped instance as cached data. So you can expire the
+ * cache, and it will be automatically updated when you try to access using the given
+ * update-functor. The usage is similar to std::optional.
+ *
+ * @tparam T The wrapped datatype.
+ */
 template<typename T>
-struct Cached : public T
+struct Cached
 {
   using UpdateFuncT = std::function<void(T&)>;
 
 private:
-  bool        mIsExpired = true;
+  T           mValue;
   UpdateFuncT mUpdateFn;
+  bool        mIsExpired = true;
 
 public:
-  Cached() = default;
+  template<bool B                                = std::is_default_constructible_v<T>,
+           typename std::enable_if<B, int>::type = 0>
+  Cached()
+      : mValue()
+  {}
 
   template<typename... Args>
-  Cached(UpdateFuncT updatefn, const Args&... args)
-      : T(args...)
+  explicit Cached(UpdateFuncT updatefn, const Args&... args)
+      : mValue(args...)
       , mUpdateFn(std::move(updatefn))
   {}
 
-  void expireCache() { mIsExpired = true; }
-  void ensureCache()
+  void expire() { mIsExpired = true; }
+  void ensure()
   {
     if (mIsExpired) {
-      mUpdateFn(*this);
+      mUpdateFn(mValue);
       mIsExpired = false;
     }
   }
+
+  bool isExpired() const { return mIsExpired; }
+  T&   value()
+  {
+    ensure();
+    return mValue;
+  }
+  const T& value() const
+  {
+    ensure();
+    return mValue;
+  }
+  T&       operator*() { return value(); }
+  const T& operator*() const { return value(); }
+  T*       operator->() { return &value(); }
+  const T* operator->() const { return &value(); }
 };
 
 }  // namespace utils
