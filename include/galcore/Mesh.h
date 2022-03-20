@@ -1,6 +1,7 @@
 #pragma once
 
 #include <OpenMesh/Core/Mesh/Attributes.hh>
+#include <OpenMesh/Core/Utils/Property.hh>
 #include <filesystem>
 #include <glm/detail/qualifier.hpp>
 #include <glm/geometric.hpp>
@@ -31,8 +32,7 @@ struct MeshTraits : public OpenMesh::DefaultTraits
   typedef int         TextureIndex;
   typedef glm::u8vec3 Color;
 
-  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status |
-                   OpenMesh::Attributes::Color);
+  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
   EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
@@ -59,7 +59,8 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   using HalfH    = OpenMesh::HalfedgeHandle;
   using EdgeH    = OpenMesh::EdgeHandle;
 
-  TriMesh() = default;
+  TriMesh();
+  ~TriMesh();
 
   bool      isSolid() const;
   float     area() const;
@@ -67,6 +68,8 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   float     volume() const;
   bool      contains(const glm::vec3& pt) const;
   glm::vec3 closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
+  void      set_color(VertH v, const glm::vec3& c);
+  glm::vec3 color(VertH v) const;
 
   TriMesh clippedWithPlane(const Plane& plane) const;
   void    transform(const glm::mat4& mat);
@@ -74,10 +77,12 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   TriMesh subMesh(const std::span<int>& faces) const;
 
 private:
-  RTree3d mFaceTree;
-  RTree3d mVertexTree;
+  mutable utils::Cached<RTree3d>                   mFaceTree;
+  mutable utils::Cached<RTree3d>                   mVertexTree;
+  utils::Cached<OpenMesh::VPropHandleT<glm::vec3>> mVColors;
 
-  void                     initRTrees();
+  void                     updateFaceTree(RTree3d& tree) const;
+  void                     updateVertexTree(RTree3d& tree) const;
   const RTree3d&           elementTree(eMeshElement etype) const;
   std::array<glm::vec3, 3> facePoints(FaceH f) const;
   glm::vec3                vertexCentroid() const;

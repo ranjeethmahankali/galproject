@@ -39,6 +39,7 @@ public:
     uint32_t* dsti   = mIBuf.data();
     uint32_t  off    = 0;
     for (const auto& meshptr : meshes) {
+      meshptr->update_normals();
       const auto& mesh   = *meshptr;
       size_t      nVerts = mesh.n_vertices();
       for (TriMesh::VertH v : mesh.vertices()) {

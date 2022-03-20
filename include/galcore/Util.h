@@ -391,21 +391,16 @@ public:
     }
   }
 
-  bool isExpired() const { return mIsExpired; }
-  T&   value()
+  bool     isExpired() const { return mIsExpired; }
+  const T& rawValue() const { return mValue; }
+  T&       rawValue() { return mValue; }
+  T&       value()
   {
     ensure();
     return mValue;
   }
-  const T& value() const
-  {
-    ensure();
-    return mValue;
-  }
-  T&       operator*() { return value(); }
-  const T& operator*() const { return value(); }
-  T*       operator->() { return &value(); }
-  const T* operator->() const { return &value(); }
+  T& operator*() { return value(); }
+  T* operator->() { return &value(); }
 };
 
 }  // namespace utils

@@ -2,6 +2,7 @@
 #include <tbb/parallel_reduce.h>
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <atomic>
+#include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <mutex>
 #define _USE_MATH_DEFINES
@@ -30,6 +31,23 @@ static float triangleArea(const std::array<glm::vec3, 3>& fvs)
 static float tetVolume(const std::array<glm::vec3, 3>& fvs)
 {
   return std::abs(glm::dot(glm::cross(fvs[0], fvs[1]), fvs[2]) / 6.0f);
+}
+
+TriMesh::TriMesh()
+    : mFaceTree([this](RTree3d& tree) { updateFaceTree(tree); })
+    , mVertexTree([this](RTree3d& tree) { updateVertexTree(tree); })
+    , mVColors([this](OpenMesh::VPropHandleT<glm::vec3>& cprop) {
+      if (!cprop.is_valid()) {
+        add_property(cprop);
+      }
+    })
+{}
+
+TriMesh::~TriMesh()
+{
+  if (!mVColors.isExpired()) {
+    remove_property(mVColors.rawValue());
+  }
 }
 
 bool TriMesh::isSolid() const
@@ -122,10 +140,7 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
                     size_t(std::round(r * float(n_edges()))),
                     size_t(std::round(r * float(size_t(n_faces())))));
   }
-  std::mutex         vmx;
-  std::mutex         fmx;
   std::vector<VertH> edgepts(n_edges());
-  // tbb::parallel_for_each(faces(), [&](FaceH f)
   for (auto f : faces()) {
     uint8_t              fvi = 0;
     uint8_t              fe  = 0;
@@ -152,10 +167,7 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
           auto& bd = vdata[b.idx()];
           assert(ad.inside != bd.inside);
           float r = bd.distance / (bd.distance - ad.distance);
-          {
-            std::lock_guard<std::mutex> lock(vmx);
-            ev = clipped.add_vertex(point(a) * r + point(b) * (1.f - r));
-          }
+          ev      = clipped.add_vertex(point(a) * r + point(b) * (1.f - r));
         }
         return ev;
       }
@@ -163,19 +175,15 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
         VertH  oldv = fverts[vi];
         VertH& newv = vdata[oldv.idx()].mappedV;
         if (!newv.is_valid()) {
-          std::lock_guard lock(vmx);
           newv = clipped.add_vertex(point(oldv));
         }
         return newv;
       }
     });
-    {
-      std::lock_guard lock(fmx);
-      for (size_t vi = 0; vi < sNumVerts[fe]; vi += 3) {
-        clipped.add_face(tempV[vi], tempV[vi + 1], tempV[vi + 2]);
-      }
+    for (size_t vi = 0; vi < sNumVerts[fe]; vi += 3) {
+      clipped.add_face(tempV[vi], tempV[vi + 1], tempV[vi + 2]);
     }
-  }  //);
+  }
 
   return clipped;
 }
@@ -185,7 +193,8 @@ void TriMesh::transform(const glm::mat4& mat)
   tbb::parallel_for_each(
     vertices(), [&](VertH v) { point(v) = glm::vec3(mat * glm::vec4(point(v), 1.f)); });
   // TODO: The two lines below can be run in parallel.
-  initRTrees();
+  mFaceTree.expire();
+  mVertexTree.expire();
   update_normals();
 }
 
@@ -209,16 +218,20 @@ TriMesh TriMesh::subMesh(const std::span<int>& faces) const
   return smesh;
 }
 
-void TriMesh::initRTrees()
+void TriMesh::updateFaceTree(RTree3d& tree) const
 {
-  mFaceTree.clear();
+  tree.clear();
   for (FaceH f : faces()) {
     auto fvs = facePoints(f);
-    mFaceTree.insert(Box3(fvs), size_t(f.idx()));
+    tree.insert(Box3(fvs), size_t(f.idx()));
   }
-  mVertexTree.clear();
+}
+
+void TriMesh::updateVertexTree(RTree3d& tree) const
+{
+  tree.clear();
   for (VertH v : vertices()) {
-    mVertexTree.insert(Box3(point(v)), size_t(v.idx()));
+    tree.insert(Box3(point(v)), size_t(v.idx()));
   }
 }
 
@@ -226,9 +239,9 @@ const RTree3d& TriMesh::elementTree(eMeshElement type) const
 {
   switch (type) {
   case eMeshElement::face:
-    return mFaceTree;
+    return *mFaceTree;
   case eMeshElement::vertex:
-    return mVertexTree;
+    return *mVertexTree;
   default:
     throw std::runtime_error("Invalid element type");
   }
@@ -282,6 +295,22 @@ glm::vec3 TriMesh::volumeCentroid() const
     wsum += w;
   }
   return vsum / wsum;
+}
+
+void TriMesh::set_color(VertH v, const glm::vec3& c)
+{
+  property(*mVColors, v) = c;
+}
+
+glm::vec3 TriMesh::color(VertH v) const
+{
+  static constexpr glm::vec3 sDefaultColor = {1.f, 1.f, 1.f};
+  if (mVColors.isExpired()) {
+    return sDefaultColor;
+  }
+  else {
+    return property(mVColors.rawValue(), v);
+  }
 }
 
 glm::vec3 TriMesh::centroid(eMeshCentroidType ctype) const
