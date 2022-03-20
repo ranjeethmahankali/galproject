@@ -5,6 +5,36 @@
 #include <galcore/ObjLoader.h>
 #include <galtest/TestUtils.h>
 
+gal::TriMesh unitbox()
+{
+  using namespace gal;
+  TriMesh box;
+  box.reserve(8, 18, 12);
+  auto vs = std::array<TriMesh::VertH, 8> {
+    box.add_vertex({0.f, 0.f, 0.f}),
+    box.add_vertex({1.f, 0.f, 0.f}),
+    box.add_vertex({1.f, 1.f, 0.f}),
+    box.add_vertex({0.f, 1.f, 0.f}),
+    box.add_vertex({0.f, 0.f, 1.f}),
+    box.add_vertex({1.f, 0.f, 1.f}),
+    box.add_vertex({1.f, 1.f, 1.f}),
+    box.add_vertex({0.f, 1.f, 1.f}),
+  };
+  box.add_face(vs[0], vs[3], vs[2]);
+  box.add_face(vs[0], vs[2], vs[1]);
+  box.add_face(vs[0], vs[1], vs[4]);
+  box.add_face(vs[4], vs[1], vs[5]);
+  box.add_face(vs[3], vs[0], vs[4]);
+  box.add_face(vs[3], vs[4], vs[7]);
+  box.add_face(vs[4], vs[5], vs[6]);
+  box.add_face(vs[4], vs[6], vs[7]);
+  box.add_face(vs[3], vs[7], vs[2]);
+  box.add_face(vs[2], vs[7], vs[6]);
+  box.add_face(vs[2], vs[6], vs[5]);
+  box.add_face(vs[2], vs[5], vs[1]);
+  return box;
+}
+
 TEST(Mesh, Area)
 {
   auto mesh = gal::makeRectangularMesh(
@@ -20,9 +50,8 @@ TEST(Mesh, Area)
 TEST(Mesh, Volume)
 {
   auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
-  // TODO: This should be replaced with the lazy evaluation pattern.
-  mesh.update_normals();
-  ASSERT_FLOAT_EQ(mesh.volume(), 6.0392118f);
+  ASSERT_FLOAT_EQ(mesh.volume(), 6.0392089f);
+  ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
 }
 
 TEST(Mesh, ClippedWithPlane)

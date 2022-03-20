@@ -1,8 +1,9 @@
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <atomic>
 #include <glm/geometric.hpp>
 #include <mutex>
-#include "galcore/Util.h"
 #define _USE_MATH_DEFINES
 
 #include <math.h>
@@ -17,6 +18,7 @@
 #include <galcore/Mesh.h>
 #include <galcore/ObjLoader.h>
 #include <galcore/RTree.h>
+#include <galcore/Util.h>
 
 namespace gal {
 
@@ -56,17 +58,16 @@ float TriMesh::volume() const
   if (!isSolid()) {
     return 0.f;
   }
-
-  glm::vec3              refpt = bounds().center();
+  static constexpr float s1_6th = 1.f / 6.f;
+  glm::vec3              refpt  = bounds().center();
   std::vector<glm::vec3> jvs(n_vertices());
-  std::transform(vertices_begin(), vertices_end(), jvs.begin(), [&](VertH v) {
-    return point(v) - refpt;
-  });
+  tbb::parallel_for_each(vertices(), [&](VertH v) { jvs[v.idx()] = point(v) - refpt; });
   return std::accumulate(faces_begin(), faces_end(), 0.f, [&](float total, FaceH f) {
-    std::array<glm::vec3, 3> js;
+    glm::vec3                jv = jvs[cfv_begin(f)->idx()];
+    std::array<glm::vec3, 3> vs;
     std::transform(
-      cfv_begin(f), cfv_end(f), js.begin(), [&](VertH v) { return jvs[v.idx()]; });
-    return total + tetVolume(js) * utils::sign(glm::dot(js[0], normal(f)));
+      cfv_begin(f), cfv_end(f), vs.begin(), [&](VertH v) { return point(v); });
+    return total + glm::dot(jv, glm::cross(vs[1] - vs[0], vs[2] - vs[0])) * s1_6th;
   });
 }
 
