@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -350,6 +351,34 @@ std::vector<T> makeVector(const ContainerT& c)
 
 template<typename T>
 using IterSpan = boost::iterator_range<T>;
+
+template<typename T>
+struct Cached : public T
+{
+  using UpdateFuncT = std::function<void(T&)>;
+
+private:
+  bool        mIsExpired = true;
+  UpdateFuncT mUpdateFn;
+
+public:
+  Cached() = default;
+
+  template<typename... Args>
+  Cached(UpdateFuncT updatefn, const Args&... args)
+      : T(args...)
+      , mUpdateFn(std::move(updatefn))
+  {}
+
+  void expireCache() { mIsExpired = true; }
+  void ensureCache()
+  {
+    if (mIsExpired) {
+      mUpdateFn(*this);
+      mIsExpired = false;
+    }
+  }
+};
 
 }  // namespace utils
 }  // namespace gal

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <OpenMesh/Core/Mesh/Attributes.hh>
 #include <filesystem>
 #include <glm/detail/qualifier.hpp>
 #include <glm/geometric.hpp>
@@ -33,7 +34,7 @@ struct MeshTraits : public OpenMesh::DefaultTraits
   VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status |
                    OpenMesh::Attributes::Color);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
-  EdgeAttributes(OpenMesh::Attributes::Status);
+  EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
 };
 

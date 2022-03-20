@@ -41,32 +41,51 @@ public:
   using value_type                    = ValueType;  // To support stl helper functions.
   using InternalStorageT              = std::vector<ValueType>;
 
-  struct Cache
+  friend struct OffsetData;
+  struct OffsetData
   {
     std::vector<size_t> mDepthScan;
     std::vector<size_t> mOffsets;
-    const Tree<T>&      mTree;
 
-    explicit Cache(const Tree<T>& tree)
-        : mTree(tree)
+  private:
+    const Tree<T>* mTree;
+
+  public:
+    explicit OffsetData(const Tree<T>& tree)
+        : mTree(&tree)
     {}
 
-    Cache& operator=(const Cache& other)
-    {
-      mOffsets   = other.mOffsets;
-      mDepthScan = other.mDepthScan;
-      // Should not reassign mTree;
-      return *this;
-    }
+    const Tree<T>& tree() const { return *mTree; }
 
-    Cache(const Cache& other)
-        : mTree(other.mTree)
+    void update()
     {
-      *this = other;
+      clear();
+      mDepthScan.resize(tree().mDepths.size());
+      std::transform_exclusive_scan(std::execution::par,
+                                    tree().mDepths.begin(),
+                                    tree().mDepths.end(),
+                                    mDepthScan.begin(),
+                                    size_t(0),
+                                    std::plus<size_t> {},
+                                    [](DepthT d) { return size_t(d); });
+      mOffsets.resize(mDepthScan.back() + size_t(tree().mDepths.back()));
+      DepthT              dmax = tree().maxDepth();
+      std::vector<size_t> pegs(dmax, 0);
+      for (size_t i = 0; i < tree().mDepths.size(); i++) {
+        size_t dcur = size_t(tree().mDepths[i]);
+        if (dcur == 0) {
+          continue;
+        }
+        for (size_t d = 0; d < dcur; d++) {
+          if (i > 0) {
+            size_t& peg                   = pegs[d];
+            mOffsets[mDepthScan[peg] + d] = i - peg;
+            peg                           = i;
+          }
+          mOffsets[mDepthScan[i] + d] = tree().mDepths.size() - i;
+        }
+      }
     }
-
-    Cache(Cache&& other) = delete;
-    Cache& operator=(Cache&& other) = delete;
 
     void clear()
     {
@@ -76,8 +95,11 @@ public:
 
     size_t offset(size_t pos, DepthT depth) const
     {
-      if (depth > mTree.depth(pos)) {
-        return mTree.size() - pos;
+      if (!mTree) {
+        return 0;
+      }
+      if (depth > tree().depth(pos)) {
+        return tree().size() - pos;
       }
       else if (depth == 0) {
         return 1;
@@ -106,12 +128,11 @@ private:
 
   friend repeat::CombiView<T, false>;
 
-  InternalStorageT    mValues;
-  std::vector<DepthT> mDepths;
-  std::vector<DepthT> mQueuedDepths;
-  mutable Cache       mCache;
-  mutable int32_t     mAccessFlag   = 0;
-  mutable bool        mIsCacheValid = false;
+  InternalStorageT                  mValues;
+  std::vector<DepthT>               mDepths;
+  std::vector<DepthT>               mQueuedDepths;
+  mutable utils::Cached<OffsetData> mCache;
+  mutable int32_t                   mAccessFlag = 0;
 
   void ensureDepth(DepthT d)
   {
@@ -122,7 +143,7 @@ private:
 
   void pushDepth(DepthT d)
   {
-    mIsCacheValid = false;
+    expireCache();
     ensureDepth(d);
     if (mQueuedDepths.empty()) {
       mDepths.push_back(d);
@@ -156,63 +177,14 @@ private:
 
 public:
   Tree()
-      : mCache(*this)
+      : mCache(
+          [this](OffsetData& offsets) {  // This lambda updates the cache.
+            offsets.update();
+          },
+          *this)
   {}
 
-  Tree& operator=(const Tree& other)
-  {
-    mValues       = other.mValues;
-    mDepths       = other.mDepths;
-    mQueuedDepths = other.mQueuedDepths;
-    mCache        = other.mCache;
-    mAccessFlag == other.mAccessFlag;
-    mIsCacheValid = other.mIsCacheValid;
-    return *this;
-  }
-
-  Tree(const Tree& other)
-      : mCache(other.mCache)
-  {
-    *this = other;
-  }
-
-  const Cache& cache() const { return mCache; }
-
-  void ensureCache() const
-  {
-    if (mIsCacheValid) {
-      return;
-    }
-    mCache.clear();
-    mCache.mDepthScan.resize(mDepths.size());
-    std::transform_exclusive_scan(std::execution::par,
-                                  mDepths.begin(),
-                                  mDepths.end(),
-                                  mCache.mDepthScan.begin(),
-                                  size_t(0),
-                                  std::plus<size_t> {},
-                                  [](DepthT d) { return size_t(d); });
-    mCache.mOffsets.resize(mCache.mDepthScan.back() + size_t(mDepths.back()));
-    DepthT              dmax = maxDepth();
-    std::vector<size_t> pegs(dmax, 0);
-
-    for (size_t i = 0; i < mDepths.size(); i++) {
-      size_t dcur = size_t(mDepths[i]);
-      if (dcur == 0) {
-        continue;
-      }
-      for (size_t d = 0; d < dcur; d++) {
-        if (i > 0) {
-          size_t& peg                                 = pegs[d];
-          mCache.mOffsets[mCache.mDepthScan[peg] + d] = i - peg;
-          peg                                         = i;
-        }
-        mCache.mOffsets[mCache.mDepthScan[i] + d] = mDepths.size() - i;
-      }
-    }
-
-    mIsCacheValid = true;
-  }
+  const OffsetData& cache() const { return mCache; }
 
   DepthT maxDepth() const
   {
@@ -257,6 +229,10 @@ public:
     mValues.reserve(n);
     mDepths.reserve(n);
   }
+
+  void expireCache() const { mCache.expireCache(); }
+
+  void ensureCache() const { mCache.ensureCache(); }
 
   /**
    * @brief Pushes an element into the tree.
@@ -305,15 +281,14 @@ public:
     mDepths.clear();
     mQueuedDepths.clear();
     mCache.clear();
-    mIsCacheValid = false;
+    expireCache();
   }
 
   void graft()
   {
-    for (auto& d : mDepths) {
-      ++d;
-    }
-    mIsCacheValid = false;
+    std::transform(
+      mDepths.begin(), mDepths.end(), mDepths.begin(), [](DepthT d) { return d + 1; });
+    expireCache();
   }
 
   void flatten()
@@ -322,7 +297,7 @@ public:
     if (mDepths.size() > 1) {
       mDepths.front() = 1;
     }
-    mIsCacheValid = false;
+    expireCache();
   }
 
   friend std::ostream& operator<<(std::ostream& os, const Tree<T>& tree)
@@ -655,7 +630,7 @@ protected:
     }
     mTree->queueDepth(Dim);
     mTree->mAccessFlag++;
-    mTree->mIsCacheValid = false;
+    mTree->expireCache();
   }
 
   void releaseWriteMode()
