@@ -4,6 +4,7 @@
 #include <atomic>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtx/norm.hpp>
 #include <mutex>
 #define _USE_MATH_DEFINES
 
@@ -94,9 +95,70 @@ bool TriMesh::contains(const glm::vec3& pt) const
   throw std::logic_error("Not Implemented");
 }
 
-glm::vec3 TriMesh::closestPoint(const glm::vec3& pt, float maxDistance) const
+static void faceClosestPt(const std::array<glm::vec3, 3>& vs,
+                          const glm::vec3&                pt,
+                          glm::vec3&                      closept,
+                          float&                          bestdsq)
 {
-  throw std::logic_error("Not Implemented");
+  const glm::vec3& v0       = vs[0];
+  glm::vec3        fnorm    = glm::normalize(glm::cross(vs[1] - vs[0], vs[2] - vs[0]));
+  glm::vec3        proj     = fnorm * glm::dot((v0 - pt), fnorm);
+  float            planedsq = glm::length2(proj);
+  if (planedsq > bestdsq) {
+    return;
+  }
+
+  glm::vec3 projpt   = pt + proj;
+  uint32_t  nOutside = 0;
+  for (uint32_t i = 0; i < 3; i++) {
+    const glm::vec3& v1 = vs[i];
+    const glm::vec3& v2 = vs[(i + 1) % 3];
+    bool outside        = glm::dot(glm::cross(v1 - projpt, v2 - projpt), fnorm) < 0.f;
+    if (outside) {
+      nOutside++;
+      glm::vec3 ln  = v2 - v1;
+      float     r   = std::clamp(glm::dot(ln, projpt - v1) / glm::length2(ln), 0.f, 1.f);
+      glm::vec3 cpt = v2 * r + v1 * (1.f - r);
+      float     dsq = glm::length2(cpt - pt);
+      if (dsq < bestdsq) {
+        closept = cpt;
+        bestdsq = dsq;
+      }
+    }
+    if (nOutside > 1) {
+      break;
+    }
+    if (nOutside == 0) {
+      closept = projpt;
+      bestdsq = planedsq;
+    }
+  }
+}
+
+glm::vec3 TriMesh::closestPoint(const glm::vec3& pt, float maxd) const
+{
+  int nearvi = -1;
+  mVertexTree->queryNearestN(pt, 1, &nearvi);
+  if (nearvi == -1) {
+    return vec3_unset;
+  }
+
+  glm::vec3 closept = point(vertex_handle(nearvi));
+  float     bestdsq = glm::length2(pt - closept);
+  float     vdist   = std::sqrt(bestdsq);
+  if (vdist > maxd) {
+    return vec3_unset;
+  }
+  glm::vec3 halfdiag(vdist, vdist, vdist);
+  // TODO: Avoid after refactoring the rtree to return a lazy iterator.
+  std::vector<int> candidates;
+  mFaceTree->queryBoxIntersects(Box3(pt - halfdiag, pt + halfdiag),
+                                std::back_inserter(candidates));
+  for (int fi : candidates) {
+    auto fvs = facePoints(face_handle(fi));
+    faceClosestPt(fvs, pt, closept, bestdsq);
+  }
+  return closept;
 }
 
 TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
