@@ -18,5 +18,7 @@ centroid = pgf.centroid(clipped)
 
 pgv.show("Plane", plane)
 pgv.show("Clipped Mesh", clipped)
+pgv.print("Original triangle count", pgf.numFaces(scaled))
+pgv.print("Final triangle count", pgf.numFaces(clipped))
 pgv.print("Mesh Area", area)
 pgv.print("Mesh Centroid", centroid)
