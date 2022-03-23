@@ -362,45 +362,26 @@ using IterSpan = boost::iterator_range<T>;
 template<typename T>
 struct Cached
 {
-  using UpdateFuncT = std::function<void(T&)>;
-
 private:
-  T           mValue;
-  UpdateFuncT mUpdateFn;
-  bool        mIsExpired = true;
+  T    mValue;
+  bool mIsExpired = true;
 
 public:
-  template<bool B                                = std::is_default_constructible_v<T>,
-           typename std::enable_if<B, int>::type = 0>
-  Cached()
-      : mValue()
-  {}
-
   template<typename... Args>
-  explicit Cached(UpdateFuncT updatefn, const Args&... args)
+  explicit Cached(const Args&... args)
       : mValue(args...)
-      , mUpdateFn(std::move(updatefn))
   {}
 
   void expire() { mIsExpired = true; }
-  void ensure()
-  {
-    if (mIsExpired) {
-      mUpdateFn(mValue);
-      mIsExpired = false;
-    }
-  }
+  bool isExpired() const { return mIsExpired; }
 
-  bool     isExpired() const { return mIsExpired; }
-  const T& rawValue() const { return mValue; }
-  T&       rawValue() { return mValue; }
-  T&       value()
-  {
-    ensure();
-    return mValue;
-  }
-  T& operator*() { return value(); }
-  T* operator->() { return &value(); }
+  T&       value() { return mValue; }
+  const T& value() const { return mValue; }
+  T&       operator*() { return value(); }
+  const T& operator*() const { return value(); }
+  T*       operator->() { return &value(); }
+  const T* operator->() const { return &value(); }
+           operator bool() const { return !isExpired(); }
 };
 
 }  // namespace utils

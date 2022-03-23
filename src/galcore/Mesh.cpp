@@ -35,20 +35,14 @@ static float tetVolume(const std::array<glm::vec3, 3>& fvs)
 }
 
 TriMesh::TriMesh()
-    : mFaceTree([this](RTree3d& tree) { updateFaceTree(tree); })
-    , mVertexTree([this](RTree3d& tree) { updateVertexTree(tree); })
-    , mVColors([this](OpenMesh::VPropHandleT<glm::vec3>& cprop) {
-      if (!cprop.is_valid()) {
-        add_property(cprop);
-      }
-    })
+    : mFaceTree()
+    , mVertexTree()
+    , mVColors()
 {}
 
 TriMesh::~TriMesh()
 {
-  if (!mVColors.isExpired()) {
-    remove_property(mVColors.rawValue());
-  }
+  remove_property(*mVColors);
 }
 
 bool TriMesh::isSolid() const
@@ -107,7 +101,6 @@ static void faceClosestPt(const std::array<glm::vec3, 3>& vs,
   if (planedsq > bestdsq) {
     return;
   }
-
   glm::vec3 projpt   = pt + proj;
   uint32_t  nOutside = 0;
   for (uint32_t i = 0; i < 3; i++) {
@@ -128,10 +121,10 @@ static void faceClosestPt(const std::array<glm::vec3, 3>& vs,
     if (nOutside > 1) {
       break;
     }
-    if (nOutside == 0) {
-      closept = projpt;
-      bestdsq = planedsq;
-    }
+  }
+  if (nOutside == 0) {
+    closept = projpt;
+    bestdsq = planedsq;
   }
 }
 
@@ -280,20 +273,20 @@ TriMesh TriMesh::subMesh(const std::span<int>& faces) const
   return smesh;
 }
 
-void TriMesh::updateFaceTree(RTree3d& tree) const
+void TriMesh::updateRTrees() const
 {
-  tree.clear();
-  for (FaceH f : faces()) {
-    auto fvs = facePoints(f);
-    tree.insert(Box3(fvs), size_t(f.idx()));
+  if (!mFaceTree) {
+    mFaceTree->clear();
+    for (FaceH f : faces()) {
+      auto fvs = facePoints(f);
+      mFaceTree->insert(Box3(fvs), size_t(f.idx()));
+    }
   }
-}
-
-void TriMesh::updateVertexTree(RTree3d& tree) const
-{
-  tree.clear();
-  for (VertH v : vertices()) {
-    tree.insert(Box3(point(v)), size_t(v.idx()));
+  if (!mVertexTree) {
+    mVertexTree->clear();
+    for (VertH v : vertices()) {
+      mVertexTree->insert(Box3(point(v)), size_t(v.idx()));
+    }
   }
 }
 
@@ -367,12 +360,7 @@ void TriMesh::set_color(VertH v, const glm::vec3& c)
 glm::vec3 TriMesh::color(VertH v) const
 {
   static constexpr glm::vec3 sDefaultColor = {1.f, 1.f, 1.f};
-  if (mVColors.isExpired()) {
-    return sDefaultColor;
-  }
-  else {
-    return property(mVColors.rawValue(), v);
-  }
+  return mVColors ? property(*mVColors, v) : sDefaultColor;
 }
 
 glm::vec3 TriMesh::centroid(eMeshCentroidType ctype) const

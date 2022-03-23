@@ -88,10 +88,10 @@ GAL_FUNC(closestPoints,
           ((data::ReadView<glm::vec3, 1>), inCloud, "Query point cloud")),
          (((data::WriteView<glm::vec3, 1>), outCloud, "Result point cloud")))
 {
+  mesh.updateRTrees();
   outCloud.resize(inCloud.size());
   tbb::parallel_for(size_t(0), inCloud.size(), [&](size_t i) {
-    glm::vec3 pt = inCloud[i];
-    outCloud[i]  = mesh.closestPoint(pt, FLT_MAX);
+    outCloud[i] = mesh.closestPoint(inCloud[i], FLT_MAX);
   });
 }
 

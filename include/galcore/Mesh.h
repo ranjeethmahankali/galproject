@@ -75,14 +75,13 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   void    transform(const glm::mat4& mat);
 
   TriMesh subMesh(const std::span<int>& faces) const;
+  void    updateRTrees() const;
 
 private:
   mutable utils::Cached<RTree3d>                   mFaceTree;
   mutable utils::Cached<RTree3d>                   mVertexTree;
   utils::Cached<OpenMesh::VPropHandleT<glm::vec3>> mVColors;
 
-  void                     updateFaceTree(RTree3d& tree) const;
-  void                     updateVertexTree(RTree3d& tree) const;
   const RTree3d&           elementTree(eMeshElement etype) const;
   std::array<glm::vec3, 3> facePoints(FaceH f) const;
   glm::vec3                vertexCentroid() const;

@@ -180,11 +180,7 @@ private:
 
 public:
   Tree()
-      : mCache(
-          [this](OffsetData& offsets) {  // This lambda updates the cache.
-            offsets.update();
-          },
-          *this)
+      : mCache(*this)
   {}
 
   const OffsetData& cache() const { return *mCache; }
@@ -237,7 +233,12 @@ public:
 
   void expireCache() const { mCache.expire(); }
 
-  void ensureCache() const { mCache.ensure(); }
+  void ensureCache() const
+  {
+    if (!mCache) {
+      mCache->update();
+    }
+  }
 
   /**
    * @brief Pushes an element into the tree.
