@@ -148,10 +148,9 @@ GAL_FUNC(meshWithVertexColors,
          ((gal::TriMesh, outmesh, "Colored mesh with vertex colors.")))
 {
   outmesh = mesh;
+  outmesh.request_vertex_colors();
   for (int i = 0; i < colors.size(); i++) {
-    outmesh.set_color(
-      outmesh.vertex_handle(i),
-      glm::clamp(glm::u8vec3(glm::floor(256.f * colors[i])), uint8_t(0), uint8_t(255)));
+    outmesh.set_color(outmesh.vertex_handle(i), colors[i]);
   }
 }
 

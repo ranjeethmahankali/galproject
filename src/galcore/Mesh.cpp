@@ -37,13 +37,7 @@ static float tetVolume(const std::array<glm::vec3, 3>& fvs)
 TriMesh::TriMesh()
     : mFaceTree()
     , mVertexTree()
-    , mVColors()
 {}
-
-TriMesh::~TriMesh()
-{
-  remove_property(*mVColors);
-}
 
 bool TriMesh::isSolid() const
 {
@@ -360,13 +354,14 @@ glm::vec3 TriMesh::volumeCentroid() const
 
 void TriMesh::set_color(VertH v, const glm::vec3& c)
 {
-  property(*mVColors, v) = c;
+  request_vertex_colors();
+  BaseMesh::set_color(v, c);
 }
 
 glm::vec3 TriMesh::color(VertH v) const
 {
   static constexpr glm::vec3 sDefaultColor = {1.f, 1.f, 1.f};
-  return mVColors ? property(*mVColors, v) : sDefaultColor;
+  return has_vertex_colors() ? BaseMesh::color(v) : sDefaultColor;
 }
 
 glm::vec3 TriMesh::centroid(eMeshCentroidType ctype) const

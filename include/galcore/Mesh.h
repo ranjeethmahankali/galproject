@@ -24,15 +24,15 @@ namespace gal {
 struct MeshTraits : public OpenMesh::DefaultTraits
 {
   // Use glm for everything.
-  typedef glm::vec3   Point;
-  typedef glm::vec3   Normal;
-  typedef float       TexCoord1D;
-  typedef glm::vec2   TexCoord2D;
-  typedef glm::vec3   TexCoord3D;
-  typedef int         TextureIndex;
-  typedef glm::u8vec3 Color;
+  typedef glm::vec3 Point;
+  typedef glm::vec3 Normal;
+  typedef float     TexCoord1D;
+  typedef glm::vec2 TexCoord2D;
+  typedef glm::vec3 TexCoord3D;
+  typedef int       TextureIndex;
+  typedef glm::vec3 Color;
 
-  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+  VertexAttributes(OpenMesh::Attributes::Normal);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
   EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
@@ -60,7 +60,6 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   using EdgeH    = OpenMesh::EdgeHandle;
 
   TriMesh();
-  ~TriMesh();
 
   bool      isSolid() const;
   float     area() const;
@@ -68,19 +67,16 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   float     volume() const;
   bool      contains(const glm::vec3& pt) const;
   glm::vec3 closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
+  TriMesh   clippedWithPlane(const Plane& plane) const;
+  void      transform(const glm::mat4& mat);
   void      set_color(VertH v, const glm::vec3& c);
   glm::vec3 color(VertH v) const;
-
-  TriMesh clippedWithPlane(const Plane& plane) const;
-  void    transform(const glm::mat4& mat);
-
-  TriMesh subMesh(const std::span<int>& faces) const;
-  void    updateRTrees() const;
+  TriMesh   subMesh(const std::span<int>& faces) const;
+  void      updateRTrees() const;
 
 private:
-  mutable utils::Cached<RTree3d>                   mFaceTree;
-  mutable utils::Cached<RTree3d>                   mVertexTree;
-  utils::Cached<OpenMesh::VPropHandleT<glm::vec3>> mVColors;
+  mutable utils::Cached<RTree3d> mFaceTree;
+  mutable utils::Cached<RTree3d> mVertexTree;
 
   const RTree3d&           elementTree(eMeshElement etype) const;
   std::array<glm::vec3, 3> facePoints(FaceH f) const;
