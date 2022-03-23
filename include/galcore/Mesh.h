@@ -105,7 +105,7 @@ public:
     elementTree(etype).queryByDistance(sphere.center, sphere.radius, inserter);
   }
 
-  glm::vec3 centroid(eMeshCentroidType ctype) const;
+  glm::vec3 centroid(eMeshCentroidType ctype = eMeshCentroidType::vertexBased) const;
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,

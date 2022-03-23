@@ -40,7 +40,6 @@ TEST(Mesh, Area)
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
   ASSERT_FLOAT_EQ(mesh.area(), 1.f);
-
   gal::fs::path fpath = GAL_ASSET_DIR / "bunny.obj";
   mesh                = gal::io::ObjMeshData(fpath, true).toTriMesh();
   mesh.transform(glm::scale(glm::vec3(10.f)));
@@ -71,4 +70,11 @@ TEST(Mesh, RectangleMesh)
   ASSERT_EQ(180.f, rect.area());
   ASSERT_EQ(360, rect.n_faces());
   ASSERT_EQ(208, rect.n_vertices());
+}
+
+TEST(Mesh, Centroid)
+{
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
+  ASSERT_NEAR(
+    glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
 }
