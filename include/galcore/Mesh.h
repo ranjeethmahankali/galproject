@@ -92,6 +92,7 @@ public:
   template<typename IntInserter>
   void queryBox(const gal::Box3& box, IntInserter inserter, eMeshElement etype) const
   {
+    updateRTrees();
     elementTree(etype).queryBoxIntersects(box, inserter);
   }
 
@@ -100,6 +101,7 @@ public:
                    IntInserter        inserter,
                    eMeshElement       etype) const
   {
+    updateRTrees();
     elementTree(etype).queryByDistance(sphere.center, sphere.radius, inserter);
   }
 

@@ -363,8 +363,9 @@ template<typename T>
 struct Cached
 {
 private:
-  T    mValue;
-  bool mIsExpired = true;
+  T          mValue;
+  bool       mIsExpired = true;
+  std::mutex mMutex;
 
 public:
   template<typename... Args>
@@ -372,8 +373,24 @@ public:
       : mValue(args...)
   {}
 
+  Cached(const Cached& other)
+      : mValue(other.mValue)
+      , mIsExpired(other.mIsExpired)
+      , mMutex()  // Don't copy the mutex
+  {}
+
+  ~Cached() = default;
+
+  Cached& operator=(const Cached& other)
+  {
+    mValue     = other.mValue;
+    mIsExpired = other.mIsExpired;
+    return *this;
+  }
+
   void expire() { mIsExpired = true; }
   bool isExpired() const { return mIsExpired; }
+  void unexpire() { mIsExpired = false; }
 
   T&       value() { return mValue; }
   const T& value() const { return mValue; }
@@ -382,6 +399,8 @@ public:
   T*       operator->() { return &value(); }
   const T* operator->() const { return &value(); }
            operator bool() const { return !isExpired(); }
+
+  std::mutex& mutex() { return mMutex; }
 };
 
 }  // namespace utils

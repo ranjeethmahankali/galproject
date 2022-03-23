@@ -1,20 +1,20 @@
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_reduce.h>
-#include <OpenMesh/Core/Utils/Property.hh>
-#include <atomic>
-#include <glm/fwd.hpp>
-#include <glm/geometric.hpp>
-#include <glm/gtx/norm.hpp>
-#include <mutex>
 #define _USE_MATH_DEFINES
 
 #include <math.h>
 #include <array>
+#include <atomic>
+#include <mutex>
 #include <numeric>
 #include <stdexcept>
 
+#include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
+#include <tbb/parallel_reduce.h>
+#include <OpenMesh/Core/Utils/Property.hh>
 #include <boost/range/adaptors.hpp>
+#include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include <galcore/Box.h>
 #include <galcore/Mesh.h>
@@ -135,7 +135,6 @@ glm::vec3 TriMesh::closestPoint(const glm::vec3& pt, float maxd) const
   if (nearvi == -1) {
     return vec3_unset;
   }
-
   glm::vec3 closept = point(vertex_handle(nearvi));
   float     bestdsq = glm::length2(pt - closept);
   float     vdist   = std::sqrt(bestdsq);
@@ -239,7 +238,6 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
       clipped.add_face(tempV[vi], tempV[vi + 1], tempV[vi + 2]);
     }
   }
-
   return clipped;
 }
 
@@ -275,17 +273,25 @@ TriMesh TriMesh::subMesh(const std::span<int>& faces) const
 
 void TriMesh::updateRTrees() const
 {
-  if (!mFaceTree) {
-    mFaceTree->clear();
-    for (FaceH f : faces()) {
-      auto fvs = facePoints(f);
-      mFaceTree->insert(Box3(fvs), size_t(f.idx()));
+  {
+    std::lock_guard lock(mFaceTree.mutex());
+    if (!mFaceTree) {
+      mFaceTree->clear();
+      for (FaceH f : faces()) {
+        auto fvs = facePoints(f);
+        mFaceTree->insert(Box3(fvs), size_t(f.idx()));
+      }
+      mFaceTree.unexpire();
     }
   }
-  if (!mVertexTree) {
-    mVertexTree->clear();
-    for (VertH v : vertices()) {
-      mVertexTree->insert(Box3(point(v)), size_t(v.idx()));
+  {
+    std::lock_guard lock(mVertexTree.mutex());
+    if (!mVertexTree) {
+      mVertexTree->clear();
+      for (VertH v : vertices()) {
+        mVertexTree->insert(Box3(point(v)), size_t(v.idx()));
+      }
+      mVertexTree.unexpire();
     }
   }
 }
@@ -385,13 +391,12 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
   glm::vec2  qsize(diag.x / float(qdims.x), diag.y / float(qdims.y));
   // One more vertex than quad in each direction.
   glm::ivec2 vdims = qdims + glm::ivec2(1);
-
-  TriMesh mesh;
-  size_t  nverts = vdims.x * vdims.y;
-  size_t  nfaces = qdims.x * qdims.y * 2;  // 2x triangles than quads.
-  size_t  nedges = qdims.y * vdims.x +     // Edges along y
-                  qdims.x * vdims.y +      // Edges along x
-                  qdims.x * qdims.y;       // Diagonals, 1 per quad.
+  TriMesh    mesh;
+  size_t     nverts = vdims.x * vdims.y;
+  size_t     nfaces = qdims.x * qdims.y * 2;  // 2x triangles than quads.
+  size_t     nedges = qdims.y * vdims.x +     // Edges along y
+                  qdims.x * vdims.y +         // Edges along x
+                  qdims.x * qdims.y;          // Diagonals, 1 per quad.
   mesh.reserve(nverts, nedges, nfaces);
   for (glm::ivec2 vi = glm::ivec2(0); vi.y < vdims.y; vi.y++) {
     for (vi.x = 0; vi.x < vdims.x; vi.x++) {
@@ -400,7 +405,6 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
                       (plane.yaxis() * (qsize.y * float(vi.y) + box.min.y)));
     }
   }
-
   for (glm::ivec2 qi = glm::ivec2(0); qi.y < qdims.y; qi.y++) {
     for (qi.x = 0; qi.x < qdims.x; qi.x++) {
       std::array<TriMesh::VertH, 4> quadIndices = {
@@ -412,7 +416,6 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
       mesh.add_face(quadIndices[1], quadIndices[3], quadIndices[2]);
     }
   }
-
   return mesh;
 }
 
