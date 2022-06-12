@@ -33,8 +33,6 @@ find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 include_directories(include)
-
-include(external.cmake)
 # Dependencies and Includes - end
 
 # GALCORE - begin
@@ -92,8 +90,7 @@ target_link_libraries(galview PRIVATE
   imgui::imgui
   GLEW::GLEW
   glfw
-  freetype
-  imnodes)
+  freetype)
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview
