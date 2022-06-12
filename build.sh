@@ -1,6 +1,6 @@
 CONFIG=${1-build}
 TARGET=${2-all}
-NUM_THREADS=${3-4}
+NUM_THREADS=${3-2}
 mkdir -p $CONFIG
 cd $CONFIG
 echo "Building target '${TARGET}' in ${CONFIG} configuration"
