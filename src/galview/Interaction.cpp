@@ -101,6 +101,7 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
   ImGui::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
   std::string absPath = utils::absPath("CascadiaMono.ttf");
+  glutil::logger().info("Loading font {}", absPath);
   if (!sFont) {
     sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
   }
