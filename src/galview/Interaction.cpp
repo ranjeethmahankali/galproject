@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include <imgui.h>
-#include <imnodes.h>
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
@@ -96,9 +95,9 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
   glutil::logger().info("Setting up ImGui...");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImNodes::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
   std::string absPath = utils::absPath("CascadiaMono.ttf");
+  glutil::logger().info("Loading font {}", absPath);
   if (!sFont) {
     sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
   }
@@ -111,12 +110,6 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glslVersion);
-
-  // ImNodes customizations.
-  ImNodesStyle& nstyle = ImNodes::GetStyle();
-  nstyle.Flags &= ~ImNodesStyleFlags_GridLines;
-  nstyle.Flags &= ~ImNodesStyleFlags_NodeOutline;
-  nstyle.Colors[ImNodesCol_GridBackground] = IM_COL32(0, 0, 0, 0);
 };
 
 void imGuiNewFrame()
@@ -295,109 +288,11 @@ inline glm::vec2 toGlm(ImVec2 v)
   return {v.x, v.y};
 }
 
-static void updateNodePositions()
-{
-  static constexpr float yOffset = 25.f;
-  static constexpr float xOffset = 25.f;
-  const auto&            nprops  = nodeProps();
-  for (size_t i = 0; i < nprops.size(); ++i) {
-    ImNodes::SetNodeScreenSpacePos(
-      imNodeId(i), ImVec2(xOffset + nprops[i].pos.x, yOffset + nprops[i].pos.y));
-  }
-}
-
-template<bool UpdatePass = false>
-void drawCanvas()
-{
-  ImNodes::BeginNodeEditor();
-  int   nNodes = int(sGraph.numNodes());
-  auto& nprops = nodeProps();
-  auto& pprops = pinProps();
-  for (int ni = 0; ni < nNodes; ++ni) {
-    const auto& ndata = nprops[ni];
-    const auto& info  = ndata.func->info();
-    ImNodes::BeginNode(imNodeId(ni));
-    ImNodes::BeginNodeTitleBar();
-    ImGui::TextUnformatted(info.mName.data());
-    ImNodes::EndNodeTitleBar();
-
-    int i = 0;
-    for (int pi : sGraph.nodeInputs(ni)) {
-      ImNodes::BeginInputAttribute(imPinId(pi));
-      ImGui::Text("%s", info.mInputNames[i].data());
-      ImNodes::EndInputAttribute();
-      if constexpr (UpdatePass) {
-        pprops[pi].pos =
-          0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
-      }
-      ++i;
-    }
-    i = 0;
-    for (int pi : sGraph.nodeOutputs(ni)) {
-      ImNodes::BeginOutputAttribute(imPinId(pi));
-      ImGui::Indent(ndata.innerWidth -
-                    ImGui::CalcTextSize(info.mOutputNames[i].data()).x);
-      ImGui::Text("%s", info.mOutputNames[i].data());
-      ImNodes::EndOutputAttribute();
-      if constexpr (UpdatePass) {
-        pprops[pi].pos =
-          0.5f * (toGlm(ImGui::GetItemRectMin()) + toGlm(ImGui::GetItemRectMax()));
-      }
-      ++i;
-    }
-    ImNodes::EndNode();
-    if constexpr (UpdatePass) {
-      nprops[ni].size = toGlm(ImGui::GetItemRectMax()) - toGlm(ImGui::GetItemRectMin());
-    }
-  }
-  int nlinks = int(sGraph.numLinks());
-  for (int i = 0; i < nlinks; ++i) {
-    ImNodes::Link(imLinkId(i), imPinId(sGraph.linkStart(i)), imPinId(sGraph.linkEnd(i)));
-  }
-  ImNodes::EndNodeEditor();
-
-  if constexpr (UpdatePass) {
-    static std::vector<int> sNodes;
-    static constexpr float  xOffset = 75.f;
-    static constexpr float  yOffset = 50.f;
-    sNodes.resize(nNodes);
-    std::iota(sNodes.begin(), sNodes.end(), 0);
-    std::sort(sNodes.begin(), sNodes.end(), [&](int a, int b) {
-      const auto& pa = nprops[a];
-      const auto& pb = nprops[b];
-      return pa.col == pb.col ? pa.row < pb.row : pa.col < pb.col;
-    });
-    float left  = 25.f;
-    float top   = yOffset;
-    float width = 0.f;
-    int   lci   = 0;
-    for (int ni : sNodes) {
-      auto& nprop = nprops[ni];
-      if (nprop.col > lci) {
-        left += width;
-        width = 0.f;
-        top   = yOffset;
-      }
-      width       = std::max(nprop.size.x + xOffset, width);
-      nprop.pos.x = left + xOffset;
-      nprop.pos.y = top + yOffset;
-      top += nprop.size.y + yOffset;
-      lci = nprop.col;
-    }
-    updateNodePositions();
-  }
-}
-
 static void initPanels()
 {
   sPanels.clear();
   sPanels.emplace_back("inputs");
   sPanels.emplace_back("outputs");
-
-  sPanels.emplace_back("canvas", false);
-  Panel& canvas = sPanels.back();
-  canvas.addCallback(&drawCanvas<false>);
-
   sPanels.emplace_back("history", false);
 }
 
@@ -634,42 +529,6 @@ static void calcRows()
   }
 }
 
-static void updateCanvas()
-{
-  using namespace gal::func::graph;
-  // Build graph and compute layout.
-  buildGraph();
-  calcDepthsAndHeights();
-  calcColumns();
-  calcRows();
-
-  imGuiNewFrame();
-  ImGui::PushFont(sFont);
-
-  auto& nprops = nodeProps();
-  for (int ni = 0; ni < sGraph.numNodes(); ni++) {
-    auto&       ndata  = nprops[ni];
-    int         nodeId = imNodeId(ni);
-    const auto& info   = ndata.func->info();
-
-    ndata.innerWidth = ImGui::CalcTextSize(info.mName.data()).x;
-    for (size_t ii = 0; ii < info.mNumInputs; ii++) {
-      ndata.innerWidth =
-        std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mInputNames[ii].data()).x);
-    }
-    for (size_t oi = 0; oi < info.mNumOutputs; oi++) {
-      ndata.innerWidth =
-        std::max(ndata.innerWidth, ImGui::CalcTextSize(info.mOutputNames[oi].data()).x);
-    }
-    nprops[ni].pos = {200.f * float(ndata.col), 100.f * float(ndata.row)};
-  }
-  updateNodePositions();
-
-  drawCanvas<true>();
-  ImGui::PopFont();
-  ImGui::EndFrame();
-}
-
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
@@ -678,7 +537,6 @@ int runPythonDemoFile(const fs::path& demoPath)
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
     boost::python::exec_file(demoPath.c_str(), global);
-    updateCanvas();
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
@@ -793,7 +651,6 @@ void destroy(GLFWwindow* window)
   glutil::logger().info("Cleaning up...\n");
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
-  ImNodes::DestroyContext();
   ImGui::DestroyContext();
   if (window) {
     glfwDestroyWindow(window);

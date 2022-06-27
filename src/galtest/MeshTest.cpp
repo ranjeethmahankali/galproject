@@ -48,7 +48,10 @@ TEST(Mesh, Area)
 
 TEST(Mesh, Volume)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
+  auto mesh = gal::makeRectangularMesh(
+    gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
+  ASSERT_FLOAT_EQ(mesh.volume(), 0.f);
+  mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392089f);
   ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
 }
