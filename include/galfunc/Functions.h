@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
@@ -493,10 +494,19 @@ protected:
     if constexpr (!IsInstance<EmptyCallable, TCallable>::value) {
       clearOutputs();
       mCombinations.init();
+#ifndef NDEBUG
+      size_t nIter = 0;
+#endif
       if (!mCombinations.empty()) {
         do {
           std::apply(mFunc, mCombinations.template current<ArgTupleT>());
+#ifndef NDEBUG
+          ++nIter;
+#endif
         } while (mCombinations.next());
+#ifndef NDEBUG
+        logger().debug("{} ran {} times", this->info().mName, nIter);
+#endif
       }
     }
   }
