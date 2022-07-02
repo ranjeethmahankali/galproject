@@ -168,6 +168,14 @@ private:
   }
 
 public:
+  /**
+   * @brief Get the stride from the given position to the next element in the tree with
+   * the given depth.
+   *
+   * @param pos
+   * @param depth
+   * @return size_t
+   */
   size_t stride(size_t pos, DepthT depth) const
   {
     ensureCache();
