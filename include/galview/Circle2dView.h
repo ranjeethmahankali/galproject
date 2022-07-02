@@ -35,7 +35,7 @@ public:
                        glm::vec3(radius * std::cos(ang2), radius * std::sin(ang2), 0.f)};
         ang += sStep;
       }
-      mBounds.inflate(circle.bounds());
+      mBounds.inflate(Box3(circle.bounds()));
     }
 
     mVBuf.alloc();

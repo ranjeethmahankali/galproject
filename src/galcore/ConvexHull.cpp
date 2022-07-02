@@ -101,7 +101,6 @@ void ConvexHull::compute()
     faceQ.push(f.first);
   }
 
-  size_t                      fi, fpi;
   Face                        curFace, pFace, newFace;
   Face                        adjFaces[3];
   gal::IndexPair              edges[3];
@@ -111,7 +110,8 @@ void ConvexHull::compute()
   std::vector<Face>           poppedFaces, newFaces;
 
   while (!faceQ.empty()) {
-    fi = faceQ.front();
+    size_t fi = faceQ.front();
+    size_t fpi;
     faceQ.pop();
     if (!getFace(fi, curFace) || !getFarthestPt(curFace, farPt, fpi)) {
       continue;
@@ -381,9 +381,8 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
   }
 
   std::vector<size_t> removePts;
-  bool                outside;
   for (const size_t& opi : mOutsidePts) {
-    outside = false;
+    bool outside = false;
     for (size_t i = 0; i < 4; i++) {
       if (simplex[i].containsVertex(opi)) {
         removePts.push_back(opi);
@@ -430,34 +429,26 @@ glm::vec3 ConvexHull::faceCenter(const Face& face) const
   return (mPts[face.a] + mPts[face.b] + mPts[face.c]) / 3.0f;
 }
 
-Mesh ConvexHull::toMesh() const
+TriMesh ConvexHull::toMesh() const
 {
-  std::unordered_map<size_t, size_t, CustomSizeTHash> map;
-  std::vector<glm::vec3>                              vertices;
-  std::vector<Mesh::Face>                             faces;
-  faces.reserve(numFaces());
-  vertices.reserve(mPts.size());
-
-  std::transform(mFaces.cbegin(),
-                 mFaces.cend(),
-                 std::back_inserter(faces),
-                 [&map, &vertices, this](const auto& pair) {
-                   const auto& face = pair.second;
-                   size_t      indices[3];
-                   for (uint8_t i = 0; i < 3; i++) {
-                     auto match = map.find(face.indices[i]);
-                     if (match == map.end()) {
-                       indices[i] = vertices.size();
-                       vertices.push_back(mPts[face.indices[i]]);
-                     }
-                     else {
-                       indices[i] = match->second;
-                     }
-                   }
-                   return Mesh::Face(indices);
-                 });
-
-  return Mesh(std::move(vertices), std::move(faces));
+  TriMesh                     mesh;
+  std::vector<TriMesh::VertH> vmap(mPts.size());
+  size_t                      nedges = mFaces.size() * 3 / 2;
+  mesh.reserve(nedges, nedges, mFaces.size());
+  for (const auto& pair : mFaces) {
+    const auto&                   face = pair.second;
+    std::array<TriMesh::VertH, 3> fvs;
+    for (uint8_t i = 0; i < 3; i++) {
+      int   vi = face.indices[i];
+      auto& v  = vmap[vi];
+      if (!v.is_valid()) {
+        v = mesh.add_vertex(mPts[vi]);
+      }
+      fvs[i] = v;
+    }
+    mesh.add_face(fvs.data(), fvs.size());
+  }
+  return mesh;
 }
 
 }  // namespace gal

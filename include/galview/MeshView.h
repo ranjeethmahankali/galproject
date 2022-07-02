@@ -10,11 +10,12 @@ namespace gal {
 namespace view {
 
 template<>
-struct Drawable<Mesh> : public std::true_type
+struct Drawable<TriMesh> : public std::true_type
 {
   static constexpr glm::vec4 sFaceColor      = {1.f, 1.f, 1.f, 1.f};
   static constexpr glm::vec4 sWireframeColor = {.8f, .8f, .8f, 1.f};
   static constexpr glm::vec4 sEdgeColor      = {0.f, 0.f, 0.f, 1.f};
+  using TriMeshT                             = SafeInstanceType<TriMesh>;
 
 private:
   glutil::MeshVertexBuffer mVBuf;
@@ -22,38 +23,39 @@ private:
   Box3                     mBounds;
 
 public:
-  void update(const std::vector<Mesh>& meshes)
+  void update(const std::vector<TriMeshT>& meshes)
   {
     mBounds = gal::Box3();
     mVBuf.resize(std::accumulate(
-      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
-        return total + mesh.numVertices();
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const TriMeshT& mesh) {
+        return total + mesh->n_vertices();
       }));
     mIBuf.resize(std::accumulate(
-      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const Mesh& mesh) {
-        return total + 3 * mesh.numFaces();
+      meshes.begin(), meshes.end(), size_t(0), [](size_t total, const TriMeshT& mesh) {
+        return total + 3 * mesh->n_faces();
       }));
 
     auto      vbegin = mVBuf.begin();
     uint32_t* dsti   = mIBuf.data();
     uint32_t  off    = 0;
-    for (const auto& mesh : meshes) {
-      size_t      nVerts  = mesh.numVertices();
-      const auto& vColors = mesh.vertexColors();
-      for (size_t i = 0; i < nVerts; i++) {
-        *(vbegin++) = {mesh.vertex(i), mesh.vertexNormal(i), vColors[i]};
+    for (const auto& meshptr : meshes) {
+      meshptr->update_normals();
+      const auto& mesh   = *meshptr;
+      size_t      nVerts = mesh.n_vertices();
+      for (TriMesh::VertH v : mesh.vertices()) {
+        *(vbegin++) = {mesh.point(v), mesh.normal(v), mesh.color(v)};
       }
 
       // 3 indices per face and nothing else.
-      auto fbegin = mesh.faceCBegin();
-      auto fend   = mesh.faceCEnd();
-      while (fbegin != fend) {
-        const Mesh::Face& face = *(fbegin++);
-        *(dsti++)              = off + uint32_t(face.a);
-        *(dsti++)              = off + uint32_t(face.b);
-        *(dsti++)              = off + uint32_t(face.c);
+      auto fit  = mesh.faces_begin();
+      auto fend = mesh.faces_end();
+      for (TriMesh::FaceH f : mesh.faces()) {
+        std::transform(mesh.cfv_begin(f), mesh.cfv_end(f), dsti, [&](TriMesh::VertH v) {
+          return off + uint32_t(v.idx());
+        });
+        dsti += 3;
       }
-      off += uint32_t(mesh.numVertices());
+      off += uint32_t(mesh.n_vertices());
 
       mBounds.inflate(mesh.bounds());
     }

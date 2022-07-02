@@ -1,7 +1,6 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-
 pt = pgf.var_vec3((0., 0., 0.))
 norm = pgf.var_vec3((0., 0., 1.))
 plane = pgf.plane(pt, norm)
@@ -17,14 +16,10 @@ rect = pgf.rectangleMesh(plane, box2, edgeLen)
 
 distances = pgf.distance(pgf.graft(pgf.vertices(rect)), cloud)
 sortedDists = pgf.sort(distances, distances)
-maxDist = pgf.listItem(sortedDists, pgf.sub(pgf.listLength(sortedDists), pgf.var_int(1)))
+maxDist = pgf.listItem(sortedDists,
+                       pgf.sub(pgf.listLength(sortedDists), pgf.var_int(1)))
 
-scheme = pgf.var_vec3([
-    (0., 0., 1.),
-    (0., 1., 0.),
-    (1., 1., 0.),
-    (1., 0., 0.)
-])
+scheme = pgf.var_vec3([(0., 0., 1.), (0., 1., 0.), (1., 1., 0.), (1., 0., 0.)])
 colors = pgf.mapValueToColor(maxDist, pgf.var_vec2((.5, 1.2)), scheme)
 colored = pgf.meshWithVertexColors(rect, colors)
 

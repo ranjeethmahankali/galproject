@@ -1,3 +1,5 @@
+#pragma once
+
 #include <galcore/Box.h>
 #include <galview/Context.h>
 

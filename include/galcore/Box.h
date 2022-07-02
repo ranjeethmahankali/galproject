@@ -1,7 +1,9 @@
 #pragma once
+
+#include <span>
+
 #include <galcore/Serialization.h>
 #include <galcore/Util.h>
-
 namespace gal {
 
 struct Box2;
@@ -13,9 +15,10 @@ struct Box3
 
   Box3();
   Box3(const glm::vec3& min, const glm::vec3& max);
-  Box3(const glm::vec3& pt);
   Box3(const glm::vec3* points, size_t nPoints);
-  Box3(const Box2& b2);
+  explicit Box3(const std::span<glm::vec3> points);
+  explicit Box3(const glm::vec3& pt);
+  explicit Box3(const Box2& b2);
 
   template<typename TPtIter>
   static Box3 create(TPtIter begin, TPtIter end)
@@ -82,7 +85,7 @@ struct Box2
   glm::vec2         min, max;
 
   Box2();
-  Box2(const glm::vec2& pt);
+  explicit Box2(const glm::vec2& pt);
   Box2(const glm::vec2&, const glm::vec2&);
   Box2(const glm::vec2* points, size_t nPoints);
 

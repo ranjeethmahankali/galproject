@@ -1,9 +1,6 @@
 #include <assert.h>
 #include <algorithm>
-#include <boost/range/adaptor/filtered.hpp>
-#include <boost/range/adaptor/reversed.hpp>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -15,7 +12,6 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/range/adaptors.hpp>
 
-#include <galcore/Util.h>
 #include <galfunc/Functions.h>
 #include <galfunc/Graph.h>
 #include <galfunc/Property.h>
@@ -536,7 +532,7 @@ static void calcRows()
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
-    view::setDemoFilepath(demoPath);
+    view::demoFilePath() = demoPath;
     boost::python::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
@@ -627,7 +623,7 @@ void draw(GLFWwindow* window)
                        cmdLineCallback,
                        (void*)(&sCmdline))) {
     sCmdline.erase(std::remove(sCmdline.begin(), sCmdline.end(), '\0'), sCmdline.end());
-    queueCommand(sCmdline);
+    queueCommands(sCmdline);
     sCmdline.clear();
     sResponse.clear();
   }

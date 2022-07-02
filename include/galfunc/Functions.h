@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
@@ -35,9 +36,8 @@ fs::path getcontextpath();
 
 struct FuncInfo
 {
-  std::string_view mName;
-  std::string_view mDesc;
-
+  std::string_view        mName;
+  std::string_view        mDesc;
   size_t                  mNumInputs;
   const std::string_view* mInputNames;
   const std::string_view* mInputDescriptions;
@@ -110,12 +110,30 @@ namespace store {
  */
 Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn);
 
+/**
+ * @brief Gets the number of functions in the current session.
+ *
+ * @return size_t
+ */
 size_t numFunctions();
 
+/**
+ * @brief Get the function with the given index.
+ *
+ * @param i Index.
+ */
 const Function& function(size_t i);
 
+/**
+ * @brief Properties container for the functions in the current session.
+ */
 Properties& properties();
 
+/**
+ * @brief Create a new property for the functions in the current session.
+ *
+ * @tparam T
+ */
 template<typename T>
 Property<T> addProperty()
 {
@@ -519,6 +537,7 @@ public:
     if constexpr (!HasInputs) {
       // Expire all downstream functions.
       for (bool& flag : mExpiration) {
+        // cppcheck-suppress useStlAlgorithm
         flag = true;
       }
     }
@@ -628,13 +647,13 @@ protected:
   }
 
 public:
-  TVariable(const boost::python::object& obj)
+  explicit TVariable(const boost::python::object& obj)
       : BaseT({}, {})
   {
     setInternal(obj);
   }
 
-  TVariable(const TVal& val)
+  explicit TVariable(const TVal& val)
       : BaseT({}, {})
   {
     setInternal(val);
@@ -733,7 +752,7 @@ struct FuncDocString
    * @param inputs Names and descriptions of inputs.
    * @param outputs Names and descriptions of outputs.
    */
-  FuncDocString(const FuncInfo& finfo);
+  explicit FuncDocString(const FuncInfo& finfo);
 
   /**
    * @brief Gets the c-string representation of the python doc-string.

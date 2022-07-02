@@ -190,7 +190,6 @@ int Graph::addNode(size_t nInputs, size_t nOutputs)
     lpi = pi;
   }
 
-  lpi = -1;
   for (size_t i = 0; i < nOutputs; i++) {
     int pi = newPin();
     if (i == 0) {

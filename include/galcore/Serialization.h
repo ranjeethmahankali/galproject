@@ -24,7 +24,7 @@ class Bytes
 {
 public:
   Bytes();
-  Bytes(uint32_t version);
+  explicit Bytes(uint32_t version);
 
   static Bytes loadFromFile(const fs::path& filepath);
 

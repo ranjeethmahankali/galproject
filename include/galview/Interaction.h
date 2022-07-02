@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
+// IMPORTANT: This needs to be included before the other ones.
 #include <galview/GLUtil.h>
 
-#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -19,13 +19,29 @@
 namespace gal {
 namespace view {
 
+/**
+ * @brief Starts a new imgui frame.
+ */
 void imGuiNewFrame();
-
+/**
+ * @brief Gets the viewer instance for the viewer.
+ */
 spdlog::logger& logger();
-int             runPythonDemoFile(const std::filesystem::path& demoPath);
-void            setPanelVisibility(const std::string& name, bool visible);
-void            queueCommand(const std::string& cmd);
-void            runQueuedCommands();
+/**
+ * @brief Load an interactive demo from the given python file.
+ *
+ * @param demoPath Path to the python demo file.
+ * @return int 0 if all goes well, non-zero values otherwise.
+ */
+int runPythonDemoFile(const std::filesystem::path& demoPath);
+/**
+ * @brief Set the visibility of a panel with the given name.
+ *
+ * @param name Name of the panel.
+ * @param visible If true, panel will be made visible. If false, it will be made
+ * invisible.
+ */
+void setPanelVisibility(const std::string& name, bool visible);
 
 class Widget
 {
@@ -39,7 +55,7 @@ class Panel
 public:
   using DrawCBType = void (*)();
 
-  Panel(const std::string& title);
+  explicit Panel(const std::string& title);
   Panel(const std::string& title, bool visible);
 
   void draw() const;
@@ -71,10 +87,10 @@ Panel& panelByName(const std::string& name);
 class Text : public Widget
 {
 public:
-  Text(const std::string& text);
+  explicit Text(const std::string& text);
   virtual ~Text() = default;
 
-  void draw();
+  void draw() override;
 
   const std::string& value() const;
   std::string&       value();
@@ -92,7 +108,7 @@ public:
   Button(const std::string& label, const std::function<void()>& onClick);
   virtual ~Button() = default;
 
-  void draw();
+  void draw() override;
 };
 
 template<typename T>
@@ -104,17 +120,18 @@ public:
   virtual void addHandler(const HandlerFn& fn) final { mHandlers.push_back(fn); };
 
 protected:
-  InputWidget(const std::string& label)
-      : mLabel(label) {};
-  InputWidget(const std::string& label, const T& value)
-      : mLabel(label)
-      , mValue(value) {};
-  virtual ~InputWidget() = default;
-
   std::vector<HandlerFn> mHandlers;
   std::string            mLabel;
   T                      mValue;
   bool                   mEdited = false;
+
+  explicit InputWidget(const std::string& label)
+      : mLabel(label)
+      , mValue(T()) {};
+  InputWidget(const std::string& label, const T& value)
+      : mLabel(label)
+      , mValue(value) {};
+  virtual ~InputWidget() = default;
 
 protected:
   /**
@@ -274,16 +291,16 @@ public:
   TextInput(const std::string& label, const std::string& value);
   virtual ~TextInput() = default;
 
-  void draw();
+  void draw() override;
 };
 
 class TextInputBox : public InputWidget<std::string>
 {
 public:
-  TextInputBox(const std::string& label);
+  explicit TextInputBox(const std::string& label);
   virtual ~TextInputBox() = default;
 
-  void draw();
+  void draw() override;
 };
 
 class CheckBox : public InputWidget<bool>
@@ -292,7 +309,7 @@ public:
   CheckBox(const std::string& label, bool value);
   virtual ~CheckBox() = default;
 
-  void        draw();
+  void        draw() override;
   const bool* checkedPtr() const;
 };
 

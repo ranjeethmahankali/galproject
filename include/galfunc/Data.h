@@ -1,7 +1,10 @@
 #pragma once
 
 #include <execution>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include <galcore/Traits.h>
@@ -33,26 +36,50 @@ template<typename T>
 class Tree
 {
 public:
-  using Type       = T;
-  using ValueType  = SafeInstanceType<T>;
-  using value_type = ValueType;  // To support stl helper functions.
+  using Type                          = T;
+  static constexpr bool IsPolymorphic = std::is_polymorphic_v<T>;
+  using ValueType                     = SafeInstanceType<T>;
+  using value_type                    = ValueType;  // To support stl helper functions.
+  using InternalStorageT              = std::vector<ValueType>;
 
-  struct Cache
+  friend struct OffsetData;
+  struct OffsetData
   {
     std::vector<size_t> mDepthScan;
     std::vector<size_t> mOffsets;
-    const Tree<T>&      mTree;
 
-    Cache(const Tree<T>& tree)
-        : mTree(tree)
-    {}
-
-    const Cache& operator=(const Cache& other)
+  public:
+    void update(const Tree<T>& tree)
     {
-      mDepthScan = other.mDepthScan;
-      mOffsets   = other.mOffsets;
-      // Should not reassign mTree;
-      return *this;
+      clear();
+      if (tree.empty()) {
+        return;
+      }
+      mDepthScan.resize(tree.mDepths.size());
+      std::transform_exclusive_scan(std::execution::par,
+                                    tree.mDepths.begin(),
+                                    tree.mDepths.end(),
+                                    mDepthScan.begin(),
+                                    size_t(0),
+                                    std::plus<size_t> {},
+                                    [](DepthT d) { return size_t(d); });
+      mOffsets.resize(mDepthScan.back() + size_t(tree.mDepths.back()));
+      DepthT              dmax = tree.maxDepth();
+      std::vector<size_t> pegs(dmax, 0);
+      for (size_t i = 0; i < tree.mDepths.size(); i++) {
+        size_t dcur = size_t(tree.mDepths[i]);
+        if (dcur == 0) {
+          continue;
+        }
+        for (size_t d = 0; d < dcur; d++) {
+          if (i > 0) {
+            size_t& peg                   = pegs[d];
+            mOffsets[mDepthScan[peg] + d] = i - peg;
+            peg                           = i;
+          }
+          mOffsets[mDepthScan[i] + d] = tree.mDepths.size() - i;
+        }
+      }
     }
 
     void clear()
@@ -61,10 +88,10 @@ public:
       mOffsets.clear();
     }
 
-    size_t offset(size_t pos, DepthT depth) const
+    size_t offset(const Tree<T>& tt, size_t pos, DepthT depth) const
     {
-      if (depth > mTree.depth(pos)) {
-        return mTree.size() - pos;
+      if (depth > tt.depth(pos)) {
+        return tt.size() - pos;
       }
       else if (depth == 0) {
         return 1;
@@ -79,8 +106,6 @@ public:
   };
 
 private:
-  using InternalStorageT = std::vector<ValueType>;
-
   template<typename U, DepthT Dim>
   friend struct Iterator;
 
@@ -95,12 +120,11 @@ private:
 
   friend repeat::CombiView<T, false>;
 
-  InternalStorageT    mValues;
-  std::vector<DepthT> mDepths;
-  std::vector<DepthT> mQueuedDepths;
-  mutable Cache       mCache;
-  mutable int32_t     mAccessFlag   = 0;
-  mutable bool        mIsCacheValid = false;
+  InternalStorageT                  mValues;
+  std::vector<DepthT>               mDepths;
+  std::vector<DepthT>               mQueuedDepths;
+  mutable utils::Cached<OffsetData> mCache;
+  mutable int32_t                   mAccessFlag = 0;
 
   void ensureDepth(DepthT d)
   {
@@ -111,7 +135,7 @@ private:
 
   void pushDepth(DepthT d)
   {
-    mIsCacheValid = false;
+    expireCache();
     ensureDepth(d);
     if (mQueuedDepths.empty()) {
       mDepths.push_back(d);
@@ -144,63 +168,18 @@ private:
   }
 
 public:
-  Tree()
-      : mCache(*this)
-  {}
-
-  const Tree& operator=(const Tree& other)
+  /**
+   * @brief Get the stride from the given position to the next element in the tree with
+   * the given depth.
+   *
+   * @param pos
+   * @param depth
+   * @return size_t
+   */
+  size_t stride(size_t pos, DepthT depth) const
   {
-    mValues       = other.mValues;
-    mDepths       = other.mDepths;
-    mQueuedDepths = other.mQueuedDepths;
-    mCache        = other.mCache;
-    mAccessFlag == other.mAccessFlag;
-    mIsCacheValid = other.mIsCacheValid;
-    return *this;
-  }
-
-  Tree(const Tree& other)
-      : mCache(*this)
-  {
-    mCache = other.mCache;
-  }
-
-  const Cache& cache() const { return mCache; }
-
-  void ensureCache() const
-  {
-    if (mIsCacheValid) {
-      return;
-    }
-    mCache.clear();
-    mCache.mDepthScan.resize(mDepths.size());
-    std::transform_exclusive_scan(std::execution::par,
-                                  mDepths.begin(),
-                                  mDepths.end(),
-                                  mCache.mDepthScan.begin(),
-                                  size_t(0),
-                                  std::plus<size_t> {},
-                                  [](DepthT d) { return size_t(d); });
-    mCache.mOffsets.resize(mCache.mDepthScan.back() + size_t(mDepths.back()));
-    DepthT              dmax = maxDepth();
-    std::vector<size_t> pegs(dmax, 0);
-
-    for (size_t i = 0; i < mDepths.size(); i++) {
-      size_t dcur = size_t(mDepths[i]);
-      if (dcur == 0) {
-        continue;
-      }
-      for (size_t d = 0; d < dcur; d++) {
-        if (i > 0) {
-          size_t& peg                                 = pegs[d];
-          mCache.mOffsets[mCache.mDepthScan[peg] + d] = i - peg;
-          peg                                         = i;
-        }
-        mCache.mOffsets[mCache.mDepthScan[i] + d] = mDepths.size() - i;
-      }
-    }
-
-    mIsCacheValid = true;
+    ensureCache();
+    return mCache->offset(*this, pos, depth);
   }
 
   DepthT maxDepth() const
@@ -241,10 +220,23 @@ public:
 
   size_t size() const { return mValues.size(); }
 
+  bool empty() const { return size() == 0; }
+
   void reserve(size_t n)
   {
     mValues.reserve(n);
     mDepths.reserve(n);
+  }
+
+  void expireCache() const { mCache.expire(); }
+
+  void ensureCache() const
+  {
+    std::lock_guard lock(mCache.mutex());
+    if (!mCache) {
+      mCache->update(*this);
+      mCache.unexpire();
+    }
   }
 
   /**
@@ -256,20 +248,35 @@ public:
    */
   void push_back(DepthT d, T item)
   {
-    mValues.emplace_back(std::move(item));
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>(std::move(item)));
+    }
+    else {
+      mValues.emplace_back(std::move(item));
+    }
     pushDepth(d);
   }
 
   void emplace_back(DepthT d)
   {
-    mValues.emplace_back();
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>());
+    }
+    else {
+      mValues.emplace_back();
+    }
     pushDepth(d);
   }
 
   template<typename... TArgs>
   void emplace_back(DepthT d, TArgs... args)
   {
-    mValues.emplace_back(args...);
+    if constexpr (IsPolymorphic) {
+      mValues.emplace_back(std::make_shared<T>(args...));
+    }
+    else {
+      mValues.emplace_back(args...);
+    }
     pushDepth(d);
   }
 
@@ -278,16 +285,15 @@ public:
     mValues.clear();
     mDepths.clear();
     mQueuedDepths.clear();
-    mCache.clear();
-    mIsCacheValid = false;
+    mCache->clear();
+    expireCache();
   }
 
   void graft()
   {
-    for (auto& d : mDepths) {
-      d++;
-    }
-    mIsCacheValid = false;
+    std::transform(
+      mDepths.begin(), mDepths.end(), mDepths.begin(), [](DepthT d) { return d + 1; });
+    expireCache();
   }
 
   void flatten()
@@ -296,7 +302,7 @@ public:
     if (mDepths.size() > 1) {
       mDepths.front() = 1;
     }
-    mIsCacheValid = false;
+    expireCache();
   }
 
   friend std::ostream& operator<<(std::ostream& os, const Tree<T>& tree)
@@ -343,7 +349,8 @@ struct Dereferenced<T, 0>
 {
   // Dereferencing an iterator of 0 dimensions should return a reference to actual data
   // stored in the tree.
-  using Type = const typename Tree<T>::ValueType&;
+  using Type = std::
+    conditional_t<Tree<T>::IsPolymorphic, const T&, const typename Tree<T>::ValueType&>;
 };
 
 /**
@@ -359,6 +366,7 @@ struct ReadView
   static_assert(Dim > 0, "Use the reference directly for 0 dimensional views");
 
   static constexpr DepthT NDimensions = Dim;
+  using ValueType                     = typename Tree<T>::ValueType;
 
 private:
   const Tree<T>* mTree;
@@ -386,7 +394,7 @@ private:
   }
 
 public:
-  ReadView(const Tree<T>& src)
+  explicit ReadView(const Tree<T>& src)
       : mTree(&src)
       , mIndex(0)
   {
@@ -400,7 +408,7 @@ public:
     setReadMode();
   }
 
-  ReadView(Iterator<T, Dim>& iter)
+  explicit ReadView(Iterator<T, Dim>& iter)
       : mTree(&(iter.mTree))
       , mIndex(iter.mIndex)
   {
@@ -423,7 +431,7 @@ public:
 
   ~ReadView() { releaseReadMode(); }
 
-  const ReadView& operator=(const ReadView& other)
+  ReadView& operator=(const ReadView& other)
   {
     releaseReadMode();
     mTree  = other.mTree;
@@ -449,7 +457,7 @@ public:
 
   Iterator<T, Dim - 1> begin() const { return Iterator<T, Dim - 1>(*mTree, mIndex); }
 
-  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i)
+  typename Iterator<T, Dim - 1>::DereferenceT operator[](size_t i) const
   {
     return *(begin() + i);
   }
@@ -460,26 +468,26 @@ public:
       size_t n = 0;
       size_t i = mIndex;
       do {
-        i += mTree->mCache.offset(i, Dim - 1);
+        i += mTree->stride(i, Dim - 1);
         n++;
       } while (i < mTree->size() && mTree->depth(i) == Dim - 1);
       return n;
     }
     else {
-      return mTree->mCache.offset(mIndex, Dim);
+      return mTree->stride(mIndex, Dim);
     }
   }
 
   bool empty() const { return size() == 0; }
 
-  const T* data() const { return mTree->mValues.data() + mIndex; }
+  const ValueType* data() const { return mTree->mValues.data() + mIndex; }
 
   /**
    * @brief Index at which the sibling of this node begins.
    *
    * @return size_t
    */
-  size_t advanceIndex() const { return mIndex + mTree->mCache.offset(mIndex, Dim); }
+  size_t advanceIndex() const { return mIndex + mTree->stride(mIndex, Dim); }
 
   /**
    * @brief Checks whether this tree can advance into its sibling's position. If this node
@@ -520,8 +528,9 @@ public:
 template<typename T, DepthT Dim>
 struct Iterator
 {
-  using DereferenceT     = typename Dereferenced<T, Dim>::Type;
-  using InternalStorageT = typename Tree<T>::InternalStorageT;
+  using DereferenceT                  = typename Dereferenced<T, Dim>::Type;
+  using InternalStorageT              = typename Tree<T>::InternalStorageT;
+  static constexpr bool IsPolymorphic = Tree<T>::IsPolymorphic;
 
   const Tree<T>& mTree;
   size_t         mIndex;
@@ -556,7 +565,7 @@ public:
       ++mIndex;
     }
     else {
-      mIndex += mTree.mCache.offset(mIndex, Dim);
+      mIndex += mTree.stride(mIndex, Dim);
     }
     if (mIndex < storage().size() && depths()[mIndex] > Dim) {
       mIndex = storage().size();
@@ -585,7 +594,12 @@ public:
   DereferenceT operator*()
   {
     if constexpr (Dim == 0) {
-      return storage()[mIndex];
+      if constexpr (IsPolymorphic) {
+        return *(storage()[mIndex]);
+      }
+      else {
+        return storage()[mIndex];
+      }
     }
     else {
       return ReadView<T, Dim>(*this);
@@ -621,7 +635,7 @@ protected:
     }
     mTree->queueDepth(Dim);
     mTree->mAccessFlag++;
-    mTree->mIsCacheValid = false;
+    mTree->expireCache();
   }
 
   void releaseWriteMode()
@@ -632,7 +646,7 @@ protected:
     }
   }
 
-  WriteViewBase(Tree<T>* tree)
+  explicit WriteViewBase(Tree<T>* tree)
       : mTree(tree)
   {}
 
@@ -653,13 +667,13 @@ struct WriteView : public WriteViewBase<T, Dim>
   using BaseT = WriteViewBase<T, Dim>;
 
 public:
-  WriteView(Tree<T>* treeptr)
+  explicit WriteView(Tree<T>* treeptr)
       : BaseT(treeptr)
   {
     this->setWriteMode();
   }
 
-  WriteView(Tree<T>& tree)
+  explicit WriteView(Tree<T>& tree)
       : BaseT(&tree)
   {
     this->setWriteMode();
@@ -679,7 +693,7 @@ public:
 
   ~WriteView() { this->releaseWriteMode(); }
 
-  const WriteView& operator=(const WriteView& other)
+  WriteView& operator=(const WriteView& other)
   {
     this->releaseWriteMode();
     this->mTree = other.mTree;
@@ -714,18 +728,20 @@ private:
   size_t mStart;
 
 public:
-  using ValueType  = typename Tree<T>::value_type;
-  using value_type = ValueType;
-  using BaseT      = WriteViewBase<T, 1>;
+  using ValueType                     = typename Tree<T>::ValueType;
+  static constexpr bool IsPolymorphic = Tree<T>::IsPolymorphic;
+  using BaseT                         = WriteViewBase<T, 1>;
+  /*IMPORTANT: This is only for STL. Do NOT use this anywhere else.*/
+  using value_type = T;
 
-  WriteView(Tree<T>& tree)
+  explicit WriteView(Tree<T>& tree)
       : BaseT(&tree)
       , mStart(tree.size())
   {
     this->setWriteMode();
   }
 
-  WriteView(Tree<T>* treeptr)
+  explicit WriteView(Tree<T>* treeptr)
       : BaseT(treeptr)
       , mStart(treeptr->size())
   {
@@ -772,7 +788,7 @@ public:
    */
   size_t size() const { return this->mTree->size() - mStart; }
 
-  void push_back(ValueType val)
+  void push_back(T val)
   {
     this->mTree->push_back(DepthT(size() == 0 ? 1 : 0), std::move(val));
   }
@@ -783,10 +799,32 @@ public:
       return;
     }
     this->mTree->resize(n + this->mTree->size());
+    if constexpr (IsPolymorphic) {
+      size_t m = this->mTree->size();
+      for (size_t i = m - n; i < m; i++) {
+        this->mTree->value(i) = std::make_shared<T>();
+      }
+    }
   }
 
-  ValueType&       operator[](size_t i) { return this->mTree->value(mStart + i); }
-  const ValueType& operator[](size_t i) const { return this->mTree->value(mStart + i); }
+  T& operator[](size_t i)
+  {
+    if constexpr (IsPolymorphic) {
+      return *(this->mTree->value(mStart + i));
+    }
+    else {
+      return this->mTree->value(mStart + i);
+    }
+  }
+  const T& operator[](size_t i) const
+  {
+    if constexpr (IsPolymorphic) {
+      return *(this->mTree->value(mStart + i));
+    }
+    else {
+      return this->mTree->value(mStart + i);
+    }
+  }
 };
 
 /**
@@ -977,7 +1015,7 @@ public:
       if (mIndex >= mTree.size()) {
         return false;
       }
-      size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
+      size_t advIdx = mIndex + (td == 0 ? 1 : mTree.stride(mIndex, td));
       if (advIdx < mTree.size() && mTree.depth(advIdx) == td) {
         mIndex = advIdx;
         return true;
@@ -1014,9 +1052,11 @@ template<size_t NInputs, typename... TreeTs>
 struct CombiViewTuple<NInputs, std::tuple<TreeTs...>>
 {
   template<size_t N>
-  using ValueType = typename std::tuple_element_t<
+  using TreeType = typename std::tuple_element_t<
     N,
-    std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>::Type;
+    std::tuple<std::remove_reference_t<std::remove_const_t<TreeTs>>...>>;
+  template<size_t N>
+  using ValueType = typename TreeType<N>::Type;
 
   /**
    * Tuple of combi-views, one each into the data trees corresponding to the function
@@ -1058,6 +1098,8 @@ private:
   template<typename ArgType, size_t N>
   static ArgType getArg(Type& view, const TreeTupleT& trees)
   {
+    static constexpr bool IsSharedPtr = TreeType<N>::IsPolymorphic;
+
     auto& v = std::get<N>(view);
     if constexpr (N < NInputs) {
       std::get<N>(trees).ensureCache();
@@ -1074,15 +1116,30 @@ private:
     }
     else {
       if constexpr (N < NInputs) {
-        return std::get<N>(trees).value(v.index());
+        if constexpr (IsSharedPtr) {
+          return *(std::get<N>(trees).value(v.index()));
+        }
+        else {
+          return std::get<N>(trees).value(v.index());
+        }
       }
       else {
         if (v.index() == std::get<N>(trees).size()) {
           std::get<N>(trees).emplace_back(0);
-          return std::get<N>(trees).values().back();
+          if constexpr (IsSharedPtr) {
+            return *(std::get<N>(trees).values().back());
+          }
+          else {
+            return std::get<N>(trees).values().back();
+          }
         }
         else {
-          return std::get<N>(trees).value(v.index());
+          if constexpr (IsSharedPtr) {
+            return *(std::get<N>(trees).value(v.index()));
+          }
+          else {
+            return std::get<N>(trees).value(v.index());
+          }
         }
       }
     }
@@ -1251,7 +1308,7 @@ public:
    *
    * @param trees Data trees corresponding to the arguments of the function.
    */
-  Combinations(const TreeTupleT& trees)
+  explicit Combinations(const TreeTupleT& trees)
       : mTrees(trees)
   {}
 
@@ -1340,7 +1397,7 @@ struct TypeInfo<func::data::ReadView<T, Dim>> : public TypeInfo<T>
 struct Bool
 {
   Bool() = default;
-  Bool(bool b);
+  explicit Bool(bool b);
   operator bool&();
   operator bool() const;
 

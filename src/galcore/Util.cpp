@@ -1,7 +1,7 @@
-#include <galcore/Util.h>
 #include <cmath>
 #include <filesystem>
 #include <string>
+
 #ifdef _MSC_VER
 #include <Shlwapi.h>
 #else
@@ -9,6 +9,10 @@
 #include <unistd.h>
 #define MAX_PATH PATH_MAX
 #endif
+
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <galcore/Util.h>
 
 #define deletePtr(ptr, isArray) \
   if (isArray) {                \
@@ -93,6 +97,12 @@ bool gal::IndexPair::add(size_t i)
 bool gal::IndexPair::contains(size_t i) const
 {
   return (i != -1) && (i == p || i == q);
+}
+
+spdlog::logger& gal::utils::logger()
+{
+  static auto sLogger = spdlog::stdout_color_mt("viewer");
+  return *sLogger;
 }
 
 bool gal::utils::barycentricWithinBounds(float const (&coords)[3])

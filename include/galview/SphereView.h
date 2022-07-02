@@ -1,4 +1,5 @@
 #pragma once
+
 #include <galcore/Sphere.h>
 #include <galview/Context.h>
 #include <stdint.h>

@@ -8,6 +8,7 @@ mesh = pgf.loadObjFile(path)
 box = pgf.bounds(mesh)
 pgv.show("mesh", mesh)
 pgv.show("bounds", box)
+pgv.show("centroid", pgf.centroid(mesh))
 
 pgv.runCommands("""
 perspective off

@@ -5,12 +5,14 @@
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <type_traits>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <boost/range/iterator_range_core.hpp>
 #include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
@@ -124,6 +126,8 @@ using CustomSizeTHash = Hash<size_t>;
 
 namespace utils {
 
+spdlog::logger& logger();
+
 template<typename vtype>
 void barycentricCoords(vtype const (&tri)[3], const vtype& pt, float (&coords)[3])
 {
@@ -142,33 +146,6 @@ void barycentricCoords(vtype const (&tri)[3], const vtype& pt, float (&coords)[3
 bool barycentricWithinBounds(float const (&coords)[3]);
 
 glm::vec3 barycentricEvaluate(float const (&coords)[3], glm::vec3 const (&pts)[3]);
-
-template<typename TIter>
-glm::vec3 average(TIter begin, TIter end)
-{
-  glm::vec3 sum = vec3_zero;
-  size_t    n   = 0;
-  while (begin != end) {
-    const glm::vec3& v = *(begin++);
-    sum += v;
-    n++;
-  }
-  return sum / float(n);
-}
-
-template<typename TIter, typename WIter>
-glm::vec3 weightedAverage(TIter begin, TIter end, WIter wbegin)
-{
-  glm::vec3 sum   = vec3_zero;
-  float     denom = 0.0f;
-  while (begin != end) {
-    float            w = *(wbegin++);
-    const glm::vec3& v = *(begin++);
-    sum += v * w;
-    denom += w;
-  }
-  return sum / denom;
-}
 
 constexpr bool isValid(const glm::vec3& v)
 {
@@ -319,6 +296,19 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
   }
 }
 
+/**
+ * @brief Check the sign of the value.
+ *
+ * @tparam T
+ * @param val
+ * @return int 1 if positive, 0 if 0, -1 if negative.
+ */
+template<typename T>
+int sign(T val)
+{
+  return (T(0) < val) - (val < T(0));
+}
+
 template<typename T, typename... Ts>
 constexpr std::array<T, sizeof...(Ts)> makeArray(const Ts&... vals)
 {
@@ -334,6 +324,57 @@ std::vector<T> makeVector(const ContainerT& c)
 
 template<typename T>
 using IterSpan = boost::iterator_range<T>;
+
+/**
+ * @brief Wrapper that treats the wrapped instance as cached data. So you can expire the
+ * cache, and it will be automatically updated when you try to access using the given
+ * update-functor. The usage is similar to std::optional.
+ *
+ * @tparam T The wrapped datatype.
+ */
+template<typename T>
+struct Cached
+{
+private:
+  T          mValue;
+  bool       mIsExpired = true;
+  std::mutex mMutex;
+
+public:
+  template<typename... Args>
+  explicit Cached(const Args&... args)
+      : mValue(args...)
+  {}
+
+  Cached(const Cached& other)
+      : mValue(other.mValue)
+      , mIsExpired(other.mIsExpired)
+      , mMutex()  // Don't copy the mutex
+  {}
+
+  ~Cached() = default;
+
+  Cached& operator=(const Cached& other)
+  {
+    mValue     = other.mValue;
+    mIsExpired = other.mIsExpired;
+    return *this;
+  }
+
+  void expire() { mIsExpired = true; }
+  bool isExpired() const { return mIsExpired; }
+  void unexpire() { mIsExpired = false; }
+
+  T&       value() { return mValue; }
+  const T& value() const { return mValue; }
+  T&       operator*() { return value(); }
+  const T& operator*() const { return value(); }
+  T*       operator->() { return &value(); }
+  const T* operator->() const { return &value(); }
+           operator bool() const { return !isExpired(); }
+
+  std::mutex& mutex() { return mMutex; }
+};
 
 }  // namespace utils
 }  // namespace gal

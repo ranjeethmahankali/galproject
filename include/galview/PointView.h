@@ -1,4 +1,5 @@
 #pragma once
+
 #include <galcore/PointCloud.h>
 #include <galview/Context.h>
 #include <numeric>

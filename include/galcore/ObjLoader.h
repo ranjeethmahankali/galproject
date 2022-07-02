@@ -18,14 +18,14 @@ public:
     int64_t normals[3];
   };
 
-  ObjMeshData(const std::filesystem::path& filepath, bool flipYAndZ = false);
+  explicit ObjMeshData(const std::filesystem::path& filepath, bool flipYAndZ = false);
 
-  Mesh toMesh() const;
+  TriMesh toTriMesh() const;
 
 private:
   std::filesystem::path mPath;
-  tinyobj::ObjReader mReader;
-  bool mFlipYZ = false;
+  tinyobj::ObjReader    mReader;
+  bool                  mFlipYZ = false;
 };
 
 }  // namespace io

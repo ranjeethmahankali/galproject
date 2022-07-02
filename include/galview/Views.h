@@ -53,7 +53,7 @@ using ViewManager = TViewManager<TextAnnotations,
                                  Circle2d,
                                  Line2d,
                                  Line3d,
-                                 Mesh,
+                                 TriMesh,
                                  glm::vec3,
                                  glm::vec2,
                                  Plane,
@@ -106,7 +106,7 @@ private:
 
 public:
   template<typename T>
-  static void update(size_t drawableIndex, const std::vector<T>& objs)
+  static void update(size_t drawableIndex, const std::vector<SafeInstanceType<T>>& objs)
   {
     std::get<Drawable<T>>(getDrawable(drawableIndex)).update(objs);
   }

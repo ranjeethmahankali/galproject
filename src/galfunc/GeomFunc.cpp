@@ -109,7 +109,7 @@ GAL_FUNC(randomPointsInBox,
 GAL_FUNC(convexHullFromPoints,
          "Creates a convex hull from the given point cloud",
          (((data::ReadView<glm::vec3, 1>), points, "Point cloud")),
-         ((gal::Mesh, hull, "Convex hull")))
+         ((gal::TriMesh, hull, "Convex hull")))
 {
   hull = std::move(gal::ConvexHull(points.begin(), points.end()).toMesh());
 }

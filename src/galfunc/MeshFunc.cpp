@@ -1,4 +1,5 @@
 #include <tbb/parallel_for.h>
+#include <glm/common.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <galcore/ObjLoader.h>
@@ -9,7 +10,7 @@ namespace func {
 
 GAL_FUNC(centroid,
          "Gets the centroid of a mesh",
-         ((gal::Mesh, mesh, "The mesh")),
+         ((gal::TriMesh, mesh, "The mesh")),
          ((glm::vec3, centroid, "x coordinate")))
 {
   centroid = mesh.centroid(gal::eMeshCentroidType::volumeBased);
@@ -17,7 +18,7 @@ GAL_FUNC(centroid,
 
 GAL_FUNC(volume,
          "Gets the volume of the mesh",
-         ((gal::Mesh, mesh, "The mesh")),
+         ((gal::TriMesh, mesh, "The mesh")),
          ((float, volume, "Volume of the mesh")))
 {
   volume = mesh.volume();
@@ -25,7 +26,7 @@ GAL_FUNC(volume,
 
 GAL_FUNC(area,
          "Gets the surface area of the mesh",
-         ((gal::Mesh, mesh, "The mesh")),
+         ((gal::TriMesh, mesh, "The mesh")),
          ((float, result, "Surface area of the mesh")))
 {
   result = mesh.area();
@@ -34,15 +35,15 @@ GAL_FUNC(area,
 GAL_FUNC(loadObjFile,
          "Loads a mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
-         ((gal::Mesh, mesh, "Loaded mesh")))
+         ((gal::TriMesh, mesh, "Loaded mesh")))
 {
-  mesh = io::ObjMeshData(filepath, true).toMesh();
+  mesh = io::ObjMeshData(filepath, true).toTriMesh();
 }
 
 GAL_FUNC(scale,
          "Scales the mesh. Returns a new instance.",
-         ((gal::Mesh, mesh, "Scaled mesh"), (float, scale, "Scale")),
-         ((gal::Mesh, scaled, "Input mesh")))
+         ((gal::TriMesh, mesh, "Scaled mesh"), (float, scale, "Scale")),
+         ((gal::TriMesh, scaled, "Input mesh")))
 {
   scaled = mesh;
   scaled.transform(glm::scale(glm::vec3(scale)));
@@ -50,8 +51,9 @@ GAL_FUNC(scale,
 
 GAL_FUNC(clipMesh,
          "Clips the given mesh with the plane. Returns a new mesh.",
-         ((gal::Mesh, mesh, "mesh to clip"), (gal::Plane, plane, "Plane to clip with")),
-         ((gal::Mesh, clipped, "Clipped mesh")))
+         ((gal::TriMesh, mesh, "mesh to clip"),
+          (gal::Plane, plane, "Plane to clip with")),
+         ((gal::TriMesh, clipped, "Clipped mesh")))
 {
   clipped = mesh.clippedWithPlane(plane);
 }
@@ -59,43 +61,43 @@ GAL_FUNC(clipMesh,
 GAL_FUNC(meshSphereQuery,
          "Queries the mesh face rtree with the given sphere and "
          "returns the new sub-mesh",
-         ((gal::Mesh, mesh, "Mesh to query"),
+         ((gal::TriMesh, mesh, "Mesh to query"),
           (gal::Sphere, sphere, "Sphere to query the faces with")),
-         ((gal::Mesh, resultMesh, "Mesh with the queried faces"),
+         ((gal::TriMesh, resultMesh, "Mesh with the queried faces"),
           ((data::WriteView<int32_t, 1>),
            faceIndices,
            "Indices of the faces that are inside / near the query sphere"),
           (int32_t, numFaces, "The number of faces in the query results")))
 {
   // TODO: Refactor this to not require this vector (avoid allocation).
-  std::vector<size_t> results;
+  std::vector<int> results;
   mesh.querySphere(sphere, std::back_inserter(results), gal::eMeshElement::face);
   faceIndices.reserve(results.size());
   std::transform(
     results.begin(), results.end(), std::back_inserter(faceIndices), [](size_t i) {
       return int32_t(i);
     });
-  resultMesh = mesh.extractFaces(results);
+  resultMesh = mesh.subMesh(results);
   numFaces   = int32_t(results.size());
 }
 
 GAL_FUNC(closestPoints,
          "Creates the result point cloud by closest-point-querying the mesh with "
          "the given point cloud",
-         ((gal::Mesh, mesh, "Mesh"),
+         ((gal::TriMesh, mesh, "Mesh"),
           ((data::ReadView<glm::vec3, 1>), inCloud, "Query point cloud")),
          (((data::WriteView<glm::vec3, 1>), outCloud, "Result point cloud")))
 {
+  mesh.updateRTrees();
   outCloud.resize(inCloud.size());
   tbb::parallel_for(size_t(0), inCloud.size(), [&](size_t i) {
-    glm::vec3 pt = inCloud[i];
-    outCloud[i]  = mesh.closestPoint(pt, FLT_MAX);
+    outCloud[i] = mesh.closestPoint(inCloud[i], FLT_MAX);
   });
 }
 
 GAL_FUNC(bounds,
          "Gets the bounding box of the mesh",
-         ((gal::Mesh, mesh, "Mesh")),
+         ((gal::TriMesh, mesh, "Mesh")),
          ((gal::Box3, bbox, "Bounds of the mesh")))
 {
   bbox = mesh.bounds();
@@ -103,27 +105,30 @@ GAL_FUNC(bounds,
 
 GAL_FUNC(numFaces,
          "Gets the number of faces of the mesh",
-         ((gal::Mesh, mesh, "Mesh")),
+         ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
 {
-  nfaces = mesh.numFaces();
+  nfaces = mesh.n_faces();
 }
 
 GAL_FUNC(numVertices,
          "Gets the number of vertices of the mesh",
-         ((gal::Mesh, mesh, "Mesh")),
+         ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nverts, "Number of vertices")))
 {
-  nverts = mesh.numVertices();
+  nverts = mesh.n_vertices();
 }
 
 GAL_FUNC(vertices,
          "Gets the vertices of the mesh as a list of points",
-         ((gal::Mesh, mesh, "Mesh")),
+         ((gal::TriMesh, mesh, "Mesh")),
          (((data::WriteView<glm::vec3, 1>), points, "Vertex positions")))
 {
-  points.reserve(mesh.numVertices());
-  std::copy(mesh.vertices().begin(), mesh.vertices().end(), std::back_inserter(points));
+  points.reserve(mesh.n_vertices());
+  std::transform(mesh.vertices().begin(),
+                 mesh.vertices().end(),
+                 std::back_inserter(points),
+                 [&](TriMesh::VertH v) { return mesh.point(v); });
 }
 
 GAL_FUNC(rectangleMesh,
@@ -131,19 +136,22 @@ GAL_FUNC(rectangleMesh,
          ((gal::Plane, plane, "plane"),
           (gal::Box2, bounds, "Bounds"),
           (float, edgeLength, "Approximate edge length.")),
-         ((gal::Mesh, mesh, "Resulting rectangular mesh")))
+         ((gal::TriMesh, mesh, "Resulting rectangular mesh")))
 {
-  mesh = std::move(createRectangularMesh(plane, bounds, edgeLength));
+  mesh = std::move(makeRectangularMesh(plane, bounds, edgeLength));
 }
 
 GAL_FUNC(meshWithVertexColors,
          "Creates a new mesh by with the given vertex colors",
-         ((gal::Mesh, mesh, "Input mesh"),
+         ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
-         ((gal::Mesh, outmesh, "Colored mesh with vertex colors.")))
+         ((gal::TriMesh, outmesh, "Colored mesh with vertex colors.")))
 {
   outmesh = mesh;
-  outmesh.setVertexColors(colors.begin(), colors.end());
+  outmesh.request_vertex_colors();
+  for (int i = 0; i < colors.size(); i++) {
+    outmesh.set_color(outmesh.vertex_handle(i), colors[i]);
+  }
 }
 
 void bind_MeshFunc()
