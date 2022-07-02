@@ -232,8 +232,8 @@ public:
 
   void ensureCache() const
   {
+    std::lock_guard lock(mCache.mutex());
     if (!mCache) {
-      std::lock_guard lock(mCache.mutex());
       mCache->update(*this);
     }
   }
