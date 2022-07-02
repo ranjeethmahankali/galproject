@@ -3,18 +3,17 @@
   "version-string": "0.0.0",
   "dependencies": [
     "spdlog",
-    "boost-python",
+    "pybind11",
     "boost-geometry",
     "cxxopts",
     "python3",
     "glm",
-    "glew",
     "glfw3",
     {
       "name": "imgui",
       "features": [
         "glfw-binding",
-        "opengl3-glew-binding"
+        "opengl3-binding"
       ]
     },
     "gtest",
@@ -24,11 +23,5 @@
     "pngpp",
     "openmesh"
   ],
-  "builtin-baseline": "5568f110b509a9fd90711978a7cb76bae75bb092",
-  "overrides": [
-    {
-      "name": "python3",
-      "version": "3.9.2"
-    }
-  ]
+  "builtin-baseline": "3d8f78171a2a37d461077bf8d063256b63e25a4f"
 }
