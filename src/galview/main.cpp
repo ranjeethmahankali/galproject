@@ -45,35 +45,32 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
     return 1;
   }
   glutil::logger().info("Initialized GLFW.");
-
+  // Window setup
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
   std::string title = "galview - " + filename;
   window            = glfwCreateWindow(1920, 1080, title.c_str(), nullptr, nullptr);
-  if (window == nullptr)
+  if (window == nullptr) {
     return 1;
-
+  }
   glfwMakeContextCurrent(window);
   glfwSwapInterval(0);
-
+  // OpenGL bindings
   if (glewInit() != GLEW_OK) {
     glutil::logger().error("Failed to initialize OpenGL bindings.");
     return 1;
   }
   glutil::logger().info("OpenGL bindings are ready.");
-
   // Init shader.
   view::Context& ctx      = view::Context::get();
   size_t         shaderId = ctx.shaderId("default");
   ctx.useShader(shaderId);
-
+  // Mouse support
   view::Context::registerCallbacks(window);
   glutil::logger().debug(
     "Registered mouse event callbacks to allow viewer interactions.");
   view::Context::get().setPerspective();
-
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
   glViewport(0, 0, W, H);
@@ -97,10 +94,8 @@ int loadDemo(const fs::path& demoPath)
       glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
       return err;
     }
-
     // Initialize all the user interface elements.
     view::init(window, glslVersion);
-
     // Initialize Embedded Python and the demo
     initPythonEnvironment();
     err = view::runPythonDemoFile(demoPath);
@@ -108,7 +103,7 @@ int loadDemo(const fs::path& demoPath)
       glutil::logger().error("Unable to run the demo file. Error code {}.", err);
       return err;
     }
-
+    // Render loop.
     glutil::logger().info("Starting the render loop...");
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
@@ -130,7 +125,6 @@ int loadDemo(const fs::path& demoPath)
     glutil::logger().critical("Fatal error: {}", e.what());
     err = -1;
   }
-
   view::destroy(window);
   return err;
 }
@@ -149,21 +143,17 @@ int main(int argc, char** argv)
   opts.positional_help("<path/to/demo/file>");
   opts.parse_positional({"filepath"});
   auto parsed = opts.parse(argc, argv);
-
   if (parsed.count("help")) {
     std::cout << opts.help() << std::endl;
     return 0;
   }
-
   if (parsed.count("filepath") == 0) {
     std::cerr << "Please provide the path to the demo file.\n";
     return 1;
   }
-
   if (!fs::is_regular_file(path) || !fs::exists(path)) {
     std::cerr << "The given path does not point to a an existing file.\n";
     return 1;
   }
-
   return loadDemo(path);
 }
