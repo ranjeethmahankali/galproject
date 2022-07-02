@@ -235,6 +235,7 @@ public:
     std::lock_guard lock(mCache.mutex());
     if (!mCache) {
       mCache->update(*this);
+      mCache.unexpire();
     }
   }
 
