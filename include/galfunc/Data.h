@@ -48,35 +48,26 @@ public:
     std::vector<size_t> mDepthScan;
     std::vector<size_t> mOffsets;
 
-  private:
-    const Tree<T>* mTree;
-
   public:
-    explicit OffsetData(const Tree<T>& tree)
-        : mTree(&tree)
-    {}
-
-    const Tree<T>& tree() const { return *mTree; }
-
-    void update()
+    void update(const Tree<T>& tree)
     {
       clear();
-      if (tree().empty()) {
+      if (tree.empty()) {
         return;
       }
-      mDepthScan.resize(tree().mDepths.size());
+      mDepthScan.resize(tree.mDepths.size());
       std::transform_exclusive_scan(std::execution::par,
-                                    tree().mDepths.begin(),
-                                    tree().mDepths.end(),
+                                    tree.mDepths.begin(),
+                                    tree.mDepths.end(),
                                     mDepthScan.begin(),
                                     size_t(0),
                                     std::plus<size_t> {},
                                     [](DepthT d) { return size_t(d); });
-      mOffsets.resize(mDepthScan.back() + size_t(tree().mDepths.back()));
-      DepthT              dmax = tree().maxDepth();
+      mOffsets.resize(mDepthScan.back() + size_t(tree.mDepths.back()));
+      DepthT              dmax = tree.maxDepth();
       std::vector<size_t> pegs(dmax, 0);
-      for (size_t i = 0; i < tree().mDepths.size(); i++) {
-        size_t dcur = size_t(tree().mDepths[i]);
+      for (size_t i = 0; i < tree.mDepths.size(); i++) {
+        size_t dcur = size_t(tree.mDepths[i]);
         if (dcur == 0) {
           continue;
         }
@@ -86,7 +77,7 @@ public:
             mOffsets[mDepthScan[peg] + d] = i - peg;
             peg                           = i;
           }
-          mOffsets[mDepthScan[i] + d] = tree().mDepths.size() - i;
+          mOffsets[mDepthScan[i] + d] = tree.mDepths.size() - i;
         }
       }
     }
@@ -97,13 +88,10 @@ public:
       mOffsets.clear();
     }
 
-    size_t offset(size_t pos, DepthT depth) const
+    size_t offset(const Tree<T>& tt, size_t pos, DepthT depth) const
     {
-      if (!mTree) {
-        return 0;
-      }
-      if (depth > tree().depth(pos)) {
-        return tree().size() - pos;
+      if (depth > tt.depth(pos)) {
+        return tt.size() - pos;
       }
       else if (depth == 0) {
         return 1;
@@ -180,11 +168,11 @@ private:
   }
 
 public:
-  Tree()
-      : mCache(*this)
-  {}
-
-  const OffsetData& cache() const { return *mCache; }
+  size_t stride(size_t pos, DepthT depth) const
+  {
+    ensureCache();
+    return mCache->offset(*this, pos, depth);
+  }
 
   DepthT maxDepth() const
   {
@@ -238,7 +226,7 @@ public:
   {
     if (!mCache) {
       std::lock_guard lock(mCache.mutex());
-      mCache->update();
+      mCache->update(*this);
     }
   }
 
@@ -471,13 +459,13 @@ public:
       size_t n = 0;
       size_t i = mIndex;
       do {
-        i += mTree->mCache->offset(i, Dim - 1);
+        i += mTree->stride(i, Dim - 1);
         n++;
       } while (i < mTree->size() && mTree->depth(i) == Dim - 1);
       return n;
     }
     else {
-      return mTree->mCache->offset(mIndex, Dim);
+      return mTree->stride(mIndex, Dim);
     }
   }
 
@@ -490,7 +478,7 @@ public:
    *
    * @return size_t
    */
-  size_t advanceIndex() const { return mIndex + mTree->mCache->offset(mIndex, Dim); }
+  size_t advanceIndex() const { return mIndex + mTree->stride(mIndex, Dim); }
 
   /**
    * @brief Checks whether this tree can advance into its sibling's position. If this node
@@ -568,7 +556,7 @@ public:
       ++mIndex;
     }
     else {
-      mIndex += mTree.mCache->offset(mIndex, Dim);
+      mIndex += mTree.stride(mIndex, Dim);
     }
     if (mIndex < storage().size() && depths()[mIndex] > Dim) {
       mIndex = storage().size();
@@ -1018,7 +1006,7 @@ public:
       if (mIndex >= mTree.size()) {
         return false;
       }
-      size_t advIdx = mIndex + (td == 0 ? 1 : mTree.cache().offset(mIndex, td));
+      size_t advIdx = mIndex + (td == 0 ? 1 : mTree.stride(mIndex, td));
       if (advIdx < mTree.size() && mTree.depth(advIdx) == td) {
         mIndex = advIdx;
         return true;
