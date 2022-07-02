@@ -8,14 +8,13 @@ minpt = pgf.var_vec3((-.5, -.5, 0.))
 maxpt = pgf.var_vec3((.5, .5, 0.))
 box2 = pgf.box2(pgf.var_vec2((-.5, -.5)), pgf.var_vec2((.5, .5)))
 box3 = pgf.box3(minpt, maxpt)
-# npts = pgv.slideri32("Point count", 5, 50, 25)
-npts = pgf.var_int(2)
+npts = pgv.slideri32("Point count", 5, 50, 25)
 cloud = pgf.randomPointsInBox(box3, npts)
 
-edgeLen = pgf.var_float(1)
+edgeLen = pgf.var_float(.01)
 rect = pgf.rectangleMesh(plane, box2, edgeLen)
-vertices = pgf.vertices(rect)
-distances = pgf.distance(pgf.graft(vertices), cloud)
+
+distances = pgf.distance(pgf.graft(pgf.vertices(rect)), cloud)
 sortedDists = pgf.sort(distances, distances)
 maxDist = pgf.listItem(sortedDists,
                        pgf.sub(pgf.listLength(sortedDists), pgf.var_int(1)))
