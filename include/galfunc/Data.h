@@ -2,6 +2,7 @@
 
 #include <execution>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -236,6 +237,7 @@ public:
   void ensureCache() const
   {
     if (!mCache) {
+      std::lock_guard lock(mCache.mutex());
       mCache->update();
     }
   }
