@@ -62,8 +62,8 @@ jobs:
         pip3 install -e ${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
-        CC: gcc-10
-        CXX: g++-10
+        CC: gcc-11
+        CXX: g++-11
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
