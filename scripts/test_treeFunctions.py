@@ -36,5 +36,23 @@ def test_flatten():
         assert tu.equal(expected, pgf.read(outtree))
 
 
+def test_cachedOffsetDataRegression():
+    # This tests for a regression (lack of) happened while working on PR # 53.
+    pt = pgf.var_vec3((0., 0., 0.))
+    norm = pgf.var_vec3((0., 0., 1.))
+    plane = pgf.plane(pt, norm)
+    minpt = pgf.var_vec3((-.5, -.5, 0.))
+    maxpt = pgf.var_vec3((.5, .5, 0.))
+    box2 = pgf.box2(pgf.var_vec2((-.5, -.5)), pgf.var_vec2((.5, .5)))
+    box3 = pgf.box3(minpt, maxpt)
+    npts = pgf.var_int(4)
+    cloud = pgf.randomPointsInBox(box3, npts)
+    edgeLen = pgf.var_float(1)
+    rect = pgf.rectangleMesh(plane, box2, edgeLen)
+    distances = pgf.distance(pgf.graft(pgf.vertices(rect)), cloud)
+    pdists = pgf.read(pgf.flatten(distances))
+    assert len(pdists) == 16
+
+
 if __name__ == "__main__":
     test_flatten()
