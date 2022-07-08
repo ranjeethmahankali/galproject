@@ -8,6 +8,7 @@ include(vcpkg.cmake)
 project(gal)
 
 # Dependencies and Includes - begin
+find_package(PythonLibs REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
 find_package(Boost REQUIRED)
@@ -70,11 +71,11 @@ add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
 target_link_libraries(galfunc galfuncobjects)
 
 # Python shared lib
-add_library(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
+pybind11_add_module(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
 set_target_properties(pygalfunc PROPERTIES
   SUFFIX .so
   PREFIX "")
-target_link_libraries(pygalfunc galfuncobjects)
+target_link_libraries(pygalfunc PUBLIC galfuncobjects)
 # Copy the python setup file
 add_custom_command(TARGET pygalfunc
   POST_BUILD
