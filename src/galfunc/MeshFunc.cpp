@@ -154,22 +154,22 @@ GAL_FUNC(meshWithVertexColors,
   }
 }
 
-void bind_MeshFunc()
+void bind_MeshFunc(py::module& module)
 {
-  GAL_FN_BIND(centroid,
-              volume,
-              area,
-              scale,
-              bounds,
-              numFaces,
-              numVertices,
-              vertices,
-              loadObjFile,
-              clipMesh,
-              meshSphereQuery,
-              closestPoints,
-              rectangleMesh,
-              meshWithVertexColors);
+  GAL_FN_BIND(centroid, module);
+  GAL_FN_BIND(volume, module);
+  GAL_FN_BIND(area, module);
+  GAL_FN_BIND(scale, module);
+  GAL_FN_BIND(bounds, module);
+  GAL_FN_BIND(numFaces, module);
+  GAL_FN_BIND(numVertices, module);
+  GAL_FN_BIND(vertices, module);
+  GAL_FN_BIND(loadObjFile, module);
+  GAL_FN_BIND(clipMesh, module);
+  GAL_FN_BIND(meshSphereQuery, module);
+  GAL_FN_BIND(closestPoints, module);
+  GAL_FN_BIND(rectangleMesh, module);
+  GAL_FN_BIND(meshWithVertexColors, module);
 }
 
 }  // namespace func

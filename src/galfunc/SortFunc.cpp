@@ -27,20 +27,20 @@ GAL_FUNC_TEMPLATE(((typename, TVal), (typename, TKey)),
 namespace sortfunc {  // Namespace to avoid linker confusion.
 
 template<typename T>
-struct bindAllTypes
+struct bindForAllTypes
 {
-  static void invoke()
+  static void invoke(py::module& mod)
   {
     // Two overloads for the sort function with different key types.
-    GAL_FN_BIND_TEMPLATE(sort, T, int32_t);
-    GAL_FN_BIND_TEMPLATE(sort, T, float);
+    GAL_FN_BIND_TEMPLATE(sort, mod, T, int32_t);
+    GAL_FN_BIND_TEMPLATE(sort, mod, T, float);
   }
 };
 
 }  // namespace sortfunc
-void bind_SortFunc()
+void bind_SortFunc(py::module& mod)
 {
-  typemanager::invoke<sortfunc::bindAllTypes>();
+  typemanager::invoke<sortfunc::bindForAllTypes>((py::module&)mod);
 }
 
 }  // namespace func

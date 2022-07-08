@@ -83,10 +83,14 @@ GAL_FUNC(perimeter,
   result = circ.perimeter();
 }
 
-void bind_CircleFunc()
+void bind_CircleFunc(py::module& module)
 {
-  GAL_FN_BIND(
-    bounds, area, boundingCircle, circle2d, circle2dFromDiameter, circumCircle2d);
+  GAL_FN_BIND(bounds, module);
+  GAL_FN_BIND(area, module);
+  GAL_FN_BIND(boundingCircle, module);
+  GAL_FN_BIND(circle2d, module);
+  GAL_FN_BIND(circle2dFromDiameter, module);
+  GAL_FN_BIND(circumCircle2d, module);
 }
 
 }  // namespace func

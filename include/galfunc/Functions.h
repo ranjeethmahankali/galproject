@@ -6,9 +6,6 @@
 #include <tuple>
 #include <type_traits>
 
-#define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#include <boost/python.hpp>
-
 #include <spdlog/spdlog.h>
 
 #include <galcore/Util.h>
@@ -401,11 +398,11 @@ typename TArgList::ArgTreeRefTupleT makeArgTreeRefTuple(
 
 // For internal use only from the other function.
 template<typename OutputTupleT, size_t... Is>
-boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
-                                               const OutputTupleT& src,
-                                               std::index_sequence<Is...>)
+py::tuple pythonOutputTupleInternal(const Function*     fn,
+                                    const OutputTupleT& src,
+                                    std::index_sequence<Is...>)
 {
-  return boost::python::make_tuple(
+  return py::make_tuple(
     ArgRegisterT<typename std::tuple_element_t<Is, OutputTupleT>::Type>(
       fn, &(std::get<Is>(src)), Is)...);
 }
@@ -417,10 +414,10 @@ boost::python::tuple pythonOutputTupleInternal(const Function*     fn,
  * @tparam OutputTupleT The output tuple type.
  * @param fn The function that owns the outputs.
  * @param src The output tuple. It is the source of the wrapped register tuple.
- * @return boost::python::tuple
+ * @return py::tuple
  */
 template<typename OutputTupleT>
-boost::python::tuple pythonOutputTuple(const Function* fn, const OutputTupleT& src)
+py::tuple pythonOutputTuple(const Function* fn, const OutputTupleT& src)
 {
   return pythonOutputTupleInternal(
     fn, src, std::make_index_sequence<std::tuple_size_v<OutputTupleT>> {});
@@ -449,19 +446,22 @@ struct TFunction : public Function
   static constexpr size_t NArgs   = TArgList::NumTypes;
   static_assert(NInputs <= NArgs,
                 "Number of inputs is larger than the number of arguments!");
-  static constexpr bool   HasInputs = NInputs > 0;
-  static constexpr size_t NOutputs  = NArgs - NInputs;
+  static constexpr bool   HasInputs   = NInputs > 0;
+  static constexpr size_t NOutputs    = NArgs - NInputs;
+  static constexpr bool   NOutputsGT1 = NOutputs > 1;
+  static constexpr bool   NOutputsGT0 = NOutputs > 0;
+  static constexpr bool   NOutputsEQ0 = NOutputs == 0;
 
   using PyOutputType = std::conditional_t<
-    (NOutputs == 0),
+    NOutputsEQ0,
     void,
     std::conditional_t<
-      (NOutputs > 1),
-      boost::python::tuple,
+      NOutputsGT1,
+      py::tuple,
       /* The ternary expression is just in case NOutputs is zero, to make
          sure the code will still compile. It should never lead to a wrong type index
          being used because NOutputs == 0 case is already handled above. */
-      ArgRegisterT<typename TArgList::template Type<(NOutputs > 0 ? NInputs : 0)>>>>;
+      ArgRegisterT<typename TArgList::template Type<(NOutputsGT0 ? NInputs : 0)>>>>;
 
   using ExpirationT =
     std::conditional_t<HasInputs, bool, std::vector<std::reference_wrapper<bool>>>;
@@ -635,9 +635,9 @@ protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
   inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
 
-  void setInternal(const boost::python::object& obj)
+  void setInternal(const py::object& obj)
   {
-    Converter<boost::python::object, data::Tree<TVal>>::assign(obj, tree());
+    Converter<py::object, data::Tree<TVal>>::assign(obj, tree());
   }
 
   void setInternal(const TVal& val)
@@ -647,7 +647,7 @@ protected:
   }
 
 public:
-  explicit TVariable(const boost::python::object& obj)
+  explicit TVariable(const py::object& obj)
       : BaseT({}, {})
   {
     setInternal(obj);
@@ -665,7 +665,7 @@ public:
 
   virtual ~TVariable() = default;
 
-  void set(const boost::python::object& obj)
+  void set(const py::object& obj)
   {
     this->expire();
     setInternal(obj);
@@ -720,7 +720,7 @@ FuncInfo varfnInfo()
 }
 
 template<typename TVal>
-typename TVariable<TVal>::PyOutputType py_varWithValue(const boost::python::object& obj)
+typename TVariable<TVal>::PyOutputType py_varWithValue(const py::object& obj)
 {
   static const auto sInfo = varfnInfo<TVal>();
   auto              fn    = dynamic_cast<const TVariable<TVal>*>(
@@ -766,13 +766,14 @@ private:
 };
 
 template<typename TFnPtr, typename... TFnPtrs>
-void bindOverloads(const char*                             fnName,
+void bindOverloads(py::module&                             m,
+                   const char*                             fnName,
                    std::pair<TFnPtr, const FuncDocString*> fn,
                    std::pair<TFnPtrs, const FuncDocString*>... rest)
 {
-  boost::python::def<TFnPtr>(fnName, std::get<0>(fn), std::get<1>(fn)->c_str());
+  m.def(fnName, std::get<0>(fn), std::get<1>(fn)->c_str());
   if constexpr (sizeof...(TFnPtrs) > 0) {
-    bindOverloads<TFnPtrs...>(fnName, rest...);
+    bindOverloads<TFnPtrs...>(m, fnName, rest...);
   }
 }
 
@@ -942,16 +943,16 @@ void bindOverloads(const char*                             fnName,
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
-#define _GAL_FN_BIND_ONE(fnName) \
-  boost::python::def(#fnName, pyfnptr_##fnName, pyfnInfo_##fnName.c_str())
-#define GAL_FN_BIND(...) MAP_LIST(_GAL_FN_BIND_ONE, __VA_ARGS__)
+#define GAL_FN_BIND(fnName, module) \
+  module.def(#fnName, pyfnptr_##fnName, pyfnInfo_##fnName.c_str())
 
 #define _GAL_FN_OVERLOAD_DATA(fnName) std::make_pair(pyfnptr_##fnName, &pyfnInfo_##fnName)
-#define GAL_FN_BIND_OVERLOADS(fnName, ...) \
-  gal::func::python::bindOverloads(#fnName, MAP_LIST(_GAL_FN_OVERLOAD_DATA, __VA_ARGS__))
+#define GAL_FN_BIND_OVERLOADS(module, fnName, ...) \
+  gal::func::python::bindOverloads(                \
+    module, #fnName, MAP_LIST(_GAL_FN_OVERLOAD_DATA, __VA_ARGS__))
 
-#define GAL_FN_BIND_TEMPLATE(fnName, ...) \
-  boost::python::def(#fnName, pyfnptr_##fnName<__VA_ARGS__>, pyfnInfo_##fnName.c_str())
+#define GAL_FN_BIND_TEMPLATE(fnName, module, ...) \
+  module.def(#fnName, pyfnptr_##fnName<__VA_ARGS__>, pyfnInfo_##fnName.c_str())
 
 // Forward declaration of the module initializer, which will be defined by boost later.
 // This should be called before running scripts from within C++.
@@ -966,18 +967,18 @@ namespace python {
  *
  * @tparam T The source datatype (register).
  * @param reg The register.
- * @return boost::python::object Converted python object.
+ * @return py::object Converted python object.
  */
 template<typename T>
-boost::python::object read(const Register<T>& reg)
+py::object read(const Register<T>& reg)
 {
-  boost::python::object dst;
-  Converter<data::Tree<T>, boost::python::object>::assign(reg.read(), dst);
+  py::object dst;
+  Converter<data::Tree<T>, py::object>::assign(reg.read(), dst);
   return dst;
 }
 
 template<typename T>
-void assign(const Register<T>& reg, const boost::python::object& src)
+void assign(const Register<T>& reg, const py::object& src)
 {
   const TVariable<T>* mOwner = dynamic_cast<const TVariable<T>*>(reg.mOwner);
   if (mOwner) {
@@ -998,19 +999,19 @@ void assign(const Register<T>& reg, const boost::python::object& src)
 template<typename T>
 struct defClass
 {
-  static boost::python::class_<Register<T>>& pythonType()
+  static py::class_<Register<T>>& pythonType(py::module& mod)
   {
     static const std::string name("r_" + TypeInfo<T>::name());
-    static auto              sType = boost::python::class_<Register<T>>(name.c_str());
+    static auto              sType = py::class_<Register<T>>(mod, name.c_str());
     return sType;
   }
 
-  static void invoke()
+  static void invoke(py::module& mod)
   {
-    using namespace boost::python;
     // Defining the str function allows python to print the objects using the c++
     // implementation of the << operator.
-    pythonType().def(boost::python::self_ns::str(boost::python::self_ns::self));
+    pythonType(mod).def("__str__",
+                        [](const Register<T>& reg) { std::cout << reg << std::endl; });
     // Functions to create a varable of the type.
     static const FuncInfo    varInfo = varfnInfo<T>();
     static const std::string sVarDesc =
@@ -1018,15 +1019,16 @@ struct defClass
     static const std::string sVarEmptyDesc =
       "Create an empty variable of the type " + TypeInfo<T>::name() + ".";
 
-    def(varInfo.mName.data(), py_varWithValue<T>, sVarDesc.c_str());
-    def(varInfo.mName.data(), py_varEmpty<T>, sVarEmptyDesc.c_str());
+    mod.def(varInfo.mName.data(), py_varWithValue<T>, sVarDesc.c_str());
+    mod.def(varInfo.mName.data(), py_varEmpty<T>, sVarEmptyDesc.c_str());
     // Read value into python if conversion is available.
-    def("read",
-        read<T>,
-        "Read the data from the variable. This might cause all or some of the upstream "
-        "functions to be evaluated.");
+    mod.def(
+      "read",
+      read<T>,
+      "Read the data from the variable. This might cause all or some of the upstream "
+      "functions to be evaluated.");
     // Assign values to registers.
-    def("assign", assign<T>, "Assign the given value to the variable");
+    mod.def("assign", assign<T>, "Assign the given value to the variable");
   }
 };
 

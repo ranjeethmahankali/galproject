@@ -105,18 +105,25 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   quot = a / b;
 }
 
-void bind_MathFunc()
+void bind_MathFunc(py::module& mod)
 {
-  GAL_FN_BIND(sin, cos, tan, arcsin, arccos, arctan, powf32, sqrtf32);
+  GAL_FN_BIND(sin, mod);
+  GAL_FN_BIND(cos, mod);
+  GAL_FN_BIND(tan, mod);
+  GAL_FN_BIND(arcsin, mod);
+  GAL_FN_BIND(arccos, mod);
+  GAL_FN_BIND(arctan, mod);
+  GAL_FN_BIND(powf32, mod);
+  GAL_FN_BIND(sqrtf32, mod);
 
-  GAL_FN_BIND_TEMPLATE(add, float);
-  GAL_FN_BIND_TEMPLATE(add, int32_t);
-  GAL_FN_BIND_TEMPLATE(sub, float);
-  GAL_FN_BIND_TEMPLATE(sub, int32_t);
-  GAL_FN_BIND_TEMPLATE(mul, float);
-  GAL_FN_BIND_TEMPLATE(mul, int32_t);
-  GAL_FN_BIND_TEMPLATE(div, float);
-  GAL_FN_BIND_TEMPLATE(div, int32_t);
+  GAL_FN_BIND_TEMPLATE(add, mod, float);
+  GAL_FN_BIND_TEMPLATE(add, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(sub, mod, float);
+  GAL_FN_BIND_TEMPLATE(sub, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(mul, mod, float);
+  GAL_FN_BIND_TEMPLATE(mul, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(div, mod, float);
+  GAL_FN_BIND_TEMPLATE(div, mod, int32_t);
 }
 
 }  // namespace func

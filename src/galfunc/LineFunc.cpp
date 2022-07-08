@@ -59,10 +59,11 @@ GAL_FUNC(
   }
 }
 
-void bind_LineFunc()
+void bind_LineFunc(py::module& module)
 {
-  GAL_FN_BIND(line2d, line3d);
-  GAL_FN_BIND_OVERLOADS(pointsOnLine, samplePointsOnLine2d, samplePointsOnLine3d);
+  GAL_FN_BIND(line2d, module);
+  GAL_FN_BIND(line3d, module);
+  GAL_FN_BIND_OVERLOADS(module, pointsOnLine, samplePointsOnLine2d, samplePointsOnLine3d);
 }
 
 }  // namespace func

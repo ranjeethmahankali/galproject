@@ -32,9 +32,11 @@ GAL_FUNC(bounds,
   bbox = s.bounds();
 }
 
-void bind_SphereFunc()
+void bind_SphereFunc(py::module& module)
 {
-  GAL_FN_BIND(bounds, sphere, boundingSphere);
+  GAL_FN_BIND(bounds, module);
+  GAL_FN_BIND(sphere, module);
+  GAL_FN_BIND(boundingSphere, module);
 }
 
 }  // namespace func
