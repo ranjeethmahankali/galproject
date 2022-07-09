@@ -13,7 +13,7 @@ namespace py = pybind11;
 namespace gal {
 namespace func {
 
-template<typename T1, typename T2>
+template<typename T1, typename T2, typename Enable = void>
 struct Converter
 {
   T2 operator()(const T1& src) const
@@ -31,6 +31,76 @@ template<typename T>
 struct Converter<py::object, T>
 {
   static void assign(const py::object& obj, T& dst) { dst = obj.cast<T>(); }
+};
+
+template<typename... Ts>
+struct ConverterTypeMap;
+
+template<>
+struct ConverterTypeMap<>
+{
+  // This happens when there is no match.
+  template<typename TQuery>
+  using TMatch = void;
+};
+
+template<typename T1, typename T2, typename... Ts>
+struct ConverterTypeMap<T1, T2, Ts...>
+{
+  static_assert(sizeof...(Ts) % 2 == 0, "Type map must contain pairs of types.");
+  template<typename TQuery>
+  using TMatch = std::conditional_t<
+    std::is_same_v<TQuery, T1>,
+    T2,
+    std::conditional_t<std::is_same_v<TQuery, T2>,
+                       T1,
+                       typename ConverterTypeMap<Ts...>::template TMatch<TQuery>>>;
+  template<typename TQuery>
+  static constexpr bool KnownType = !std::is_same_v<TMatch<TQuery>, void>;
+};
+
+// Default specialization for gal types.
+template<typename T>
+struct Converter<T, py::object>
+{
+  static void assign(const T& src, py::object& dst)
+  {
+    dst = py::str(TypeInfo<T>::name() + " object");
+  }
+};
+
+using CppPythonTypeMap = ConverterTypeMap<bool,
+                                          py::bool_,
+                                          uint8_t,
+                                          py::int_,
+                                          uint16_t,
+                                          py::int_,
+                                          uint32_t,
+                                          py::int_,
+                                          uint64_t,
+                                          py::int_,
+                                          int8_t,
+                                          py::int_,
+                                          int16_t,
+                                          py::int_,
+                                          int32_t,
+                                          py::int_,
+                                          int64_t,
+                                          py::int_,
+                                          float,
+                                          py::float_,
+                                          double,
+                                          py::float_,
+                                          std::string,
+                                          py::str>;
+// Specialization for types with mappings to python defined above.
+template<typename T>
+struct Converter<T,
+                 py::object,
+                 typename std::enable_if<CppPythonTypeMap::KnownType<T>, T>::type>
+{
+  using PythonT = CppPythonTypeMap::TMatch<T>;
+  static void assign(const T& src, py::object& dst) { dst = PythonT(src); }
 };
 
 template<int N, typename T, glm::qualifier Q>
