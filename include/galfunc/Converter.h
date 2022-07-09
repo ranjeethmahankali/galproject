@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 
 #include <galfunc/Data.h>
+#include <pybind11/pytypes.h>
 
 namespace py = pybind11;
 
@@ -33,6 +34,16 @@ struct Converter<py::object, T>
   static void assign(const py::object& obj, T& dst) { dst = obj.cast<T>(); }
 };
 
+// Default specialization for gal types.
+template<typename T>
+struct Converter<T, py::object, void>
+{
+  static void assign(const T& src, py::object& dst)
+  {
+    dst = py::str(TypeInfo<T>::name() + " object");
+  }
+};
+
 template<typename... Ts>
 struct ConverterTypeMap;
 
@@ -57,16 +68,6 @@ struct ConverterTypeMap<T1, T2, Ts...>
                        typename ConverterTypeMap<Ts...>::template TMatch<TQuery>>>;
   template<typename TQuery>
   static constexpr bool KnownType = !std::is_same_v<TMatch<TQuery>, void>;
-};
-
-// Default specialization for gal types.
-template<typename T>
-struct Converter<T, py::object>
-{
-  static void assign(const T& src, py::object& dst)
-  {
-    dst = py::str(TypeInfo<T>::name() + " object");
-  }
 };
 
 using CppPythonTypeMap = ConverterTypeMap<bool,
@@ -97,7 +98,8 @@ using CppPythonTypeMap = ConverterTypeMap<bool,
 template<typename T>
 struct Converter<T,
                  py::object,
-                 typename std::enable_if<CppPythonTypeMap::KnownType<T>, T>::type>
+                 typename std::enable_if<CppPythonTypeMap::KnownType<T>,
+                                         CppPythonTypeMap::TMatch<T>>::type>
 {
   using PythonT = CppPythonTypeMap::TMatch<T>;
   static void assign(const T& src, py::object& dst) { dst = PythonT(src); }
@@ -233,11 +235,12 @@ private:
 
   static void assignLeaf(const ValueType& val, py::object& dst)
   {
+    using PythonT = CppPythonTypeMap::TMatch<T>;
     if constexpr (IsSharedPtr) {
-      Converter<T, py::object>::assign(*val, dst);
+      Converter<T, py::object, PythonT>::assign(*val, dst);
     }
     else {
-      Converter<T, py::object>::assign(val, dst);
+      Converter<T, py::object, PythonT>::assign(val, dst);
     }
   }
 
@@ -272,6 +275,7 @@ public:
   {
     assert(tree.size() != 0 || (tree.size() == 1 && tree.depth(0) == 0));
     if (tree.size() == 0) {
+      dst = py::none();
       return;
     }
     if (tree.maxDepth() == 0 && tree.size() > 1) {

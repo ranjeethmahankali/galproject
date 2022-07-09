@@ -1010,8 +1010,11 @@ struct defClass
   {
     // Defining the str function allows python to print the objects using the c++
     // implementation of the << operator.
-    pythonType(mod).def("__str__",
-                        [](const Register<T>& reg) { std::cout << reg << std::endl; });
+    pythonType(mod).def("__str__", [](const Register<T>& reg) {
+      std::stringstream ss;
+      ss << reg;
+      return ss.str();
+    });
     // Functions to create a varable of the type.
     static const FuncInfo    varInfo = varfnInfo<T>();
     static const std::string sVarDesc =
