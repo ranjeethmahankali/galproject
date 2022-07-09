@@ -383,7 +383,7 @@ PYBIND11_MODULE(pygalview, pgv)
           gal::viewfunc::py_slider<glm::vec2>,
           "Vec2 slider with the given label, min value, max value and initial value.");
 
-  gal::func::typemanager::invoke<defOutputFuncs>(pgv);
+  gal::func::typemanager::invoke<defOutputFuncs>((py::module&)pgv);
 
   // Text fields for string inputs
   GAL_DEF_PY_FN_DOC(textField, pgv, "Creates a text field with the given label.");
