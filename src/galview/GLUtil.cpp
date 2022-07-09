@@ -92,7 +92,7 @@ const IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other)
   if (this != &other) {
     free();
     std::vector<uint32_t>::operator=(std::move(other));
-    mIBO                           = std::exchange(other.mIBO, 0);
+    mIBO = std::exchange(other.mIBO, 0);
   }
   return *this;
 }

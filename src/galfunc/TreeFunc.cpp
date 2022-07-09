@@ -36,22 +36,21 @@ GAL_FUNC_TEMPLATE(((typename, T)),
 
 namespace treefunc {
 template<typename T>
-struct bindAllTypes
+struct bindForAllTypes
 {
-  static void invoke()
+  static void invoke(py::module& mod)
   {
-    GAL_FN_BIND_TEMPLATE(graft, T);
-    GAL_FN_BIND_TEMPLATE(flatten, T);
+    GAL_FN_BIND_TEMPLATE(graft, mod, T);
+    GAL_FN_BIND_TEMPLATE(flatten, mod, T);
   }
 };
 }  // namespace treefunc
 
-void bind_TreeFunc()
+void bind_TreeFunc(py::module& mod)
 {
-  GAL_FN_BIND_TEMPLATE(treeSum, int32_t);
-  GAL_FN_BIND_TEMPLATE(treeSum, float);
-
-  typemanager::invoke<treefunc::bindAllTypes>();
+  GAL_FN_BIND_TEMPLATE(treeSum, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(treeSum, mod, float);
+  typemanager::invoke<treefunc::bindForAllTypes>((py::module&)mod);
 }
 
 }  // namespace func

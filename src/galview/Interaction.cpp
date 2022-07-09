@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <imgui.h>
+#include <pybind11/embed.h>
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
@@ -31,64 +32,6 @@ static auto              sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
 static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
 static std::vector<Panel> sPanels;
-static func::graph::Graph sGraph;
-
-struct NodeProps
-{
-  const func::Function* func = nullptr;
-  glm::vec2             pos;
-  glm::vec2             size;
-  int                   depth      = -1;
-  int                   height     = -1;
-  int                   col        = -1;
-  int                   row        = -1;
-  float                 innerWidth = 0.f;
-
-  /**
-   * @brief Gets the span (i.e. sum of depth and height) of the node.
-   *
-   * @return int Span if height and depth are assigned, -1 otherwise.
-   */
-  int span() const { return (depth == -1 || height == -1) ? -1 : (depth + height); }
-};
-
-struct PinProps
-{
-  glm::vec2 pos;
-};
-
-func::Property<NodeProps>& nodeProps()
-{
-  static func::Property<NodeProps> sProp = sGraph.addNodeProperty<NodeProps>();
-  return sProp;
-}
-
-func::Property<int>& funcNodeIndices()
-{
-  static func::Property<int> sFuncNodeIndices = func::store::addProperty<int>();
-  return sFuncNodeIndices;
-}
-
-func::Property<PinProps>& pinProps()
-{
-  static func::Property<PinProps> sPinProps = sGraph.addPinProperty<PinProps>();
-  return sPinProps;
-}
-
-static constexpr int imNodeId(int i)
-{
-  return 0xfe783b1e ^ i;
-}
-
-static constexpr int imPinId(int i)
-{
-  return 0x14b907bf ^ i;
-}
-
-static constexpr int imLinkId(int i)
-{
-  return 0x876836b5 ^ i;
-}
 
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -107,7 +50,6 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
   ImGui::StyleColorsDark();  // Dark Mode
   ImGuiStyle& style    = ImGui::GetStyle();
   style.WindowRounding = 0.0f;
-
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glslVersion);
 };
@@ -234,7 +176,6 @@ void TextInput::draw()
                    ImGuiInputTextFlags_CallbackResize,
                    TextInputCallBack,
                    (void*)(&mValue));
-
   checkEdited();
   if (!ImGui::IsItemActive()) {
     handleChanges();
@@ -331,225 +272,26 @@ void setPanelVisibility(const std::string& name, bool visible)
   }
 }
 
-static void calcDepthsAndHeights()
-{
-  auto& g      = sGraph;
-  auto& nprops = nodeProps();
-  struct Candidate
-  {
-    int node;
-    int value;
-  };
-  std::vector<Candidate> q;
-  q.reserve(g.numNodes());
-  int nNodes = int(g.numNodes());
-
-  // Heights.
-  for (int i = 0; i < nNodes; ++i) {
-    if (!g.nodeHasOutputs(i)) {
-      q.push_back(Candidate {i, 0});
-    }
-  }
-  while (!q.empty()) {
-    Candidate c = q.back();
-    q.pop_back();
-    int& height = nprops[c.node].height;
-    height      = std::max(c.value, height);
-    int h2      = height + 1;
-    for (int pi : g.nodeInputs(c.node)) {
-      auto plinks = g.pinLinks(pi);
-      std::transform(plinks.begin(), plinks.end(), std::back_inserter(q), [&](int li) {
-        return Candidate {g.pinNode(g.linkStart(li)), h2};
-      });
-    }
-  }
-
-  // Depths.
-  for (int i = 0; i < nNodes; ++i) {
-    if (!g.nodeHasInputs(i)) {
-      q.push_back(Candidate {i, 0});
-    }
-  }
-  while (!q.empty()) {
-    Candidate c = q.back();
-    q.pop_back();
-    int& depth = nprops[c.node].depth;
-    depth      = std::max(c.value, depth);
-    int d2     = depth + 1;
-    for (int pi : g.nodeOutputs(c.node)) {
-      auto plinks = g.pinLinks(pi);
-      std::transform(plinks.begin(), plinks.end(), std::back_inserter(q), [&](int li) {
-        return Candidate {g.pinNode(g.linkEnd(li)), d2};
-      });
-    }
-  }
-}
-
-static void buildGraph()
-{
-  auto& g         = sGraph;
-  auto& fnNodeIdx = funcNodeIndices();
-  auto& nprops    = nodeProps();
-  g.clear();
-  // Reserve memory.
-  size_t nfunc    = func::store::numFunctions();
-  size_t nInputs  = 0;
-  size_t nOutputs = 0;
-  for (size_t i = 0; i < nfunc; ++i) {
-    const auto& f = func::store::function(i);
-    nInputs += f.numInputs();
-    nOutputs = f.numOutputs();
-  }
-  g.reserve(nfunc, nInputs + nOutputs, nInputs);
-  // Add nodes.
-  std::vector<func::InputInfo> inputs;
-  for (size_t i = 0; i < nfunc; ++i) {
-    const auto& f   = func::store::function(i);
-    int         ni  = g.addNode(f.numInputs(), f.numOutputs());
-    fnNodeIdx[f]    = ni;
-    nprops[ni].func = &f;
-  }
-  // Add links.
-  for (size_t i = 0; i < nfunc; i++) {
-    const auto& f = func::store::function(i);
-    f.getInputs(inputs);
-    int fni = fnNodeIdx[f];
-    int end = g.nodeInput(fni);
-    for (const auto& input : inputs) {
-      int start = g.nodeOutput(fnNodeIdx[*(input.mFunc)], input.mOutputIdx);
-      g.addLink(start, end);
-      end = g.pinNext(end);
-    }
-  }
-}
-
-static void calcColumns()
-{
-  using namespace gal::utils;
-  using IntIter = boost::counting_iterator<int>;
-
-  struct Candidate
-  {
-    int node;
-    int value;
-  };
-
-  auto&       nprops = nodeProps();
-  const auto& g      = sGraph;
-  assert(g.numNodes() == nprops.size());
-  int nNodes = int(g.numNodes());
-  int maxt   = 0;
-  for (int ni = 0; ni < nNodes; ni++) {
-    maxt = std::max(maxt, nprops[ni].span());
-  }
-  for (int ni = 0; ni < nNodes; ni++) {
-    auto& np = nprops[ni];
-    if (np.depth == 0 && np.height > 0) {
-      np.col = 0;
-    }
-    else if (np.height == 0 && np.depth > 0) {
-      np.col = maxt;
-    }
-    else {
-      np.col = np.depth;
-    }
-  }
-
-  bool modified = false;
-  do {
-    modified = false;
-    for (int ni = 0; ni < nNodes; ni++) {
-      auto& np   = nprops[ni];
-      int   minc = INT_MAX;
-      int   maxc = INT_MIN;
-      for (int pi : g.nodeOutputs(ni)) {
-        for (int li : g.pinLinks(pi)) {
-          minc = std::min(minc, nprops[g.pinNode(g.linkEnd(li))].col);
-        }
-      }
-      for (int pi : g.nodeInputs(ni)) {
-        for (int li : g.pinLinks(pi)) {
-          maxc = std::max(maxc, nprops[g.pinNode(g.linkStart(li))].col);
-        }
-      }
-      if (maxc != INT_MIN && maxc < np.col - 1) {
-        np.col   = maxc + 1;
-        modified = true;
-      }
-      else if (minc != INT_MAX && minc > np.col + 1) {
-        np.col   = minc - 1;
-        modified = true;
-      }
-    }
-  } while (modified);
-}
-
-static void calcRows()
-{
-  // This multiplier assumes that all nodes have fewer than 1000 outputs.
-  static constexpr float sNodeIdxMultiplier = 1000.f;
-  auto&                  nprops             = nodeProps();
-  const auto&            fnIndices          = funcNodeIndices();
-  const auto&            g                  = sGraph;
-  assert(g.numNodes() == nprops.size());
-  int nNodes = int(g.numNodes());
-
-  std::vector<int>             nodes(boost::counting_iterator<int>(0),
-                         boost::counting_iterator<int>(nNodes));
-  std::vector<func::InputInfo> inputs;  // Temporary storage.
-  std::sort(std::execution::par, nodes.begin(), nodes.end(), [&](int a, int b) {
-    return nprops[a].col < nprops[b].col;
-  });
-  std::vector<float> scores(nodes.size());
-  int                col      = 0;
-  auto               colbegin = std::find_if(
-    nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
-  for (auto it = nodes.begin(); it != colbegin; it++) {
-    nprops[*it].row = int(std::distance(nodes.begin(), it));
-  }
-  while (colbegin != nodes.end()) {
-    col++;
-    auto colend = std::find_if(
-      nodes.begin(), nodes.end(), [&](int ni) { return nprops[ni].col > col; });
-    for (auto it = colbegin; it != colend; it++) {
-      int   ni    = *it;
-      auto& score = scores[ni];
-      nprops[ni].func->getInputs(inputs);
-      for (const auto& i : inputs) {
-        int uni = fnIndices[*(i.mFunc)];
-        score += sNodeIdxMultiplier * float(nprops[uni].row) + float(i.mOutputIdx);
-      }
-      score /= float(nprops[ni].func->numInputs());
-    }
-    std::sort(colbegin, colend, [&](int a, int b) { return scores[a] < scores[b]; });
-    for (auto it = colbegin; it != colend; it++) {
-      nprops[*it].row = std::distance(colbegin, it);
-    }
-    colbegin = colend;
-  }
-}
-
 int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
     view::demoFilePath() = demoPath;
-    boost::python::dict global;
+    py::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
-    boost::python::exec_file(demoPath.c_str(), global);
+    py::eval_file(demoPath.c_str(), global);
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
-  catch (boost::python::error_already_set) {
+  catch (std::exception& e) {
     PyErr_Print();
-    logger().error("Unable to load the demo... aborting...\n");
+    logger().error(e.what());
     return 1;
   }
 }
 
-static std::string sCmdline  = "";
-static std::string sResponse = "";
-
+static std::string  sCmdline    = "";
+static std::string  sResponse   = "";
 static std::string* sHistoryPtr = nullptr;
 
 void init(GLFWwindow* window, const char* glslVersion)
@@ -584,7 +326,6 @@ static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 void draw(GLFWwindow* window)
 {
   static float sCmdHeight = 50.f;
-
   // Get the parent window size.
   int width = 0, height = 0;
   glfwGetWindowSize(window, &width, &height);
@@ -592,8 +333,7 @@ void draw(GLFWwindow* window)
   float  cmdWidth = std::min(fwidth, 960.f);
   size_t nLines =
     std::max(size_t(1), size_t(std::count(sResponse.begin(), sResponse.end(), '\n')));
-  float cmdHeight = sCmdHeight + float(nLines) * 17.f;
-
+  float            cmdHeight = sCmdHeight + float(nLines) * 17.f;
   ImGuiWindowFlags wflags =
     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
   // ImGuiWindowFlags wflags = 0;
@@ -602,11 +342,9 @@ void draw(GLFWwindow* window)
   ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
   ImGui::Begin("command-window", nullptr, wflags);
-
   ImGui::PushStyleColor(ImGuiCol_Text, 0xff999999);
   ImGui::Text("%s", sResponse.c_str());
   ImGui::PopStyleColor();
-
   if (sFontLarge) {
     ImGui::PushFont(sFontLarge);
   }
@@ -633,7 +371,7 @@ void draw(GLFWwindow* window)
     sResponseStream.str("");
   }
   if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)) {
-    ImGui::SetKeyboardFocusHere(0);
+    ImGui::SetKeyboardFocusHere(-1);
   }
   ImGui::PopItemWidth();
   ImGui::PopStyleVar();
@@ -641,7 +379,6 @@ void draw(GLFWwindow* window)
     ImGui::PopFont();
   }
   ImGui::End();
-
   // Draw all panels.
   drawPanels();
 }

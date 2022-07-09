@@ -10,6 +10,7 @@ def assetPath(filename):
 def emptyOrNone(a):
     return (isinstance(a, Iterable) and len(a) == 0) or a is None
 
+
 def equalf(a, b, eps=1e-5):
     if emptyOrNone(a) and emptyOrNone(b):
         return True

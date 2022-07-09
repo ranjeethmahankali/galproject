@@ -18,6 +18,7 @@
 #include <galview/GuiFunctions.h>
 #include <galview/Interaction.h>
 #include <galview/Views.h>
+#include <pybind11/pybind11.h>
 
 namespace gal {
 namespace viewfunc {
@@ -73,17 +74,16 @@ void unloadAllOutputs()
  * @brief Loads glyph textures from files on disk.
  *
  * @param pyglyphdata Paths to png images.
- * @return boost::python::list List of indices of the loaded glyphs, in the same order of
+ * @return py::list List of indices of the loaded glyphs, in the same order of
  * the supplied paths.
  */
-boost::python::list py_loadGlyphs(const boost::python::list& glyphPaths)
+py::list py_loadGlyphs(const py::list& glyphPaths)
 {
   std::vector<fs::path> glyphData;
-  func::Converter<boost::python::list, decltype(glyphData)>::assign(glyphPaths,
-                                                                    glyphData);
-  auto                indices = view::loadGlyphs(glyphData);
-  boost::python::list lst;
-  func::Converter<decltype(indices), boost::python::list>::assign(indices, lst);
+  func::Converter<py::list, decltype(glyphData)>::assign(glyphPaths, glyphData);
+  auto     indices = view::loadGlyphs(glyphData);
+  py::list lst;
+  func::Converter<decltype(indices), py::list>::assign(indices, lst);
   return lst;
 }
 
@@ -336,22 +336,22 @@ void py_runCommands(const std::string& commands)
 }
 
 namespace python {
-using namespace boost::python;
 
 template<typename T>
 struct defOutputFuncs
 {
-  static void invoke()
+  static void invoke(py::module& mod)
   {
-    def("print",
-        py_print<T>,
-        "Prints the given object (second arg) to the output panel with the given label "
-        "(first arg)");
+    mod.def(
+      "print",
+      py_print<T>,
+      "Prints the given object (second arg) to the output panel with the given label "
+      "(first arg)");
     if constexpr (view::Views::IsDrawableType<T>) {
-      def("show",
-          py_show<T>,
-          "Shows the given object (second arg) in the viewer, with checkbox with the "
-          "given label (first arg) to control the visibility.");
+      mod.def("show",
+              py_show<T>,
+              "Shows the given object (second arg) in the viewer, with checkbox with the "
+              "given label (first arg) to control the visibility.");
     }
   }
 };
@@ -361,36 +361,36 @@ struct defOutputFuncs
 }  // namespace viewfunc
 }  // namespace gal
 
-#define GAL_DEF_PY_FN(fnName) def(#fnName, py_##fnName);
-#define GAL_DEF_PY_FN_DOC(fnName, docstr) def(#fnName, py_##fnName, docstr);
+#define GAL_DEF_PY_FN(fnName, mod) mod.def(#fnName, py_##fnName);
+#define GAL_DEF_PY_FN_DOC(fnName, mod, docstr) mod.def(#fnName, py_##fnName, docstr);
 
-BOOST_PYTHON_MODULE(pygalview)
+PYBIND11_MODULE(pygalview, pgv)
 {
-  using namespace boost::python;
   using namespace gal::viewfunc;
   using namespace gal::viewfunc::python;
   // Sliders for float input
-  def("sliderf32",
-      gal::viewfunc::py_slider<float>,
-      "Float-32 slider with the given label, min value, max value and initial value.");
-  def("slideri32",
-      gal::viewfunc::py_slider<int32_t>,
-      "Int-32 slider with the given label, min value, max value and initial value.");
-  def("sliderVec3",
-      gal::viewfunc::py_slider<glm::vec3>,
-      "Vec3 slider with the given label, min value, max value and initial value.");
-  def("sliderVec2",
-      gal::viewfunc::py_slider<glm::vec2>,
-      "Vec2 slider with the given label, min value, max value and initial value.");
+  pgv.def(
+    "sliderf32",
+    gal::viewfunc::py_slider<float>,
+    "Float-32 slider with the given label, min value, max value and initial value.");
+  pgv.def("slideri32",
+          gal::viewfunc::py_slider<int32_t>,
+          "Int-32 slider with the given label, min value, max value and initial value.");
+  pgv.def("sliderVec3",
+          gal::viewfunc::py_slider<glm::vec3>,
+          "Vec3 slider with the given label, min value, max value and initial value.");
+  pgv.def("sliderVec2",
+          gal::viewfunc::py_slider<glm::vec2>,
+          "Vec2 slider with the given label, min value, max value and initial value.");
 
-  gal::func::typemanager::invoke<defOutputFuncs>();
+  gal::func::typemanager::invoke<defOutputFuncs>((py::module&)pgv);
 
   // Text fields for string inputs
-  GAL_DEF_PY_FN_DOC(textField, "Creates a text field with the given label.");
+  GAL_DEF_PY_FN_DOC(textField, pgv, "Creates a text field with the given label.");
   // Viewer annotations
-  GAL_DEF_PY_FN(tags);
-  GAL_DEF_PY_FN(glyphs);
-  GAL_DEF_PY_FN(loadGlyphs);
+  GAL_DEF_PY_FN(tags, pgv);
+  GAL_DEF_PY_FN(glyphs, pgv);
+  GAL_DEF_PY_FN(loadGlyphs, pgv);
   // Allows demos to run viewer commands.
-  GAL_DEF_PY_FN(runCommands);
+  GAL_DEF_PY_FN(runCommands, pgv);
 };

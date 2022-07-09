@@ -193,11 +193,11 @@ TEST(Data, TreeConversion)
   gal::test::initPythonEnv();
   auto tree = testTree();
   // Convert tree to a jagged python list.
-  boost::python::list lst;
-  gal::func::Converter<decltype(tree), boost::python::object>::assign(tree, lst);
+  py::list lst;
+  gal::func::Converter<decltype(tree), py::object>::assign(tree, lst);
   // Convert python jagged list to a cpp jagged vector.
   std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
-  gal::func::Converter<boost::python::list, decltype(jagged)>::assign(lst, jagged);
+  gal::func::Converter<py::list, decltype(jagged)>::assign(lst, jagged);
 
   int i = 0;
   ASSERT_EQ(jagged.size(), 2);
@@ -219,7 +219,7 @@ TEST(Data, TreeConversion)
   ASSERT_EQ(i, 32);
 
   decltype(tree) tree2;
-  gal::func::Converter<boost::python::object, decltype(tree)>::assign(lst, tree2);
+  gal::func::Converter<py::object, decltype(tree)>::assign(lst, tree2);
   i = 0;
   gal::func::data::ReadView<int, 5> v5(tree2);
   ASSERT_EQ(v5.size(), 2);

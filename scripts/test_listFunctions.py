@@ -4,6 +4,7 @@ import random
 import math
 import itertools
 
+
 def test_seriesInt():
     random.seed(42)
     valrange = (23, 256)
@@ -73,10 +74,15 @@ def repeatGenericTest(val, pgvarfn, comparefn):
 
 
 def test_repeat():
-    def compareInt(a, b): return tu.equal(a, b)
+
+    def compareInt(a, b):
+        return tu.equal(a, b)
+
     repeatGenericTest(int(7), pgf.var_int, compareInt)
 
-    def compareFloat(a, b): return tu.equalf(a, b)
+    def compareFloat(a, b):
+        return tu.equalf(a, b)
+
     repeatGenericTest(7.34, pgf.var_float, compareFloat)
 
     repeatGenericTest((2.45, 3.67), pgf.var_vec2, compareFloat)
@@ -96,13 +102,19 @@ def listItemGenericTest(vals, pgvarfn, comparefn):
 
 
 def test_listItem():
-    def compareInt(a, b): return tu.equal(a, b)
+
+    def compareInt(a, b):
+        return tu.equal(a, b)
+
     listItemGenericTest(list(range(2, 23)), pgf.var_int, compareInt)
 
     random.seed(42)
     valrange = (22.345, 223.66)
     vals = [random.uniform(valrange[0], valrange[1]) for _ in range(25)]
-    def compareFloat(a, b): return tu.equalf(a, b)
+
+    def compareFloat(a, b):
+        return tu.equalf(a, b)
+
     listItemGenericTest(vals, pgf.var_float, compareFloat)
 
 
@@ -115,10 +127,12 @@ def test_listLength():
     slist = pgf.subList(rvals, rstart, rstop)
     for _ in range(20):
         vals = [random.randint(valrange[0], valrange[1]) for _ in range(25)]
-        irange = (random.randint(0, len(vals) - 1),
-                  random.randint(0, len(vals) - 1))
+        irange = (random.randint(0,
+                                 len(vals) - 1),
+                  random.randint(0,
+                                 len(vals) - 1))
         irange = sorted(irange)
-        expected = vals[irange[0]: irange[1]]
+        expected = vals[irange[0]:irange[1]]
         # print(len(vals), irange[0], irange[1])
         pgf.assign(rvals, vals)
         pgf.assign(rstart, irange[0])
@@ -134,10 +148,13 @@ def test_dispatch():
     rtvals, rfvals = pgf.dispatch(rvals, rpattern)
     for _ in range(20):
         nItems = 25
-        vals = [random.randint(valrange[0], valrange[1])
-                for _ in range(nItems)]
-        pattern = [random.randint(valrange[0], valrange[1]) %
-                   2 == 0 for _ in range(nItems)]
+        vals = [
+            random.randint(valrange[0], valrange[1]) for _ in range(nItems)
+        ]
+        pattern = [
+            random.randint(valrange[0], valrange[1]) % 2 == 0
+            for _ in range(nItems)
+        ]
         tvals = [v for v, p in zip(vals, pattern) if p]
         fvals = [v for v, p in zip(vals, pattern) if not p]
 
@@ -156,7 +173,9 @@ def test_combinations():
     for _ in range(5):
         nItems = random.randint(23, 29)
         numc = random.randint(3, 5)
-        vals = [random.randint(valrange[0], valrange[1]) for _ in range(nItems)]
+        vals = [
+            random.randint(valrange[0], valrange[1]) for _ in range(nItems)
+        ]
         combs = list(itertools.combinations(vals, numc))
 
         pgf.assign(rvals, vals)
@@ -179,8 +198,10 @@ def test_sort():
         random.shuffle(keys)
         lvals.append(vals)
         lkeys.append(keys)
-        expected = [x for x, _ in sorted(zip(vals, keys), key=lambda pair: pair[1])]
-        
+        expected = [
+            x for x, _ in sorted(zip(vals, keys), key=lambda pair: pair[1])
+        ]
+
         pgf.assign(rvals, vals)
         pgf.assign(rkeys, keys)
         assert tu.equal(expected, pgf.read(rsorted))
@@ -193,5 +214,5 @@ def test_sort():
     assert tu.equal(expected, pgf.read(rsorted))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     test_sort()

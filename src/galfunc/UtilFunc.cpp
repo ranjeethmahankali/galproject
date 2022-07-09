@@ -70,20 +70,24 @@ GAL_FUNC(mapValueToColor,
 namespace utilfunc {  // Namespace to avoid linker confusion.
 
 template<typename T>
-struct bindAllTypes
+struct bindForAllTypes
 {
-  static void invoke() { GAL_FN_BIND_TEMPLATE(combinations, T); }
+  static void invoke(py::module& module)
+  {
+    GAL_FN_BIND_TEMPLATE(combinations, module, T);
+  }
 };
 
 }  // namespace utilfunc
 
-void bind_UtilFunc()
+void bind_UtilFunc(py::module& module)
 {
-  GAL_FN_BIND(absPath, mapValueToColor);
-  GAL_FN_BIND_TEMPLATE(toString, float);
-  GAL_FN_BIND_TEMPLATE(toString, int32_t);
+  GAL_FN_BIND(absPath, module);
+  GAL_FN_BIND(mapValueToColor, module);
+  GAL_FN_BIND_TEMPLATE(toString, module, float);
+  GAL_FN_BIND_TEMPLATE(toString, module, int32_t);
 
-  typemanager::invoke<utilfunc::bindAllTypes>();
+  typemanager::invoke<utilfunc::bindForAllTypes>((py::module&)module);
 }
 
 }  // namespace func

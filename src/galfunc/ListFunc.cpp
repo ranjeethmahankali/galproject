@@ -109,27 +109,26 @@ GAL_FUNC_TEMPLATE(
 namespace listfunc {  // Anon namespace to avoid linker confusion.
 
 template<typename T>
-struct bindAllTypes
+struct bindForAllTypes
 {
-  static void invoke()
+  static void invoke(py::module& mod)
   {
-    GAL_FN_BIND_TEMPLATE(repeat, T);
-    GAL_FN_BIND_TEMPLATE(listItem, T);
-    GAL_FN_BIND_TEMPLATE(subList, T);
-    GAL_FN_BIND_TEMPLATE(listLength, T);
-    GAL_FN_BIND_TEMPLATE(dispatch, T);
+    GAL_FN_BIND_TEMPLATE(repeat, mod, T);
+    GAL_FN_BIND_TEMPLATE(listItem, mod, T);
+    GAL_FN_BIND_TEMPLATE(subList, mod, T);
+    GAL_FN_BIND_TEMPLATE(listLength, mod, T);
+    GAL_FN_BIND_TEMPLATE(dispatch, mod, T);
   }
 };
 
 }  // namespace listfunc
-void bind_ListFunc()
+void bind_ListFunc(py::module& mod)
 {
-  GAL_FN_BIND_TEMPLATE(series, float);
-  GAL_FN_BIND_TEMPLATE(series, int32_t);
-  GAL_FN_BIND_TEMPLATE(listSum, float);
-  GAL_FN_BIND_TEMPLATE(listSum, int32_t);
-
-  typemanager::invoke<listfunc::bindAllTypes>();
+  GAL_FN_BIND_TEMPLATE(series, mod, float);
+  GAL_FN_BIND_TEMPLATE(series, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(listSum, mod, float);
+  GAL_FN_BIND_TEMPLATE(listSum, mod, int32_t);
+  typemanager::invoke<listfunc::bindForAllTypes>((py::module&)mod);
 }
 
 }  // namespace func

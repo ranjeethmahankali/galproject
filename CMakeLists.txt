@@ -5,25 +5,25 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(vcpkg.cmake)
+project(gal)
 
 # Dependencies and Includes - begin
-project(gal)
-find_package(PythonInterp 3.9 REQUIRED)
-find_package(PythonLibs 3.9 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS python39)
+find_package(PythonLibs REQUIRED)
+find_package(Python COMPONENTS Interpreter Development)
+find_package(pybind11 CONFIG)
+find_package(Boost REQUIRED)
 if (Boost_FOUND)
     add_compile_definitions(BOOST_UUID_FORCE_AUTO_LINK)
     include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 endif()
 find_package(TBB CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(glew REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-find_package(GLEW REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 find_package(openmesh REQUIRED)
-
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
 
@@ -62,7 +62,7 @@ target_link_libraries(galfuncobjects PUBLIC
     galcore
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
-    Boost::python39
+    pybind11::headers
     util
     dl)
 
@@ -72,11 +72,11 @@ add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
 target_link_libraries(galfunc galfuncobjects)
 
 # Python shared lib
-add_library(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
+pybind11_add_module(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
 set_target_properties(pygalfunc PROPERTIES
   SUFFIX .so
   PREFIX "")
-target_link_libraries(pygalfunc galfuncobjects)
+target_link_libraries(pygalfunc PUBLIC galfuncobjects)
 # Copy the python setup file
 add_custom_command(TARGET pygalfunc
   POST_BUILD

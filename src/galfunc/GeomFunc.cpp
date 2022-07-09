@@ -157,17 +157,24 @@ GAL_FUNC(box2Points,
   max = box.max;
 }
 
-void bind_GeomFunc()
+void bind_GeomFunc(py::module& module)
 {
-  GAL_FN_BIND(
-    vec3, vec2, plane, box3, box2, randomPointsInBox, convexHullFromPoints, pointCloud3d);
+  GAL_FN_BIND(vec3, module);
+  GAL_FN_BIND(vec2, module);
+  GAL_FN_BIND(plane, module);
+  GAL_FN_BIND(box3, module);
+  GAL_FN_BIND(box2, module);
+  GAL_FN_BIND(randomPointsInBox, module);
+  GAL_FN_BIND(convexHullFromPoints, module);
+  GAL_FN_BIND(pointCloud3d, module);
 
   // TODO: Handle these with generic converters later.
-  GAL_FN_BIND(vec3FromVec2, vec2FromVec3);
+  GAL_FN_BIND(vec3FromVec2, module);
+  GAL_FN_BIND(vec2FromVec3, module);
 
-  GAL_FN_BIND_OVERLOADS(coords, vec3Coords, vec2Coords);
-  GAL_FN_BIND_OVERLOADS(boxPoints, box2Points, box3Points);
-  GAL_FN_BIND_OVERLOADS(distance, distance2, distance3);
+  GAL_FN_BIND_OVERLOADS(module, coords, vec3Coords, vec2Coords);
+  GAL_FN_BIND_OVERLOADS(module, boxPoints, box2Points, box3Points);
+  GAL_FN_BIND_OVERLOADS(module, distance, distance2, distance3);
 }
 
 }  // namespace func

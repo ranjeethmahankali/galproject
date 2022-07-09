@@ -89,10 +89,10 @@ protected:
 template<typename T>
 struct makeSlider
 {
-  static typename SliderFunc<T>::PyOutuptType make(boost::python::object pylabel,
-                                                   boost::python::object pymin,
-                                                   boost::python::object pymax,
-                                                   boost::python::object pyvalue)
+  static typename SliderFunc<T>::PyOutuptType make(py::object pylabel,
+                                                   py::object pymin,
+                                                   py::object pymax,
+                                                   py::object pyvalue)
   {
     std::string label;
     T           min, max, value;
@@ -134,11 +134,10 @@ struct makeSlider
 template<int N, typename T, glm::qualifier Q>
 struct makeSlider<glm::vec<N, T, Q>>
 {
-  static typename SliderFunc<glm::vec<N, T, Q>>::PyOutputType make(
-    boost::python::object pylabel,
-    boost::python::object pymin,
-    boost::python::object pymax,
-    boost::python::object pyvalue)
+  static typename SliderFunc<glm::vec<N, T, Q>>::PyOutputType make(py::object pylabel,
+                                                                   py::object pymin,
+                                                                   py::object pymax,
+                                                                   py::object pyvalue)
   {
     std::string label;
     T           min, max, value;
@@ -170,10 +169,10 @@ struct makeSlider<glm::vec<N, T, Q>>
 };
 
 template<typename T>
-typename SliderFunc<T>::PyOutputType py_slider(boost::python::object pylabel,
-                                               boost::python::object pymin,
-                                               boost::python::object pymax,
-                                               boost::python::object pyvalue)
+typename SliderFunc<T>::PyOutputType py_slider(py::object pylabel,
+                                               py::object pymin,
+                                               py::object pymax,
+                                               py::object pyvalue)
 {
   return makeSlider<T>::make(pylabel, pymin, pymax, pyvalue);
 };

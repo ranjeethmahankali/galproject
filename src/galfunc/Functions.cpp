@@ -1,10 +1,9 @@
 #include <assert.h>
 #include <string>
 
+#include <pybind11/pybind11.h>
 #include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <boost/python/class.hpp>
-#include <boost/python/import.hpp>
 
 #include <galcore/Annotations.h>
 #include <galcore/Circle2d.h>
@@ -104,26 +103,25 @@ void unloadAllFunctions()
 }  // namespace store
 
 namespace python {
-
+namespace py = pybind11;
 fs::path getcontextpath()
 {
-  using namespace boost::python;
-  auto traceback = import("traceback");
-  auto summary   = list(traceback.attr("extract_stack")());
+  auto traceback = py::module_::import("traceback");
+  auto summary   = py::list(traceback.attr("extract_stack")());
   int  n         = int(len(summary));
 
   fs::path    result;
   fs::path    filename, cfn;
   std::string name;
   for (int i = n - 1; i > -1; i--) {
-    cfn = fs::path(std::string(extract<std::string>(summary[i].attr("filename"))));
+    cfn = fs::path(std::string(py::cast<std::string>(summary[i].attr("filename"))));
     if (filename != cfn || filename.empty()) {
       if (!filename.empty()) {
         result = filename.stem() / result;
       }
       filename = cfn;
     }
-    name = extract<std::string>(summary[i].attr("name"));
+    name = py::cast<std::string>(summary[i].attr("name"));
     if (name != "<module>") {
       result = name / result;
     }
@@ -167,36 +165,35 @@ const char* FuncDocString::c_str() const
 }  // namespace python
 
 // Forward declare the binding functions.
-void bind_UtilFunc();
-void bind_GeomFunc();
-void bind_CircleFunc();
-void bind_SphereFunc();
-void bind_LineFunc();
-void bind_MeshFunc();
-void bind_MathFunc();
-void bind_ListFunc();
-void bind_TreeFunc();
-void bind_SortFunc();
+void bind_UtilFunc(py::module&);
+void bind_GeomFunc(py::module&);
+void bind_CircleFunc(py::module&);
+void bind_SphereFunc(py::module&);
+void bind_LineFunc(py::module&);
+void bind_MeshFunc(py::module&);
+void bind_MathFunc(py::module&);
+void bind_ListFunc(py::module&);
+void bind_TreeFunc(py::module&);
+void bind_SortFunc(py::module&);
 
 }  // namespace func
 }  // namespace gal
 
-BOOST_PYTHON_MODULE(pygalfunc)
+PYBIND11_MODULE(pygalfunc, pgf)
 {
-  using namespace boost::python;
   using namespace gal::func::python;
   using namespace gal::func;
 
-  typemanager::invoke<defClass>();
+  typemanager::invoke<defClass>((py::module&)pgf);
 
-  bind_UtilFunc();
-  bind_GeomFunc();
-  bind_CircleFunc();
-  bind_SphereFunc();
-  bind_LineFunc();
-  bind_MeshFunc();
-  bind_MathFunc();
-  bind_ListFunc();
-  bind_TreeFunc();
-  bind_SortFunc();
+  bind_UtilFunc(pgf);
+  bind_GeomFunc(pgf);
+  bind_CircleFunc(pgf);
+  bind_SphereFunc(pgf);
+  bind_LineFunc(pgf);
+  bind_MeshFunc(pgf);
+  bind_MathFunc(pgf);
+  bind_ListFunc(pgf);
+  bind_TreeFunc(pgf);
+  bind_SortFunc(pgf);
 };
