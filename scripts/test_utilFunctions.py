@@ -94,25 +94,32 @@ def test_sqrt():
 
 
 def test_add():
-    def expFn(a, b): return a + b
+
+    def expFn(a, b):
+        return a + b
+
     binaryIntOpTest(expFn, pgf.add)
     binaryFloatOpTest(expFn, pgf.add)
 
 
 def test_sub():
-    def expfn(a, b): return a - b
+
+    def expfn(a, b):
+        return a - b
+
     binaryIntOpTest(expfn, pgf.sub)
     binaryFloatOpTest(expfn, pgf.sub)
 
 
 def test_mul():
-    def expfn(a, b): return a * b
+
+    def expfn(a, b):
+        return a * b
+
     binaryIntOpTest(expfn, pgf.mul)
     binaryFloatOpTest(expfn, pgf.mul)
 
 
 def test_div():
-    binaryIntOpTest(lambda a, b: a//b, pgf.div)
+    binaryIntOpTest(lambda a, b: a // b, pgf.div)
     binaryFloatOpTest(lambda a, b: a / b, pgf.div)
-
-

@@ -41,5 +41,5 @@ def test_heterogenousTrees():
     assert tu.equal(expected, pgf.read(prod))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     test_heterogenousTrees()
