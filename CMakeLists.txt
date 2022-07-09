@@ -18,6 +18,7 @@ if (Boost_FOUND)
 endif()
 find_package(TBB CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(glew REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
@@ -91,6 +92,7 @@ target_link_libraries(galview PRIVATE
   galcore
   galfunc
   imgui::imgui
+  GLEW::GLEW
   glfw
   freetype)
 

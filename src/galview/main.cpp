@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 
+#include <pybind11/embed.h>
 #include <cxxopts.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -29,7 +30,6 @@ void initPythonEnvironment()
 {
   PyImport_AppendInittab("pygalfunc", &PyInit_pygalfunc);
   PyImport_AppendInittab("pygalview", &PyInit_pygalview);
-  Py_Initialize();
 };
 
 void glfw_error_cb(int error, const char* desc)
@@ -98,6 +98,7 @@ int loadDemo(const fs::path& demoPath)
     view::init(window, glslVersion);
     // Initialize Embedded Python and the demo
     initPythonEnvironment();
+    py::scoped_interpreter guard {};
     err = view::runPythonDemoFile(demoPath);
     if (err != 0) {
       glutil::logger().error("Unable to run the demo file. Error code {}.", err);

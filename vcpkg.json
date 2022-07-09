@@ -8,6 +8,7 @@
     "cxxopts",
     "python3",
     "glm",
+    "glew",
     "glfw3",
     {
       "name": "imgui",

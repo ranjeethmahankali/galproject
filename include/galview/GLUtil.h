@@ -102,7 +102,7 @@ public:
   using std::vector<V>::data;
 
   // Disallow copying.
-  TVertexBuffer(const TVertexBuffer&) = delete;
+  TVertexBuffer(const TVertexBuffer&)                  = delete;
   const TVertexBuffer& operator=(const TVertexBuffer&) = delete;
 
   const TVertexBuffer& operator=(TVertexBuffer&& other)
@@ -110,8 +110,8 @@ public:
     if (this != &other) {
       free();
       std::vector<V>::operator=(std::move(other));
-      mVAO                    = std::exchange(other.mVAO, 0);
-      mVBO                    = std::exchange(other.mVBO, 0);
+      mVAO = std::exchange(other.mVAO, 0);
+      mVBO = std::exchange(other.mVBO, 0);
     }
     return *this;
   }
@@ -169,7 +169,7 @@ public:
   ~IndexBuffer();
 
   // Disallow copying.
-  IndexBuffer(const IndexBuffer&) = delete;
+  IndexBuffer(const IndexBuffer&)                  = delete;
   const IndexBuffer& operator=(const IndexBuffer&) = delete;
 
   const IndexBuffer& operator=(IndexBuffer&&);

@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <imgui.h>
+#include <pybind11/embed.h>
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
@@ -533,16 +534,16 @@ int runPythonDemoFile(const fs::path& demoPath)
 {
   try {
     view::demoFilePath() = demoPath;
-    boost::python::dict global;
+    py::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
-    boost::python::exec_file(demoPath.c_str(), global);
+    py::eval_file(demoPath.c_str(), global);
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
-  catch (boost::python::error_already_set) {
+  catch (std::exception& e) {
     PyErr_Print();
-    logger().error("Unable to load the demo... aborting...\n");
+    logger().error(e.what());
     return 1;
   }
 }
