@@ -14,7 +14,7 @@ namespace py = pybind11;
 namespace gal {
 namespace func {
 
-template<typename T1, typename T2, typename Enable = void>
+template<typename T1, typename T2>
 struct Converter
 {
   T2 operator()(const T1& src) const
@@ -32,16 +32,6 @@ template<typename T>
 struct Converter<py::object, T>
 {
   static void assign(const py::object& obj, T& dst) { dst = obj.cast<T>(); }
-};
-
-// Default specialization for gal types.
-template<typename T>
-struct Converter<T, py::object, void>
-{
-  static void assign(const T& src, py::object& dst)
-  {
-    dst = py::str(TypeInfo<T>::name() + " object");
-  }
 };
 
 template<typename... Ts>
@@ -66,8 +56,6 @@ struct ConverterTypeMap<T1, T2, Ts...>
     std::conditional_t<std::is_same_v<TQuery, T2>,
                        T1,
                        typename ConverterTypeMap<Ts...>::template TMatch<TQuery>>>;
-  template<typename TQuery>
-  static constexpr bool KnownType = !std::is_same_v<TMatch<TQuery>, void>;
 };
 
 using CppPythonTypeMap = ConverterTypeMap<bool,
@@ -96,13 +84,18 @@ using CppPythonTypeMap = ConverterTypeMap<bool,
                                           py::str>;
 // Specialization for types with mappings to python defined above.
 template<typename T>
-struct Converter<T,
-                 py::object,
-                 typename std::enable_if<CppPythonTypeMap::KnownType<T>,
-                                         CppPythonTypeMap::TMatch<T>>::type>
+struct Converter<T, py::object>
 {
   using PythonT = CppPythonTypeMap::TMatch<T>;
-  static void assign(const T& src, py::object& dst) { dst = PythonT(src); }
+  static void assign(const T& src, py::object& dst)
+  {
+    if constexpr (std::is_same_v<void, PythonT>) {
+      dst = py::str(TypeInfo<T>::name() + " object");
+    }
+    else {
+      dst = PythonT(src);
+    }
+  }
 };
 
 template<int N, typename T, glm::qualifier Q>
@@ -235,12 +228,11 @@ private:
 
   static void assignLeaf(const ValueType& val, py::object& dst)
   {
-    using PythonT = CppPythonTypeMap::TMatch<T>;
     if constexpr (IsSharedPtr) {
-      Converter<T, py::object, PythonT>::assign(*val, dst);
+      Converter<T, py::object>::assign(*val, dst);
     }
     else {
-      Converter<T, py::object, PythonT>::assign(val, dst);
+      Converter<T, py::object>::assign(val, dst);
     }
   }
 
