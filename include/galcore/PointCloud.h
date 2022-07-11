@@ -9,23 +9,26 @@
 #include <glm/glm.hpp>
 
 namespace gal {
-class PointCloud : public std::vector<glm::vec3>
+
+template<int NDim>
+class PointCloud : public std::vector<glm::vec<NDim, float>>
 {
 public:
   PointCloud() = default;
-  explicit PointCloud(const std::vector<glm::vec3>&);
-  explicit PointCloud(const std::vector<glm::vec2>& pts2d);
+  explicit PointCloud(const std::vector<glm::vec<NDim, float>>& pts)
+      : std::vector<glm::vec<NDim, float>>(pts)
+  {}
 
-  Box3 bounds() const;
+  Box3 bounds() const { return Box3(this->data(), this->size()); }
 };
 
-template<>
-struct Serial<PointCloud> : public std::true_type
+template<int NDim>
+struct Serial<PointCloud<NDim>> : public std::true_type
 {
-  static PointCloud deserialize(Bytes& bytes)
+  static PointCloud<NDim> deserialize(Bytes& bytes)
   {
-    PointCloud cloud;
-    uint64_t   npts = 0;
+    PointCloud<NDim> cloud;
+    uint64_t         npts = 0;
     bytes >> npts;
     cloud.resize(npts);
     for (auto& pt : cloud) {
@@ -33,7 +36,7 @@ struct Serial<PointCloud> : public std::true_type
     }
     return cloud;
   }
-  static Bytes serialize(const PointCloud& cloud)
+  static Bytes serialize(const PointCloud<NDim>& cloud)
   {
     Bytes dst;
     dst << uint64_t(cloud.size());
@@ -44,6 +47,17 @@ struct Serial<PointCloud> : public std::true_type
   }
 };
 
+/**
+ * @brief Computes the k-means clustering for the given range of points.
+ *
+ * @tparam TPt The type of point. Must be either glm::vec3 or glm::vec2
+ * @tparam TPtIter The iterator type.
+ * @tparam IdxOutIter Output iterator type that can accept size_t
+ * @param begin Iterator to the first point.
+ * @param end Iterator past the last point.
+ * @param nClusters Number of clusters.
+ * @param idxOut Output iterator for the index of the point cloud.
+ */
 template<typename TPt, typename TPtIter, typename IdxOutIter>
 void kMeansClusters(TPtIter begin, TPtIter end, size_t nClusters, IdxOutIter idxOut)
 {
