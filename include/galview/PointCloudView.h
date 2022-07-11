@@ -7,7 +7,7 @@ namespace gal {
 namespace view {
 
 template<>
-struct Drawable<PointCloud> : public std::true_type
+struct Drawable<PointCloud<3>> : public std::true_type
 {
   static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
@@ -16,13 +16,14 @@ private:
   glutil::VertexBuffer mVBuf;
 
 public:
-  void update(const std::vector<PointCloud>& clouds)
+  void update(const std::vector<PointCloud<3>>& clouds)
   {
     mBounds = gal::Box3();
     mVBuf.resize(std::accumulate(
-      clouds.begin(), clouds.end(), size_t(0), [](size_t total, const PointCloud& cloud) {
-        return total + cloud.size();
-      }));
+      clouds.begin(),
+      clouds.end(),
+      size_t(0),
+      [](size_t total, const PointCloud<3>& cloud) { return total + cloud.size(); }));
     for (const auto& cloud : clouds) {
       std::transform(
         cloud.cbegin(),
