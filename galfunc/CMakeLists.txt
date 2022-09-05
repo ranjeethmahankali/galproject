@@ -29,4 +29,4 @@ target_link_libraries(pygalfunc PUBLIC galfuncobjects)
 add_custom_command(TARGET pygalfunc
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/scripts/setup.py
-  ${PROJECT_BINARY_DIR})
+  ${CMAKE_CURRENT_BINARY_DIR})

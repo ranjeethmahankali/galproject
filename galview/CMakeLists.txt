@@ -18,6 +18,6 @@ target_include_directories(galview PRIVATE
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/shaders/*.glsl ${PROJECT_BINARY_DIR}
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/fonts/*.* ${PROJECT_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/shaders/*.glsl ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/fonts/*.* ${CMAKE_CURRENT_BINARY_DIR}
 )

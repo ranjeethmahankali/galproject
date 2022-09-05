@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.0)
 
-add_compile_definitions(GAL_ASSET_DIR_STR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+add_compile_definitions(GAL_ASSET_DIR_STR="${PROJECT_SOURCE_DIR}/assets")
 enable_testing()
 file (GLOB TEST_SRC "*.cpp")
 add_executable(galtest ${TEST_SRC})
