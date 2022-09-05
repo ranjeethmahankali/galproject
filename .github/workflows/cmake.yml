@@ -66,10 +66,10 @@ jobs:
         CXX: g++-11
 
     - name: Run Unit Tests
-      working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
+      working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}/galtest
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}/galtest --rerun-failed --output-on-failure
+      run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
 
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
