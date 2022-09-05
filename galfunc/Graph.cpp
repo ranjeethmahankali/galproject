@@ -1,8 +1,9 @@
-#include <galfunc/Functions.h>
-#include <galfunc/Graph.h>
 #include <cstddef>
 #include <numeric>
 #include <stdexcept>
+
+#include <Functions.h>
+#include <Graph.h>
 
 namespace gal {
 namespace func {

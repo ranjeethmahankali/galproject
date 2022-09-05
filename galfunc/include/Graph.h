@@ -4,8 +4,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <galcore/Util.h>
-#include <galfunc/Property.h>
+#include <Property.h>
+#include <Util.h>
 
 namespace gal {
 namespace func {

@@ -2,8 +2,8 @@
 #include <glm/common.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <galcore/ObjLoader.h>
-#include <galfunc/Functions.h>
+#include <Functions.h>
+#include <ObjLoader.h>
 
 namespace gal {
 namespace func {

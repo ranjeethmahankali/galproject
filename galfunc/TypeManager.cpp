@@ -1,4 +1,4 @@
-#include <galfunc/TypeManager.h>
+#include <TypeManager.h>
 
 #define GAL_TEMPLATE_INST(T)                                                  \
   template class gal::func::data::Tree<T>;                                    \

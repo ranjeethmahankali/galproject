@@ -4,10 +4,10 @@
 #include <type_traits>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <glm/glm.hpp>
 
-#include <galfunc/Data.h>
-#include <pybind11/pytypes.h>
+#include <Data.h>
 
 namespace py = pybind11;
 

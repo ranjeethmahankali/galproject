@@ -7,8 +7,8 @@
 #include <type_traits>
 #include <vector>
 
-#include <galcore/Traits.h>
-#include <galcore/Types.h>
+#include <Traits.h>
+#include <Types.h>
 
 namespace gal {
 namespace func {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <galcore/Types.h>
-#include <galfunc/Converter.h>
-#include <galfunc/Data.h>
-#include <galfunc/MapMacro.h>
+#include <Converter.h>
+#include <Data.h>
+#include <MapMacro.h>
+#include <Types.h>
 
 #define GAL_EXTERN_TEMPLATE(T)                                                       \
   extern template class gal::func::data::Tree<T>;                                    \

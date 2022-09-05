@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <galcore/Util.h>
-#include <galfunc/Data.h>
-#include <galfunc/Functions.h>
-#include <galfunc/TypeManager.h>
+#include <Data.h>
+#include <Functions.h>
+#include <TypeManager.h>
+#include <Util.h>
 
 namespace gal {
 namespace func {

@@ -1,4 +1,4 @@
-#include <galfunc/Data.h>
+#include <Data.h>
 
 namespace gal {
 Bool::Bool(bool b)

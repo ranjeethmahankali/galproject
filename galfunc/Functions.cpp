@@ -4,16 +4,16 @@
 #include <pybind11/pybind11.h>
 #include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-
-#include <galcore/Annotations.h>
-#include <galcore/Circle2d.h>
-#include <galcore/Line.h>
-#include <galcore/Types.h>
-#include <galcore/Util.h>
-#include <galfunc/Functions.h>
-#include <galfunc/MapMacro.h>
-#include <galfunc/TypeManager.h>
 #include <spdlog/spdlog.h>
+
+#include <Annotations.h>
+#include <Circle2d.h>
+#include <Functions.h>
+#include <Line.h>
+#include <MapMacro.h>
+#include <TypeManager.h>
+#include <Types.h>
+#include <Util.h>
 
 namespace gal {
 namespace func {

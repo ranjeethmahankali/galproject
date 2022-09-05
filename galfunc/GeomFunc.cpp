@@ -1,8 +1,8 @@
 #include <algorithm>
 
-#include <galcore/Box.h>
-#include <galcore/ConvexHull.h>
-#include <galfunc/Functions.h>
+#include <Box.h>
+#include <ConvexHull.h>
+#include <Functions.h>
 
 namespace gal {
 namespace func {

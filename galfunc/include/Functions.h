@@ -8,11 +8,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include <galcore/Util.h>
-#include <galfunc/Data.h>
-#include <galfunc/MapMacro.h>
-#include <galfunc/Property.h>
-#include <galfunc/TypeManager.h>
+#include <Data.h>
+#include <MapMacro.h>
+#include <Property.h>
+#include <TypeManager.h>
+#include <Util.h>
 
 namespace gal {
 namespace func {

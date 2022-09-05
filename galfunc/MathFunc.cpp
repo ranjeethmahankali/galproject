@@ -1,6 +1,6 @@
-#include <galcore/Util.h>
-#include <galfunc/Functions.h>
-#include <galfunc/TypeManager.h>
+#include <Functions.h>
+#include <TypeManager.h>
+#include <Util.h>
 
 namespace gal {
 namespace func {

@@ -1,4 +1,4 @@
-#include <galfunc/Functions.h>
+#include <Functions.h>
 
 namespace gal {
 namespace func {

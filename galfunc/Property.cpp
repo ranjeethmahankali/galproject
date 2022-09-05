@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <galfunc/Functions.h>
-#include <galfunc/Property.h>
+#include <Functions.h>
+#include <Property.h>
 
 namespace gal {
 namespace func {
