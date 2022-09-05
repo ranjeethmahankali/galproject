@@ -6,72 +6,206 @@
 #include <galcore/Util.h>
 namespace gal {
 
-struct Box2;
-
-struct Box3
+template<int Dim>
+struct Box
 {
-  static const Box3 empty;
-  glm::vec3         min, max;
+  using VecT = glm::vec<Dim, float>;
+  VecT min;
+  VecT max;
 
-  Box3();
-  Box3(const glm::vec3& min, const glm::vec3& max);
-  Box3(const glm::vec3* points, size_t nPoints);
-  explicit Box3(const std::span<glm::vec3> points);
-  explicit Box3(const glm::vec3& pt);
-  explicit Box3(const Box2& b2);
+  Box();
+  Box(const VecT& min, const VecT& max);
+  explicit Box(std::span<VecT> points);
+  explicit Box(const VecT& pt);
 
-  template<typename TPtIter>
-  static Box3 create(TPtIter begin, TPtIter end)
+  template<int Dim2>
+  explicit Box(const Box<Dim2>& b)
+      : min(0.f)
+      , max(0.f)
   {
-    Box3 b;
+    for (int i = 0; i < Dim2; ++i) {
+      min[i] = b.min[i];
+      max[i] = b.max[i];
+    }
+  }
+
+  template<typename PtIter>
+  static Box create(PtIter begin, PtIter end)
+  {
+    Box b;
     while (begin != end) {
       b.inflate(*(begin++));
     }
     return b;
   }
 
-  glm::vec3 diagonal() const;
-  void      inflate(const glm::vec3&);
-  void      inflate(const Box3& b);
-  void      inflate(float);
-  void      deflate(float);
-  bool      contains(const glm::vec3&) const;
-  bool      contains(const Box3&) const;
-  bool      intersects(const Box3&) const;
-  glm::vec3 center() const;
-  float     volume() const;
-  bool      valid() const;
-
-  glm::vec3 eval(float u, float v, float w) const;
+  VecT diagonal() const { return max - min; }
+  void inflate(const VecT& v);
+  void inflate(const Box<Dim>& b);
+  void inflate(float);
+  void deflate(float);
+  bool contains(const VecT&) const;
+  bool contains(const Box<Dim>&) const;
+  bool intersects(const Box<Dim>&) const;
+  VecT center() const;
+  /**
+   * @brief In 2d, it represents the area, in 3d it's the volume.
+   * It is the generalized higher dimensional volume.
+   * @param
+   * @return float
+   */
+  float measure() const;
+  bool  valid() const;
 
   template<typename DstIter>
   void randomPoints(size_t n, DstIter dst) const
   {
-    std::vector<float> x(n), y(n), z(n);
-    utils::random(min.x, max.x, n, x.data());
-    utils::random(min.y, max.y, n, y.data());
-    utils::random(min.z, max.z, n, z.data());
-    for (size_t i = 0; i < n; i++) {
-      *(dst++) = glm::vec3(x[i], y[i], z[i]);
-    };
-  };
+    utils::random(min, max, n, dst);
+  }
 
-  static Box3      init(const glm::vec3&, const glm::vec3&);
-  static glm::vec3 max_coords(const glm::vec3& a, const glm::vec3& b);
-  static glm::vec3 min_coords(const glm::vec3& a, const glm::vec3& b);
+  VecT eval(const VecT& v) const;
+
+  static Box init(const VecT& min, const VecT& max);
 };
 
-template<>
-struct Serial<Box3> : public std::true_type
+template<int Dim>
+Box<Dim>::Box()
+    : min(FLT_MAX)
+    , max(-FLT_MAX)
+{}
+
+template<int Dim>
+Box<Dim>::Box(const VecT& min, const VecT& max)
+    : Box()
 {
-  static Box3 deserialize(Bytes& bytes)
+  inflate(min);
+  inflate(max);
+}
+
+template<int Dim>
+Box<Dim>::Box(const VecT& pt)
+    : min(pt)
+    , max(pt)
+{}
+
+template<int Dim>
+Box<Dim>::Box(std::span<VecT> pts)
+{
+  for (const VecT& p : pts) {
+    inflate(p);
+  }
+}
+
+template<int Dim>
+void Box<Dim>::inflate(const VecT& v)
+{
+  min = glm::min(v, min);
+  max = glm::max(v, max);
+}
+
+template<int Dim>
+void Box<Dim>::inflate(const Box<Dim>& b)
+{
+  inflate(b.min);
+  inflate(b.max);
+}
+
+template<int Dim>
+void Box<Dim>::inflate(float d)
+{
+  VecT v(d);
+  min -= v;
+  max += v;
+}
+
+template<int Dim>
+void Box<Dim>::deflate(float d)
+{
+  inflate(-d);
+}
+
+template<int Dim>
+bool Box<Dim>::contains(const VecT& v) const
+{
+  for (int i = 0; i < Dim; ++i) {
+    if (v[i] < min[i] || v[i] > max[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template<int Dim>
+bool Box<Dim>::contains(const Box<Dim>& b) const
+{
+  return contains(b.min) && contains(b.max);
+}
+
+template<int Dim>
+bool Box<Dim>::intersects(const Box<Dim>& b) const
+{
+  return contains(b.min) || contains(b.max);
+}
+
+template<int Dim>
+typename Box<Dim>::VecT Box<Dim>::center() const
+{
+  return (min + max) * 0.5f;
+}
+
+template<int Dim>
+float Box<Dim>::measure() const
+{
+  VecT  d      = diagonal();
+  float result = 1.f;
+  for (int i = 0; i < Dim; ++i) {
+    result *= d[i];
+  }
+  return result;
+}
+
+template<int Dim>
+bool Box<Dim>::valid() const
+{
+  VecT d = diagonal();
+  for (int i = 0; i < Dim; ++i) {
+    if (d[i] < 0.f) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template<int Dim>
+typename Box<Dim>::VecT Box<Dim>::eval(const VecT& v) const
+{
+  VecT result = diagonal();
+  for (int i = 0; i < Dim; ++i) {
+    result[i] = min[i] + v[i] * result[i];
+  }
+  return result;
+}
+
+template<int Dim>
+Box<Dim> Box<Dim>::init(const VecT& min, const VecT& max)
+{
+  Box b;
+  b.min = min;
+  b.max = max;
+  return b;
+}
+
+template<int Dim>
+struct Serial<Box<Dim>> : public std::true_type
+{
+  static Box<Dim> deserialize(Bytes& bytes)
   {
-    Box3 box;
+    Box<Dim> box;
     bytes >> box.min >> box.max;
     return box;
   }
 
-  static Bytes serialize(const Box3& box)
+  static Bytes serialize(const Box<Dim>& box)
   {
     Bytes bytes;
     bytes << box.min << box.max;
@@ -79,52 +213,10 @@ struct Serial<Box3> : public std::true_type
   }
 };
 
-struct Box2
-{
-  static const Box2 empty;
-  glm::vec2         min, max;
+extern template struct Box<2>;
+extern template struct Box<3>;
 
-  Box2();
-  explicit Box2(const glm::vec2& pt);
-  Box2(const glm::vec2&, const glm::vec2&);
-  Box2(const glm::vec2* points, size_t nPoints);
-
-  template<typename TPtIter>
-  static Box2 create(TPtIter begin, TPtIter end)
-  {
-    Box2 b;
-    while (begin != end) {
-      b.inflate(*(begin++));
-    }
-    return b;
-  }
-
-  glm::vec2 diagonal() const;
-  void      inflate(const glm::vec2&);
-  void      inflate(float);
-  void      inflate(const Box2& b);
-  void      deflate(float);
-  bool      contains(const glm::vec2&) const;
-  bool      contains(const Box2&) const;
-  bool      intersects(const Box2&) const;
-  glm::vec2 center() const;
-  float     area() const;
-  bool      valid() const;
-
-  template<typename DstIter>
-  void randomPoints(size_t n, DstIter dst) const
-  {
-    std::vector<float> x(n), y(n);
-    utils::random(min.x, max.x, n, x.data());
-    utils::random(min.y, max.y, n, y.data());
-    for (size_t i = 0; i < n; i++) {
-      *(dst++) = glm::vec2(x[i], y[i]);
-    };
-  };
-
-  static Box2      init(const glm::vec2&, const glm::vec2&);
-  static glm::vec2 max_coords(const glm::vec2& a, const glm::vec2& b);
-  static glm::vec2 min_coords(const glm::vec2& a, const glm::vec2& b);
-};
+using Box2 = Box<2>;
+using Box3 = Box<3>;
 
 }  // namespace gal

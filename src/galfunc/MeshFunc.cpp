@@ -73,10 +73,7 @@ GAL_FUNC(meshSphereQuery,
   std::vector<int> results;
   mesh.querySphere(sphere, std::back_inserter(results), gal::eMeshElement::face);
   faceIndices.reserve(results.size());
-  std::transform(
-    results.begin(), results.end(), std::back_inserter(faceIndices), [](size_t i) {
-      return int32_t(i);
-    });
+  std::copy(results.begin(), results.end(), std::back_inserter(faceIndices));
   resultMesh = mesh.subMesh(results);
   numFaces   = int32_t(results.size());
 }
