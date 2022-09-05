@@ -34,8 +34,17 @@ static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
 namespace fs = std::filesystem;
 
 namespace std {
-std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v);
-std::ostream& operator<<(std::ostream& ostr, const glm::vec2& v);
+
+template<int N, typename T>
+std::ostream& operator<<(std::ostream& ostr, const glm::vec<N, T>& v)
+{
+  ostr << "(" << v[0];
+  for (int i = 1; i < N; ++i) {
+    ostr << ", " << v[i];
+  }
+  ostr << ")";
+  return ostr;
+}
 
 /**
  * @brief Writes the object to the stream safely, If the stream operator exists for the
@@ -182,18 +191,8 @@ void random(T min, T max, size_t count, DstIter dst)
     else if constexpr (GlmVecTraits<T>::IsGlmVec) {
       using TVal = typename GlmVecTraits<T>::ValueType;
       T v;
-      for (int i = 0; i < GlmVecTraits<T>::Size; i++) {
-        if constexpr (std::is_integral_v<TVal>) {
-          v[i] = min[i] + (static_cast<TVal>(std::rand()) % (max[i] - min[i]));
-        }
-        else if constexpr (std::is_floating_point_v<TVal>) {
-          static constexpr TVal TValMax = static_cast<TVal>(RAND_MAX);
-          v[i] = min[i] + (max[i] - min[i]) * (static_cast<TVal>(std::rand()) / TValMax);
-        }
-        else {
-          std::cerr << sErrorMsg;
-          return;
-        }
+      for (int j = 0; j < GlmVecTraits<T>::Size; j++) {
+        random(min[j], max[j], 1, &v[j]);
       }
       *(dst++) = v;
     }
