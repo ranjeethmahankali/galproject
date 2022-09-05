@@ -1,8 +1,9 @@
 #include <execution>
 
-#include <galcore/Box.h>
-#include <galcore/PointCloud.h>
 #include <gtest/gtest.h>
+
+#include <Box.h>
+#include <PointCloud.h>
 
 using namespace gal;
 

@@ -5,7 +5,9 @@ enable_testing()
 file (GLOB TEST_SRC "*.cpp")
 add_executable(galtest ${TEST_SRC})
 target_include_directories(galtest PRIVATE
-    ${PYTHON_INCLUDE_DIRS})
+  "include/"
+  ${PYTHON_INCLUDE_DIRS}
+)
 target_link_libraries(galtest PRIVATE
     galcore
     galfunc

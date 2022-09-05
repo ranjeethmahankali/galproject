@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <glm/gtx/transform.hpp>
 
-#include <galcore/Mesh.h>
-#include <galcore/ObjLoader.h>
-#include <galtest/TestUtils.h>
+#include <Mesh.h>
+#include <ObjLoader.h>
+#include <TestUtils.h>
 
 gal::TriMesh unitbox()
 {

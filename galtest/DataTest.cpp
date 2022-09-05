@@ -2,11 +2,11 @@
 #include <glm/glm.hpp>
 #include <numeric>
 
-#include <galcore/Timer.h>
-#include <galcore/Util.h>
-#include <galfunc/Data.h>
-#include <galfunc/Functions.h>
-#include <galtest/TestUtils.h>
+#include <Data.h>
+#include <Functions.h>
+#include <TestUtils.h>
+#include <Timer.h>
+#include <Util.h>
 
 using namespace gal::func::data;
 

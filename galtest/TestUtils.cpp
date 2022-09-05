@@ -1,5 +1,5 @@
-#include <galfunc/Functions.h>
-#include <galtest/TestUtils.h>
+#include <Functions.h>
+#include <TestUtils.h>
 
 namespace gal {
 namespace test {

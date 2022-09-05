@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <galcore/ObjLoader.h>
-#include <galtest/TestUtils.h>
+#include <ObjLoader.h>
+#include <TestUtils.h>
 
 #ifdef NDEBUG
 TEST(ObjLoader, DragonMesh)

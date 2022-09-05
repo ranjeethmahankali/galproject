@@ -2,12 +2,12 @@
 
 #include <glm/glm.hpp>
 
-#include <galcore/Annotations.h>
-#include <galcore/Circle2d.h>
-#include <galcore/Plane.h>
-#include <galcore/Sphere.h>
-#include <galcore/Util.h>
-#include <galtest/TestUtils.h>
+#include <Annotations.h>
+#include <Circle2d.h>
+#include <Plane.h>
+#include <Sphere.h>
+#include <TestUtils.h>
+#include <Util.h>
 
 static constexpr float TOLERANCE = 0.0001f;
 

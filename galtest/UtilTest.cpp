@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <galcore/Util.h>
+#include <Util.h>
 
 using namespace gal::utils;
 
