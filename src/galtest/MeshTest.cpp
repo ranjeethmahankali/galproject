@@ -90,6 +90,5 @@ TEST(Mesh, SphereQuery)
   std::vector<int> indices;
   mesh.querySphere(sp, std::back_inserter(indices), gal::eMeshElement::face);
   auto smesh = mesh.subMesh(indices);
-  std::cout << smesh.n_faces() << " " << mesh.n_faces() << std::endl;
   ASSERT_FLOAT_EQ(smesh.area(), 0.44368880987167358);
 }

@@ -17,7 +17,7 @@ class PointCloud : public std::vector<glm::vec<NDim, float>>
 public:
   PointCloud() = default;
   explicit PointCloud(std::span<const glm::vec<NDim, float>> pts)
-      : std::vector<glm::vec<NDim, float>>(pts)
+      : std::vector<glm::vec<NDim, float>>(pts.begin(), pts.end())
   {}
 
   template<int Dim2>
@@ -31,7 +31,7 @@ public:
     }
   }
 
-  Box3 bounds() const { return Box3(*this); }
+  Box<NDim> bounds() const { return Box<NDim>(*this); }
 };
 
 extern template class PointCloud<2>;
