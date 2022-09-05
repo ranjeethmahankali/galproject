@@ -24,22 +24,6 @@
 
 namespace fs = std::filesystem;
 
-namespace std {
-
-std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v)
-{
-  ostr << "(" << v.x << ", " << v.y << ", " << v.z << ")";
-  return ostr;
-};
-
-std::ostream& operator<<(std::ostream& ostr, const glm::vec2& v)
-{
-  ostr << "(" << v.x << ", " << v.y << ")";
-  return ostr;
-};
-
-}  // namespace std
-
 bool gal::IndexPair::operator==(const gal::IndexPair& pair) const
 {
   return (p == pair.p && q == pair.q) || (p == pair.q && q == pair.p);

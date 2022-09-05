@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <span>
 #include <vector>
 
 #include <tbb/tbb.h>
@@ -15,12 +16,26 @@ class PointCloud : public std::vector<glm::vec<NDim, float>>
 {
 public:
   PointCloud() = default;
-  explicit PointCloud(const std::vector<glm::vec<NDim, float>>& pts)
+  explicit PointCloud(std::span<const glm::vec<NDim, float>> pts)
       : std::vector<glm::vec<NDim, float>>(pts)
   {}
 
-  Box3 bounds() const { return Box3(this->data(), this->size()); }
+  template<int Dim2>
+  explicit PointCloud(std::span<const glm::vec<Dim2, float>> pts)
+      : std::vector<glm::vec<NDim, float>>(pts.size(), glm::vec<NDim, float>(0.f))
+  {
+    for (size_t i = 0; i < pts.size(); ++i) {
+      for (int ci = 0; ci < Dim2; ++ci) {
+        this->at(i)[ci] = pts[i][ci];
+      }
+    }
+  }
+
+  Box3 bounds() const { return Box3(*this); }
 };
+
+extern template class PointCloud<2>;
+extern template class PointCloud<3>;
 
 template<int NDim>
 struct Serial<PointCloud<NDim>> : public std::true_type

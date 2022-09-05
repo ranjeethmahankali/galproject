@@ -245,7 +245,7 @@ void TriMesh::transform(const glm::mat4& mat)
   update_normals();
 }
 
-TriMesh TriMesh::subMesh(const std::span<int>& faces) const
+TriMesh TriMesh::subMesh(std::span<const int> faces) const
 {
   std::vector<VertH> newVerts(n_vertices());
   TriMesh            smesh;

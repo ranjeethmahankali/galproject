@@ -589,7 +589,11 @@ public:
     return result;
   }
 
-  Iterator operator+=(size_t offset) { *this = *this + offset; }
+  Iterator operator+=(size_t offset)
+  {
+    *this = *this + offset;
+    return *this;
+  }
 
   DereferenceT operator*()
   {

@@ -81,3 +81,15 @@ TEST(Mesh, Centroid)
   ASSERT_NEAR(
     glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
 }
+
+TEST(Mesh, SphereQuery)
+{
+  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toTriMesh();
+  mesh.transform(glm::scale(glm::vec3(10.f)));
+  gal::Sphere      sp(glm::vec3(0.f), 0.5f);
+  std::vector<int> indices;
+  mesh.querySphere(sp, std::back_inserter(indices), gal::eMeshElement::face);
+  auto smesh = mesh.subMesh(indices);
+  std::cout << smesh.n_faces() << " " << mesh.n_faces() << std::endl;
+  ASSERT_FLOAT_EQ(smesh.area(), 0.44368880987167358);
+}
