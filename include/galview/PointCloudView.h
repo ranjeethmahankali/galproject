@@ -6,8 +6,8 @@
 namespace gal {
 namespace view {
 
-template<>
-struct Drawable<PointCloud> : public std::true_type
+template<int Dim>
+struct Drawable<PointCloud<Dim>> : public std::true_type
 {
   static constexpr glm::vec4 sPointColor = {1.f, 0.f, 0.f, 1.f};
 
@@ -16,22 +16,29 @@ private:
   glutil::VertexBuffer mVBuf;
 
 public:
-  void update(const std::vector<PointCloud>& clouds)
+  void update(const std::vector<PointCloud<Dim>>& clouds)
   {
     mBounds = gal::Box3();
     mVBuf.resize(std::accumulate(
-      clouds.begin(), clouds.end(), size_t(0), [](size_t total, const PointCloud& cloud) {
-        return total + cloud.size();
-      }));
+      clouds.begin(),
+      clouds.end(),
+      size_t(0),
+      [](size_t total, const PointCloud<Dim>& cloud) { return total + cloud.size(); }));
     for (const auto& cloud : clouds) {
       std::transform(
         cloud.cbegin(),
         cloud.cend(),
         mVBuf.begin(),
-        [](const glm::vec3& pt) -> glutil::VertexBuffer::VertexType { return {pt}; });
+        [](const glm::vec<Dim, float>& pt) -> glutil::VertexBuffer::VertexType {
+          if constexpr (Dim == 2) {
+            return {glm::vec3(pt, 0.f)};
+          }
+          else {
+            return {glm::vec3(pt)};
+          }
+        });
       mBounds.inflate(cloud.bounds());
     }
-
     mVBuf.alloc();
   }
 

@@ -30,7 +30,7 @@ TEST(Circle2d, MinBoundingCircle)
                                                               }};
 
   for (const auto& points : pointSets) {
-    auto cloud = gal::PointCloud(points);
+    auto cloud = gal::PointCloud<2>(points);
     auto circ  = gal::Circle2d::minBoundingCircle(points);
 
     for (const auto& pt : points) {

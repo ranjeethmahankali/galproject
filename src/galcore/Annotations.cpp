@@ -12,7 +12,7 @@ TextAnnotations createIndexedPoints(const std::vector<glm::vec3>& points)
   return tags;
 }
 
-TextAnnotations createIndexedPointCloud(const gal::PointCloud& cloud)
+TextAnnotations createIndexedPointCloud(const gal::PointCloud<3>& cloud)
 {
   return createIndexedPoints((const std::vector<glm::vec3>&)cloud);
 }

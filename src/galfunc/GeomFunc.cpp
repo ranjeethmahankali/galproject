@@ -117,7 +117,7 @@ GAL_FUNC(convexHullFromPoints,
 GAL_FUNC(pointCloud3d,
          "Creates a point cloud from the list of points",
          (((data::ReadView<glm::vec3, 1>), points, "points")),
-         ((gal::PointCloud, cloud, "Point cloud")))
+         ((gal::PointCloud<3>, cloud, "Point cloud")))
 {
   cloud.resize(points.size());
   std::copy(points.begin(), points.end(), cloud.begin());

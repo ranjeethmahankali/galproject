@@ -65,7 +65,7 @@ GAL_TYPE_INFO(gal::Sphere, sphere, 0x5e8f631c);
 GAL_TYPE_INFO(gal::Plane, plane, 0x591f323f);
 GAL_TYPE_INFO(gal::Box3, box3, 0x8fcb9e01);
 GAL_TYPE_INFO(gal::Box2, box2, 0xd60b396d);
-GAL_TYPE_INFO(gal::PointCloud, ptcloud, 0xe6e934eb);
+GAL_TYPE_INFO(gal::PointCloud<3>, ptcloud, 0xe6e934eb);
 GAL_TYPE_INFO(gal::Circle2d, circle2d, 0x3271dc29);
 GAL_TYPE_INFO(gal::Line2d, line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Line3d, line3d, 0x989fdbdd);

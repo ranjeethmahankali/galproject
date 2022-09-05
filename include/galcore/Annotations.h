@@ -38,7 +38,7 @@ using TextAnnotations  = Annotations<std::string>;
 using GlyphAnnotations = Annotations<Glyph>;
 
 TextAnnotations createIndexedPoints(const std::vector<glm::vec3>& points);
-TextAnnotations createIndexedPointCloud(const PointCloud& cloud);
+TextAnnotations createIndexedPointCloud(const PointCloud<3>& cloud);
 
 template<typename T>
 struct Serial<Annotations<T>> : public std::true_type

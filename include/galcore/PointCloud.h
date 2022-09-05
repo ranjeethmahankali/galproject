@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <span>
 #include <vector>
 
 #include <tbb/tbb.h>
@@ -9,23 +10,40 @@
 #include <glm/glm.hpp>
 
 namespace gal {
-class PointCloud : public std::vector<glm::vec3>
+
+template<int NDim>
+class PointCloud : public std::vector<glm::vec<NDim, float>>
 {
 public:
   PointCloud() = default;
-  explicit PointCloud(const std::vector<glm::vec3>&);
-  explicit PointCloud(const std::vector<glm::vec2>& pts2d);
+  explicit PointCloud(std::span<const glm::vec<NDim, float>> pts)
+      : std::vector<glm::vec<NDim, float>>(pts.begin(), pts.end())
+  {}
 
-  Box3 bounds() const;
+  template<int Dim2>
+  explicit PointCloud(std::span<const glm::vec<Dim2, float>> pts)
+      : std::vector<glm::vec<NDim, float>>(pts.size(), glm::vec<NDim, float>(0.f))
+  {
+    for (size_t i = 0; i < pts.size(); ++i) {
+      for (int ci = 0; ci < Dim2; ++ci) {
+        this->at(i)[ci] = pts[i][ci];
+      }
+    }
+  }
+
+  Box<NDim> bounds() const { return Box<NDim>(*this); }
 };
 
-template<>
-struct Serial<PointCloud> : public std::true_type
+extern template class PointCloud<2>;
+extern template class PointCloud<3>;
+
+template<int NDim>
+struct Serial<PointCloud<NDim>> : public std::true_type
 {
-  static PointCloud deserialize(Bytes& bytes)
+  static PointCloud<NDim> deserialize(Bytes& bytes)
   {
-    PointCloud cloud;
-    uint64_t   npts = 0;
+    PointCloud<NDim> cloud;
+    uint64_t         npts = 0;
     bytes >> npts;
     cloud.resize(npts);
     for (auto& pt : cloud) {
@@ -33,7 +51,7 @@ struct Serial<PointCloud> : public std::true_type
     }
     return cloud;
   }
-  static Bytes serialize(const PointCloud& cloud)
+  static Bytes serialize(const PointCloud<NDim>& cloud)
   {
     Bytes dst;
     dst << uint64_t(cloud.size());
@@ -44,6 +62,17 @@ struct Serial<PointCloud> : public std::true_type
   }
 };
 
+/**
+ * @brief Computes the k-means clustering for the given range of points.
+ *
+ * @tparam TPt The type of point. Must be either glm::vec3 or glm::vec2
+ * @tparam TPtIter The iterator type.
+ * @tparam IdxOutIter Output iterator type that can accept size_t
+ * @param begin Iterator to the first point.
+ * @param end Iterator past the last point.
+ * @param nClusters Number of clusters.
+ * @param idxOut Output iterator for the index of the point cloud.
+ */
 template<typename TPt, typename TPtIter, typename IdxOutIter>
 void kMeansClusters(TPtIter begin, TPtIter end, size_t nClusters, IdxOutIter idxOut)
 {
