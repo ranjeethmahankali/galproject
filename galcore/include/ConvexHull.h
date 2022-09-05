@@ -1,12 +1,12 @@
 #pragma once
-#include <galcore/Box.h>
-#include <galcore/Util.h>
+#include <Box.h>
+#include <Util.h>
 #include <numeric>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
 
-#include <galcore/Mesh.h>
+#include <Mesh.h>
 
 static constexpr float PLANE_DIST_TOL = 1e-10;
 

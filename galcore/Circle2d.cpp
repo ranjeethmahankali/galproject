@@ -1,6 +1,8 @@
-#include <galcore/Circle2d.h>
 #include <algorithm>
+
 #include <glm/gtx/norm.hpp>
+
+#include <Circle2d.h>
 
 namespace gal {
 

@@ -1,4 +1,4 @@
-#include <galcore/PointCloud.h>
+#include <PointCloud.h>
 
 namespace gal {
 

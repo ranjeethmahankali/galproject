@@ -1,4 +1,4 @@
-#include <galcore/Sphere.h>
+#include <Sphere.h>
 
 namespace gal {
 

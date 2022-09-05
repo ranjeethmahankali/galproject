@@ -1,4 +1,4 @@
-#include <galcore/Timer.h>
+#include <Timer.h>
 
 namespace gal {
 

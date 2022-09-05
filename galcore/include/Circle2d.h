@@ -1,7 +1,9 @@
 #pragma once
-#include <galcore/Box.h>
-#include <galcore/Serialization.h>
+
 #include <glm/glm.hpp>
+
+#include <Box.h>
+#include <Serialization.h>
 
 namespace gal {
 

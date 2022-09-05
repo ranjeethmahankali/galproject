@@ -1,9 +1,11 @@
 #pragma once
-#include <galcore/Mesh.h>
+
 #include <tiny_obj_loader.h>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <vector>
+
+#include <Mesh.h>
 
 namespace gal {
 namespace io {

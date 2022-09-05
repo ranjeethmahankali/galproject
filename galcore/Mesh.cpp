@@ -16,11 +16,11 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include <galcore/Box.h>
-#include <galcore/Mesh.h>
-#include <galcore/ObjLoader.h>
-#include <galcore/RTree.h>
-#include <galcore/Util.h>
+#include <Box.h>
+#include <Mesh.h>
+#include <ObjLoader.h>
+#include <RTree.h>
+#include <Util.h>
 
 namespace gal {
 

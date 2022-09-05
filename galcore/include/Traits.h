@@ -1,8 +1,10 @@
 #pragma once
-#include <glm/glm.hpp>
+
 #include <memory>
 #include <ostream>
 #include <type_traits>
+
+#include <glm/glm.hpp>
 
 namespace gal {
 template<typename T>

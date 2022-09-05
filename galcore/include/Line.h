@@ -2,8 +2,8 @@
 
 #include <glm/glm.hpp>
 
-#include <galcore/Box.h>
-#include <galcore/Serialization.h>
+#include <Box.h>
+#include <Serialization.h>
 
 namespace gal {
 
@@ -12,7 +12,7 @@ struct Line2d
   glm::vec2 mStart = {0.f, 0.f};
   glm::vec2 mEnd   = {0.f, 0.f};
 
-  Box2 bounds() const;
+  Box2      bounds() const;
   glm::vec2 vec() const;
 };
 
@@ -21,7 +21,7 @@ struct Line3d
   glm::vec3 mStart = {0.f, 0.f, 0.f};
   glm::vec3 mEnd   = {0.f, 0.f, 0.f};
 
-  Box3 bounds() const;
+  Box3      bounds() const;
   glm::vec3 vec() const;
 };
 

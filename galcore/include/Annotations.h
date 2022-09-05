@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include <galcore/PointCloud.h>
-#include <galcore/Serialization.h>
+#include <PointCloud.h>
+#include <Serialization.h>
 
 namespace gal {
 

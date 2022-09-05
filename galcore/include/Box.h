@@ -2,8 +2,8 @@
 
 #include <span>
 
-#include <galcore/Serialization.h>
-#include <galcore/Util.h>
+#include <Serialization.h>
+#include <Util.h>
 namespace gal {
 
 template<int Dim>

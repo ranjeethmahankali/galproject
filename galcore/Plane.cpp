@@ -1,4 +1,4 @@
-#include <galcore/Plane.h>
+#include <Plane.h>
 
 namespace gal {
 

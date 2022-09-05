@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include <galcore/Traits.h>
+#include <Traits.h>
 
 namespace gal {
 

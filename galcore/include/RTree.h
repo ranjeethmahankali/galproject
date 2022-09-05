@@ -1,6 +1,6 @@
 #pragma once
-#include <galcore/Box.h>
-#include <galcore/Util.h>
+#include <Box.h>
+#include <Util.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/geometries/point.hpp>

@@ -1,5 +1,6 @@
 #pragma once
-#include <galcore/Box.h>
+#include <Box.h>
+
 #include <glm/glm.hpp>
 
 namespace gal {

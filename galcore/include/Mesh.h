@@ -9,12 +9,12 @@
 #include <span>
 #include <unordered_map>
 
-#include <galcore/Box.h>
-#include <galcore/OpenMeshAdaptor.h>
-#include <galcore/Plane.h>
-#include <galcore/RTree.h>
-#include <galcore/Sphere.h>
-#include <galcore/Util.h>
+#include <Box.h>
+#include <OpenMeshAdaptor.h>
+#include <Plane.h>
+#include <RTree.h>
+#include <Sphere.h>
+#include <Util.h>
 
 using EdgeType     = gal::IndexPair;
 using EdgeTypeHash = gal::IndexPairHash;

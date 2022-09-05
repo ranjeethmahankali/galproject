@@ -1,5 +1,3 @@
-#include <galcore/ObjLoader.h>
-#include <galcore/Util.h>
 #include <algorithm>
 #include <fstream>
 #include <glm/gtx/transform.hpp>
@@ -8,6 +6,9 @@
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+
+#include <ObjLoader.h>
+#include <Util.h>
 
 namespace gal {
 namespace io {

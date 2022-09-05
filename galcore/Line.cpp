@@ -1,4 +1,4 @@
-#include <galcore/Line.h>
+#include <Line.h>
 
 namespace gal {
 

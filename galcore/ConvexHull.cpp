@@ -1,4 +1,4 @@
-#include "galcore/ConvexHull.h"
+#include <ConvexHull.h>
 
 namespace gal {
 

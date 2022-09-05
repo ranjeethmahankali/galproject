@@ -5,8 +5,8 @@
 
 #include <tbb/tbb.h>
 
-#include <galcore/Box.h>
-#include <galcore/Serialization.h>
+#include <Box.h>
+#include <Serialization.h>
 #include <glm/glm.hpp>
 
 namespace gal {

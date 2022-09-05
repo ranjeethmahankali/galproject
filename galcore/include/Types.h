@@ -1,14 +1,14 @@
 #pragma once
 
-#include <galcore/Annotations.h>
-#include <galcore/Box.h>
-#include <galcore/Circle2d.h>
-#include <galcore/Line.h>
-#include <galcore/Mesh.h>
-#include <galcore/Plane.h>
-#include <galcore/PointCloud.h>
-#include <galcore/Sphere.h>
-#include <galcore/Traits.h>
+#include <Annotations.h>
+#include <Box.h>
+#include <Circle2d.h>
+#include <Line.h>
+#include <Mesh.h>
+#include <Plane.h>
+#include <PointCloud.h>
+#include <Sphere.h>
+#include <Traits.h>
 
 namespace gal {
 

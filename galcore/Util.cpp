@@ -12,7 +12,7 @@
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include <galcore/Util.h>
+#include <Util.h>
 
 #define deletePtr(ptr, isArray) \
   if (isArray) {                \

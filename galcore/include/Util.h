@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include <galcore/Traits.h>
+#include <Traits.h>
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};

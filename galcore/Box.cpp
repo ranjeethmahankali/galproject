@@ -1,5 +1,5 @@
 
-#include <galcore/Box.h>
+#include <Box.h>
 
 namespace gal {
 
