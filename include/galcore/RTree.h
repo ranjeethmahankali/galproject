@@ -96,8 +96,9 @@ struct BFSQuery : public rtree::visitor<Value,
   inline void operator()(leaf const& n)
   {
     for (auto& item : rtree::elements(n))
-      if (pr(item.first))
+      if (pr(item.first)) {
         results.insert(&item);
+      }
   }
 
   Predicate const& pr;
@@ -119,8 +120,9 @@ void doBfsQuery(const TreeT& tree, PredFn pred, Fn action)
     vis(pred);
 
   av.apply_visitor(vis);
-  for (auto* hit : vis.results)
+  for (auto* hit : vis.results) {
     action(*hit);
+  }
 };
 
 template<class BoostPointT, typename VecT, typename BoxT>

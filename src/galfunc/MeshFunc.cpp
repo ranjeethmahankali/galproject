@@ -78,6 +78,15 @@ GAL_FUNC(meshSphereQuery,
   numFaces   = int32_t(results.size());
 }
 
+GAL_FUNC(subMesh,
+         "Gets a mesh with the subset of the faces of the input mesh",
+         ((gal::TriMesh, mesh, "Input mesh"),
+          ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
+         ((gal::TriMesh, resultMesh, "Resulting mesh with the subset of faces")))
+{
+  resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
+}
+
 GAL_FUNC(closestPoints,
          "Creates the result point cloud by closest-point-querying the mesh with "
          "the given point cloud",
@@ -164,6 +173,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(loadObjFile, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
+  GAL_FN_BIND(subMesh, module);
   GAL_FN_BIND(closestPoints, module);
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);

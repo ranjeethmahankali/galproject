@@ -15,7 +15,7 @@ struct Box
 
   Box();
   Box(const VecT& min, const VecT& max);
-  explicit Box(std::span<VecT> points);
+  explicit Box(std::span<const VecT> points);
   explicit Box(const VecT& pt);
 
   template<int Dim2>
@@ -89,7 +89,8 @@ Box<Dim>::Box(const VecT& pt)
 {}
 
 template<int Dim>
-Box<Dim>::Box(std::span<VecT> pts)
+Box<Dim>::Box(std::span<const VecT> pts)
+    : Box()
 {
   for (const VecT& p : pts) {
     inflate(p);
@@ -106,8 +107,10 @@ void Box<Dim>::inflate(const VecT& v)
 template<int Dim>
 void Box<Dim>::inflate(const Box<Dim>& b)
 {
-  inflate(b.min);
-  inflate(b.max);
+  if (b.valid()) {
+    inflate(b.min);
+    inflate(b.max);
+  }
 }
 
 template<int Dim>
@@ -144,7 +147,14 @@ bool Box<Dim>::contains(const Box<Dim>& b) const
 template<int Dim>
 bool Box<Dim>::intersects(const Box<Dim>& b) const
 {
-  return contains(b.min) || contains(b.max);
+  VecT m1 = glm::max(b.min, min);
+  VecT m2 = glm::min(b.max, max);
+  for (int i = 0; i < Dim; ++i) {
+    if (m2[i] <= m1[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 template<int Dim>
@@ -220,3 +230,14 @@ using Box2 = Box<2>;
 using Box3 = Box<3>;
 
 }  // namespace gal
+
+namespace std {
+using namespace gal;
+
+template<int Dim>
+std::ostream& operator<<(std::ostream& ostr, const gal::Box<Dim>& b)
+{
+  ostr << "(" << b.min << ", " << b.max << ")";
+  return ostr;
+}
+}  // namespace std

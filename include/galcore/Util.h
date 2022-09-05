@@ -34,8 +34,17 @@ static constexpr glm::vec2 vec2_unset = {FLT_MAX, FLT_MAX};
 namespace fs = std::filesystem;
 
 namespace std {
-std::ostream& operator<<(std::ostream& ostr, const glm::vec3& v);
-std::ostream& operator<<(std::ostream& ostr, const glm::vec2& v);
+
+template<int N, typename T>
+std::ostream& operator<<(std::ostream& ostr, const glm::vec<N, T>& v)
+{
+  ostr << "(" << v[0];
+  for (int i = 1; i < N; ++i) {
+    ostr << ", " << v[i];
+  }
+  ostr << ")";
+  return ostr;
+}
 
 /**
  * @brief Writes the object to the stream safely, If the stream operator exists for the

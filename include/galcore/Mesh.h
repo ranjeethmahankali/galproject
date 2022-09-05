@@ -71,7 +71,7 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   void      transform(const glm::mat4& mat);
   void      set_color(VertH v, const glm::vec3& c);
   glm::vec3 color(VertH v) const;
-  TriMesh   subMesh(const std::span<int>& faces) const;
+  TriMesh   subMesh(std::span<const int> faces) const;
   void      updateRTrees() const;
 
 private:
