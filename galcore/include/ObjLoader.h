@@ -1,0 +1,34 @@
+#pragma once
+
+#include <tiny_obj_loader.h>
+#include <filesystem>
+#include <glm/glm.hpp>
+#include <vector>
+
+#include <Mesh.h>
+
+namespace gal {
+namespace io {
+
+class ObjMeshData
+{
+public:
+  struct Face
+  {
+    int64_t vertices[3];
+    int64_t texCoords[3];
+    int64_t normals[3];
+  };
+
+  explicit ObjMeshData(const std::filesystem::path& filepath, bool flipYAndZ = false);
+
+  TriMesh toTriMesh() const;
+
+private:
+  std::filesystem::path mPath;
+  tinyobj::ObjReader    mReader;
+  bool                  mFlipYZ = false;
+};
+
+}  // namespace io
+}  // namespace gal

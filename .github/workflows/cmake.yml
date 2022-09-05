@@ -59,14 +59,14 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         bash build.sh ${{env.BUILD_TYPE}} all 4
-        pip3 install -e ${{env.BUILD_TYPE}}
+        pip3 install -e ${{env.BUILD_TYPE}}/galfunc
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
         CC: gcc-11
         CXX: g++-11
 
     - name: Run Unit Tests
-      working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
+      working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}/galtest
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure

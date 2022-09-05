@@ -1,7 +1,7 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-relpath = pgf.var_string("../assets/bunny.obj")
+relpath = pgf.var_string("../../assets/bunny.obj")
 path = pgf.absPath(relpath)
 mesh = pgf.loadObjFile(path)
 scale = pgf.var_float(10.0)

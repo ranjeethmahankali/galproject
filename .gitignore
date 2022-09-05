@@ -13,3 +13,4 @@ external/
 Debug/
 Release/
 RelWithDebInfo/
+Testing/
