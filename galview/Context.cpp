@@ -8,10 +8,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <galcore/Mesh.h>
-#include <galcore/Util.h>
-#include <galview/Context.h>
-#include <galview/Views.h>
+#include <Context.h>
+#include <Mesh.h>
+#include <Util.h>
+#include <Views.h>
 
 namespace gal {
 namespace view {

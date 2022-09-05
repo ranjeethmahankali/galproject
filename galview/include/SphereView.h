@@ -1,11 +1,12 @@
 #pragma once
 
-#include <galcore/Sphere.h>
-#include <galview/Context.h>
 #include <stdint.h>
 #include <algorithm>
 #include <array>
 #include <glm/glm.hpp>
+
+#include <Context.h>
+#include <Sphere.h>
 
 namespace gal {
 namespace view {

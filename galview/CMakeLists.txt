@@ -9,7 +9,11 @@ target_link_libraries(galview PRIVATE
   imgui::imgui
   GLEW::GLEW
   glfw
-  freetype)
+  freetype
+)
+
+target_include_directories(galview PRIVATE
+  "include/")
 
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview

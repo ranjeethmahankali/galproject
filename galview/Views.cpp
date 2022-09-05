@@ -1,4 +1,4 @@
-#include <galview/Views.h>
+#include <Views.h>
 
 namespace gal {
 namespace view {

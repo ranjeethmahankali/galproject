@@ -5,9 +5,9 @@
 
 #include <png++/png.hpp>
 
-#include <galcore/Util.h>
-#include <galview/AnnotationsView.h>
-#include <galview/GLUtil.h>
+#include <AnnotationsView.h>
+#include <GLUtil.h>
+#include <Util.h>
 
 namespace gal {
 namespace view {

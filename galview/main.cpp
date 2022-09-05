@@ -8,18 +8,18 @@
 #include <cxxopts.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <galcore/Circle2d.h>
-#include <galcore/ConvexHull.h>
-#include <galcore/ObjLoader.h>
-#include <galcore/Plane.h>
-#include <galcore/PointCloud.h>
-#include <galcore/Util.h>
-#include <galview/Command.h>
-#include <galview/Context.h>
-#include <galview/GLUtil.h>
-#include <galview/GuiFunctions.h>
-#include <galview/Interaction.h>
-#include <galview/Views.h>
+#include <Circle2d.h>
+#include <Command.h>
+#include <Context.h>
+#include <ConvexHull.h>
+#include <GLUtil.h>
+#include <GuiFunctions.h>
+#include <Interaction.h>
+#include <ObjLoader.h>
+#include <Plane.h>
+#include <PointCloud.h>
+#include <Util.h>
+#include <Views.h>
 
 using namespace gal;
 namespace fs = std::filesystem;

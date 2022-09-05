@@ -1,7 +1,7 @@
 #pragma once
 
-#include <galcore/Circle2d.h>
-#include <galview/Context.h>
+#include <Circle2d.h>
+#include <Context.h>
 
 namespace gal {
 namespace view {

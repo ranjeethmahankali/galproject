@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include <galview/GLUtil.h>
-
 #include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <GLUtil.h>
 
 namespace gal {
 namespace glutil {

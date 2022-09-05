@@ -1,7 +1,7 @@
 #pragma once
 
-#include <galcore/Line.h>
-#include <galview/Context.h>
+#include <Context.h>
+#include <Line.h>
 
 namespace gal {
 namespace view {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <galview/Context.h>
 #include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 
-#include <galfunc/Functions.h>
-#include <galview/Interaction.h>
+#include <Context.h>
+#include <Functions.h>
+#include <Interaction.h>
 
 namespace gal {
 namespace viewfunc {

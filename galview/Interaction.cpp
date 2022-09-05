@@ -13,14 +13,14 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/range/adaptors.hpp>
 
-#include <galfunc/Functions.h>
-#include <galfunc/Graph.h>
-#include <galfunc/Property.h>
-#include <galview/Command.h>
-#include <galview/GLUtil.h>
-#include <galview/GuiFunctions.h>
-#include <galview/Interaction.h>
-#include <galview/Views.h>
+#include <Command.h>
+#include <Functions.h>
+#include <GLUtil.h>
+#include <Graph.h>
+#include <GuiFunctions.h>
+#include <Interaction.h>
+#include <Property.h>
+#include <Views.h>
 
 namespace gal {
 namespace view {

@@ -7,9 +7,9 @@
 #include FT_FREETYPE_H
 #include <glm/glm.hpp>
 
-#include <galcore/Annotations.h>
-#include <galcore/Box.h>
-#include <galview/Context.h>
+#include <Annotations.h>
+#include <Box.h>
+#include <Context.h>
 
 namespace gal {
 namespace view {

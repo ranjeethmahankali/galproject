@@ -6,18 +6,18 @@
 #include <string>
 #include <string_view>
 
-#include <galcore/Annotations.h>
-#include <galcore/Types.h>
-#include <galcore/Util.h>
-#include <galfunc/Data.h>
-#include <galfunc/Functions.h>
-#include <galfunc/TypeManager.h>
-#include <galview/AnnotationsView.h>
-#include <galview/Command.h>
-#include <galview/Context.h>
-#include <galview/GuiFunctions.h>
-#include <galview/Interaction.h>
-#include <galview/Views.h>
+#include <Annotations.h>
+#include <AnnotationsView.h>
+#include <Command.h>
+#include <Context.h>
+#include <Data.h>
+#include <Functions.h>
+#include <GuiFunctions.h>
+#include <Interaction.h>
+#include <TypeManager.h>
+#include <Types.h>
+#include <Util.h>
+#include <Views.h>
 #include <pybind11/pybind11.h>
 
 namespace gal {

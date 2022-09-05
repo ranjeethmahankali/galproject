@@ -1,7 +1,8 @@
 #pragma once
-#include <galcore/PointCloud.h>
-#include <galview/Context.h>
 #include <numeric>
+
+#include <Context.h>
+#include <PointCloud.h>
 
 namespace gal {
 namespace view {

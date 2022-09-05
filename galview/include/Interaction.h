@@ -8,7 +8,7 @@
 #include <vector>
 
 // IMPORTANT: This needs to be included before the other ones.
-#include <galview/GLUtil.h>
+#include <GLUtil.h>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>

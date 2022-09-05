@@ -4,17 +4,17 @@
 #include <variant>
 #include <vector>
 
-#include <galcore/Types.h>
-#include <galview/AnnotationsView.h>
-#include <galview/BoxView.h>
-#include <galview/Circle2dView.h>
-#include <galview/Context.h>
-#include <galview/LineView.h>
-#include <galview/MeshView.h>
-#include <galview/PlaneView.h>
-#include <galview/PointCloudView.h>
-#include <galview/PointView.h>
-#include <galview/SphereView.h>
+#include <AnnotationsView.h>
+#include <BoxView.h>
+#include <Circle2dView.h>
+#include <Context.h>
+#include <LineView.h>
+#include <MeshView.h>
+#include <PlaneView.h>
+#include <PointCloudView.h>
+#include <PointView.h>
+#include <SphereView.h>
+#include <Types.h>
 
 namespace gal {
 namespace view {

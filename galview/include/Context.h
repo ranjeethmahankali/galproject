@@ -1,14 +1,16 @@
 #pragma once
 
-#include <galcore/Box.h>
-#include <galview/GLUtil.h>
 #include <stdint.h>
 #include <algorithm>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <vector>
+
+#include <glm/glm.hpp>
+
+#include <Box.h>
+#include <GLUtil.h>
 
 namespace gal {
 namespace view {
@@ -22,7 +24,7 @@ struct RenderSettings
   bool                          edgeMode      = false;
   bool                          pointMode     = false;
   std::pair<uint32_t, uint32_t> polygonMode   = {uint32_t(GL_FRONT_AND_BACK),
-                                               uint32_t(GL_FILL)};
+                                                 uint32_t(GL_FILL)};
   size_t                        shaderId      = 0;  // default shader
 
   void apply() const;

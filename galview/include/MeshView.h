@@ -1,10 +1,11 @@
 #pragma once
 
-#include <galcore/Mesh.h>
-#include <galview/Context.h>
-#include <galview/GLUtil.h>
 #include <array>
 #include <numeric>
+
+#include <Context.h>
+#include <GLUtil.h>
+#include <Mesh.h>
 
 namespace gal {
 namespace view {

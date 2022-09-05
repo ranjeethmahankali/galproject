@@ -1,11 +1,3 @@
-#include <spdlog/logger.h>
-#include <spdlog/sinks/ostream_sink.h>
-#include <spdlog/spdlog.h>
-
-#include <galview/Command.h>
-#include <galview/Context.h>
-#include <galview/GuiFunctions.h>
-#include <galview/Views.h>
 #include <algorithm>
 #include <cxxopts.hpp>
 #include <initializer_list>
@@ -13,6 +5,15 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+
+#include <Command.h>
+#include <Context.h>
+#include <GuiFunctions.h>
+#include <Views.h>
+
+#include <spdlog/logger.h>
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace gal {
 namespace view {
