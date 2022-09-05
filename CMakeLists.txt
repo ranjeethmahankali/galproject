@@ -26,98 +26,12 @@ find_package(freetype CONFIG REQUIRED)
 find_package(openmesh REQUIRED)
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
-
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
-
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-
-include_directories(include)
 # Dependencies and Includes - end
 
-# GALCORE - begin
-file(GLOB GALCORE_SRC "src/galcore/*.cpp")
-add_library(galcore STATIC ${GALCORE_SRC})
-
-target_link_libraries(galcore PUBLIC
-  ${OPENMESH_LIBRARIES}
-  glm::glm
-  tinyobjloader::tinyobjloader
-  TBB::tbb
-  spdlog::spdlog
-  spdlog::spdlog_header_only)
-
-target_include_directories(galcore PUBLIC
-  ${OPENMESH_INCLUDE_DIRS}
-  ${PNGPP_INCLUDE_DIRS})
-#GALCORE - end
-
-#GALFUNC - begin
-file(GLOB GALFUNC_SRC "src/galfunc/*.cpp")
-# Share the object files between galfunc and pygalfunc
-add_library(galfuncobjects OBJECT ${GALFUNC_SRC})
-target_include_directories(galfuncobjects PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(galfuncobjects PUBLIC
-    galcore
-    ${Boost_LIBRARIES}
-    ${PYTHON_LIBRARIES}
-    pybind11::headers
-    util
-    dl)
-
-add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
-# This will carry the dependencies and include dirs of galfuncobjects to
-# any other library that uses galfunc
-target_link_libraries(galfunc galfuncobjects)
-
-# Python shared lib
-pybind11_add_module(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
-set_target_properties(pygalfunc PROPERTIES
-  SUFFIX .so
-  PREFIX "")
-target_link_libraries(pygalfunc PUBLIC galfuncobjects)
-# Copy the python setup file
-add_custom_command(TARGET pygalfunc
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/scripts/setup.py
-  ${PROJECT_BINARY_DIR})
-#GALFUNC - end
-
-# GALVIEW - begin
-file(GLOB GALVIEW_SRC "src/galview/*.cpp")
-add_executable(galview ${GALVIEW_SRC})
-
-target_link_libraries(galview PRIVATE
-  galcore
-  galfunc
-  imgui::imgui
-  GLEW::GLEW
-  glfw
-  freetype)
-
-# Copy the shaders to bin dir
-add_custom_command(TARGET galview
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/shaders/*.glsl ${PROJECT_BINARY_DIR}
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/fonts/*.* ${PROJECT_BINARY_DIR}
-)
-#GALVIEW - end
-
-# GALTEST - begin
-add_compile_definitions(GAL_ASSET_DIR_STR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
-enable_testing()
-file (GLOB TEST_SRC "src/galtest/*.cpp")
-add_executable(galtest ${TEST_SRC})
-target_include_directories(galtest PRIVATE
-    ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(galtest PRIVATE
-    galcore
-    galfunc
-    GTest::gmock
-    GTest::gtest
-    GTest::gmock_main
-    GTest::gtest_main)
-
-gtest_discover_tests(galtest)
-# GALTEST - end
+add_subdirectory(galcore)
+add_subdirectory(galfunc)
+add_subdirectory(galview)
