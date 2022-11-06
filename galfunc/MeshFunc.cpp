@@ -2,6 +2,7 @@
 #include <glm/common.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <Data.h>
 #include <Functions.h>
 #include <ObjLoader.h>
 
@@ -155,9 +156,21 @@ GAL_FUNC(meshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (int i = 0; i < colors.size(); i++) {
-    outmesh.set_color(outmesh.vertex_handle(i), colors[i]);
+  for (TriMesh::VertH vh : outmesh.vertices()) {
+    outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
+}
+
+GAL_FUNC(vertexColors,
+         "Get the vertex colors of the mesh",
+         ((gal::TriMesh, mesh, "Mesh")),
+         (((data::WriteView<glm::vec3, 1>), colors, "Vertex colors")))
+{
+  colors.reserve(mesh.n_vertices());
+  std::transform(mesh.vertices_begin(),
+                 mesh.vertices_end(),
+                 std::back_inserter(colors),
+                 [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
 }
 
 void bind_MeshFunc(py::module& module)
@@ -177,6 +190,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(closestPoints, module);
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);
+  GAL_FN_BIND(vertexColors, module);
 }
 
 }  // namespace func

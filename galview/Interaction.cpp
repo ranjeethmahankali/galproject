@@ -9,6 +9,7 @@
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/range/adaptors.hpp>
@@ -30,7 +31,10 @@ static ImFont*           sFontLarge = nullptr;
 static std::stringstream sResponseStream;
 static auto              sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
-static auto sLogger = std::make_shared<spdlog::logger>("galview", sResponseSink);
+static auto sStdOutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+static auto sLogger =
+  std::make_shared<spdlog::logger>("galview",
+                                   spdlog::sinks_init_list {sResponseSink, sStdOutSink});
 static std::vector<Panel> sPanels;
 
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)

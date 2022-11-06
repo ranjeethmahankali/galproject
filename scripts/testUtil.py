@@ -1,10 +1,24 @@
 from os import path
+import pygalfunc as pgf
 from collections.abc import Iterable
 
 
 def assetPath(filename):
     return path.join(path.dirname(path.dirname(path.realpath(__file__))),
                      "assets", filename)
+
+
+def loadMesh(assetFileName):
+    fpath = pgf.var_string(assetPath(assetFileName))
+    return pgf.loadObjFile(fpath)
+
+
+def loadLargeBunny():
+    return loadMesh("bunny_large.obj")
+
+
+def loadSmallBunny():
+    return loadMesh("bunny.obj")
 
 
 def emptyOrNone(a):

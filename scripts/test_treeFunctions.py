@@ -54,5 +54,17 @@ def test_cachedOffsetDataRegression():
     assert len(pdists) == 16
 
 
+def test_graftedMeshVertexColors():
+    # This was discovered while working on issue #58.
+    cval = (1.0, 0.0, 0.0)
+    colors = pgf.graft(pgf.var_vec3(cval))
+    scaled = pgf.meshWithVertexColors(
+        pgf.scale(tu.loadSmallBunny(), pgf.var_float(10.0)), colors)
+    cvals = pgf.read(pgf.vertexColors(scaled))
+    assert len(cvals) == pgf.read(pgf.numVertices(scaled))
+    for c in cvals:
+        assert c == cval
+
+
 if __name__ == "__main__":
     test_flatten()
