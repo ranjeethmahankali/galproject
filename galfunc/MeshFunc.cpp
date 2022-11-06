@@ -1,6 +1,5 @@
 #include <tbb/parallel_for.h>
 #include <glm/common.hpp>
-#include <glm/fwd.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <Data.h>
@@ -157,8 +156,8 @@ GAL_FUNC(meshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (int i = 0; i < colors.size(); i++) {
-    outmesh.set_color(outmesh.vertex_handle(i), colors[i]);
+  for (TriMesh::VertH vh : outmesh.vertices()) {
+    outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
 }
 
