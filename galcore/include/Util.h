@@ -325,9 +325,9 @@ template<typename T>
 using IterSpan = boost::iterator_range<T>;
 
 /**
- * @brief Wrapper that treats the wrapped instance as cached data. So you can expire the
- * cache, and it will be automatically updated when you try to access using the given
- * update-functor. The usage is similar to std::optional.
+ * @brief Wrapper that treats the wrapped instance as cached data. You
+ * can keep track of whether the cache is expired and needs to be
+ * recomputed. The usage is similar to std::optional.
  *
  * @tparam T The wrapped datatype.
  */
