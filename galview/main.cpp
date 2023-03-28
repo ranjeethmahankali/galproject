@@ -73,15 +73,15 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   view::Context::get().setPerspective();
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
-  glViewport(0, 0, W, H);
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_LINE_SMOOTH);
-  glEnable(GL_PROGRAM_POINT_SIZE);
-  glEnable(GL_POINT_SMOOTH);
-  glPointSize(3.0f);
-  glLineWidth(1.0f);
+  GL_CALL(glViewport(0, 0, W, H));
+  GL_CALL(glEnable(GL_DEPTH_TEST));
+  GL_CALL(glEnable(GL_BLEND));
+  GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+  GL_CALL(glEnable(GL_LINE_SMOOTH));
+  GL_CALL(glEnable(GL_PROGRAM_POINT_SIZE));
+  GL_CALL(glEnable(GL_POINT_SMOOTH));
+  GL_CALL(glPointSize(3.0f));
+  GL_CALL(glLineWidth(1.0f));
   return 0;
 }
 
