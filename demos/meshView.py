@@ -1,3 +1,4 @@
+"""Simply load the mesh and show some basic data about it."""
 import pygalfunc as pgf
 import pygalview as pgv
 

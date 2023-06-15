@@ -3,7 +3,9 @@
 #include <glm/gtx/transform.hpp>
 
 #include <Data.h>
+#include <Decimate.h>
 #include <Functions.h>
+#include <Mesh.h>
 #include <ObjLoader.h>
 
 namespace gal {
@@ -173,6 +175,17 @@ GAL_FUNC(vertexColors,
                  [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
 }
 
+GAL_FUNC(
+  decimateWithHistory,
+  "Decimates the mesh while persisting the intermediate meshes",
+  ((gal::TriMesh, mesh, "Mesh to be decimated")),
+  (((data::WriteView<gal::TriMesh, 1>),
+    outmeshes,
+    "List of meshes representing the intermediate and final meshes during decimation.")))
+{
+  gal::decimateWithHistory(mesh, std::back_inserter(outmeshes));
+}
+
 void bind_MeshFunc(py::module& module)
 {
   GAL_FN_BIND(centroid, module);
@@ -191,6 +204,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);
   GAL_FN_BIND(vertexColors, module);
+  GAL_FN_BIND(decimateWithHistory, module);
 }
 
 }  // namespace func
