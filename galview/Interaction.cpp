@@ -17,7 +17,6 @@
 #include <Command.h>
 #include <Functions.h>
 #include <GLUtil.h>
-#include <Graph.h>
 #include <GuiFunctions.h>
 #include <Interaction.h>
 #include <Property.h>
@@ -358,7 +357,7 @@ void draw(GLFWwindow* window)
                                ImGuiInputTextFlags_CallbackCompletion;
   ImGui::Text(">>> ");
   ImGui::SameLine();
-  if (ImGui::InputText("",
+  if (ImGui::InputText("##command",
                        sCmdline.data(),
                        sCmdline.size(),
                        tflags,

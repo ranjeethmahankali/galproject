@@ -13,7 +13,6 @@
 #include <vector>
 
 #include <spdlog/spdlog.h>
-#include <boost/range/iterator_range_core.hpp>
 #include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -320,9 +319,6 @@ std::vector<T> makeVector(const ContainerT& c)
 {
   return std::vector<T>(c.begin(), c.end());
 }
-
-template<typename T>
-using IterSpan = boost::iterator_range<T>;
 
 /**
  * @brief Wrapper that treats the wrapped instance as cached data. You

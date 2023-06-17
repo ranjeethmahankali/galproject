@@ -79,7 +79,6 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
   GL_CALL(glEnable(GL_LINE_SMOOTH));
   GL_CALL(glEnable(GL_PROGRAM_POINT_SIZE));
-  GL_CALL(glEnable(GL_POINT_SMOOTH));
   GL_CALL(glPointSize(3.0f));
   GL_CALL(glLineWidth(1.0f));
   return 0;
