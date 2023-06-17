@@ -7,20 +7,6 @@
 
 namespace gal {
 
-template<typename MeshOutIter>
-void decimateWithHistory(TriMesh mesh, MeshOutIter outmeshes)
-{
-  *(outmeshes++) = mesh;
-  OpenMesh::Decimater::DecimaterT<TriMesh>          decimater(mesh);
-  OpenMesh::Decimater::ModQuadricT<TriMesh>::Handle quadric;
-  // OpenMesh::Decimater::ModProgMeshT<TriMesh>::Handle prog;
-  decimater.add(quadric);
-  // decimater.add(prog);
-  decimater.module(quadric).set_max_err(0.0001);
-  decimater.initialize();
-  decimater.decimate();
-  *(outmeshes++) = decimater.mesh();
-  // TODO: Not implemented.
-}
+TriMesh decimate(TriMesh mesh, int nCollapses);
 
 }  // namespace gal

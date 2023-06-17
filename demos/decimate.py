@@ -2,14 +2,12 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-relpath = pgf.var_string("../../assets/bunny_large.obj")
+relpath = pgf.var_string("../../assets/bunny.obj")
 original = pgf.loadObjFile(pgf.absPath(relpath))
-meshes = pgf.decimateWithHistory(original)
 pgv.show("original", original)
-index = pgv.slideri32("Index", 0, 100, 0)
-imesh = pgf.listItem(
-    meshes, pgf.min(index, pgf.sub(pgf.listLength(meshes), pgf.var_int(1))))
-pgv.show("Intermediate", imesh)
+numcollapses = pgv.slideri32("nCollapses", 1, 1000, 500)
+decimated = pgf.decimate(original, numcollapses)
+pgv.show("decimated", decimated)
 pgv.runCommands("""
 meshedges on
 """)

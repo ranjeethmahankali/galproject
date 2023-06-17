@@ -5,6 +5,7 @@
 #include <Data.h>
 #include <Decimate.h>
 #include <Functions.h>
+#include <Line.h>
 #include <Mesh.h>
 #include <ObjLoader.h>
 
@@ -140,6 +141,24 @@ GAL_FUNC(vertices,
                  [&](TriMesh::VertH v) { return mesh.point(v); });
 }
 
+GAL_FUNC(vertex,
+         "Get the position of the mesh vertex",
+         ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
+         ((glm::vec3, point, "Vertex position")))
+{
+  point = mesh.point(TriMesh::VertH(index));
+}
+
+GAL_FUNC(halfedge,
+         "Get the halfedge of the mesh as a line segment",
+         ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
+         ((gal::Line3d, edge, "Line segment")))
+{
+  auto he = TriMesh::HalfH(index);
+  edge    = gal::Line3d {mesh.point(mesh.from_vertex_handle(he)),
+                      mesh.point(mesh.to_vertex_handle(he))};
+}
+
 GAL_FUNC(rectangleMesh,
          "Creates a rectangular mesh",
          ((gal::Plane, plane, "plane"),
@@ -175,15 +194,13 @@ GAL_FUNC(vertexColors,
                  [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
 }
 
-GAL_FUNC(
-  decimateWithHistory,
-  "Decimates the mesh while persisting the intermediate meshes",
-  ((gal::TriMesh, mesh, "Mesh to be decimated")),
-  (((data::WriteView<gal::TriMesh, 1>),
-    outmeshes,
-    "List of meshes representing the intermediate and final meshes during decimation.")))
+GAL_FUNC(decimate,
+         "Decimates the mesh while persisting the intermediate meshes",
+         ((gal::TriMesh, mesh, "Mesh to be decimated"),
+          (int32_t, nCollapses, "Number of edges to collapse.")),
+         ((gal::TriMesh, decimated, "The decimated mesh")))
 {
-  gal::decimateWithHistory(mesh, std::back_inserter(outmeshes));
+  decimated = gal::decimate(mesh, nCollapses);
 }
 
 void bind_MeshFunc(py::module& module)
@@ -196,6 +213,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(numFaces, module);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
+  GAL_FN_BIND(vertex, module);
+  GAL_FN_BIND(halfedge, module);
   GAL_FN_BIND(loadObjFile, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
@@ -204,7 +223,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);
   GAL_FN_BIND(vertexColors, module);
-  GAL_FN_BIND(decimateWithHistory, module);
+  GAL_FN_BIND(decimate, module);
 }
 
 }  // namespace func
