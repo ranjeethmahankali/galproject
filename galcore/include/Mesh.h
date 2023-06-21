@@ -1,16 +1,19 @@
 #pragma once
 
-#include <OpenMesh/Core/Mesh/Attributes.hh>
-#include <OpenMesh/Core/Utils/Property.hh>
 #include <filesystem>
-#include <glm/detail/qualifier.hpp>
-#include <glm/geometric.hpp>
 #include <limits>
 #include <span>
 #include <unordered_map>
 
-#include <Box.h>
 #include <OpenMeshAdaptor.h>
+#include <OpenMesh/Core/Mesh/Attributes.hh>
+#include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Utils/Property.hh>
+#include <glm/detail/qualifier.hpp>
+#include <glm/geometric.hpp>
+
+#include <Box.h>
 #include <Plane.h>
 #include <RTree.h>
 #include <Sphere.h>
@@ -32,7 +35,7 @@ struct MeshTraits : public OpenMesh::DefaultTraits
   typedef int       TextureIndex;
   typedef glm::vec3 Color;
 
-  VertexAttributes(OpenMesh::Attributes::Normal);
+  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Color);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
   EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
@@ -102,6 +105,10 @@ public:
   }
 
   glm::vec3 centroid(eMeshCentroidType ctype = eMeshCentroidType::vertexBased) const;
+};
+
+struct PolyMesh : public OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>
+{
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,
