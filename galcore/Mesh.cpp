@@ -414,4 +414,11 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
   return mesh;
 }
 
+gal::Box3 PolyMesh::bounds() const
+{
+  namespace ba = boost::adaptors;
+  auto vs      = vertices() | ba::transformed([&](VertH v) { return point(v); });
+  return Box3::create(vs.begin(), vs.end());
+}
+
 }  // namespace gal

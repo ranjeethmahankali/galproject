@@ -109,6 +109,14 @@ public:
 
 struct PolyMesh : public OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>
 {
+  using BaseMesh = OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>;
+  using FaceH    = OpenMesh::FaceHandle;
+  using VertH    = OpenMesh::VertexHandle;
+  using HalfH    = OpenMesh::HalfedgeHandle;
+  using EdgeH    = OpenMesh::EdgeHandle;
+
+public:
+  gal::Box3 bounds() const;
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,
