@@ -10,7 +10,7 @@ def assetPath(filename):
 
 def loadMesh(assetFileName):
     fpath = pgf.var_string(assetPath(assetFileName))
-    return pgf.loadObjFile(fpath)
+    return pgf.loadTriangleMesh(fpath)
 
 
 def loadLargeBunny():

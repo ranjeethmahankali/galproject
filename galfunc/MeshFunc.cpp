@@ -7,7 +7,6 @@
 #include <Functions.h>
 #include <Line.h>
 #include <Mesh.h>
-#include <ObjLoader.h>
 
 namespace gal {
 namespace func {
@@ -36,12 +35,12 @@ GAL_FUNC(area,
   result = mesh.area();
 }
 
-GAL_FUNC(loadObjFile,
+GAL_FUNC(loadTriangleMesh,
          "Loads a mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
          ((gal::TriMesh, mesh, "Loaded mesh")))
 {
-  mesh = io::ObjMeshData(filepath, true).toTriMesh();
+  mesh = TriMesh::loadFromFile(filepath);
 }
 
 GAL_FUNC(scale,
@@ -215,7 +214,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(vertices, module);
   GAL_FN_BIND(vertex, module);
   GAL_FN_BIND(halfedge, module);
-  GAL_FN_BIND(loadObjFile, module);
+  GAL_FN_BIND(loadTriangleMesh, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
   GAL_FN_BIND(subMesh, module);

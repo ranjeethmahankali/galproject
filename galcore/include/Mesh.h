@@ -64,18 +64,17 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
 
   TriMesh();
 
-  bool      isSolid() const;
-  float     area() const;
-  gal::Box3 bounds() const;
-  float     volume() const;
-  bool      contains(const glm::vec3& pt) const;
-  glm::vec3 closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
-  TriMesh   clippedWithPlane(const Plane& plane) const;
-  void      transform(const glm::mat4& mat);
-  void      set_color(VertH v, const glm::vec3& c);
-  glm::vec3 color(VertH v) const;
-  TriMesh   subMesh(std::span<const int> faces) const;
-  void      updateRTrees() const;
+  bool           isSolid() const;
+  float          area() const;
+  gal::Box3      bounds() const;
+  float          volume() const;
+  bool           contains(const glm::vec3& pt) const;
+  glm::vec3      closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
+  TriMesh        clippedWithPlane(const Plane& plane) const;
+  void           transform(const glm::mat4& mat);
+  TriMesh        subMesh(std::span<const int> faces) const;
+  void           updateRTrees() const;
+  static TriMesh loadFromFile(const fs::path& path, bool flipYZ = true);
 
 private:
   mutable utils::Cached<RTree3d> mFaceTree;
@@ -116,7 +115,9 @@ struct PolyMesh : public OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>
   using EdgeH    = OpenMesh::EdgeHandle;
 
 public:
-  gal::Box3 bounds() const;
+  PolyMesh();
+  gal::Box3       bounds() const;
+  static PolyMesh loadFromFile(const fs::path& path, bool flipYZ = true);
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,

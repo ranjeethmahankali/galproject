@@ -41,7 +41,7 @@ def test_meshBounds():
     assetFiles = ["bunny_large.obj", "bunny.obj"]
     fpaths = pgf.var_string("")
     pgf.assign(fpaths, [tu.assetPath(a) for a in assetFiles])
-    meshes = pgf.loadObjFile(fpaths)
+    meshes = pgf.loadTriangleMesh(fpaths)
     bounds = pgf.bounds(meshes)
     pmins, pmaxs = pgf.boxPoints(bounds)
     vpmins = pgf.read(pmins)

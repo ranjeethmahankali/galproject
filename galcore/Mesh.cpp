@@ -1,5 +1,9 @@
 #define _USE_MATH_DEFINES
 
+#include <OpenMesh/Core/IO/MeshIO.hh>
+
+#include <Mesh.h>
+
 #include <math.h>
 #include <array>
 #include <atomic>
@@ -15,9 +19,10 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <Box.h>
-#include <Mesh.h>
 #include <ObjLoader.h>
 #include <RTree.h>
 #include <Util.h>
@@ -34,10 +39,20 @@ static float tetVolume(const std::array<glm::vec3, 3>& fvs)
   return std::abs(glm::dot(glm::cross(fvs[0], fvs[1]), fvs[2]) / 6.0f);
 }
 
+template<typename MeshT>
+void initVertexColors(MeshT& mesh)
+{
+  for (auto vh : mesh.vertices()) {
+    mesh.set_color(vh, MeshTraits::Color {1.f, 1.f, 1.f});
+  }
+}
+
 TriMesh::TriMesh()
     : mFaceTree()
     , mVertexTree()
-{}
+{
+  initVertexColors(*this);
+}
 
 bool TriMesh::isSolid() const
 {
@@ -290,6 +305,23 @@ void TriMesh::updateRTrees() const
   }
 }
 
+template<typename MeshT>
+void flipYZAxes(MeshT& mesh)
+{
+  static glm::mat4 xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
+}
+
+TriMesh TriMesh::loadFromFile(const fs::path& path, bool flipYZ)
+{
+  TriMesh mesh;
+  OpenMesh::IO::read_mesh(mesh, path.string());
+  if (flipYZ) {
+    flipYZAxes(mesh);
+  }
+  initVertexColors(mesh);
+  return mesh;
+}
+
 const RTree3d& TriMesh::elementTree(eMeshElement type) const
 {
   switch (type) {
@@ -352,18 +384,6 @@ glm::vec3 TriMesh::volumeCentroid() const
   return vsum / wsum;
 }
 
-void TriMesh::set_color(VertH v, const glm::vec3& c)
-{
-  request_vertex_colors();
-  BaseMesh::set_color(v, c);
-}
-
-glm::vec3 TriMesh::color(VertH v) const
-{
-  static constexpr glm::vec3 sDefaultColor = {1.f, 1.f, 1.f};
-  return has_vertex_colors() ? BaseMesh::color(v) : sDefaultColor;
-}
-
 glm::vec3 TriMesh::centroid(eMeshCentroidType ctype) const
 {
   switch (ctype) {
@@ -414,11 +434,27 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
   return mesh;
 }
 
+PolyMesh::PolyMesh()
+{
+  initVertexColors(*this);
+}
+
 gal::Box3 PolyMesh::bounds() const
 {
   namespace ba = boost::adaptors;
   auto vs      = vertices() | ba::transformed([&](VertH v) { return point(v); });
   return Box3::create(vs.begin(), vs.end());
+}
+
+PolyMesh PolyMesh::loadFromFile(const fs::path& path, bool flipYZ)
+{
+  PolyMesh mesh;
+  OpenMesh::IO::read_mesh(mesh, path.string());
+  if (flipYZ) {
+    flipYZAxes(mesh);
+  }
+  initVertexColors(mesh);
+  return mesh;
 }
 
 }  // namespace gal
