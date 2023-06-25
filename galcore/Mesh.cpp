@@ -311,15 +311,21 @@ void flipYZAxes(MeshT& mesh)
   static glm::mat4 xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
 }
 
-TriMesh TriMesh::loadFromFile(const fs::path& path, bool flipYZ)
+template<typename MeshT>
+MeshT loadMeshFromFile(const fs::path& path, bool flipYZ)
 {
-  TriMesh mesh;
+  MeshT mesh;
   OpenMesh::IO::read_mesh(mesh, path.string());
   if (flipYZ) {
     flipYZAxes(mesh);
   }
   initVertexColors(mesh);
   return mesh;
+}
+
+TriMesh TriMesh::loadFromFile(const fs::path& path, bool flipYZ)
+{
+  return loadMeshFromFile<TriMesh>(path, flipYZ);
 }
 
 const RTree3d& TriMesh::elementTree(eMeshElement type) const
@@ -448,13 +454,7 @@ gal::Box3 PolyMesh::bounds() const
 
 PolyMesh PolyMesh::loadFromFile(const fs::path& path, bool flipYZ)
 {
-  PolyMesh mesh;
-  OpenMesh::IO::read_mesh(mesh, path.string());
-  if (flipYZ) {
-    flipYZAxes(mesh);
-  }
-  initVertexColors(mesh);
-  return mesh;
+  return loadMeshFromFile<PolyMesh>(path, flipYZ);
 }
 
 }  // namespace gal

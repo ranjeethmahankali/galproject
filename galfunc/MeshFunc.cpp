@@ -36,11 +36,19 @@ GAL_FUNC(area,
 }
 
 GAL_FUNC(loadTriangleMesh,
-         "Loads a mesh from an obj file",
+         "Loads a triangle mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
          ((gal::TriMesh, mesh, "Loaded mesh")))
 {
   mesh = TriMesh::loadFromFile(filepath);
+}
+
+GAL_FUNC(loadPolyMesh,
+         "Loads a polygon mesh from an obj file",
+         ((std::string, filepath, "The path to the obj file")),
+         ((gal::PolyMesh, mesh, "Loaded mesh")))
+{
+  mesh = PolyMesh::loadFromFile(filepath);
 }
 
 GAL_FUNC(scale,
@@ -215,6 +223,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(vertex, module);
   GAL_FN_BIND(halfedge, module);
   GAL_FN_BIND(loadTriangleMesh, module);
+  GAL_FN_BIND(loadPolyMesh, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
   GAL_FN_BIND(subMesh, module);
