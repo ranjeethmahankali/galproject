@@ -118,6 +118,7 @@ public:
   PolyMesh();
   gal::Box3       bounds() const;
   static PolyMesh loadFromFile(const fs::path& path, bool flipYZ = true);
+  void            transform(const glm::mat4& mat);
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,

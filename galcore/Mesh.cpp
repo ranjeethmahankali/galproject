@@ -309,6 +309,9 @@ template<typename MeshT>
 void flipYZAxes(MeshT& mesh)
 {
   static glm::mat4 xform = glm::rotate(float(M_PI_2), glm::vec3(1.0f, 0.0f, 0.0f));
+  for (auto vh : mesh.vertices()) {
+    mesh.point(vh) = glm::vec3(xform * glm::vec4(mesh.point(vh), 1.f));
+  }
 }
 
 template<typename MeshT>
@@ -455,6 +458,12 @@ gal::Box3 PolyMesh::bounds() const
 PolyMesh PolyMesh::loadFromFile(const fs::path& path, bool flipYZ)
 {
   return loadMeshFromFile<PolyMesh>(path, flipYZ);
+}
+
+void PolyMesh::transform(const glm::mat4& mat)
+{
+  tbb::parallel_for_each(
+    vertices(), [&](VertH v) { point(v) = glm::vec3(mat * glm::vec4(point(v), 1.f)); });
 }
 
 }  // namespace gal

@@ -51,10 +51,11 @@ GAL_FUNC(loadPolyMesh,
   mesh = PolyMesh::loadFromFile(filepath);
 }
 
-GAL_FUNC(scale,
-         "Scales the mesh. Returns a new instance.",
-         ((gal::TriMesh, mesh, "Scaled mesh"), (float, scale, "Scale")),
-         ((gal::TriMesh, scaled, "Input mesh")))
+GAL_FUNC_TEMPLATE(((typename, MeshT)),
+                  scale,
+                  "Scales the mesh. Returns a new instance.",
+                  ((MeshT, mesh, "Scaled mesh"), (float, scale, "Scale")),
+                  ((MeshT, scaled, "Input mesh")))
 {
   scaled = mesh;
   scaled.transform(glm::scale(glm::vec3(scale)));
@@ -215,7 +216,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(centroid, module);
   GAL_FN_BIND(volume, module);
   GAL_FN_BIND(area, module);
-  GAL_FN_BIND(scale, module);
+  GAL_FN_BIND_TEMPLATE(scale, module, gal::TriMesh);
+  GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
   GAL_FN_BIND(bounds, module);
   GAL_FN_BIND(numFaces, module);
   GAL_FN_BIND(numVertices, module);
