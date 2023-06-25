@@ -23,7 +23,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include <Box.h>
-#include <ObjLoader.h>
 #include <RTree.h>
 #include <Util.h>
 

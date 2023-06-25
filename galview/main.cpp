@@ -15,7 +15,6 @@
 #include <GLUtil.h>
 #include <GuiFunctions.h>
 #include <Interaction.h>
-#include <ObjLoader.h>
 #include <Plane.h>
 #include <PointCloud.h>
 #include <Util.h>

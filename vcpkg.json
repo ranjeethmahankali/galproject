@@ -18,7 +18,6 @@
       ]
     },
     "gtest",
-    "tinyobjloader",
     "freetype",
     "tbb",
     "pngpp",
