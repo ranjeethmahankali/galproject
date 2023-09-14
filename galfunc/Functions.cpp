@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <string>
 
 #include <pybind11/pybind11.h>

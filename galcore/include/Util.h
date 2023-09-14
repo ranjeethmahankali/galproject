@@ -282,13 +282,13 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
   if (begin == end || k == 0) {
     return;
   }
-
   while (begin != end) {
     *dst = *(begin++);
     if (k > 1) {
       combinations(k - 1, begin, end, dst + 1, notify);
     }
-    else if (k == 1) {
+    else {
+      assert(k == 1);
       notify();
     }
   }

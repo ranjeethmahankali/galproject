@@ -6,7 +6,6 @@ add_library(galcore STATIC ${GALCORE_SRC})
 target_link_libraries(galcore PUBLIC
   ${OPENMESH_LIBRARIES}
   glm::glm
-  tinyobjloader::tinyobjloader
   TBB::tbb
   spdlog::spdlog
   spdlog::spdlog_header_only)
