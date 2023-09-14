@@ -3,8 +3,10 @@
 #include <glm/gtx/transform.hpp>
 
 #include <Data.h>
+#include <Decimate.h>
 #include <Functions.h>
-#include <ObjLoader.h>
+#include <Line.h>
+#include <Mesh.h>
 
 namespace gal {
 namespace func {
@@ -33,18 +35,27 @@ GAL_FUNC(area,
   result = mesh.area();
 }
 
-GAL_FUNC(loadObjFile,
-         "Loads a mesh from an obj file",
+GAL_FUNC(loadTriangleMesh,
+         "Loads a triangle mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
          ((gal::TriMesh, mesh, "Loaded mesh")))
 {
-  mesh = io::ObjMeshData(filepath, true).toTriMesh();
+  mesh = TriMesh::loadFromFile(filepath);
 }
 
-GAL_FUNC(scale,
-         "Scales the mesh. Returns a new instance.",
-         ((gal::TriMesh, mesh, "Scaled mesh"), (float, scale, "Scale")),
-         ((gal::TriMesh, scaled, "Input mesh")))
+GAL_FUNC(loadPolyMesh,
+         "Loads a polygon mesh from an obj file",
+         ((std::string, filepath, "The path to the obj file")),
+         ((gal::PolyMesh, mesh, "Loaded mesh")))
+{
+  mesh = PolyMesh::loadFromFile(filepath);
+}
+
+GAL_FUNC_TEMPLATE(((typename, MeshT)),
+                  scale,
+                  "Scales the mesh. Returns a new instance.",
+                  ((MeshT, mesh, "Scaled mesh"), (float, scale, "Scale")),
+                  ((MeshT, scaled, "Input mesh")))
 {
   scaled = mesh;
   scaled.transform(glm::scale(glm::vec3(scale)));
@@ -138,6 +149,24 @@ GAL_FUNC(vertices,
                  [&](TriMesh::VertH v) { return mesh.point(v); });
 }
 
+GAL_FUNC(vertex,
+         "Get the position of the mesh vertex",
+         ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
+         ((glm::vec3, point, "Vertex position")))
+{
+  point = mesh.point(TriMesh::VertH(index));
+}
+
+GAL_FUNC(halfedge,
+         "Get the halfedge of the mesh as a line segment",
+         ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
+         ((gal::Line3d, edge, "Line segment")))
+{
+  auto he = TriMesh::HalfH(index);
+  edge    = gal::Line3d {mesh.point(mesh.from_vertex_handle(he)),
+                      mesh.point(mesh.to_vertex_handle(he))};
+}
+
 GAL_FUNC(rectangleMesh,
          "Creates a rectangular mesh",
          ((gal::Plane, plane, "plane"),
@@ -173,17 +202,30 @@ GAL_FUNC(vertexColors,
                  [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
 }
 
+GAL_FUNC(decimate,
+         "Decimates the mesh while persisting the intermediate meshes",
+         ((gal::TriMesh, mesh, "Mesh to be decimated"),
+          (int32_t, nCollapses, "Number of edges to collapse.")),
+         ((gal::TriMesh, decimated, "The decimated mesh")))
+{
+  decimated = gal::decimate(mesh, nCollapses);
+}
+
 void bind_MeshFunc(py::module& module)
 {
   GAL_FN_BIND(centroid, module);
   GAL_FN_BIND(volume, module);
   GAL_FN_BIND(area, module);
-  GAL_FN_BIND(scale, module);
+  GAL_FN_BIND_TEMPLATE(scale, module, gal::TriMesh);
+  GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
   GAL_FN_BIND(bounds, module);
   GAL_FN_BIND(numFaces, module);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
-  GAL_FN_BIND(loadObjFile, module);
+  GAL_FN_BIND(vertex, module);
+  GAL_FN_BIND(halfedge, module);
+  GAL_FN_BIND(loadTriangleMesh, module);
+  GAL_FN_BIND(loadPolyMesh, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
   GAL_FN_BIND(subMesh, module);
@@ -191,6 +233,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);
   GAL_FN_BIND(vertexColors, module);
+  GAL_FN_BIND(decimate, module);
 }
 
 }  // namespace func

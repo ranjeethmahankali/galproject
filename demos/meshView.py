@@ -1,16 +1,17 @@
+"""Simply load the mesh and show some basic data about it."""
 import pygalfunc as pgf
 import pygalview as pgv
 
-relpath = pgf.var_string("../../assets/bunny_large.obj")
-# relpath = pgv.textField("Relative file path");
-path = pgf.absPath(relpath)
-mesh = pgf.loadObjFile(path)
-box = pgf.bounds(mesh)
-pgv.show("mesh", mesh)
-pgv.show("bounds", box)
-pgv.show("centroid", pgf.centroid(mesh))
+tmesh = pgf.loadTriangleMesh(
+    pgf.absPath(pgf.var_string("../../assets/bunny_large.obj")))
+pgv.show("bunny", tmesh)
+pgv.show("bunnyBounds", pgf.bounds(tmesh))
+pgv.show("bunnyCentroid", pgf.centroid(tmesh))
+qmesh = pgf.scale(
+    pgf.loadPolyMesh(pgf.absPath(pgf.var_string("../../assets/cane.obj"))),
+    pgf.var_float(0.1))
+pgv.show("cane", qmesh)
 
 pgv.runCommands("""
-perspective off
-wireframe on
+meshedges on
 """)

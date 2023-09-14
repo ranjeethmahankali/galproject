@@ -2,7 +2,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include <Mesh.h>
-#include <ObjLoader.h>
 #include <TestUtils.h>
 
 gal::TriMesh unitbox()
@@ -41,7 +40,7 @@ TEST(Mesh, Area)
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
   ASSERT_FLOAT_EQ(mesh.area(), 1.f);
   gal::fs::path fpath = GAL_ASSET_DIR / "bunny.obj";
-  mesh                = gal::io::ObjMeshData(fpath, true).toTriMesh();
+  mesh                = gal::TriMesh::loadFromFile(fpath, true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
 }
@@ -51,14 +50,14 @@ TEST(Mesh, Volume)
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
   ASSERT_FLOAT_EQ(mesh.volume(), 0.f);
-  mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
+  mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
   ASSERT_FLOAT_EQ(mesh.volume(), 6.0392089f);
   ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
 }
 
 TEST(Mesh, ClippedWithPlane)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toTriMesh();
+  auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
   auto clipped = mesh.clippedWithPlane(
     gal::Plane(glm::vec3 {.5f, .241f, .5f}, glm::vec3 {.5f, .638f, 1.f}));
@@ -77,14 +76,14 @@ TEST(Mesh, RectangleMesh)
 
 TEST(Mesh, Centroid)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny_large.obj", true).toTriMesh();
+  auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
   ASSERT_NEAR(
     glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
 }
 
 TEST(Mesh, SphereQuery)
 {
-  auto mesh = gal::io::ObjMeshData(GAL_ASSET_DIR / "bunny.obj", true).toTriMesh();
+  auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
   gal::Sphere      sp(glm::vec3(0.f), 0.5f);
   std::vector<int> indices;

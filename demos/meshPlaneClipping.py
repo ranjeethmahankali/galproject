@@ -4,7 +4,7 @@ import pygalview as pgv
 # relpath = pgf.var_string("../../assets/bunny_large.obj")
 relpath = pgv.textField("relpath")
 path = pgf.absPath(relpath)
-mesh = pgf.loadObjFile(path)
+mesh = pgf.loadTriangleMesh(path)
 scale = pgf.var_float(10.0)
 scaled = pgf.scale(mesh, scale)
 

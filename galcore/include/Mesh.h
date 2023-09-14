@@ -1,16 +1,19 @@
 #pragma once
 
-#include <OpenMesh/Core/Mesh/Attributes.hh>
-#include <OpenMesh/Core/Utils/Property.hh>
 #include <filesystem>
-#include <glm/detail/qualifier.hpp>
-#include <glm/geometric.hpp>
 #include <limits>
 #include <span>
 #include <unordered_map>
 
-#include <Box.h>
 #include <OpenMeshAdaptor.h>
+#include <OpenMesh/Core/Mesh/Attributes.hh>
+#include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Utils/Property.hh>
+#include <glm/detail/qualifier.hpp>
+#include <glm/geometric.hpp>
+
+#include <Box.h>
 #include <Plane.h>
 #include <RTree.h>
 #include <Sphere.h>
@@ -32,7 +35,7 @@ struct MeshTraits : public OpenMesh::DefaultTraits
   typedef int       TextureIndex;
   typedef glm::vec3 Color;
 
-  VertexAttributes(OpenMesh::Attributes::Normal);
+  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Color);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
   EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
@@ -61,18 +64,17 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
 
   TriMesh();
 
-  bool      isSolid() const;
-  float     area() const;
-  gal::Box3 bounds() const;
-  float     volume() const;
-  bool      contains(const glm::vec3& pt) const;
-  glm::vec3 closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
-  TriMesh   clippedWithPlane(const Plane& plane) const;
-  void      transform(const glm::mat4& mat);
-  void      set_color(VertH v, const glm::vec3& c);
-  glm::vec3 color(VertH v) const;
-  TriMesh   subMesh(std::span<const int> faces) const;
-  void      updateRTrees() const;
+  bool           isSolid() const;
+  float          area() const;
+  gal::Box3      bounds() const;
+  float          volume() const;
+  bool           contains(const glm::vec3& pt) const;
+  glm::vec3      closestPoint(const glm::vec3& pt, float maxDistance = FLT_MAX) const;
+  TriMesh        clippedWithPlane(const Plane& plane) const;
+  void           transform(const glm::mat4& mat);
+  TriMesh        subMesh(std::span<const int> faces) const;
+  void           updateRTrees() const;
+  static TriMesh loadFromFile(const fs::path& path, bool flipYZ = true);
 
 private:
   mutable utils::Cached<RTree3d> mFaceTree;
@@ -102,6 +104,21 @@ public:
   }
 
   glm::vec3 centroid(eMeshCentroidType ctype = eMeshCentroidType::vertexBased) const;
+};
+
+struct PolyMesh : public OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>
+{
+  using BaseMesh = OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>;
+  using FaceH    = OpenMesh::FaceHandle;
+  using VertH    = OpenMesh::VertexHandle;
+  using HalfH    = OpenMesh::HalfedgeHandle;
+  using EdgeH    = OpenMesh::EdgeHandle;
+
+public:
+  PolyMesh();
+  gal::Box3       bounds() const;
+  static PolyMesh loadFromFile(const fs::path& path, bool flipYZ = true);
+  void            transform(const glm::mat4& mat);
 };
 
 TriMesh makeRectangularMesh(const gal::Plane& plane,

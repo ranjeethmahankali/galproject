@@ -21,7 +21,6 @@ find_package(glm CONFIG REQUIRED)
 find_package(glew REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
-find_package(tinyobjloader CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 find_package(openmesh REQUIRED)
 # pngpp is a header only library

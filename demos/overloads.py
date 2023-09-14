@@ -19,7 +19,7 @@ def mesh():
     relpath = pgf.var_string("../../assets/bunny_large.obj")
     # relpath = pgv.textField("Relative file path");
     path = pgf.absPath(relpath)
-    return pgf.loadObjFile(path)
+    return pgf.loadTriangleMesh(path)
 
 
 m = mesh()

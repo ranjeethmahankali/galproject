@@ -13,7 +13,6 @@
 #include <vector>
 
 #include <spdlog/spdlog.h>
-#include <boost/range/iterator_range_core.hpp>
 #include <glm/detail/qualifier.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -283,13 +282,13 @@ void combinations(size_t k, TIter begin, TIter end, TOutIter dst, const TCallabl
   if (begin == end || k == 0) {
     return;
   }
-
   while (begin != end) {
     *dst = *(begin++);
     if (k > 1) {
       combinations(k - 1, begin, end, dst + 1, notify);
     }
-    else if (k == 1) {
+    else {
+      assert(k == 1);
       notify();
     }
   }
@@ -320,9 +319,6 @@ std::vector<T> makeVector(const ContainerT& c)
 {
   return std::vector<T>(c.begin(), c.end());
 }
-
-template<typename T>
-using IterSpan = boost::iterator_range<T>;
 
 /**
  * @brief Wrapper that treats the wrapped instance as cached data. You

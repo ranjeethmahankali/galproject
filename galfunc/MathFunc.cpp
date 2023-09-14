@@ -105,6 +105,24 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   quot = a / b;
 }
 
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  max,
+                  "Get the max of the two arguments",
+                  ((T, a, "First arg"), (T, b, "Second arg")),
+                  ((T, out, "Maximum of the input args")))
+{
+  out = std::max(a, b);
+}
+
+GAL_FUNC_TEMPLATE(((typename, T)),
+                  min,
+                  "Get the max of the two arguments",
+                  ((T, a, "First arg"), (T, b, "Second arg")),
+                  ((T, out, "Maximum of the input args")))
+{
+  out = std::min(a, b);
+}
+
 void bind_MathFunc(py::module& mod)
 {
   GAL_FN_BIND(sin, mod);
@@ -124,6 +142,10 @@ void bind_MathFunc(py::module& mod)
   GAL_FN_BIND_TEMPLATE(mul, mod, int32_t);
   GAL_FN_BIND_TEMPLATE(div, mod, float);
   GAL_FN_BIND_TEMPLATE(div, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(max, mod, float);
+  GAL_FN_BIND_TEMPLATE(max, mod, int32_t);
+  GAL_FN_BIND_TEMPLATE(min, mod, float);
+  GAL_FN_BIND_TEMPLATE(min, mod, int32_t);
 }
 
 }  // namespace func
