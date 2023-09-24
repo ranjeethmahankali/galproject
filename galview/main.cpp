@@ -38,6 +38,8 @@ void glfw_error_cb(int error, const char* desc)
 
 int initViewer(GLFWwindow*& window, const std::string& filename)
 {
+  static constexpr int WIDTH  = 1920;
+  static constexpr int HEIGHT = 1080;
   glfwSetErrorCallback(glfw_error_cb);
   if (!glfwInit()) {
     glutil::logger().error("Failed to initialize GLFW.");
@@ -49,7 +51,7 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   std::string title = "galview - " + filename;
-  window            = glfwCreateWindow(1920, 1080, title.c_str(), nullptr, nullptr);
+  window            = glfwCreateWindow(WIDTH, HEIGHT, title.c_str(), nullptr, nullptr);
   if (window == nullptr) {
     return 1;
   }
@@ -69,7 +71,7 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   view::Context::registerCallbacks(window);
   glutil::logger().debug(
     "Registered mouse event callbacks to allow viewer interactions.");
-  view::Context::get().setPerspective();
+  view::Context::get().setProjectionMode(view::Context::Projection::PERSPECTIVE);
   int W, H;
   glfwGetFramebufferSize(window, &W, &H);
   GL_CALL(glViewport(0, 0, W, H));

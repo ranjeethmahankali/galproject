@@ -152,12 +152,12 @@ void py_set2dMode(bool flag)
 
 void py_useOrthoCam()
 {
-  gal::view::Context::get().setOrthographic();
+  gal::view::Context::get().setProjectionMode(view::Context::Projection::PARALLEL);
 }
 
 void py_usePerspectiveCam()
 {
-  gal::view::Context::get().setPerspective();
+  gal::view::Context::get().setProjectionMode(view::Context::Projection::PERSPECTIVE);
 }
 
 typename TextFieldFunc::PyOutputType py_textField(const std::string& label)

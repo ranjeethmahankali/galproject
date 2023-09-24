@@ -1,3 +1,6 @@
+
+#include <Context.h>
+
 #include <fstream>
 #include <sstream>
 
@@ -8,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <Context.h>
 #include <Mesh.h>
 #include <Util.h>
 #include <Views.h>
@@ -117,11 +119,11 @@ void Context::set2dMode(bool flag)
   s2dMode = flag;
   if (s2dMode) {
     useCamera({0.0f, 0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
-    setOrthographic();
+    setProjectionMode(Projection::PARALLEL);
   }
   else {
     useCamera({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
-    setPerspective();
+    setProjectionMode(Projection::PERSPECTIVE);
   }
 }
 
@@ -132,11 +134,9 @@ Context::Context()
   mShaders[1].loadFromName("mesh");
   mShaders[2].loadFromName("text");
   mShaders[3].loadFromName("glyph");
-
   useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, 1.0f));
-
   setWireframeMode(sWireFrameMode);
 };
 
@@ -159,6 +159,7 @@ void Context::registerCallbacks(GLFWwindow* window)
   glfwSetCursorPosCallback(window, Context::onMouseMove);
   glfwSetMouseButtonCallback(window, Context::onMouseButton);
   glfwSetScrollCallback(window, Context::onMouseScroll);
+  glfwSetFramebufferSizeCallback(window, Context::onWindowResize);
 };
 
 void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
@@ -180,10 +181,8 @@ void Context::onMouseMove(GLFWwindow* window, double xpos, double ypos)
                   float(ypos - sMousePos[1]) * sRotSpeed,
                   glm::vec3(glm::inverse(get().mView) * sXAxis)) *
       sTrans;
-
     get().cameraChanged();
   }
-
   if (sLeftDown) {
     auto trans = glm::translate(glm::vec3(
       glm::inverse(get().mView) * glm::vec4 {float(xpos - sMousePos[0]) / sTransScale,
@@ -212,7 +211,6 @@ void Context::onMouseButton(GLFWwindow* window, int button, int action, int mods
     if (action == GLFW_RELEASE)
       sLeftDown = false;
   }
-
   GL_CALL(glfwGetCursorPos(window, &sMousePos.x, &sMousePos.y));
 }
 
@@ -222,19 +220,24 @@ void Context::onMouseScroll(GLFWwindow* window, double xOffset, double yOffset)
     // Mouse is interacting with ImGui elements, so the camera should not react.
     return;
   }
-
-  static constexpr float zoomUp   = 1.2f;
-  static constexpr float zoomDown = 1.0f / zoomUp;
-
-  static constexpr glm::vec3 zUp = {zoomUp, zoomUp, zoomUp};
-  static constexpr glm::vec3 zDn = {zoomDown, zoomDown, zoomDown};
-
+  static constexpr float     zoomUp   = 1.2f;
+  static constexpr float     zoomDown = 1.0f / zoomUp;
+  static constexpr glm::vec3 zUp      = {zoomUp, zoomUp, zoomUp};
+  static constexpr glm::vec3 zDn      = {zoomDown, zoomDown, zoomDown};
+  // Update the matrices.
   if (yOffset > 0.0)
     get().mView *= sInvTrans * glm::scale(zUp) * sTrans;
   else
     get().mView *= sInvTrans * glm::scale(zDn) * sTrans;
-
+  // Push changes to the shader.
   get().cameraChanged();
+}
+
+void Context::onWindowResize(GLFWwindow* window, int w, int h)
+{
+  GL_CALL(glViewport(0, 0, w, h));
+  get().mWindowSize = {w, h};
+  get().setProjectionMode(get().mProjectionMode);
 }
 
 template<>
@@ -287,25 +290,46 @@ bool Context::meshEdgeMode()
   return sMeshEdgeMode;
 }
 
-void Context::setPerspective(float fovy, float aspect, float near, float far)
+void Context::init(GLFWwindow* window)
 {
-  get().mProj = glm::perspective(fovy, aspect, near, far);
-  cameraChanged();
-  sOrthoMode = false;
-  setOrthoModeUniform();
-};
+  glfwGetWindowSize(window, &mWindowSize[0], &mWindowSize[1]);
+  setProjectionMode(mProjectionMode);
+}
 
-void Context::setOrthographic(float left,
-                              float right,
-                              float top,
-                              float bottom,
-                              float near,
-                              float far)
+static void getAspectRatio() {}
+
+void Context::setProjectionMode(Projection mode)
 {
-  get().mProj = glm::ortho(left, right, bottom, top, near, far);
-  cameraChanged();
-  sOrthoMode = true;
-  setOrthoModeUniform();
+  switch (mode) {
+  case Projection::PARALLEL: {
+    static constexpr float left   = -2.0f;
+    static constexpr float right  = 2.0f;
+    static constexpr float top    = 1.1f;
+    static constexpr float bottom = -1.1f;
+    static constexpr float near   = -5.f;
+    static constexpr float far    = 100.0f;
+    get().mProj                   = glm::ortho(left, right, bottom, top, near, far);
+    cameraChanged();
+    sOrthoMode = true;
+    setOrthoModeUniform();
+    break;
+  }
+  case Projection::PERSPECTIVE: {
+    static constexpr float fovy   = 0.9f;
+    static constexpr float near   = 0.01f;
+    static constexpr float far    = 100.0f;
+    float                  aspect = float(mWindowSize.x) / float(mWindowSize.y);
+    // glutil::logger().warn("Setting perspective mode with aspect ratio: {}", aspect);
+    get().mProj = glm::perspective(fovy, aspect, near, far);
+    cameraChanged();
+    sOrthoMode = false;
+    setOrthoModeUniform();
+    break;
+  }
+  default:
+    break;
+  }
+  mProjectionMode = mode;
 };
 
 static void checkCompilation(uint32_t id, uint32_t type)
