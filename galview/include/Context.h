@@ -57,6 +57,12 @@ class Context
   };
 
 public:
+  enum class Projection
+  {
+    PERSPECTIVE,
+    PARALLEL,
+  };
+
   static Context& get();
 
   static void registerCallbacks(GLFWwindow* window);
@@ -65,6 +71,7 @@ public:
   void setMeshEdgeMode(bool flag);
   bool wireframeMode();
   bool meshEdgeMode();
+  void init(GLFWwindow* window);
 
   template<typename T>
   void setUniform(const std::string& name, const T& val)
@@ -77,48 +84,32 @@ public:
     setUniformInternal<T>(loc, val);
   };
 
-  void useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
-
+  void      useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
   glm::mat4 mvpMatrix() const;
-
-  void setPerspective(float fovy   = 0.9f,
-                      float aspect = 1.8f,
-                      float near   = 0.01f,
-                      float far    = 100.0f);
-
-  void setOrthographic(float left   = -2.0f,
-                       float right  = 2.0f,
-                       float top    = 1.1f,
-                       float bottom = -1.1f,
-                       float near   = -5.f,
-                       float far    = 100.0f);
-
-  void set2dMode(bool flag);
-
-  size_t shaderId(const std::string& name) const;
-
-  void useShader(size_t shaderId);
-
-  void zoomExtents();
+  void      setProjectionMode(Projection mode);
+  void      set2dMode(bool flag);
+  size_t    shaderId(const std::string& name) const;
+  void      useShader(size_t shaderId);
+  void      zoomExtents();
 
 private:
   Context();
 
-  std::vector<Shader> mShaders;
-
-  glm::mat4 mProj;
-  glm::mat4 mView;
-
-  size_t mShaderIndex = SIZE_MAX;
-
   static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
   static void onMouseButton(GLFWwindow* window, int button, int action, int mods);
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
-
-  void cameraChanged();
+  static void onWindowResize(GLFWwindow* window, int width, int height);
+  void        cameraChanged();
 
   template<typename T>
   void setUniformInternal(int location, const T& val);
+
+  std::vector<Shader> mShaders;
+  glm::mat4           mProj;
+  glm::mat4           mView;
+  glm::ivec2          mWindowSize;
+  size_t              mShaderIndex    = SIZE_MAX;
+  Projection          mProjectionMode = Projection::PERSPECTIVE;
 };
 
 }  // namespace view

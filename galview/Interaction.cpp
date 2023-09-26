@@ -4,6 +4,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include <Context.h>
 #include <imgui.h>
 #include <pybind11/embed.h>
 #include <spdlog/common.h>
@@ -308,6 +309,7 @@ void init(GLFWwindow* window, const char* glslVersion)
   historyPanel.addWidget(sHistoryWidget.get());
   sHistoryPtr = &(sHistoryWidget->value());
   initCommands();
+  Context::get().init(window);
 }
 
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)

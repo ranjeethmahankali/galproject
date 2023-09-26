@@ -338,11 +338,11 @@ void perspective(int argc, char** argv)
 
   const std::string& flag = parsed.value()["flag"].as<std::string>();
   if (flag == "on") {
-    Context::get().setPerspective();
+    Context::get().setProjectionMode(Context::Projection::PERSPECTIVE);
     logger().info("Now using a perspective camera.");
   }
   else if (flag == "off") {
-    Context::get().setOrthographic();
+    Context::get().setProjectionMode(Context::Projection::PARALLEL);
     logger().info("Now using an orthographic camera.");
   }
   else {
