@@ -64,8 +64,9 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   }
   glutil::logger().info("OpenGL bindings are ready.");
   // Init shader.
-  view::Context& ctx      = view::Context::get();
-  size_t         shaderId = ctx.shaderId("default");
+  view::Context& ctx = view::Context::get();
+  ctx.init(window);
+  size_t shaderId = ctx.shaderId("default");
   ctx.useShader(shaderId);
   // Mouse support
   view::Context::registerCallbacks(window);

@@ -309,7 +309,6 @@ void init(GLFWwindow* window, const char* glslVersion)
   historyPanel.addWidget(sHistoryWidget.get());
   sHistoryPtr = &(sHistoryWidget->value());
   initCommands();
-  Context::get().init(window);
 }
 
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)
