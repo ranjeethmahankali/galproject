@@ -8,7 +8,9 @@ target_link_libraries(galcore PUBLIC
   glm::glm
   TBB::tbb
   spdlog::spdlog
-  spdlog::spdlog_header_only)
+  spdlog::spdlog_header_only
+  CGAL::CGAL
+)
 
 target_include_directories(galcore PUBLIC
   "include/"

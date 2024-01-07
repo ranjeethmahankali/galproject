@@ -23,6 +23,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 find_package(openmesh REQUIRED)
+find_package(CGAL CONFIG REQUIRED)
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
