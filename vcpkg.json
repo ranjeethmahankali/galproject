@@ -19,6 +19,7 @@
     },
     "gtest",
     "cgal",
+    "eigen3",
     "freetype",
     "tbb",
     "pngpp",

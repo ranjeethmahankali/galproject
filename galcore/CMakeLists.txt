@@ -10,6 +10,7 @@ target_link_libraries(galcore PUBLIC
   spdlog::spdlog
   spdlog::spdlog_header_only
   CGAL::CGAL
+  Eigen3::Eigen
 )
 
 target_include_directories(galcore PUBLIC

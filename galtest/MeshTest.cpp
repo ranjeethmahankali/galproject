@@ -1,8 +1,18 @@
+#include <CGAL/Dynamic_property_map.h>
 #include <gtest/gtest.h>
+#include <OpenMesh/Core/IO/MeshIO.hh>
+#include <algorithm>
 #include <glm/gtx/transform.hpp>
+#include <stdexcept>
 
 #include <Mesh.h>
 #include <TestUtils.h>
+
+#include <CGAL/Polygon_mesh_processing/measure.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/Surface_mesh_parameterization/parameterize.h>
+#include <CGAL/boost/graph/IO/polygon_mesh_io.h>
 
 gal::TriMesh unitbox()
 {
@@ -90,4 +100,41 @@ TEST(Mesh, SphereQuery)
   mesh.querySphere(sp, std::back_inserter(indices), gal::eMeshElement::face);
   auto smesh = mesh.subMesh(indices);
   ASSERT_FLOAT_EQ(smesh.area(), 0.44368880987167358);
+}
+
+TEST(Mesh, Temporary)
+{
+  using namespace CGAL;
+  using Kernel  = Simple_cartesian<double>;
+  using Mesh    = Surface_mesh<Kernel::Point_3>;
+  using VId     = Mesh::Vertex_index;
+  using FId     = Mesh::Face_index;
+  using HId     = Mesh::halfedge_index;
+  namespace smp = Surface_mesh_parameterization;
+  Mesh mesh;
+  if (!IO::read_polygon_mesh("/home/rnjth94/buffer/parametrization/manifold1.obj",
+                             mesh)) {
+    throw std::runtime_error("Cannot read mesh file");
+  };
+  HId bhd     = Polygon_mesh_processing::longest_border(mesh).first;
+  using UVMap = Mesh::Property_map<VId, Kernel::Point_2>;
+  UVMap uvmap = mesh.add_property_map<VId, Kernel::Point_2>("h:uv").first;
+  smp::parameterize(mesh, bhd, uvmap);
+  gal::TriMesh uvmesh;
+  {
+    uvmesh.reserve(mesh.num_vertices(), mesh.num_edges(), mesh.num_faces());
+    for (VId v : mesh.vertices()) {
+      Kernel::Point_2 uv = get(uvmap, v);
+      uvmesh.add_vertex({uv.x(), uv.y(), 0.});
+    }
+    for (FId f : mesh.faces()) {
+      std::array<gal::TriMesh::VertH, 3> fvs;
+      auto src = mesh.vertices_around_face(mesh.halfedge(f));
+      std::transform(src.begin(), src.end(), fvs.begin(), [&](VId v) {
+        return gal::TriMesh::VertH(v.idx());
+      });
+      uvmesh.add_face(fvs[0], fvs[1], fvs[2]);
+    }
+  }
+  OpenMesh::IO::write_mesh(uvmesh, "/home/rnjth94/buffer/parametrization/uvmesh1.obj");
 }
