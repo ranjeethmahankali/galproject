@@ -4,8 +4,8 @@
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
-#include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/Barycentric_mapping_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/boost/graph/IO/polygon_mesh_io.h>
 #include <OpenMesh/Core/IO/MeshIO.hh>
@@ -54,9 +54,8 @@ TEST(Mesh, Parametrization)
   };
   HId   bhd   = Polygon_mesh_processing::longest_border(mesh).first;
   UVMap uvmap = mesh.add_property_map<VId, Kernel::Point_2>("h:uv").first;
-  typedef SMP::Circular_border_arc_length_parameterizer_3<SurfaceMesh>
-    Border_parameterizer;
-  typedef SMP::Discrete_authalic_parameterizer_3<SurfaceMesh, Border_parameterizer>
+  typedef SMP::Square_border_uniform_parameterizer_3<SurfaceMesh> Border_parameterizer;
+  typedef SMP::Barycentric_mapping_parameterizer_3<SurfaceMesh, Border_parameterizer>
                   Parameterizer;
   SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
   if (err != SMP::OK) {
