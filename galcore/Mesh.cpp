@@ -304,6 +304,13 @@ void TriMesh::updateRTrees() const
   }
 }
 
+void TriMesh::setVertexColor(glm::vec3 color)
+{
+  for (TriMesh::VertH v : vertices()) {
+    set_color(v, color);
+  }
+}
+
 template<typename MeshT>
 void flipYZAxes(MeshT& mesh)
 {

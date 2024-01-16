@@ -74,6 +74,7 @@ struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
   void           transform(const glm::mat4& mat);
   TriMesh        subMesh(std::span<const int> faces) const;
   void           updateRTrees() const;
+  void           setVertexColor(glm::vec3 color);
   static TriMesh loadFromFile(const fs::path& path, bool flipYZ = true);
 
 private:

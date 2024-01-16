@@ -64,19 +64,21 @@ void fromCgal(const SurfaceMesh& src, TriMesh& dst)
     const auto&                   fvs = src.vertices_around_face(src.halfedge(f));
     std::transform(
       fvs.begin(), fvs.end(), vs.begin(), [](VId v) { return TriMesh::VertH(v.idx()); });
+    dst.add_face(vs.data(), vs.size());
   }
+  dst.setVertexColor({1.f, 1.f, 1.f});
 }
 
-TriMesh simplify(TriMesh omesh)
+TriMesh simplify(TriMesh omesh, int nCollapses)
 {
-  namespace SMS                                    = CGAL::Surface_mesh_simplification;
-  auto                                  mesh       = toCgal(omesh);
-  std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-  // In this example, the simplification stops when the number of undirected edges
-  // drops below 10% of the initial count
-  double                                 stop_ratio = 0.1;
-  SMS::Count_stop_predicate<SurfaceMesh> stop(stop_ratio);
+  namespace SMS                                     = CGAL::Surface_mesh_simplification;
+  auto                                   mesh       = toCgal(omesh);
+  std::chrono::steady_clock::time_point  start_time = std::chrono::steady_clock::now();
+  SMS::Count_stop_predicate<SurfaceMesh> stop(
+    std::max(6, int(omesh.n_edges()) - nCollapses));
   SMS::edge_collapse(mesh, stop);
+  mesh.collect_garbage();
+
   fromCgal(mesh, omesh);
   return omesh;
 }

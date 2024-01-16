@@ -129,6 +129,14 @@ GAL_FUNC(numFaces,
   nfaces = mesh.n_faces();
 }
 
+GAL_FUNC(numEdges,
+         "Get the number of edges of the mesh",
+         ((gal::TriMesh, mesh, "Mesh")),
+         ((int32_t, nedges, "Number of edges")))
+{
+  nedges = mesh.n_edges();
+}
+
 GAL_FUNC(numVertices,
          "Gets the number of vertices of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
@@ -203,12 +211,21 @@ GAL_FUNC(vertexColors,
 }
 
 GAL_FUNC(decimate,
-         "Decimates the mesh while persisting the intermediate meshes",
+         "Decimates the mesh using open mesh",
          ((gal::TriMesh, mesh, "Mesh to be decimated"),
           (int32_t, nCollapses, "Number of edges to collapse.")),
          ((gal::TriMesh, decimated, "The decimated mesh")))
 {
   decimated = gal::decimate(mesh, nCollapses);
+}
+
+GAL_FUNC(simplify,
+         "Simplifies the mesh using CGAL",
+         ((gal::TriMesh, mesh, "Mesh to be simplified"),
+          (int32_t, nCollapses, "Number of edges to collapse.")),
+         ((gal::TriMesh, simplified, "Simplified mesh")))
+{
+  simplified = gal::simplify(mesh, nCollapses);
 }
 
 void bind_MeshFunc(py::module& module)
@@ -220,6 +237,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
   GAL_FN_BIND(bounds, module);
   GAL_FN_BIND(numFaces, module);
+  GAL_FN_BIND(numEdges, module);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
   GAL_FN_BIND(vertex, module);
@@ -234,6 +252,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(meshWithVertexColors, module);
   GAL_FN_BIND(vertexColors, module);
   GAL_FN_BIND(decimate, module);
+  GAL_FN_BIND(simplify, module);
 }
 
 }  // namespace func
