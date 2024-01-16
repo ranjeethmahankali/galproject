@@ -7,7 +7,9 @@
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Bounded_normal_change_placement.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/GarlandHeckbert_policies.h>
 #include <CGAL/Surface_mesh_simplification/edge_collapse.h>
 
 namespace gal {
@@ -69,16 +71,40 @@ void fromCgal(const SurfaceMesh& src, TriMesh& dst)
   dst.setVertexColor({1.f, 1.f, 1.f});
 }
 
+template<class TM_>
+class Midpoint_placement
+{
+public:
+  typedef TM_ TM;
+
+  Midpoint_placement() {}
+
+  template<typename Profile>
+  boost::optional<typename Profile::Point> operator()(const Profile& profile) const
+  {
+    typedef boost::optional<typename Profile::Point> result_type;
+    return result_type(
+      profile.geom_traits().construct_midpoint_3_object()(profile.p0(), profile.p1()));
+  }
+};
+
 TriMesh simplify(TriMesh omesh, int nCollapses)
 {
-  namespace SMS                                     = CGAL::Surface_mesh_simplification;
-  auto                                   mesh       = toCgal(omesh);
-  std::chrono::steady_clock::time_point  start_time = std::chrono::steady_clock::now();
+  namespace SMS    = CGAL::Surface_mesh_simplification;
+  using GHPolicies = SMS::GarlandHeckbert_policies<SurfaceMesh, Kernel>;
+  auto                                       mesh = toCgal(omesh);
+  typedef typename GHPolicies::Get_cost      GH_cost;
+  typedef typename GHPolicies::Get_placement GH_placement;
+  using BoundedGHPlacement = SMS::Bounded_normal_change_placement<GH_placement>;
+  GHPolicies                             gh_policies(mesh);
+  const GH_cost&                         gh_cost      = gh_policies.get_cost();
+  const GH_placement&                    gh_placement = gh_policies.get_placement();
+  BoundedGHPlacement                     placement(gh_placement);
   SMS::Count_stop_predicate<SurfaceMesh> stop(
     std::max(6, int(omesh.n_edges()) - nCollapses));
-  SMS::edge_collapse(mesh, stop);
+  SMS::edge_collapse(
+    mesh, stop, CGAL::parameters::get_cost(gh_cost).get_placement(placement));
   mesh.collect_garbage();
-
   fromCgal(mesh, omesh);
   return omesh;
 }
