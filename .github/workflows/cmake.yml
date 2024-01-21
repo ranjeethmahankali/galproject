@@ -20,12 +20,13 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.10.4
+        python-version: 3.11
 
     - name: Install Dependencies
       run: |
         sudo apt update
         sudo apt install -y gcc-11 g++-11
+        sudo apt-get install autoconf automake autoconf-archive
         sudo apt install -y inotify-tools libxmu-dev libxi-dev libgl-dev
         sudo apt install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
         pip3 install pytest-xdist

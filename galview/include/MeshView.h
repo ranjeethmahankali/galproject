@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <numeric>
 
@@ -42,8 +43,18 @@ public:
     for (const auto& meshptr : meshes) {
       meshptr->update_normals();
       const auto& mesh = *meshptr;
-      for (TriMesh::VertH v : mesh.vertices()) {
-        *(vbegin++) = {mesh.point(v), mesh.normal(v), mesh.color(v)};
+      if (std::all_of(
+            mesh.vertices_begin(), mesh.vertices_end(), [&mesh](TriMesh::VertH v) {
+              return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
+            })) {
+        for (TriMesh::VertH v : mesh.vertices()) {
+          *(vbegin++) = {mesh.point(v), mesh.normal(v), {1.f, 1.f, 1.f}};
+        }
+      }
+      else {
+        for (TriMesh::VertH v : mesh.vertices()) {
+          *(vbegin++) = {mesh.point(v), mesh.normal(v), mesh.color(v)};
+        }
       }
       // 3 indices per face and nothing else.
       for (TriMesh::FaceH f : mesh.faces()) {
@@ -152,8 +163,18 @@ public:
     for (const auto& meshptr : meshes) {
       meshptr->update_normals();
       const auto& mesh = *meshptr;
-      for (auto vh : mesh.vertices()) {
-        *(vdst++) = {mesh.point(vh), mesh.normal(vh), mesh.color(vh)};
+      if (std::all_of(
+            mesh.vertices_begin(), mesh.vertices_end(), [&mesh](TriMesh::VertH v) {
+              return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
+            })) {
+        for (TriMesh::VertH v : mesh.vertices()) {
+          *(vdst++) = {mesh.point(v), mesh.normal(v), {1.f, 1.f, 1.f}};
+        }
+      }
+      else {
+        for (auto vh : mesh.vertices()) {
+          *(vdst++) = {mesh.point(vh), mesh.normal(vh), mesh.color(vh)};
+        }
       }
       for (auto fh : mesh.faces()) {
         auto     fv2  = mesh.cfv_begin(fh);

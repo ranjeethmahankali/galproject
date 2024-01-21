@@ -93,45 +93,6 @@ std::ostream& operator<<(std::ostream& ostr, const std::pair<T1, T2>& pair)
 
 namespace gal {
 
-struct IndexPair
-{
-  size_t p, q;
-
-  bool operator==(const IndexPair&) const;
-  bool operator!=(const IndexPair&) const;
-
-  IndexPair(size_t i, size_t j);
-  IndexPair();
-
-  void   set(size_t, size_t);
-  size_t hash() const;
-  void   unset(size_t);
-  bool   add(size_t);
-  bool   contains(size_t) const;
-};
-
-template<typename T>
-struct Hash
-{
-  static const std::hash<T> mHasher;
-
-  size_t operator()(const T& v) const noexcept { return mHasher(v); }
-};
-
-template<>
-struct Hash<IndexPair>
-{
-  size_t operator()(const IndexPair& ip) const noexcept { return ip.hash(); }
-};
-using IndexPairHash = Hash<IndexPair>;
-
-template<>
-struct Hash<size_t>
-{
-  size_t operator()(const size_t& v) const noexcept { return v; };
-};
-using CustomSizeTHash = Hash<size_t>;
-
 namespace utils {
 
 spdlog::logger& logger();

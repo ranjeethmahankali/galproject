@@ -19,9 +19,6 @@
 #include <Sphere.h>
 #include <Util.h>
 
-using EdgeType     = gal::IndexPair;
-using EdgeTypeHash = gal::IndexPairHash;
-
 namespace gal {
 
 struct MeshTraits : public OpenMesh::DefaultTraits

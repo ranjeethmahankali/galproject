@@ -114,23 +114,21 @@ public:
 template<typename T>
 class InputWidget : public Widget
 {
-public:
-  using HandlerFn = void (*)(const T&);
-
-  virtual void addHandler(const HandlerFn& fn) final { mHandlers.push_back(fn); };
-
 protected:
-  std::vector<HandlerFn> mHandlers;
-  std::string            mLabel;
-  T                      mValue;
-  bool                   mEdited = false;
+  std::string mLabel;
+  T           mValue;
+  bool        mEdited = false;
 
   explicit InputWidget(const std::string& label)
       : mLabel(label)
-      , mValue(T()) {};
+      , mValue(T())
+  {}
+
   InputWidget(const std::string& label, const T& value)
       : mLabel(label)
-      , mValue(value) {};
+      , mValue(value)
+  {}
+
   virtual ~InputWidget() = default;
 
 protected:
@@ -150,16 +148,7 @@ protected:
 
   void setEdited() { mEdited = true; }
 
-  virtual void handleChanges()
-  {
-    if (!isEdited())
-      return;
-
-    for (auto handler : mHandlers) {
-      handler(mValue);
-    }
-    clearEdited();
-  };
+  virtual void handleChanges() = 0;
 
 public:
   const T& value() const { return mValue; };
@@ -294,15 +283,6 @@ public:
   void draw() override;
 };
 
-class TextInputBox : public InputWidget<std::string>
-{
-public:
-  explicit TextInputBox(const std::string& label);
-  virtual ~TextInputBox() = default;
-
-  void draw() override;
-};
-
 class CheckBox : public InputWidget<bool>
 {
 public:
@@ -311,6 +291,7 @@ public:
 
   void        draw() override;
   const bool* checkedPtr() const;
+  void        handleChanges() override;
 };
 
 void init(GLFWwindow* window, const char* glslVersion);
