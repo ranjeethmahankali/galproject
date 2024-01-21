@@ -12,6 +12,36 @@ static constexpr float PLANE_DIST_TOL = 1e-10;
 
 namespace gal {
 
+struct IndexPair
+{
+  size_t p, q;
+
+  bool operator==(const IndexPair&) const;
+  bool operator!=(const IndexPair&) const;
+
+  IndexPair(size_t i, size_t j);
+  IndexPair();
+
+  void   set(size_t, size_t);
+  size_t hash() const;
+  void   unset(size_t);
+  bool   add(size_t);
+  bool   contains(size_t) const;
+};
+}  // namespace gal
+
+namespace std {
+
+template<>
+struct hash<gal::IndexPair>
+{
+  size_t operator()(const gal::IndexPair& ip) const noexcept { return ip.hash(); }
+};
+
+}  // namespace std
+
+namespace gal {
+
 class ConvexHull
 {
 public:
@@ -44,13 +74,9 @@ private:
   std::vector<glm::vec3> mPts;
   glm::vec3              mCenter;
 
-  std::unordered_map<size_t, Face, gal::CustomSizeTHash, std::equal_to<size_t>> mFaces;
-  std::unordered_map<gal::IndexPair,
-                     gal::IndexPair,
-                     gal::IndexPairHash,
-                     std::equal_to<gal::IndexPair>>
-                                                                          mEdgeFaceMap;
-  std::unordered_set<size_t, gal::CustomSizeTHash, std::equal_to<size_t>> mOutsidePts;
+  std::unordered_map<size_t, Face>                   mFaces;
+  std::unordered_map<gal::IndexPair, gal::IndexPair> mEdgeFaceMap;
+  std::unordered_set<size_t>                         mOutsidePts;
 
   void      compute();
   void      initOutside();
@@ -86,3 +112,5 @@ public:
 };
 
 }  // namespace gal
+
+namespace std {}  // namespace std

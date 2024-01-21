@@ -24,65 +24,6 @@
 
 namespace fs = std::filesystem;
 
-bool gal::IndexPair::operator==(const gal::IndexPair& pair) const
-{
-  return (p == pair.p && q == pair.q) || (p == pair.q && q == pair.p);
-}
-
-bool gal::IndexPair::operator!=(const gal::IndexPair& pair) const
-{
-  return (p != pair.q && p != pair.p) || (q != pair.p && q != pair.q);
-}
-
-gal::IndexPair::IndexPair(size_t i, size_t j)
-    : p(i)
-    , q(j)
-{}
-
-gal::IndexPair::IndexPair()
-    : p(-1)
-    , q(-1)
-{}
-
-void gal::IndexPair::set(size_t i, size_t j)
-{
-  p = i;
-  q = j;
-}
-
-size_t gal::IndexPair::hash() const
-{
-  return p + q + p * q;
-}
-
-void gal::IndexPair::unset(size_t i)
-{
-  if (p == i) {
-    p = -1;
-  }
-  else if (q == i) {
-    q = -1;
-  }
-}
-
-bool gal::IndexPair::add(size_t i)
-{
-  if (p == -1) {
-    p = i;
-    return true;
-  }
-  else if (q == -1) {
-    q = i;
-    return true;
-  }
-  return false;
-}
-
-bool gal::IndexPair::contains(size_t i) const
-{
-  return (i != -1) && (i == p || i == q);
-}
-
 spdlog::logger& gal::utils::logger()
 {
   static auto sLogger = spdlog::stdout_color_mt("core");
