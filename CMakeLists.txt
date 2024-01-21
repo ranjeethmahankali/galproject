@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0)
+cmake_minimum_required(VERSION 3.20.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -7,7 +7,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(vcpkg.cmake)
 project(gal)
 
-# Dependencies and Includes - begin
 find_package(PythonLibs REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
@@ -22,14 +21,13 @@ find_package(glew REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(freetype CONFIG REQUIRED)
-find_package(openmesh REQUIRED)
+find_package(OpenMesh REQUIRED)
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
 include(GoogleTest)
 find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-# Dependencies and Includes - end
 
 add_subdirectory(galcore)
 add_subdirectory(galfunc)

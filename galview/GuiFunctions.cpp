@@ -131,9 +131,6 @@ public:
       : gal::func::TVariable<std::string>("")
       , gal::view::TextInput(label, "") {};
 
-private:
-  using gal::view::TextInput::addHandler;
-
 protected:
   void handleChanges() override
   {

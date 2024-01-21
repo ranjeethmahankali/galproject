@@ -207,6 +207,11 @@ const bool* CheckBox::checkedPtr() const
   return &mValue;
 }
 
+void CheckBox::handleChanges()
+{
+  // Do nothing.
+}
+
 spdlog::logger& logger()
 {
   return *sLogger;

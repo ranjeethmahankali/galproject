@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0)
+cmake_minimum_required(VERSION 3.20.0)
 
 add_compile_definitions(GAL_ASSET_DIR_STR="${PROJECT_SOURCE_DIR}/assets")
 enable_testing()

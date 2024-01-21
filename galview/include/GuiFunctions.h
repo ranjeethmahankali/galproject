@@ -37,9 +37,6 @@ public:
 
   virtual ~SliderFunc() = default;
 
-private:
-  using gal::view::Slider<T>::addHandler;
-
 protected:
   void handleChanges() override
   {
@@ -67,9 +64,6 @@ public:
   SliderFunc(const std::string& label, const T& min, const T& max, const T& value)
       : gal::func::TVariable<VecType>(VecType(std::clamp(value, min, max)))
       , gal::view::Slider<VecType>(label, min, max, value) {};
-
-private:
-  using gal::view::Slider<VecType>::addHandler;
 
 protected:
   void handleChanges() override
