@@ -182,6 +182,11 @@ void TextInput::draw()
                    (void*)(&mValue));
   checkEdited();
   if (!ImGui::IsItemActive()) {
+    if (isEdited()) {  // Remove null terminators.
+      while (mValue.back() == '\0') {
+        mValue.pop_back();
+      }
+    }
     handleChanges();
   }
 }

@@ -85,7 +85,7 @@ bool gal::IndexPair::contains(size_t i) const
 
 spdlog::logger& gal::utils::logger()
 {
-  static auto sLogger = spdlog::stdout_color_mt("viewer");
+  static auto sLogger = spdlog::stdout_color_mt("core");
   return *sLogger;
 }
 

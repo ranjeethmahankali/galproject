@@ -317,7 +317,9 @@ template<typename MeshT>
 MeshT loadMeshFromFile(const fs::path& path, bool flipYZ)
 {
   MeshT mesh;
-  OpenMesh::IO::read_mesh(mesh, path.string());
+  if (!OpenMesh::IO::read_mesh(mesh, path.string())) {
+    utils::logger().error("Unable to load mesh from '{}'", path.string());
+  }
   if (flipYZ) {
     flipYZAxes(mesh);
   }
