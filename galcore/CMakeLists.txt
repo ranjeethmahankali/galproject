@@ -5,11 +5,11 @@ add_library(galcore STATIC ${GALCORE_SRC})
 
 target_include_directories(galcore PUBLIC
   "include/"
-  ${OPENMESH_INCLUDE_DIRS}
   ${PNGPP_INCLUDE_DIRS})
 
 target_link_libraries(galcore PUBLIC
-  ${OPENMESH_LIBRARIES}
+  OpenMeshCore
+  OpenMeshTools
   glm::glm
   TBB::tbb
   spdlog::spdlog
