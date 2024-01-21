@@ -1,17 +1,14 @@
 #include <Decimate.h>
-#include <tbb/parallel_for_each.h>
 
 #include <stdint.h>
-#include <OpenMesh/Core/Mesh/SmartHandles.hh>
-#include <OpenMesh/Core/Utils/Property.hh>
-#include <OpenMesh/Tools/Decimater/DecimaterT.hh>
-#include <OpenMesh/Tools/Decimater/ModProgMeshT.hh>
-#include <OpenMesh/Tools/Decimater/ModQuadricT.hh>
 #include <cmath>
-#include <glm/geometric.hpp>
 #include <queue>
 #include <span>
-#include "Util.h"
+
+#include <tbb/parallel_for_each.h>
+#include <OpenMesh/Core/Utils/Property.hh>
+
+#include <Util.h>
 
 namespace gal {
 
