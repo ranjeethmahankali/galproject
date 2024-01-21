@@ -294,15 +294,6 @@ public:
   void draw() override;
 };
 
-class TextInputBox : public InputWidget<std::string>
-{
-public:
-  explicit TextInputBox(const std::string& label);
-  virtual ~TextInputBox() = default;
-
-  void draw() override;
-};
-
 class CheckBox : public InputWidget<bool>
 {
 public:

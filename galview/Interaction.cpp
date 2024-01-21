@@ -191,27 +191,6 @@ void TextInput::draw()
   }
 }
 
-TextInputBox::TextInputBox(const std::string& label)
-    : InputWidget<std::string>(label, "")
-{
-  mValue.reserve(1024);
-}
-
-void TextInputBox::draw()
-{
-  ImGui::InputTextMultiline(mLabel.c_str(),
-                            mValue.data(),
-                            mValue.size(),
-                            ImVec2(200, ImGui::GetTextLineHeight() * 4),
-                            ImGuiInputTextFlags_CallbackResize,
-                            TextInputCallBack,
-                            (void*)(&mValue));
-  checkEdited();
-  if (!ImGui::IsItemActive()) {
-    handleChanges();
-  }
-}
-
 CheckBox::CheckBox(const std::string& label, bool value)
     : InputWidget<bool>(label, value)
 {}
