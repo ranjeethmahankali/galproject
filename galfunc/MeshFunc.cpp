@@ -122,7 +122,7 @@ GAL_FUNC(closestPoints,
   });
 }
 
-GAL_FUNC(bounds,
+GAL_FUNC(boundsTriMesh,
          "Gets the bounding box of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          ((gal::Box3, bbox, "Bounds of the mesh")))
@@ -130,9 +130,25 @@ GAL_FUNC(bounds,
   bbox = mesh.bounds();
 }
 
-GAL_FUNC(numFaces,
+GAL_FUNC(boundsPolyMesh,
+         "Gets the bounding box of the mesh",
+         ((gal::PolyMesh, mesh, "Mesh")),
+         ((gal::Box3, bbox, "Bounds of the mesh")))
+{
+  bbox = mesh.bounds();
+}
+
+GAL_FUNC(numTriMeshFaces,
          "Gets the number of faces of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
+         ((int32_t, nfaces, "Number of faces")))
+{
+  nfaces = mesh.n_faces();
+}
+
+GAL_FUNC(numPolyMeshFaces,
+         "Gets the number of faces of the mesh",
+         ((gal::PolyMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
 {
   nfaces = mesh.n_faces();
@@ -227,8 +243,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(area, module);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::TriMesh);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
-  GAL_FN_BIND(bounds, module);
-  GAL_FN_BIND(numFaces, module);
+  GAL_FN_BIND_OVERLOADS(module, bounds, boundsTriMesh, boundsPolyMesh);
+  GAL_FN_BIND_OVERLOADS(module, numFaces, numTriMeshFaces, numPolyMeshFaces);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
   GAL_FN_BIND(vertex, module);
