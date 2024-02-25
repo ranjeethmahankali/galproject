@@ -90,11 +90,20 @@ GAL_FUNC(meshSphereQuery,
   numFaces   = int32_t(results.size());
 }
 
-GAL_FUNC(subMesh,
+GAL_FUNC(subTriMesh,
          "Gets a mesh with the subset of the faces of the input mesh",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
          ((gal::TriMesh, resultMesh, "Resulting mesh with the subset of faces")))
+{
+  resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
+}
+
+GAL_FUNC(subPolyMesh,
+         "Get a mesh with the subset of faces of the input mesh",
+         ((gal::PolyMesh, mesh, "Polygon mesh"),
+          ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
+         ((gal::PolyMesh, resultMesh, "Resulting mesh with the subset of faces")))
 {
   resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
 }
@@ -228,7 +237,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(loadPolyMesh, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
-  GAL_FN_BIND(subMesh, module);
+  GAL_FN_BIND_OVERLOADS(module, subMesh, subTriMesh, subPolyMesh);
   GAL_FN_BIND(closestPoints, module);
   GAL_FN_BIND(rectangleMesh, module);
   GAL_FN_BIND(meshWithVertexColors, module);
