@@ -202,11 +202,24 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(makeRectangularMesh(plane, bounds, edgeLength));
 }
 
-GAL_FUNC(meshWithVertexColors,
+GAL_FUNC(triMeshWithVertexColors,
          "Creates a new mesh by with the given vertex colors",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
          ((gal::TriMesh, outmesh, "Colored mesh with vertex colors.")))
+{
+  outmesh = mesh;
+  outmesh.request_vertex_colors();
+  for (TriMesh::VertH vh : outmesh.vertices()) {
+    outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
+  }
+}
+
+GAL_FUNC(polyMeshWithVertexColors,
+         "Creates a new mesh by with the given vertex colors",
+         ((gal::PolyMesh, mesh, "Input mesh"),
+          ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
+         ((gal::PolyMesh, outmesh, "Colored mesh with vertex colors.")))
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
@@ -256,7 +269,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND_OVERLOADS(module, subMesh, subTriMesh, subPolyMesh);
   GAL_FN_BIND(closestPoints, module);
   GAL_FN_BIND(rectangleMesh, module);
-  GAL_FN_BIND(meshWithVertexColors, module);
+  GAL_FN_BIND_OVERLOADS(
+    module, meshWithVertexColors, triMeshWithVertexColors, polyMeshWithVertexColors);
   GAL_FN_BIND(vertexColors, module);
   GAL_FN_BIND(decimate, module);
 }
