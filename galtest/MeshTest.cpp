@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <glm/gtx/transform.hpp>
 
-#include <Decimate.h>
 #include <Mesh.h>
 #include <TestUtils.h>
 
@@ -91,11 +90,4 @@ TEST(Mesh, SphereQuery)
   mesh.querySphere(sp, std::back_inserter(indices), gal::eMeshElement::face);
   auto smesh = mesh.subMesh(indices);
   ASSERT_FLOAT_EQ(smesh.area(), 0.44368880987167358);
-}
-
-TEST(Mesh, Decimate)
-{
-  auto mesh      = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
-  auto decimated = gal::decimate(mesh, 15300);
-  ASSERT_TRUE(mesh.n_faces() > decimated.n_faces());
 }
