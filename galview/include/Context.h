@@ -51,8 +51,6 @@ class Context
     ~Shader();
 
     std::string mName;
-    uint32_t    mVertId;
-    uint32_t    mFragId;
     uint32_t    mId = 0;
   };
 
@@ -73,17 +71,6 @@ public:
   bool meshEdgeMode();
   void init(GLFWwindow* window);
 
-  template<typename T>
-  void setUniform(const std::string& name, const T& val)
-  {
-    int loc = glGetUniformLocation(mShaders[mShaderIndex].mId, name.c_str());
-    if (loc == -1) {
-      // glutil::logger().error("OpenGL uniform '{}' not found.", name);
-      return;
-    }
-    setUniformInternal<T>(loc, val);
-  };
-
   void      useCamera(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up);
   glm::mat4 mvpMatrix() const;
   void      setProjectionMode(Projection mode);
@@ -91,6 +78,12 @@ public:
   size_t    shaderId(const std::string& name) const;
   void      useShader(size_t shaderId);
   void      zoomExtents();
+
+  void setUniform(const std::string& name, bool);
+  void setUniform(const std::string& name, const glm::vec4&);
+  void setUniform(const std::string& name, const glm::vec3&);
+  void setUniform(const std::string& name, float);
+  void setUniform(const std::string& name, const glm::mat4&);
 
 private:
   Context();
@@ -100,9 +93,6 @@ private:
   static void onMouseScroll(GLFWwindow* window, double xOffset, double yOffset);
   static void onWindowResize(GLFWwindow* window, int width, int height);
   void        cameraChanged();
-
-  template<typename T>
-  void setUniformInternal(int location, const T& val);
 
   std::vector<Shader> mShaders;
   glm::mat4           mProj;
