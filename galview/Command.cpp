@@ -121,6 +121,7 @@ void queueCommands(std::string_view cmd)
     cmdQueue().push_back('\n');
   }
   cmdQueue().append(cmd);
+  cmdQueue().push_back('\n');
 }
 
 struct ArgDesc

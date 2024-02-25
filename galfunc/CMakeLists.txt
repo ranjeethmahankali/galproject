@@ -11,6 +11,7 @@ target_link_libraries(galfuncobjects PUBLIC
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
     pybind11::headers
+    pybind11::embed
     util
     dl)
 
