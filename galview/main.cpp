@@ -66,8 +66,6 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   // Init shader.
   view::Context& ctx = view::Context::get();
   ctx.init(window);
-  size_t shaderId = ctx.shaderId("default");
-  ctx.useShader(shaderId);
   // Mouse support
   view::Context::registerCallbacks(window);
   glutil::logger().debug(

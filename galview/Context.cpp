@@ -1,9 +1,11 @@
 
 #include <Context.h>
 
+#include <cstdint>
 #include <fstream>
 #include <sstream>
 
+#include <GLUtil.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -22,19 +24,19 @@ static bool sOrthoMode = false;
 
 static void setOrthoModeUniform()
 {
-  Context::get().setUniform<bool>("orthoMode", sOrthoMode);
+  Context::get().setUniform("orthoMode", sOrthoMode);
 }
 
 void RenderSettings::apply() const
 {
   Context& ctx = Context::get();
   ctx.useShader(shaderId);
-  ctx.setUniform<glm::vec4>("faceColor", faceColor);
-  ctx.setUniform<glm::vec4>("edgeColor", edgeColor);
-  ctx.setUniform<glm::vec4>("pointColor", pointColor);
-  ctx.setUniform<float>("shadingFactor", shadingFactor);
-  ctx.setUniform<bool>("edgeMode", edgeMode);
-  ctx.setUniform<bool>("pointMode", pointMode);
+  ctx.setUniform("faceColor", faceColor);
+  ctx.setUniform("edgeColor", edgeColor);
+  ctx.setUniform("pointColor", pointColor);
+  ctx.setUniform("shadingFactor", shadingFactor);
+  ctx.setUniform("edgeMode", edgeMode);
+  ctx.setUniform("pointMode", pointMode);
 
   GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
 };
@@ -134,10 +136,6 @@ Context::Context()
   mShaders[1].loadFromName("mesh");
   mShaders[2].loadFromName("text");
   mShaders[3].loadFromName("glyph");
-  useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, 1.0f));
-  setWireframeMode(sWireFrameMode);
 };
 
 void Context::useCamera(const glm::vec3& eye,
@@ -240,35 +238,54 @@ void Context::onWindowResize(GLFWwindow* window, int w, int h)
   get().setProjectionMode(get().mProjectionMode);
 }
 
-template<>
-void Context::setUniformInternal<float>(int location, const float& val)
+static GLint uniformLocation(const std::string& name)
 {
-  GL_CALL(glUniform1f(location, val));
-};
+  GLint prog = 0;
+  GL_CALL(glGetIntegerv(GL_CURRENT_PROGRAM, &prog));
+  GLint loc = -1;
+  GL_CALL(loc = glGetUniformLocation(prog, name.c_str()));
+  return loc;
+}
 
-template<>
-void Context::setUniformInternal<glm::mat4>(int location, const glm::mat4& mat)
+void Context::setUniform(const std::string& name, float val)
 {
-  GL_CALL(glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]));
-};
+  GLint location = uniformLocation(name);
+  if (location != -1) {
+    GL_CALL(glUniform1f(location, val));
+  }
+}
 
-template<>
-void Context::setUniformInternal<glm::vec4>(int location, const glm::vec4& v)
+void Context::setUniform(const std::string& name, const glm::mat4& mat)
 {
-  GL_CALL(glUniform4fv(location, 1, &v[0]));
-};
+  GLint location = uniformLocation(name);
+  if (location != -1) {
+    GL_CALL(glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]));
+  }
+}
 
-template<>
-void Context::setUniformInternal<glm::vec3>(int location, const glm::vec3& v)
+void Context::setUniform(const std::string& name, const glm::vec4& v)
 {
-  GL_CALL(glUniform3fv(location, 1, &v[0]));
-};
+  GLint location = uniformLocation(name);
+  if (location != -1) {
+    GL_CALL(glUniform4fv(location, 1, &v[0]));
+  }
+}
 
-template<>
-void Context::setUniformInternal<bool>(int location, const bool& flag)
+void Context::setUniform(const std::string& name, const glm::vec3& v)
 {
-  GL_CALL(glUniform1i(location, flag));
-};
+  GLint location = uniformLocation(name);
+  if (location != -1) {
+    GL_CALL(glUniform3fv(location, 1, &v[0]));
+  }
+}
+
+void Context::setUniform(const std::string& name, bool flag)
+{
+  GLint location = uniformLocation(name);
+  if (location != -1) {
+    GL_CALL(glUniform1i(location, flag));
+  }
+}
 
 void Context::setWireframeMode(bool flag)
 {
@@ -293,6 +310,12 @@ bool Context::meshEdgeMode()
 void Context::init(GLFWwindow* window)
 {
   glfwGetWindowSize(window, &mWindowSize[0], &mWindowSize[1]);
+  size_t id = shaderId("default");
+  useShader(id);
+  useCamera(glm::vec3(1.0f, 1.0f, 1.0f),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f));
+  setWireframeMode(sWireFrameMode);
   setProjectionMode(mProjectionMode);
 }
 
@@ -393,27 +416,30 @@ static std::string readfile(const std::string& filepath)
 void Context::Shader::loadFromSources(const std::string& vsrc, const std::string& fsrc)
 {
   // Compile vertex shader.
-  mVertId          = glCreateShader(GL_VERTEX_SHADER);
-  const char* cstr = vsrc.c_str();
-  GL_CALL(glShaderSource(mVertId, 1, &cstr, nullptr));
-  GL_CALL(glCompileShader(mVertId));
-  checkCompilation(mVertId, GL_VERTEX_SHADER);
+  uint32_t    vertId = glCreateShader(GL_VERTEX_SHADER);
+  const char* cstr   = vsrc.c_str();
+  GL_CALL(glShaderSource(vertId, 1, &cstr, nullptr));
+  GL_CALL(glCompileShader(vertId));
+  checkCompilation(vertId, GL_VERTEX_SHADER);
+  // glutil::logger().info("Compiled vertex shader: {}", vertId);
 
   // Compile fragment shader.
-  mFragId = glCreateShader(GL_FRAGMENT_SHADER);
-  cstr    = fsrc.c_str();
-  GL_CALL(glShaderSource(mFragId, 1, &cstr, nullptr));
-  GL_CALL(glCompileShader(mFragId));
-  checkCompilation(mFragId, GL_FRAGMENT_SHADER);
+  uint32_t fragId = glCreateShader(GL_FRAGMENT_SHADER);
+  cstr            = fsrc.c_str();
+  GL_CALL(glShaderSource(fragId, 1, &cstr, nullptr));
+  GL_CALL(glCompileShader(fragId));
+  checkCompilation(fragId, GL_FRAGMENT_SHADER);
+  // glutil::logger().info("Compiled vertex shader: {}", fragId);
 
   // Link
   mId = glCreateProgram();
-  GL_CALL(glAttachShader(mId, mVertId));
-  GL_CALL(glAttachShader(mId, mFragId));
+  GL_CALL(glAttachShader(mId, vertId));
+  GL_CALL(glAttachShader(mId, fragId));
   GL_CALL(glLinkProgram(mId));
   checkLinking(mId);
-  GL_CALL(glDeleteShader(mVertId));
-  GL_CALL(glDeleteShader(mFragId));
+  GL_CALL(glDeleteShader(vertId));
+  GL_CALL(glDeleteShader(fragId));
+  // glutil::logger().info("Linked program: {}", mId);
 };
 
 void Context::Shader::loadFromFiles(const std::string& vpath, const std::string& fpath)
