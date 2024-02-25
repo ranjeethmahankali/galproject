@@ -471,11 +471,16 @@ void PolyMesh::transform(const glm::mat4& mat)
 PolyMesh PolyMesh::subMesh(std::span<const int32_t> faces) const
 {
   std::vector<VertH> newVerts(n_vertices());
+  std::vector<bool>  visited(n_faces(), false);
   PolyMesh           smesh;
   smesh.reserve(faces.size() * 4, faces.size() * 4 / 2, faces.size());
   std::vector<VertH> fvs;
   for (int fi : faces) {
-    FaceH fh = face_handle(fi);
+    if (visited[fi]) {
+      continue;
+    }
+    visited[fi] = true;
+    FaceH fh    = face_handle(fi);
     fvs.clear();
     std::transform(cfv_begin(fh), cfv_end(fh), std::back_inserter(fvs), [&](VertH vh) {
       VertH& nv = newVerts[vh.idx()];
