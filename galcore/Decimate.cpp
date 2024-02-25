@@ -61,6 +61,7 @@ static float vertexCost(const TriMesh& mesh, TriMesh::VertH vh)
   }
   return maxdev;
 }
+
 TriMesh decimate(TriMesh mesh, int nCollapses)
 {
   OpenMesh::EPropHandleT<float> ecost;
