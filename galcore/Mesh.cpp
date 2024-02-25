@@ -1,3 +1,4 @@
+#include <iterator>
 #define _USE_MATH_DEFINES
 
 #include <OpenMesh/Core/IO/MeshIO.hh>
@@ -465,6 +466,32 @@ void PolyMesh::transform(const glm::mat4& mat)
 {
   tbb::parallel_for_each(
     vertices(), [&](VertH v) { point(v) = glm::vec3(mat * glm::vec4(point(v), 1.f)); });
+}
+
+PolyMesh PolyMesh::subMesh(std::span<const int32_t> faces) const
+{
+  std::vector<VertH> newVerts(n_vertices());
+  std::vector<bool>  visited(n_faces(), false);
+  PolyMesh           smesh;
+  smesh.reserve(faces.size() * 4, faces.size() * 4 / 2, faces.size());
+  std::vector<VertH> fvs;
+  for (int fi : faces) {
+    if (visited[fi]) {
+      continue;
+    }
+    visited[fi] = true;
+    FaceH fh    = face_handle(fi);
+    fvs.clear();
+    std::transform(cfv_begin(fh), cfv_end(fh), std::back_inserter(fvs), [&](VertH vh) {
+      VertH& nv = newVerts[vh.idx()];
+      if (!nv.is_valid()) {
+        nv = smesh.add_vertex(point(vh));
+      }
+      return nv;
+    });
+    smesh.add_face(fvs.data(), fvs.size());
+  }
+  return smesh;
 }
 
 }  // namespace gal

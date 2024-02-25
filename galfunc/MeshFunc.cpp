@@ -90,11 +90,20 @@ GAL_FUNC(meshSphereQuery,
   numFaces   = int32_t(results.size());
 }
 
-GAL_FUNC(subMesh,
+GAL_FUNC(subTriMesh,
          "Gets a mesh with the subset of the faces of the input mesh",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
          ((gal::TriMesh, resultMesh, "Resulting mesh with the subset of faces")))
+{
+  resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
+}
+
+GAL_FUNC(subPolyMesh,
+         "Get a mesh with the subset of faces of the input mesh",
+         ((gal::PolyMesh, mesh, "Polygon mesh"),
+          ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
+         ((gal::PolyMesh, resultMesh, "Resulting mesh with the subset of faces")))
 {
   resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
 }
@@ -113,7 +122,7 @@ GAL_FUNC(closestPoints,
   });
 }
 
-GAL_FUNC(bounds,
+GAL_FUNC(boundsTriMesh,
          "Gets the bounding box of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          ((gal::Box3, bbox, "Bounds of the mesh")))
@@ -121,9 +130,25 @@ GAL_FUNC(bounds,
   bbox = mesh.bounds();
 }
 
-GAL_FUNC(numFaces,
+GAL_FUNC(boundsPolyMesh,
+         "Gets the bounding box of the mesh",
+         ((gal::PolyMesh, mesh, "Mesh")),
+         ((gal::Box3, bbox, "Bounds of the mesh")))
+{
+  bbox = mesh.bounds();
+}
+
+GAL_FUNC(numTriMeshFaces,
          "Gets the number of faces of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
+         ((int32_t, nfaces, "Number of faces")))
+{
+  nfaces = mesh.n_faces();
+}
+
+GAL_FUNC(numPolyMeshFaces,
+         "Gets the number of faces of the mesh",
+         ((gal::PolyMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
 {
   nfaces = mesh.n_faces();
@@ -177,11 +202,24 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(makeRectangularMesh(plane, bounds, edgeLength));
 }
 
-GAL_FUNC(meshWithVertexColors,
+GAL_FUNC(triMeshWithVertexColors,
          "Creates a new mesh by with the given vertex colors",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
          ((gal::TriMesh, outmesh, "Colored mesh with vertex colors.")))
+{
+  outmesh = mesh;
+  outmesh.request_vertex_colors();
+  for (TriMesh::VertH vh : outmesh.vertices()) {
+    outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
+  }
+}
+
+GAL_FUNC(polyMeshWithVertexColors,
+         "Creates a new mesh by with the given vertex colors",
+         ((gal::PolyMesh, mesh, "Input mesh"),
+          ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
+         ((gal::PolyMesh, outmesh, "Colored mesh with vertex colors.")))
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
@@ -218,8 +256,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(area, module);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::TriMesh);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
-  GAL_FN_BIND(bounds, module);
-  GAL_FN_BIND(numFaces, module);
+  GAL_FN_BIND_OVERLOADS(module, bounds, boundsTriMesh, boundsPolyMesh);
+  GAL_FN_BIND_OVERLOADS(module, numFaces, numTriMeshFaces, numPolyMeshFaces);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
   GAL_FN_BIND(vertex, module);
@@ -228,10 +266,11 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(loadPolyMesh, module);
   GAL_FN_BIND(clipMesh, module);
   GAL_FN_BIND(meshSphereQuery, module);
-  GAL_FN_BIND(subMesh, module);
+  GAL_FN_BIND_OVERLOADS(module, subMesh, subTriMesh, subPolyMesh);
   GAL_FN_BIND(closestPoints, module);
   GAL_FN_BIND(rectangleMesh, module);
-  GAL_FN_BIND(meshWithVertexColors, module);
+  GAL_FN_BIND_OVERLOADS(
+    module, meshWithVertexColors, triMeshWithVertexColors, polyMeshWithVertexColors);
   GAL_FN_BIND(vertexColors, module);
   GAL_FN_BIND(decimate, module);
 }
