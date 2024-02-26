@@ -6,7 +6,6 @@
 #include <OpenMesh/Tools/Decimater/ModProgMeshT.hh>
 #include <glm/geometric.hpp>
 #include <stdexcept>
-#include "ProbabilisticQuadrics.h"
 
 #include <ProbabilisticQuadrics.h>
 
@@ -66,7 +65,7 @@ public:  // Specific methods.
   void compute_stddev(TriMesh::VertH vh)
   {
     TriMesh&               mesh       = Base::mesh();
-    static constexpr float EDGE_RATIO = 0.25f;
+    static constexpr float EDGE_RATIO = 0.1f;
     mesh.property(mStdDev, vh) =
       EDGE_RATIO *
       std::accumulate(mesh.cve_begin(vh),
