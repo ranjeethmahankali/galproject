@@ -127,9 +127,34 @@ public:  // Inherited
 
   virtual void postprocess_collapse(const CollapseInfo& ci) override
   {
-    Base::mesh().property(mVertQuadrics, ci.v1) +=
-      Base::mesh().property(mVertQuadrics, ci.v0);
-    Base::mesh().point(ci.v1) = Base::mesh().property(mVertQuadrics, ci.v1).minimizer();
+    TriMesh& mesh = Base::mesh();
+    mesh.property(mVertQuadrics, ci.v1) += mesh.property(mVertQuadrics, ci.v0);
+    mesh.point(ci.v1) = mesh.property(mVertQuadrics, ci.v1).minimizer();
+    // Compute edge lengths.
+    for (TriMesh::EdgeH eh : mesh.ve_range(ci.v1)) {
+      compute_edge_length(eh);
+    }
+    // Compute standard deviations.
+    compute_stddev(ci.v1);
+    for (TriMesh::VertH vh : mesh.vv_range(ci.v1)) {
+      compute_stddev(vh);
+      mesh.property(mVertQuadrics, vh) = Quadric();
+    }
+    // Compute face quadrics.
+    for (TriMesh::FaceH fh : mesh.vf_range(ci.v1)) {
+      compute_face_quadric(fh);
+    }
+    mesh.property(mVertQuadrics, ci.v1) = Quadric();
+    for (TriMesh::FaceH fh : mesh.vf_range(ci.v1)) {
+      mesh.property(mVertQuadrics, ci.v1) += mesh.property(mFaceQuadrics, fh);
+    }
+    for (TriMesh::VertH vh : mesh.vv_range(ci.v1)) {
+      Quadric& q = mesh.property(mVertQuadrics, vh);
+      q          = Quadric();
+      for (TriMesh::FaceH vfh : mesh.vf_range(vh)) {
+        q += mesh.property(mFaceQuadrics, vfh);
+      }
+    }
   }
 
 private:
