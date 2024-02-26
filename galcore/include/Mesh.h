@@ -32,10 +32,9 @@ struct MeshTraits : public OpenMesh::DefaultTraits
   typedef int       TextureIndex;
   typedef glm::vec3 Color;
 
-  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Color |
-                   OpenMesh::Attributes::Status);
+  VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Color);
   HalfedgeAttributes(OpenMesh::Attributes::PrevHalfedge | OpenMesh::Attributes::Status);
-  EdgeAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+  EdgeAttributes(OpenMesh::Attributes::Status | OpenMesh::Attributes::Normal);
   FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
 };
 
