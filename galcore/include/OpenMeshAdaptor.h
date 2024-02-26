@@ -2,6 +2,7 @@
 
 #include <OpenMesh/Core/Utils/vector_traits.hh>
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 namespace OpenMesh {
 
@@ -9,6 +10,12 @@ template<typename T, int N, glm::qualifier Q>
 T norm(const glm::vec<N, T, Q>& v)
 {
   return glm::length(v);
+}
+
+template<typename T, int N, glm::qualifier Q>
+T sqrnorm(const glm::vec<N, T, Q>& v)
+{
+  return glm::length2(v);
 }
 
 template<typename T, int N, glm::qualifier Q>

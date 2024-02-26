@@ -33,65 +33,18 @@ public:
       : Base(mesh, false)
   {
     unset_max_err();
-    Base::mesh().add_property(mQuadrics);
+    Base::mesh().add_property(mVertQuadrics);
     Base::mesh().add_property(mStdDev);
+    Base::mesh().add_property(mFaceQuadrics);
+    Base::mesh().add_property(mEdgeLengths);
   }
 
   virtual ~ModProbQuadricT()
   {
-    Base::mesh().remove_property(mQuadrics);
+    Base::mesh().remove_property(mVertQuadrics);
     Base::mesh().remove_property(mStdDev);
-  }
-
-public:  // Inherited
-  virtual void initialize(void) override
-  {
-    static constexpr float EDGE_RATIO = 0.25f;
-    TriMesh&               mesh       = Base::mesh();
-    // Compute standard deviations of vertices.
-    for (TriMesh::VertH vh : mesh.vertices()) {
-      const glm::vec3& p0   = mesh.point(vh);
-      float&           mean = mesh.property(mStdDev, vh);
-      mean                  = 0.f;
-      float denom           = 0.f;
-      for (TriMesh::VertH nvh : mesh.vv_range(vh)) {
-        mean += EDGE_RATIO * glm::length(mesh.point(nvh) - p0);
-        denom += 1.f;
-      }
-      mean /= denom;
-    }
-    // Compute quadrics.
-    for (TriMesh::FaceH fh : mesh.faces()) {
-      std::array<glm::vec3, 3> pos;
-      std::transform(
-        mesh.cfv_begin(fh), mesh.cfv_end(fh), pos.begin(), [&](TriMesh::VertH vh) {
-          return mesh.point(vh);
-        });
-      float sigma = std::accumulate(mesh.cfv_begin(fh),
-                                    mesh.cfv_end(fh),
-                                    0.f,
-                                    [&](float total, TriMesh::VertH vh) {
-                                      return total + mesh.property(mStdDev, vh);
-                                    }) /
-                    3.f;
-      Quadric q = Quadric::probabilistic_triangle_quadric(pos[0], pos[1], pos[2], sigma);
-      for (TriMesh::VertH vh : mesh.fv_range(fh)) {
-        mesh.property(mQuadrics, vh) += q;
-      }
-    }
-  }
-
-  virtual float collapse_priority(const CollapseInfo& ci) override
-  {
-    Quadric q = Base::mesh().property(mQuadrics, ci.v0);
-    q += Base::mesh().property(mQuadrics, ci.v1);
-    return q(q.minimizer());
-  }
-
-  virtual void postprocess_collapse(const CollapseInfo& ci) override
-  {
-    Base::mesh().property(mQuadrics, ci.v1) += Base::mesh().property(mQuadrics, ci.v0);
-    Base::mesh().point(ci.v1) = Base::mesh().property(mQuadrics, ci.v1).minimizer();
+    Base::mesh().remove_property(mFaceQuadrics);
+    Base::mesh().remove_property(mEdgeLengths);
   }
 
 public:  // Specific methods.
@@ -105,10 +58,86 @@ public:  // Specific methods.
 
   float max_err() const { return mMaxErr; }
 
+  void compute_edge_length(TriMesh::EdgeH eh)
+  {
+    Base::mesh().property(mEdgeLengths, eh) = Base::mesh().calc_edge_length(eh);
+  }
+
+  void compute_stddev(TriMesh::VertH vh)
+  {
+    TriMesh&               mesh       = Base::mesh();
+    static constexpr float EDGE_RATIO = 0.25f;
+    mesh.property(mStdDev, vh) =
+      EDGE_RATIO *
+      std::accumulate(mesh.cve_begin(vh),
+                      mesh.cve_end(vh),
+                      0.f,
+                      [&](float total, TriMesh::EdgeH eh) {
+                        return total + mesh.property(mEdgeLengths, eh);
+                      }) /
+      float(std::distance(mesh.cve_begin(vh), mesh.cve_end(vh)));
+  }
+
+  void compute_face_quadric(TriMesh::FaceH fh)
+  {
+    TriMesh&                 mesh = Base::mesh();
+    std::array<glm::vec3, 3> pos;
+    std::transform(
+      mesh.cfv_begin(fh), mesh.cfv_end(fh), pos.begin(), [&](TriMesh::VertH vh) {
+        return mesh.point(vh);
+      });
+    float sigma = std::accumulate(mesh.cfv_begin(fh),
+                                  mesh.cfv_end(fh),
+                                  0.f,
+                                  [&](float total, TriMesh::VertH vh) {
+                                    return total + mesh.property(mStdDev, vh);
+                                  }) /
+                  3.f;
+    mesh.property(mFaceQuadrics, fh) =
+      Quadric::probabilistic_triangle_quadric(pos[0], pos[1], pos[2], sigma);
+  }
+
+public:  // Inherited
+  virtual void initialize(void) override
+  {
+    TriMesh& mesh = Base::mesh();
+    // Compute edge lengths.
+    for (TriMesh::EdgeH eh : mesh.edges()) {
+      compute_edge_length(eh);
+    }
+    // Compute standard deviations of vertices.
+    for (TriMesh::VertH vh : mesh.vertices()) {
+      compute_stddev(vh);
+    }
+    // Compute quadrics.
+    for (TriMesh::FaceH fh : mesh.faces()) {
+      compute_face_quadric(fh);
+      for (TriMesh::VertH vh : mesh.fv_range(fh)) {
+        mesh.property(mVertQuadrics, vh) += mesh.property(mFaceQuadrics, fh);
+      }
+    }
+  }
+
+  virtual float collapse_priority(const CollapseInfo& ci) override
+  {
+    Quadric q = Base::mesh().property(mVertQuadrics, ci.v0);
+    q += Base::mesh().property(mVertQuadrics, ci.v1);
+    return q(q.minimizer());
+  }
+
+  virtual void postprocess_collapse(const CollapseInfo& ci) override
+  {
+    Base::mesh().property(mVertQuadrics, ci.v1) +=
+      Base::mesh().property(mVertQuadrics, ci.v0);
+    Base::mesh().point(ci.v1) = Base::mesh().property(mVertQuadrics, ci.v1).minimizer();
+  }
+
 private:
   float                           mMaxErr;
   OpenMesh::VPropHandleT<float>   mStdDev;
-  OpenMesh::VPropHandleT<Quadric> mQuadrics;
+  OpenMesh::EPropHandleT<float>   mEdgeLengths;
+  OpenMesh::VPropHandleT<Quadric> mVertQuadrics;
+  OpenMesh::FPropHandleT<Quadric> mFaceQuadrics;
 };
 
 TriMesh decimate(TriMesh mesh, int nCollapses)
