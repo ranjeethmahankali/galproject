@@ -174,7 +174,7 @@ GAL_FUNC(vertices,
                  [&](TriMesh::VertH v) { return mesh.point(v); });
 }
 
-GAL_FUNC(vertex,
+GAL_FUNC(vertexTriMesh,
          "Get the position of the mesh vertex",
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
          ((glm::vec3, point, "Vertex position")))
@@ -182,9 +182,27 @@ GAL_FUNC(vertex,
   point = mesh.point(TriMesh::VertH(index));
 }
 
-GAL_FUNC(halfedge,
+GAL_FUNC(vertexPolyMesh,
+         "Get the position of the mesh vertex",
+         ((gal::PolyMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
+         ((glm::vec3, point, "Vertex position")))
+{
+  point = mesh.point(TriMesh::VertH(index));
+}
+
+GAL_FUNC(halfedgeTriMesh,
          "Get the halfedge of the mesh as a line segment",
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
+         ((gal::Line3d, edge, "Line segment")))
+{
+  auto he = TriMesh::HalfH(index);
+  edge    = gal::Line3d {mesh.point(mesh.from_vertex_handle(he)),
+                      mesh.point(mesh.to_vertex_handle(he))};
+}
+
+GAL_FUNC(halfedgePolyMesh,
+         "Get the halfedge of the mesh as a line segment",
+         ((gal::PolyMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
          ((gal::Line3d, edge, "Line segment")))
 {
   auto he = TriMesh::HalfH(index);
@@ -260,8 +278,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND_OVERLOADS(module, numFaces, numTriMeshFaces, numPolyMeshFaces);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
-  GAL_FN_BIND(vertex, module);
-  GAL_FN_BIND(halfedge, module);
+  GAL_FN_BIND_OVERLOADS(module, vertex, vertexTriMesh, vertexPolyMesh);
+  GAL_FN_BIND_OVERLOADS(module, halfedge, halfedgeTriMesh, halfedgePolyMesh);
   GAL_FN_BIND(loadTriangleMesh, module);
   GAL_FN_BIND(loadPolyMesh, module);
   GAL_FN_BIND(clipMesh, module);
