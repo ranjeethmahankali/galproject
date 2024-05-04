@@ -54,11 +54,22 @@ GAL_FUNC(loadPolyMesh,
 GAL_FUNC_TEMPLATE(((typename, MeshT)),
                   scale,
                   "Scales the mesh. Returns a new instance.",
-                  ((MeshT, mesh, "Scaled mesh"), (float, scale, "Scale")),
-                  ((MeshT, scaled, "Input mesh")))
+                  ((MeshT, mesh, "Input mesh"), (float, scale, "Scale")),
+                  ((MeshT, scaled, "Scaled mesh")))
 {
   scaled = mesh;
   scaled.transform(glm::scale(glm::vec3(scale)));
+}
+
+GAL_FUNC_TEMPLATE(((typename, MeshT)),
+                  translate,
+                  "Moves the mesh. Returns a new instance.",
+                  ((MeshT, mesh, "Input mesh"),
+                   (glm::vec3, translation, "Translation vector")),
+                  ((MeshT, translated, "Translated mesh")))
+{
+  translated = mesh;
+  translated.transform(glm::translate(translation));
 }
 
 GAL_FUNC(clipMesh,
@@ -274,6 +285,8 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND(area, module);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::TriMesh);
   GAL_FN_BIND_TEMPLATE(scale, module, gal::PolyMesh);
+  GAL_FN_BIND_TEMPLATE(translate, module, gal::TriMesh);
+  GAL_FN_BIND_TEMPLATE(translate, module, gal::PolyMesh);
   GAL_FN_BIND_OVERLOADS(module, bounds, boundsTriMesh, boundsPolyMesh);
   GAL_FN_BIND_OVERLOADS(module, numFaces, numTriMeshFaces, numPolyMeshFaces);
   GAL_FN_BIND(numVertices, module);
