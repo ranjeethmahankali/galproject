@@ -119,16 +119,22 @@ public:  // Inherited
 
   virtual float collapse_priority(const CollapseInfo& ci) override
   {
-    Quadric q = Base::mesh().property(mVertQuadrics, ci.v0);
-    q += Base::mesh().property(mVertQuadrics, ci.v1);
-    return q(q.minimizer());
+    const TriMesh& mesh = Base::mesh();
+    if (mesh.is_boundary(ci.v0) && !mesh.is_boundary(ci.v1)) {
+      return ILLEGAL_COLLAPSE;
+    }
+    Quadric q = mesh.property(mVertQuadrics, ci.v0);
+    q += mesh.property(mVertQuadrics, ci.v1);
+    return q(q.minimizer()) * glm::distance(mesh.point(ci.v0), mesh.point(ci.v1));
   }
 
   virtual void postprocess_collapse(const CollapseInfo& ci) override
   {
     TriMesh& mesh = Base::mesh();
     mesh.property(mVertQuadrics, ci.v1) += mesh.property(mVertQuadrics, ci.v0);
-    mesh.point(ci.v1) = mesh.property(mVertQuadrics, ci.v1).minimizer();
+    if (!mesh.is_boundary(ci.v1)) {
+      mesh.point(ci.v1) = mesh.property(mVertQuadrics, ci.v1).minimizer();
+    }
     // Compute edge lengths.
     for (TriMesh::EdgeH eh : mesh.ve_range(ci.v1)) {
       compute_edge_length(eh);
