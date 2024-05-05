@@ -1,10 +1,12 @@
 #include <Decimate.h>
 
+#include <tbb/parallel_for_each.h>
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <OpenMesh/Tools/Decimater/DecimaterT.hh>
 #include <OpenMesh/Tools/Decimater/ModBaseT.hh>
 #include <OpenMesh/Tools/Decimater/ModProgMeshT.hh>
 #include <glm/geometric.hpp>
+#include <numeric>
 #include <stdexcept>
 
 #include <ProbabilisticQuadrics.h>
@@ -33,18 +35,9 @@ public:
   {
     unset_max_err();
     Base::mesh().add_property(mVertQuadrics);
-    Base::mesh().add_property(mStdDev);
-    Base::mesh().add_property(mFaceQuadrics);
-    Base::mesh().add_property(mEdgeLengths);
   }
 
-  virtual ~ModProbQuadricT()
-  {
-    Base::mesh().remove_property(mVertQuadrics);
-    Base::mesh().remove_property(mStdDev);
-    Base::mesh().remove_property(mFaceQuadrics);
-    Base::mesh().remove_property(mEdgeLengths);
-  }
+  virtual ~ModProbQuadricT() { Base::mesh().remove_property(mVertQuadrics); }
 
 public:  // Specific methods.
   void set_max_err(double err)
@@ -57,64 +50,61 @@ public:  // Specific methods.
 
   float max_err() const { return mMaxErr; }
 
-  void compute_edge_length(TriMesh::EdgeH eh)
-  {
-    Base::mesh().property(mEdgeLengths, eh) = Base::mesh().calc_edge_length(eh);
-  }
-
-  void compute_stddev(TriMesh::VertH vh)
-  {
-    TriMesh&               mesh       = Base::mesh();
-    static constexpr float EDGE_RATIO = 0.1f;
-    mesh.property(mStdDev, vh) =
-      EDGE_RATIO *
-      std::accumulate(mesh.cve_begin(vh),
-                      mesh.cve_end(vh),
-                      0.f,
-                      [&](float total, TriMesh::EdgeH eh) {
-                        return total + mesh.property(mEdgeLengths, eh);
-                      }) /
-      float(std::distance(mesh.cve_begin(vh), mesh.cve_end(vh)));
-  }
-
-  void compute_face_quadric(TriMesh::FaceH fh)
-  {
-    TriMesh&                 mesh = Base::mesh();
-    std::array<glm::vec3, 3> pos;
-    std::transform(
-      mesh.cfv_begin(fh), mesh.cfv_end(fh), pos.begin(), [&](TriMesh::VertH vh) {
-        return mesh.point(vh);
-      });
-    float sigma = std::accumulate(mesh.cfv_begin(fh),
-                                  mesh.cfv_end(fh),
-                                  0.f,
-                                  [&](float total, TriMesh::VertH vh) {
-                                    return total + mesh.property(mStdDev, vh);
-                                  }) /
-                  3.f;
-    mesh.property(mFaceQuadrics, fh) =
-      Quadric::probabilistic_triangle_quadric(pos[0], pos[1], pos[2], sigma);
-  }
-
 public:  // Inherited
   virtual void initialize(void) override
   {
-    TriMesh& mesh = Base::mesh();
+    TriMesh&                      mesh = Base::mesh();
+    OpenMesh::EPropHandleT<float> edgelen;
+    mesh.add_property(edgelen);
     // Compute edge lengths.
-    for (TriMesh::EdgeH eh : mesh.edges()) {
-      compute_edge_length(eh);
-    }
+    tbb::parallel_for_each(mesh.edges(), [&](TriMesh::EdgeH eh) {
+      mesh.property(edgelen, eh) = mesh.calc_edge_length(eh);
+    });
+    OpenMesh::VPropHandleT<float> stddev;
+    mesh.add_property(stddev);
     // Compute standard deviations of vertices.
-    for (TriMesh::VertH vh : mesh.vertices()) {
-      compute_stddev(vh);
-    }
+    tbb::parallel_for_each(mesh.vertices(), [&](TriMesh::VertH vh) {
+      mesh.property(stddev, vh) =
+        0.1f *
+        std::accumulate(mesh.cve_begin(vh),
+                        mesh.cve_end(vh),
+                        0.f,
+                        [&](float total, TriMesh::EdgeH eh) {
+                          return total + mesh.property(edgelen, eh);
+                        }) /
+        float(std::distance(mesh.cve_begin(vh), mesh.cve_end(vh)));
+    });
+    mesh.remove_property(edgelen);
+    OpenMesh::FPropHandleT<Quadric> fqprop;
+    mesh.add_property(fqprop);
     // Compute quadrics.
-    for (TriMesh::FaceH fh : mesh.faces()) {
-      compute_face_quadric(fh);
-      for (TriMesh::VertH vh : mesh.fv_range(fh)) {
-        mesh.property(mVertQuadrics, vh) += mesh.property(mFaceQuadrics, fh);
-      }
-    }
+    tbb::parallel_for_each(mesh.faces(), [&](TriMesh::FaceH fh) {
+      std::array<glm::vec3, 3> pos;
+      std::transform(
+        mesh.cfv_begin(fh), mesh.cfv_end(fh), pos.begin(), [&](TriMesh::VertH vh) {
+          return mesh.point(vh);
+        });
+      float sigma = std::accumulate(mesh.cfv_begin(fh),
+                                    mesh.cfv_end(fh),
+                                    0.f,
+                                    [&](float total, TriMesh::VertH vh) {
+                                      return total + mesh.property(stddev, vh);
+                                    }) /
+                    3.f;
+      mesh.property(fqprop, fh) =
+        Quadric::probabilistic_triangle_quadric(pos[0], pos[1], pos[2], sigma);
+    });
+    mesh.remove_property(stddev);
+    tbb::parallel_for_each(mesh.vertices(), [&](TriMesh::VertH vh) {
+      mesh.property(mVertQuadrics, vh) =
+        std::accumulate(mesh.cvf_begin(vh),
+                        mesh.cvf_end(vh),
+                        Quadric(),
+                        [&](Quadric total, TriMesh::FaceH fh) {
+                          return total + mesh.property(fqprop, fh);
+                        });
+    });
+    mesh.remove_property(fqprop);
   }
 
   virtual float collapse_priority(const CollapseInfo& ci) override
@@ -123,8 +113,7 @@ public:  // Inherited
     if (mesh.is_boundary(ci.v0) && !mesh.is_boundary(ci.v1)) {
       return ILLEGAL_COLLAPSE;
     }
-    Quadric q = mesh.property(mVertQuadrics, ci.v0);
-    q += mesh.property(mVertQuadrics, ci.v1);
+    Quadric q = mesh.property(mVertQuadrics, ci.v0) + mesh.property(mVertQuadrics, ci.v1);
     return q(q.minimizer()) * glm::distance(mesh.point(ci.v0), mesh.point(ci.v1));
   }
 
@@ -135,39 +124,11 @@ public:  // Inherited
     if (!mesh.is_boundary(ci.v1)) {
       mesh.point(ci.v1) = mesh.property(mVertQuadrics, ci.v1).minimizer();
     }
-    // Compute edge lengths.
-    for (TriMesh::EdgeH eh : mesh.ve_range(ci.v1)) {
-      compute_edge_length(eh);
-    }
-    // Compute standard deviations.
-    compute_stddev(ci.v1);
-    for (TriMesh::VertH vh : mesh.vv_range(ci.v1)) {
-      compute_stddev(vh);
-      mesh.property(mVertQuadrics, vh) = Quadric();
-    }
-    // Compute face quadrics.
-    for (TriMesh::FaceH fh : mesh.vf_range(ci.v1)) {
-      compute_face_quadric(fh);
-    }
-    mesh.property(mVertQuadrics, ci.v1) = Quadric();
-    for (TriMesh::FaceH fh : mesh.vf_range(ci.v1)) {
-      mesh.property(mVertQuadrics, ci.v1) += mesh.property(mFaceQuadrics, fh);
-    }
-    for (TriMesh::VertH vh : mesh.vv_range(ci.v1)) {
-      Quadric& q = mesh.property(mVertQuadrics, vh);
-      q          = Quadric();
-      for (TriMesh::FaceH vfh : mesh.vf_range(vh)) {
-        q += mesh.property(mFaceQuadrics, vfh);
-      }
-    }
   }
 
 private:
   float                           mMaxErr;
-  OpenMesh::VPropHandleT<float>   mStdDev;
-  OpenMesh::EPropHandleT<float>   mEdgeLengths;
   OpenMesh::VPropHandleT<Quadric> mVertQuadrics;
-  OpenMesh::FPropHandleT<Quadric> mFaceQuadrics;
 };
 
 TriMesh decimate(TriMesh mesh, int nCollapses)
