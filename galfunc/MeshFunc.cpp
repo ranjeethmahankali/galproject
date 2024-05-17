@@ -278,6 +278,22 @@ GAL_FUNC(decimate,
   decimated = gal::decimate(mesh, nCollapses);
 }
 
+GAL_FUNC(vertexValenceT,
+         "Valence of a vertex in a mesh",
+         ((gal::TriMesh, mesh, "The mesh"), (int32_t, vertex, "Index of the vertex")),
+         ((int32_t, valence, "Valence of the vertex.")))
+{
+  valence = mesh.valence(gal::TriMesh::VertH(int(vertex)));
+}
+
+GAL_FUNC(vertexValenceP,
+         "Valence of a vertex in a mesh",
+         ((gal::PolyMesh, mesh, "The mesh"), (int32_t, vertex, "Index of the vertex")),
+         ((int32_t, valence, "Valence of the vertex.")))
+{
+  valence = mesh.valence(gal::TriMesh::VertH(int(vertex)));
+}
+
 void bind_MeshFunc(py::module& module)
 {
   GAL_FN_BIND(centroid, module);
@@ -289,6 +305,7 @@ void bind_MeshFunc(py::module& module)
   GAL_FN_BIND_TEMPLATE(translate, module, gal::PolyMesh);
   GAL_FN_BIND_OVERLOADS(module, bounds, boundsTriMesh, boundsPolyMesh);
   GAL_FN_BIND_OVERLOADS(module, numFaces, numTriMeshFaces, numPolyMeshFaces);
+  GAL_FN_BIND_OVERLOADS(module, vertexValence, vertexValenceT, vertexValenceP);
   GAL_FN_BIND(numVertices, module);
   GAL_FN_BIND(vertices, module);
   GAL_FN_BIND_OVERLOADS(module, vertex, vertexTriMesh, vertexPolyMesh);
