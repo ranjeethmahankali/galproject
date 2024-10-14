@@ -319,8 +319,6 @@ void Context::init(GLFWwindow* window)
   setProjectionMode(mProjectionMode);
 }
 
-static void getAspectRatio() {}
-
 void Context::setProjectionMode(Projection mode)
 {
   switch (mode) {
