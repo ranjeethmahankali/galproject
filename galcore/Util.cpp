@@ -30,18 +30,6 @@ spdlog::logger& gal::utils::logger()
   return *sLogger;
 }
 
-bool gal::utils::barycentricWithinBounds(float const (&coords)[3])
-{
-  return 0 <= coords[0] && coords[0] <= 1 && 0 <= coords[1] && coords[1] <= 1 &&
-         0 <= coords[2] && coords[2] <= 1;
-}
-
-glm::vec3 gal::utils::barycentricEvaluate(float const (&coords)[3],
-                                          glm::vec3 const (&pts)[3])
-{
-  return pts[0] * coords[0] + pts[1] * coords[1] + pts[2] * coords[2];
-}
-
 /**
  * @brief For the given path relative to the executable, the absolute path is returned.
  * @param relPath Path relative to the executable.

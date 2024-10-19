@@ -11,7 +11,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC(centroid,
+GAL_FUNC(centroid,  // NOLINT
          "Gets the centroid of a mesh",
          ((gal::TriMesh, mesh, "The mesh")),
          ((glm::vec3, centroid, "x coordinate")))
@@ -27,7 +27,7 @@ GAL_FUNC(volume,
   volume = mesh.volume();
 }
 
-GAL_FUNC(area,
+GAL_FUNC(area,  // NOLINT
          "Gets the surface area of the mesh",
          ((gal::TriMesh, mesh, "The mesh")),
          ((float, result, "Surface area of the mesh")))
@@ -171,7 +171,7 @@ GAL_FUNC(vertices,
   std::transform(mesh.vertices().begin(),
                  mesh.vertices().end(),
                  std::back_inserter(points),
-                 [&](TriMesh::VertH v) { return mesh.point(v); });
+                 [&](VertH v) { return mesh.point(v); });
 }
 
 GAL_FUNC(vertex,
@@ -179,7 +179,7 @@ GAL_FUNC(vertex,
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
          ((glm::vec3, point, "Vertex position")))
 {
-  point = mesh.point(TriMesh::VertH(index));
+  point = mesh.point(VertH(index));
 }
 
 GAL_FUNC(halfedge,
@@ -187,7 +187,7 @@ GAL_FUNC(halfedge,
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
          ((gal::Line3d, edge, "Line segment")))
 {
-  auto he = TriMesh::HalfH(index);
+  auto he = HalfH(index);
   edge    = gal::Line3d {mesh.point(mesh.from_vertex_handle(he)),
                       mesh.point(mesh.to_vertex_handle(he))};
 }
@@ -210,7 +210,7 @@ GAL_FUNC(triMeshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (TriMesh::VertH vh : outmesh.vertices()) {
+  for (VertH vh : outmesh.vertices()) {
     outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
 }
@@ -223,7 +223,7 @@ GAL_FUNC(polyMeshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (TriMesh::VertH vh : outmesh.vertices()) {
+  for (VertH vh : outmesh.vertices()) {
     outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
 }
@@ -237,7 +237,7 @@ GAL_FUNC(vertexColors,
   std::transform(mesh.vertices_begin(),
                  mesh.vertices_end(),
                  std::back_inserter(colors),
-                 [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
+                 [&](gal::VertH vh) { return mesh.color(vh); });
 }
 
 GAL_FUNC(decimate,

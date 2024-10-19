@@ -86,7 +86,7 @@ float TriMesh::volume() const
   tbb::parallel_for_each(vertices(), [&](VertH v) { jvs[v.idx()] = point(v) - refpt; });
   return std::accumulate(faces_begin(), faces_end(), 0.f, [&](float total, FaceH f) {
     glm::vec3                jv = jvs[cfv_begin(f)->idx()];
-    std::array<glm::vec3, 3> vs;
+    std::array<glm::vec3, 3> vs {};
     std::transform(
       cfv_begin(f), cfv_end(f), vs.begin(), [&](VertH v) { return point(v); });
     return total + glm::dot(jv, glm::cross(vs[1] - vs[0], vs[2] - vs[0])) * s1_6th;
@@ -230,7 +230,8 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
           auto& bd = vdata[b.idx()];
           assert(ad.inside != bd.inside);
           float r = bd.distance / (bd.distance - ad.distance);
-          ev      = clipped.add_vertex(point(a) * r + point(b) * (1.f - r));
+          ev =
+            gal::handle<VertH>(clipped.add_vertex(point(a) * r + point(b) * (1.f - r)));
         }
         return ev;
       }
@@ -238,7 +239,7 @@ TriMesh TriMesh::clippedWithPlane(const Plane& plane) const
         VertH  oldv = fverts[vi];
         VertH& newv = vdata[oldv.idx()].mappedV;
         if (!newv.is_valid()) {
-          newv = clipped.add_vertex(point(oldv));
+          newv = gal::handle<VertH>(clipped.add_vertex(point(oldv)));
         }
         return newv;
       }
@@ -271,7 +272,7 @@ TriMesh TriMesh::subMesh(std::span<const int> faces) const
     std::transform(cfv_begin(fh), cfv_end(fh), fvs.begin(), [&](VertH vh) {
       VertH& nv = newVerts[vh.idx()];
       if (!nv.is_valid()) {
-        nv = smesh.add_vertex(point(vh));
+        nv = gal::handle<VertH>(smesh.add_vertex(point(vh)));
       }
       return nv;
     });
@@ -288,7 +289,7 @@ void TriMesh::updateRTrees() const
       mFaceTree->clear();
       for (FaceH f : faces()) {
         auto fvs = facePoints(f);
-        mFaceTree->insert(Box3(fvs), size_t(f.idx()));
+        mFaceTree->insert(Box3(fvs), int(f.idx()));
       }
       mFaceTree.unexpire();
     }
@@ -298,7 +299,7 @@ void TriMesh::updateRTrees() const
     if (!mVertexTree) {
       mVertexTree->clear();
       for (VertH v : vertices()) {
-        mVertexTree->insert(Box3(point(v)), size_t(v.idx()));
+        mVertexTree->insert(Box3(point(v)), int(v.idx()));
       }
       mVertexTree.unexpire();
     }
@@ -347,7 +348,7 @@ const RTree3d& TriMesh::elementTree(eMeshElement type) const
 
 std::array<glm::vec3, 3> TriMesh::facePoints(FaceH f) const
 {
-  std::array<glm::vec3, 3> fvs;
+  std::array<glm::vec3, 3> fvs {};
   std::transform(
     cfv_begin(f), cfv_end(f), fvs.begin(), [&](VertH v) { return point(v); });
   return fvs;
@@ -385,7 +386,7 @@ glm::vec3 TriMesh::volumeCentroid() const
   float     wsum = 0.f;
   for (FaceH f : faces()) {
     std::array<glm::vec3, 3> fvs = facePoints(f);
-    std::array<glm::vec3, 3> js;
+    std::array<glm::vec3, 3> js {};
     std::transform(
       cfv_begin(f), cfv_end(f), js.begin(), [&](VertH v) { return jvs[v.idx()]; });
     float w = tetVolume(js);
@@ -418,11 +419,11 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
   // One more vertex than quad in each direction.
   glm::ivec2 vdims = qdims + glm::ivec2(1);
   TriMesh    mesh;
-  size_t     nverts = vdims.x * vdims.y;
-  size_t     nfaces = qdims.x * qdims.y * 2;  // 2x triangles than quads.
-  size_t     nedges = qdims.y * vdims.x +     // Edges along y
-                  qdims.x * vdims.y +         // Edges along x
-                  qdims.x * qdims.y;          // Diagonals, 1 per quad.
+  size_t     nverts = size_t(vdims.x) * vdims.y;
+  size_t     nfaces = size_t(qdims.x) * qdims.y * 2;  // 2x triangles than quads.
+  size_t     nedges = size_t(qdims.y) * vdims.x +     // Edges along y
+                  size_t(qdims.x) * vdims.y +         // Edges along x
+                  size_t(qdims.x) * qdims.y;          // Diagonals, 1 per quad.
   mesh.reserve(nverts, nedges, nfaces);
   for (glm::ivec2 vi = glm::ivec2(0); vi.y < vdims.y; vi.y++) {
     for (vi.x = 0; vi.x < vdims.x; vi.x++) {
@@ -433,7 +434,7 @@ TriMesh makeRectangularMesh(const gal::Plane& plane, const gal::Box2& box, float
   }
   for (glm::ivec2 qi = glm::ivec2(0); qi.y < qdims.y; qi.y++) {
     for (qi.x = 0; qi.x < qdims.x; qi.x++) {
-      std::array<TriMesh::VertH, 4> quadIndices = {
+      std::array<VertH, 4> quadIndices = {
         mesh.vertex_handle(qi.x + qi.y * (qdims.x + 1)),
         mesh.vertex_handle(qi.x + qi.y * (qdims.x + 1) + 1),
         mesh.vertex_handle(qi.x + (qi.y + 1) * (qdims.x + 1)),
@@ -485,7 +486,7 @@ PolyMesh PolyMesh::subMesh(std::span<const int32_t> faces) const
     std::transform(cfv_begin(fh), cfv_end(fh), std::back_inserter(fvs), [&](VertH vh) {
       VertH& nv = newVerts[vh.idx()];
       if (!nv.is_valid()) {
-        nv = smesh.add_vertex(point(vh));
+        nv = gal::handle<VertH>(smesh.add_vertex(point(vh)));
       }
       return nv;
     });

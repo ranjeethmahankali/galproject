@@ -9,16 +9,18 @@ gal::TriMesh unitbox()
   using namespace gal;
   TriMesh box;
   box.reserve(8, 18, 12);
-  auto vs = std::array<TriMesh::VertH, 8> {
-    box.add_vertex({0.f, 0.f, 0.f}),
-    box.add_vertex({1.f, 0.f, 0.f}),
-    box.add_vertex({1.f, 1.f, 0.f}),
-    box.add_vertex({0.f, 1.f, 0.f}),
-    box.add_vertex({0.f, 0.f, 1.f}),
-    box.add_vertex({1.f, 0.f, 1.f}),
-    box.add_vertex({1.f, 1.f, 1.f}),
-    box.add_vertex({0.f, 1.f, 1.f}),
-  };
+  std::array<VertH, 8>     vs;
+  std::array<glm::vec3, 8> coords {{{0.f, 0.f, 0.f},
+                                    {1.f, 0.f, 0.f},
+                                    {1.f, 1.f, 0.f},
+                                    {0.f, 1.f, 0.f},
+                                    {0.f, 0.f, 1.f},
+                                    {1.f, 0.f, 1.f},
+                                    {1.f, 1.f, 1.f},
+                                    {0.f, 1.f, 1.f}}};
+  for (size_t i = 0; i < 8; ++i) {
+    vs[i] = handle<VertH>(box.add_vertex(coords[i]));
+  }
   box.add_face(vs[0], vs[3], vs[2]);
   box.add_face(vs[0], vs[2], vs[1]);
   box.add_face(vs[0], vs[1], vs[4]);

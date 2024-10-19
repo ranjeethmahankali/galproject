@@ -7,6 +7,7 @@
 
 #include <OpenMeshAdaptor.h>
 #include <OpenMesh/Core/Mesh/Attributes.hh>
+#include <OpenMesh/Core/Mesh/PolyConnectivity.hh>
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Utils/Property.hh>
@@ -20,6 +21,17 @@
 #include <Util.h>
 
 namespace gal {
+
+using FaceH = OpenMesh::FaceHandle;
+using VertH = OpenMesh::VertexHandle;
+using HalfH = OpenMesh::HalfedgeHandle;
+using EdgeH = OpenMesh::EdgeHandle;
+
+template<typename T>
+T handle(typename OpenMesh::SmartHandle<T>::type smart)
+{
+  return T(smart.idx());
+}
 
 struct MeshTraits : public OpenMesh::DefaultTraits
 {
@@ -55,10 +67,6 @@ enum class eMeshElement
 struct TriMesh : public OpenMesh::TriMesh_ArrayKernelT<MeshTraits>
 {
   using BaseMesh = OpenMesh::TriMesh_ArrayKernelT<MeshTraits>;
-  using FaceH    = OpenMesh::FaceHandle;
-  using VertH    = OpenMesh::VertexHandle;
-  using HalfH    = OpenMesh::HalfedgeHandle;
-  using EdgeH    = OpenMesh::EdgeHandle;
 
   TriMesh();
 
@@ -107,10 +115,6 @@ public:
 struct PolyMesh : public OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>
 {
   using BaseMesh = OpenMesh::PolyMesh_ArrayKernelT<MeshTraits>;
-  using FaceH    = OpenMesh::FaceHandle;
-  using VertH    = OpenMesh::VertexHandle;
-  using HalfH    = OpenMesh::HalfedgeHandle;
-  using EdgeH    = OpenMesh::EdgeHandle;
 
 public:
   PolyMesh();

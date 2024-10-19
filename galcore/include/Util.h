@@ -97,25 +97,6 @@ namespace utils {
 
 spdlog::logger& logger();
 
-template<typename vtype>
-void barycentricCoords(vtype const (&tri)[3], const vtype& pt, float (&coords)[3])
-{
-  vtype       v0 = tri[1] - tri[0], v1 = tri[2] - tri[0], v2 = pt - tri[0];
-  const float d00   = glm::dot(v0, v0);
-  const float d01   = glm::dot(v0, v1);
-  const float d11   = glm::dot(v1, v1);
-  const float d20   = glm::dot(v2, v0);
-  const float d21   = glm::dot(v2, v1);
-  const float denom = d00 * d11 - d01 * d01;
-  coords[1]         = denom == 0 ? DBL_MAX : (d11 * d20 - d01 * d21) / denom;
-  coords[2]         = denom == 0 ? DBL_MAX : (d00 * d21 - d01 * d20) / denom;
-  coords[0]         = denom == 0 ? DBL_MAX : 1.0 - coords[1] - coords[2];
-};
-
-bool barycentricWithinBounds(float const (&coords)[3]);
-
-glm::vec3 barycentricEvaluate(float const (&coords)[3], glm::vec3 const (&pts)[3]);
-
 constexpr bool isValid(const glm::vec3& v)
 {
   return v != vec3_unset;
@@ -139,7 +120,8 @@ fs::path absPath(const fs::path& relPath);
 template<typename T, typename DstIter>
 void random(T min, T max, size_t count, DstIter dst)
 {
-  static constexpr char sErrorMsg[] = "Cannot generate random values of given type!\n";
+  static constexpr std::string_view sErrorMsg =
+    "Cannot generate random values of given type!\n";
   for (size_t i = 0; i < count; i++) {
     if constexpr (std::is_integral_v<T>) {
       *(dst++) = min + (static_cast<T>(std::rand()) % (max - min));
@@ -313,6 +295,19 @@ public:
   Cached& operator=(const Cached& other)
   {
     mValue     = other.mValue;
+    mIsExpired = other.mIsExpired;
+    return *this;
+  }
+
+  Cached(Cached&& other)
+      : mValue(std::move(other.mValue))
+      , mIsExpired(other.mIsExpired)
+      , mMutex()
+  {}
+
+  Cached& operator=(Cached&& other)
+  {
+    mValue     = std::move(other.mValue);
     mIsExpired = other.mIsExpired;
     return *this;
   }
