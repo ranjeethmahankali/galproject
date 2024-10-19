@@ -87,7 +87,7 @@ IndexBuffer::~IndexBuffer()
   free();
 }
 
-const IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other)
+IndexBuffer& IndexBuffer::operator=(IndexBuffer&& other)
 {
   if (this != &other) {
     free();

@@ -105,7 +105,7 @@ public:
   TVertexBuffer(const TVertexBuffer&)                  = delete;
   const TVertexBuffer& operator=(const TVertexBuffer&) = delete;
 
-  const TVertexBuffer& operator=(TVertexBuffer&& other)
+  TVertexBuffer& operator=(TVertexBuffer&& other)
   {
     if (this != &other) {
       free();
@@ -172,7 +172,7 @@ public:
   IndexBuffer(const IndexBuffer&)                  = delete;
   const IndexBuffer& operator=(const IndexBuffer&) = delete;
 
-  const IndexBuffer& operator=(IndexBuffer&&);
+  IndexBuffer& operator=(IndexBuffer&&);
 
   /**
    * @brief Allocates the index buffer on the GPU and copies the indices.

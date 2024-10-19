@@ -36,7 +36,7 @@ gal::TriMesh unitbox()
   return box;
 }
 
-TEST(Mesh, Area)
+TEST(Mesh, Area)  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
@@ -47,7 +47,7 @@ TEST(Mesh, Area)
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
 }
 
-TEST(Mesh, Volume)
+TEST(Mesh, Volume)  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
@@ -57,7 +57,7 @@ TEST(Mesh, Volume)
   ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
 }
 
-TEST(Mesh, ClippedWithPlane)
+TEST(Mesh, ClippedWithPlane)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
@@ -67,7 +67,7 @@ TEST(Mesh, ClippedWithPlane)
   ASSERT_FLOAT_EQ(clipped.volume(), 0.f);
 }
 
-TEST(Mesh, RectangleMesh)
+TEST(Mesh, RectangleMesh)  // NOLINT
 {
   gal::Plane plane({0.f, 0.f, 0.f}, {1.f, 1.f, 0.f});
   auto rect = gal::makeRectangularMesh(plane, gal::Box2({0.f, 0.f}, {15.f, 12.f}), 1.f);
@@ -76,14 +76,14 @@ TEST(Mesh, RectangleMesh)
   ASSERT_EQ(208, rect.n_vertices());
 }
 
-TEST(Mesh, Centroid)
+TEST(Mesh, Centroid)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
   ASSERT_NEAR(
     glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
 }
 
-TEST(Mesh, SphereQuery)
+TEST(Mesh, SphereQuery)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));

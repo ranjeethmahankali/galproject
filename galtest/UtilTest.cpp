@@ -7,7 +7,7 @@
 
 using namespace gal::utils;
 
-TEST(Util, Combinations)
+TEST(Util, Combinations)  // NOLINT
 {
   ASSERT_EQ(numCombinations(15, 4), 1365);
   ASSERT_EQ(numCombinations(21, 1), 21);
@@ -35,10 +35,10 @@ TEST(Util, Combinations)
      {5, 6, 9}, {5, 7, 8}, {5, 7, 9}, {5, 8, 9}, {6, 7, 8}, {6, 7, 9}, {6, 8, 9},
      {7, 8, 9}}};
 
-  std::array<size_t, n> nums;
+  std::array<size_t, n> nums {};
   std::iota(nums.begin(), nums.end(), size_t(0));
 
-  std::array<size_t, k> comb;
+  std::array<size_t, k> comb {};
   size_t                count = 0;
   auto                  expIt = sExpected.begin();
   combinations(k, nums.begin(), nums.end(), comb.begin(), [&comb, &count, &expIt]() {

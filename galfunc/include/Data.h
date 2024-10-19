@@ -433,13 +433,16 @@ public:
 
   ReadView& operator=(const ReadView& other)
   {
-    releaseReadMode();
-    mTree  = other.mTree;
-    mIndex = other.mIndex;
-    setReadMode();
+    if (&other != this) {
+      releaseReadMode();
+      mTree  = other.mTree;
+      mIndex = other.mIndex;
+      setReadMode();
+    }
     return *this;
   }
-  const ReadView& operator=(ReadView&& other)
+
+  ReadView& operator=(ReadView&& other)
   {
     releaseReadMode();
     mTree       = other.mTree;
@@ -625,7 +628,7 @@ struct WriteViewBase
   static constexpr DepthT NDimensions = Dim;
 
 protected:
-  Tree<T>* mTree;
+  Tree<T>* mTree = nullptr;
 
   void setWriteMode()
   {
@@ -705,7 +708,7 @@ public:
     return *this;
   }
 
-  const WriteView& operator=(WriteView&& other)
+  WriteView& operator=(WriteView&& other)
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
