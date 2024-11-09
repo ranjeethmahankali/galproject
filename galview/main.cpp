@@ -7,6 +7,7 @@
 #include <pybind11/embed.h>
 #include <cxxopts.hpp>
 #include <glm/gtx/transform.hpp>
+#include <string_view>
 
 #include <Circle2d.h>
 #include <Command.h>
@@ -23,7 +24,7 @@
 using namespace gal;
 namespace fs = std::filesystem;
 
-static constexpr char glslVersion[] = "#version 330 core";
+static constexpr std::string_view glslVersion = "#version 330 core";
 
 void initPythonEnvironment()
 {
@@ -71,7 +72,7 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   glutil::logger().debug(
     "Registered mouse event callbacks to allow viewer interactions.");
   view::Context::get().setProjectionMode(view::Context::Projection::PERSPECTIVE);
-  int W, H;
+  int W = 0, H = 0;
   glfwGetFramebufferSize(window, &W, &H);
   GL_CALL(glViewport(0, 0, W, H));
   GL_CALL(glEnable(GL_DEPTH_TEST));
@@ -94,7 +95,7 @@ int loadDemo(const fs::path& demoPath)
       return err;
     }
     // Initialize all the user interface elements.
-    view::init(window, glslVersion);
+    view::init(window, glslVersion.data());
     // Initialize Embedded Python and the demo
     initPythonEnvironment();
     py::scoped_interpreter guard {};
