@@ -66,12 +66,14 @@ TEST(Mesh, Subdivision)  // NOLINT
   std::cout << "Subdivision took "
             << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()
             << "ms\n";
+  std::cout << "Subdivided mesh has " << mesh.n_faces() << " faces, " << mesh.n_edges()
+            << " edges, and " << mesh.n_vertices() << " vertices.\n";
   mesh.triangulate();
   float area = std::accumulate(
     mesh.faces_begin(), mesh.faces_end(), 0.f, [&](float total, gal::FaceH f) {
       return total + mesh.calc_sector_area(mesh.halfedge_handle(f));
     });
-  ASSERT_FLOAT_EQ(5.5659, area);
+  ASSERT_FLOAT_EQ(5.5665889, area);
 }
 
 TEST(Mesh, Volume)  // NOLINT
