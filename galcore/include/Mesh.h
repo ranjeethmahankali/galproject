@@ -86,11 +86,10 @@ private:
   mutable utils::Cached<RTree3d> mFaceTree;
   mutable utils::Cached<RTree3d> mVertexTree;
 
-  const RTree3d&           elementTree(eMeshElement etype) const;
-  std::array<glm::vec3, 3> facePoints(FaceH f) const;
-  glm::vec3                vertexCentroid() const;
-  glm::vec3                areaCentroid() const;
-  glm::vec3                volumeCentroid() const;
+  const RTree3d& elementTree(eMeshElement etype) const;
+  glm::vec3      vertexCentroid() const;
+  glm::vec3      areaCentroid() const;
+  glm::vec3      volumeCentroid() const;
 
 public:
   template<typename IntInserter>

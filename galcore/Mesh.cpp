@@ -29,11 +29,6 @@
 
 namespace gal {
 
-static float triangleArea(const std::array<glm::vec3, 3>& fvs)
-{
-  return glm::length(glm::cross(fvs[1] - fvs[0], fvs[2] - fvs[0])) * 0.5f;
-}
-
 static float tetVolume(const std::array<glm::vec3, 3>& fvs)
 {
   return std::abs(glm::dot(glm::cross(fvs[0], fvs[1]), fvs[2]) / 6.0f);
@@ -64,7 +59,7 @@ bool TriMesh::isSolid() const
 float TriMesh::area() const
 {
   return std::accumulate(faces_begin(), faces_end(), 0.f, [&](float total, FaceH f) {
-    return total + triangleArea(facePoints(f));
+    return total + calc_face_area(f);
   });
 }
 
@@ -156,7 +151,10 @@ glm::vec3 TriMesh::closestPoint(const glm::vec3& pt, float maxd) const
   mFaceTree->queryBoxIntersects(Box3(pt - halfdiag, pt + halfdiag),
                                 std::back_inserter(candidates));
   for (int fi : candidates) {
-    auto fvs = facePoints(face_handle(fi));
+    std::array<glm::vec3, 3> fvs {};
+    FaceH                    fh = face_handle(fi);
+    std::transform(
+      cfv_begin(fh), cfv_end(fh), fvs.begin(), [&](VertH v) { return point(v); });
     faceClosestPt(fvs, pt, closept, bestdsq);
   }
   return closept;
@@ -288,7 +286,9 @@ void TriMesh::updateRTrees() const
     if (!mFaceTree) {
       mFaceTree->clear();
       for (FaceH f : faces()) {
-        auto fvs = facePoints(f);
+        std::array<glm::vec3, 3> fvs {};
+        std::transform(
+          cfv_begin(f), cfv_end(f), fvs.begin(), [&](VertH v) { return point(v); });
         mFaceTree->insert(Box3(fvs), int(f.idx()));
       }
       mFaceTree.unexpire();
@@ -346,14 +346,6 @@ const RTree3d& TriMesh::elementTree(eMeshElement type) const
   }
 }
 
-std::array<glm::vec3, 3> TriMesh::facePoints(FaceH f) const
-{
-  std::array<glm::vec3, 3> fvs {};
-  std::transform(
-    cfv_begin(f), cfv_end(f), fvs.begin(), [&](VertH v) { return point(v); });
-  return fvs;
-}
-
 glm::vec3 TriMesh::vertexCentroid() const
 {
   namespace ba = boost::adaptors;
@@ -366,8 +358,10 @@ glm::vec3 TriMesh::areaCentroid() const
   glm::vec3 vsum(0.f);
   float     wsum = 0.f;
   for (FaceH f : faces()) {
-    auto  fvs = facePoints(f);
-    float w   = triangleArea(fvs);
+    std::array<glm::vec3, 3> fvs {};
+    std::transform(
+      cfv_begin(f), cfv_end(f), fvs.begin(), [&](VertH v) { return point(v); });
+    float w = calc_face_area(f);
     vsum +=
       w * std::accumulate(fvs.begin(), fvs.end(), glm::vec3(0.f)) / float(fvs.size());
     wsum += w;
@@ -385,7 +379,9 @@ glm::vec3 TriMesh::volumeCentroid() const
   glm::vec3 vsum(0.f);
   float     wsum = 0.f;
   for (FaceH f : faces()) {
-    std::array<glm::vec3, 3> fvs = facePoints(f);
+    std::array<glm::vec3, 3> fvs {};
+    std::transform(
+      cfv_begin(f), cfv_end(f), fvs.begin(), [&](VertH v) { return point(v); });
     std::array<glm::vec3, 3> js {};
     std::transform(
       cfv_begin(f), cfv_end(f), js.begin(), [&](VertH v) { return jvs[v.idx()]; });
