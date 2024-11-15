@@ -1,5 +1,10 @@
 #include <gtest/gtest.h>
+
+#include <OpenMesh/Core/IO/MeshIO.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/CatmullClarkT.hh>
+#include <chrono>
 #include <glm/gtx/transform.hpp>
+#include <numeric>
 
 #include <Mesh.h>
 #include <TestUtils.h>
@@ -45,6 +50,28 @@ TEST(Mesh, Area)  // NOLINT
   mesh                = gal::TriMesh::loadFromFile(fpath, true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
+}
+
+TEST(Mesh, Subdivision)  // NOLINT
+{
+  gal::PolyMesh mesh;
+  OpenMesh::IO::read_mesh(mesh, GAL_ASSET_DIR / "bunny.obj");
+  mesh.transform(glm::scale(glm::vec3(10.f)));
+  OpenMesh::Subdivider::Uniform::CatmullClarkT<gal::PolyMesh, float> sub;
+  sub.attach(mesh);
+  auto before = std::chrono::high_resolution_clock::now();
+  sub(3);
+  auto duration = std::chrono::high_resolution_clock::now() - before;
+  sub.detach();
+  std::cout << "Subdivision took "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()
+            << "ms\n";
+  mesh.triangulate();
+  float area = std::accumulate(
+    mesh.faces_begin(), mesh.faces_end(), 0.f, [&](float total, gal::FaceH f) {
+      return total + mesh.calc_sector_area(mesh.halfedge_handle(f));
+    });
+  ASSERT_FLOAT_EQ(5.5659, area);
 }
 
 TEST(Mesh, Volume)  // NOLINT
