@@ -16,13 +16,13 @@ static Tree<int> testTree()
   tree.reserve(32);
   for (size_t i = 0; i < 32; i++) {
     auto d = DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i))));
-    tree.push_back(d, i);
+    tree.push_back(d, int(i));
   }
 
   return tree;
 }
 
-TEST(Data, CreateTree)
+TEST(Data, CreateTree)  // NOLINT
 {
   auto tree = testTree();
   for (size_t i = 0; i < tree.size(); i++) {
@@ -31,7 +31,7 @@ TEST(Data, CreateTree)
   }
 }
 
-TEST(Data, ViewIterators)
+TEST(Data, ViewIterators)  // NOLINT
 {
   auto tree = testTree();
   int  i    = 0;
@@ -82,7 +82,7 @@ TEST(Data, ViewIterators)
   }
 }
 
-TEST(Data, ReadPerformance)
+TEST(Data, ReadPerformance)  // NOLINT
 {
   static constexpr size_t nPoints = 100000;
   static constexpr size_t nL2Size = 10000;
@@ -138,7 +138,7 @@ TEST(Data, ReadPerformance)
             << std::endl;
 }
 
-TEST(Data, WritePerformance)
+TEST(Data, WritePerformance)  // NOLINT
 {
   static constexpr size_t nPoints = 100000;
   static constexpr size_t nL2Size = 10000;
@@ -188,7 +188,7 @@ TEST(Data, WritePerformance)
             << std::endl;
 }
 
-TEST(Data, TreeConversion)
+TEST(Data, TreeConversion)  // NOLINT
 {
   gal::test::initPythonEnv();
   auto tree = testTree();

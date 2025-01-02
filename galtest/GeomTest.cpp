@@ -11,7 +11,7 @@
 
 static constexpr float TOLERANCE = 0.0001f;
 
-TEST(Circle2d, MinBoundingCircle)
+TEST(Circle2d, MinBoundingCircle)  // NOLINT
 {
   const static std::vector<std::vector<glm::vec2>> pointSets {{
                                                                 {0.f, 0.f},
@@ -49,7 +49,7 @@ TEST(Circle2d, MinBoundingCircle)
   }
 }
 
-TEST(Sphere, MinBoundingSphere)
+TEST(Sphere, MinBoundingSphere)  // NOLINT
 {
   const static std::vector<glm::vec3> points {
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};

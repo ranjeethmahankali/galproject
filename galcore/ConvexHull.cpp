@@ -160,17 +160,17 @@ void ConvexHull::compute()
     faceQ.push(f.first);
   }
 
-  Face                        curFace, pFace, newFace;
-  Face                        adjFaces[3];
-  gal::IndexPair              edges[3];
-  glm::vec3                   farPt;
-  std::queue<size_t>          popQ;
-  std::vector<gal::IndexPair> horizonEdges;
-  std::vector<Face>           poppedFaces, newFaces;
+  Face                          curFace, pFace, newFace;
+  std::array<Face, 3>           adjFaces;
+  std::array<gal::IndexPair, 3> edges;
+  glm::vec3                     farPt;
+  std::queue<size_t>            popQ;
+  std::vector<gal::IndexPair>   horizonEdges;
+  std::vector<Face>             poppedFaces, newFaces;
 
   while (!faceQ.empty()) {
-    size_t fi = faceQ.front();
-    size_t fpi;
+    size_t fi  = faceQ.front();
+    size_t fpi = 0;
     faceQ.pop();
     if (!getFace(fi, curFace) || !getFarthestPt(curFace, farPt, fpi)) {
       continue;
@@ -234,13 +234,15 @@ void ConvexHull::setFace(Face& face)
   }
 }
 
-ConvexHull::Face ConvexHull::popFace(size_t id, gal::IndexPair edges[3], Face adjFaces[3])
+ConvexHull::Face ConvexHull::popFace(size_t                        id,
+                                     std::array<gal::IndexPair, 3> edges,
+                                     std::array<Face, 3>           adjFaces)
 {
   Face face;
   if (getFace(id, face)) {
     mFaces.erase(id);
     gal::IndexPair edge, fPair;
-    size_t         adjFid;
+    size_t         adjFid = 0;
     for (char ei = 0; ei < 3; ei++) {
       edge      = face.edge(ei);
       edges[ei] = edge;
@@ -275,7 +277,7 @@ bool ConvexHull::getFarthestPt(const Face& face, glm::vec3& pt, size_t& ptIndex)
 {
   ptIndex    = -1;
   pt         = vec3_unset;
-  float dMax = PLANE_DIST_TOL, dist;
+  float dMax = PLANE_DIST_TOL, dist = 0.f;
   for (const size_t& i : mOutsidePts) {
     if (face.containsVertex(i)) {
       continue;
@@ -294,7 +296,7 @@ bool ConvexHull::getFarthestPt(const Face& face, glm::vec3& pt, size_t& ptIndex)
 void ConvexHull::updateExteriorPt(const std::vector<Face>& newFaces,
                                   const std::vector<Face>& poppedFaces)
 {
-  bool                outside;
+  bool                outside {};
   glm::vec3           testPt;
   std::vector<size_t> remove, check;
   for (const size_t& opi : mOutsidePts) {
@@ -338,7 +340,7 @@ void ConvexHull::updateExteriorPt(const std::vector<Face>& newFaces,
 
 void ConvexHull::createInitialSimplex(size_t& faceIndex)
 {
-  size_t best[4];
+  std::array<size_t, 4> best {};
   if (mPts.size() < 4) {
     throw "Failed to create the initial simplex";
   }
@@ -348,24 +350,20 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
     }
   }
   else {
-    float extremes[6];
+    std::array<float, 6> extremes {};
     for (size_t ei = 0; ei < 6; ei++) {
       extremes[ei] = ei % 2 == 0 ? FLT_MAX : -FLT_MAX;
     }
-
-    size_t bounds[6];
+    std::array<size_t, 6> bounds {};
     for (size_t i = 0; i < 6; i++) {
       bounds[i] = (size_t)(-1);
     }
-    float coords[3];
+    std::array<float, 6> coords {};
     for (size_t pi = 0; pi < mPts.size(); pi++) {
-      std::copy_n(&mPts[pi].x, 3, coords);
+      std::copy_n(&mPts[pi].x, 3, coords.data());
       for (size_t ei = 0; ei < 6; ei++) {
-        if (ei % 2 == 0 && extremes[ei] > coords[ei / 2]) {
-          extremes[ei] = coords[ei / 2];
-          bounds[ei]   = pi;
-        }
-        else if (ei % 2 == 1 && extremes[ei] < coords[ei / 2]) {
+        if ((ei % 2 == 0 && extremes[ei] > coords[ei / 2]) ||
+            (ei % 2 == 1 && extremes[ei] < coords[ei / 2])) {
           extremes[ei] = coords[ei / 2];
           bounds[ei]   = pi;
         }
@@ -373,7 +371,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
     }
 
     glm::vec3 pt;
-    float     maxD = -FLT_MAX, dist;
+    float     maxD = -FLT_MAX, dist = 0.f;
     for (size_t i = 0; i < 6; i++) {
       pt = mPts[bounds[i]];
       for (size_t j = i + 1; j < 6; j++) {
@@ -420,7 +418,7 @@ void ConvexHull::createInitialSimplex(size_t& faceIndex)
     }
   }
 
-  Face simplex[4];
+  std::array<Face, 4> simplex;
   simplex[0] = Face(faceIndex++, best[0], best[1], best[2]);
   simplex[1] = Face(faceIndex++, best[0], best[2], best[3]);
   simplex[2] = Face(faceIndex++, best[1], best[2], best[3]);
@@ -490,18 +488,18 @@ glm::vec3 ConvexHull::faceCenter(const Face& face) const
 
 TriMesh ConvexHull::toMesh() const
 {
-  TriMesh                     mesh;
-  std::vector<TriMesh::VertH> vmap(mPts.size());
-  size_t                      nedges = mFaces.size() * 3 / 2;
+  TriMesh            mesh;
+  std::vector<VertH> vmap(mPts.size());
+  size_t             nedges = mFaces.size() * 3 / 2;
   mesh.reserve(nedges, nedges, mFaces.size());
   for (const auto& pair : mFaces) {
-    const auto&                   face = pair.second;
-    std::array<TriMesh::VertH, 3> fvs;
+    const auto&          face = pair.second;
+    std::array<VertH, 3> fvs;
     for (uint8_t i = 0; i < 3; i++) {
-      int   vi = face.indices[i];
+      int   vi = int(face.indices[i]);
       auto& v  = vmap[vi];
       if (!v.is_valid()) {
-        v = mesh.add_vertex(mPts[vi]);
+        v = gal::handle<VertH>(mesh.add_vertex(mPts[vi]));
       }
       fvs[i] = v;
     }

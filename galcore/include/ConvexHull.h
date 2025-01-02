@@ -56,10 +56,10 @@ public:
       {
         size_t a, b, c;
       };
-      size_t indices[3];
+      std::array<size_t, 3> indices = {};
     };
 
-    glm::vec3 normal;
+    glm::vec3 normal = {};
 
     Face();
     Face(size_t i, size_t v1, size_t v2, size_t v3);
@@ -72,7 +72,7 @@ public:
 
 private:
   std::vector<glm::vec3> mPts;
-  glm::vec3              mCenter;
+  glm::vec3              mCenter = {};
 
   std::unordered_map<size_t, Face>                   mFaces;
   std::unordered_map<gal::IndexPair, gal::IndexPair> mEdgeFaceMap;
@@ -81,7 +81,9 @@ private:
   void      compute();
   void      initOutside();
   void      setFace(Face& face);
-  Face      popFace(size_t index, gal::IndexPair edges[3], Face adjFaces[3]);
+  Face      popFace(size_t                        index,
+                    std::array<gal::IndexPair, 3> edges,
+                    std::array<Face, 3>           adjFaces);
   bool      faceVisible(const Face&, const glm::vec3&) const;
   float     facePlaneDistance(const Face&, const glm::vec3&) const;
   bool      getFarthestPt(const Face&, glm::vec3& pt, size_t& ptIndex) const;

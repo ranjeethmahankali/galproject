@@ -11,7 +11,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC(centroid,
+GAL_FUNC(centroid,  // NOLINT
          "Gets the centroid of a mesh",
          ((gal::TriMesh, mesh, "The mesh")),
          ((glm::vec3, centroid, "x coordinate")))
@@ -19,7 +19,7 @@ GAL_FUNC(centroid,
   centroid = mesh.centroid(gal::eMeshCentroidType::volumeBased);
 }
 
-GAL_FUNC(volume,
+GAL_FUNC(volume,  // NOLINT
          "Gets the volume of the mesh",
          ((gal::TriMesh, mesh, "The mesh")),
          ((float, volume, "Volume of the mesh")))
@@ -27,7 +27,7 @@ GAL_FUNC(volume,
   volume = mesh.volume();
 }
 
-GAL_FUNC(area,
+GAL_FUNC(area,  // NOLINT
          "Gets the surface area of the mesh",
          ((gal::TriMesh, mesh, "The mesh")),
          ((float, result, "Surface area of the mesh")))
@@ -35,7 +35,7 @@ GAL_FUNC(area,
   result = mesh.area();
 }
 
-GAL_FUNC(loadTriangleMesh,
+GAL_FUNC(loadTriangleMesh,  // NOLINT
          "Loads a triangle mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
          ((gal::TriMesh, mesh, "Loaded mesh")))
@@ -43,7 +43,7 @@ GAL_FUNC(loadTriangleMesh,
   mesh = TriMesh::loadFromFile(filepath);
 }
 
-GAL_FUNC(loadPolyMesh,
+GAL_FUNC(loadPolyMesh,  // NOLINT
          "Loads a polygon mesh from an obj file",
          ((std::string, filepath, "The path to the obj file")),
          ((gal::PolyMesh, mesh, "Loaded mesh")))
@@ -51,7 +51,7 @@ GAL_FUNC(loadPolyMesh,
   mesh = PolyMesh::loadFromFile(filepath);
 }
 
-GAL_FUNC_TEMPLATE(((typename, MeshT)),
+GAL_FUNC_TEMPLATE(((typename, MeshT)),  // NOLINT
                   scale,
                   "Scales the mesh. Returns a new instance.",
                   ((MeshT, mesh, "Scaled mesh"), (float, scale, "Scale")),
@@ -61,7 +61,7 @@ GAL_FUNC_TEMPLATE(((typename, MeshT)),
   scaled.transform(glm::scale(glm::vec3(scale)));
 }
 
-GAL_FUNC(clipMesh,
+GAL_FUNC(clipMesh,  // NOLINT
          "Clips the given mesh with the plane. Returns a new mesh.",
          ((gal::TriMesh, mesh, "mesh to clip"),
           (gal::Plane, plane, "Plane to clip with")),
@@ -70,7 +70,7 @@ GAL_FUNC(clipMesh,
   clipped = mesh.clippedWithPlane(plane);
 }
 
-GAL_FUNC(meshSphereQuery,
+GAL_FUNC(meshSphereQuery,  // NOLINT
          "Queries the mesh face rtree with the given sphere and "
          "returns the new sub-mesh",
          ((gal::TriMesh, mesh, "Mesh to query"),
@@ -90,7 +90,7 @@ GAL_FUNC(meshSphereQuery,
   numFaces   = int32_t(results.size());
 }
 
-GAL_FUNC(subTriMesh,
+GAL_FUNC(subTriMesh,  // NOLINT
          "Gets a mesh with the subset of the faces of the input mesh",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
@@ -99,7 +99,7 @@ GAL_FUNC(subTriMesh,
   resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
 }
 
-GAL_FUNC(subPolyMesh,
+GAL_FUNC(subPolyMesh,  // NOLINT
          "Get a mesh with the subset of faces of the input mesh",
          ((gal::PolyMesh, mesh, "Polygon mesh"),
           ((data::ReadView<int32_t, 1>), indices, "Faces to copy into the output mesh")),
@@ -108,7 +108,7 @@ GAL_FUNC(subPolyMesh,
   resultMesh = mesh.subMesh(std::span<const int32_t>(indices.data(), indices.size()));
 }
 
-GAL_FUNC(closestPoints,
+GAL_FUNC(closestPoints,  // NOLINT
          "Creates the result point cloud by closest-point-querying the mesh with "
          "the given point cloud",
          ((gal::TriMesh, mesh, "Mesh"),
@@ -122,7 +122,7 @@ GAL_FUNC(closestPoints,
   });
 }
 
-GAL_FUNC(boundsTriMesh,
+GAL_FUNC(boundsTriMesh,  // NOLINT
          "Gets the bounding box of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          ((gal::Box3, bbox, "Bounds of the mesh")))
@@ -130,7 +130,7 @@ GAL_FUNC(boundsTriMesh,
   bbox = mesh.bounds();
 }
 
-GAL_FUNC(boundsPolyMesh,
+GAL_FUNC(boundsPolyMesh,  // NOLINT
          "Gets the bounding box of the mesh",
          ((gal::PolyMesh, mesh, "Mesh")),
          ((gal::Box3, bbox, "Bounds of the mesh")))
@@ -138,7 +138,7 @@ GAL_FUNC(boundsPolyMesh,
   bbox = mesh.bounds();
 }
 
-GAL_FUNC(numTriMeshFaces,
+GAL_FUNC(numTriMeshFaces,  // NOLINT
          "Gets the number of faces of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
@@ -146,7 +146,7 @@ GAL_FUNC(numTriMeshFaces,
   nfaces = mesh.n_faces();
 }
 
-GAL_FUNC(numPolyMeshFaces,
+GAL_FUNC(numPolyMeshFaces,  // NOLINT
          "Gets the number of faces of the mesh",
          ((gal::PolyMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
@@ -154,7 +154,7 @@ GAL_FUNC(numPolyMeshFaces,
   nfaces = mesh.n_faces();
 }
 
-GAL_FUNC(numVertices,
+GAL_FUNC(numVertices,  // NOLINT
          "Gets the number of vertices of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nverts, "Number of vertices")))
@@ -162,7 +162,7 @@ GAL_FUNC(numVertices,
   nverts = mesh.n_vertices();
 }
 
-GAL_FUNC(vertices,
+GAL_FUNC(vertices,  // NOLINT
          "Gets the vertices of the mesh as a list of points",
          ((gal::TriMesh, mesh, "Mesh")),
          (((data::WriteView<glm::vec3, 1>), points, "Vertex positions")))
@@ -171,28 +171,28 @@ GAL_FUNC(vertices,
   std::transform(mesh.vertices().begin(),
                  mesh.vertices().end(),
                  std::back_inserter(points),
-                 [&](TriMesh::VertH v) { return mesh.point(v); });
+                 [&](VertH v) { return mesh.point(v); });
 }
 
-GAL_FUNC(vertex,
+GAL_FUNC(vertex,  // NOLINT
          "Get the position of the mesh vertex",
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "The index of the vertex")),
          ((glm::vec3, point, "Vertex position")))
 {
-  point = mesh.point(TriMesh::VertH(index));
+  point = mesh.point(VertH(index));
 }
 
-GAL_FUNC(halfedge,
+GAL_FUNC(halfedge,  // NOLINT
          "Get the halfedge of the mesh as a line segment",
          ((gal::TriMesh, mesh, "Mesh"), (int32_t, index, "Index of the halfedge")),
          ((gal::Line3d, edge, "Line segment")))
 {
-  auto he = TriMesh::HalfH(index);
+  auto he = HalfH(index);
   edge    = gal::Line3d {mesh.point(mesh.from_vertex_handle(he)),
                       mesh.point(mesh.to_vertex_handle(he))};
 }
 
-GAL_FUNC(rectangleMesh,
+GAL_FUNC(rectangleMesh,  // NOLINT
          "Creates a rectangular mesh",
          ((gal::Plane, plane, "plane"),
           (gal::Box2, bounds, "Bounds"),
@@ -202,7 +202,7 @@ GAL_FUNC(rectangleMesh,
   mesh = std::move(makeRectangularMesh(plane, bounds, edgeLength));
 }
 
-GAL_FUNC(triMeshWithVertexColors,
+GAL_FUNC(triMeshWithVertexColors,  // NOLINT
          "Creates a new mesh by with the given vertex colors",
          ((gal::TriMesh, mesh, "Input mesh"),
           ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
@@ -210,12 +210,12 @@ GAL_FUNC(triMeshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (TriMesh::VertH vh : outmesh.vertices()) {
+  for (VertH vh : outmesh.vertices()) {
     outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
 }
 
-GAL_FUNC(polyMeshWithVertexColors,
+GAL_FUNC(polyMeshWithVertexColors,  // NOLINT
          "Creates a new mesh by with the given vertex colors",
          ((gal::PolyMesh, mesh, "Input mesh"),
           ((data::ReadView<glm::vec3, 1>), colors, "Vertex colors")),
@@ -223,12 +223,12 @@ GAL_FUNC(polyMeshWithVertexColors,
 {
   outmesh = mesh;
   outmesh.request_vertex_colors();
-  for (TriMesh::VertH vh : outmesh.vertices()) {
+  for (VertH vh : outmesh.vertices()) {
     outmesh.set_color(vh, colors[std::min(vh.idx(), int(colors.size() - 1))]);
   }
 }
 
-GAL_FUNC(vertexColors,
+GAL_FUNC(vertexColors,  // NOLINT
          "Get the vertex colors of the mesh",
          ((gal::TriMesh, mesh, "Mesh")),
          (((data::WriteView<glm::vec3, 1>), colors, "Vertex colors")))
@@ -237,10 +237,10 @@ GAL_FUNC(vertexColors,
   std::transform(mesh.vertices_begin(),
                  mesh.vertices_end(),
                  std::back_inserter(colors),
-                 [&](gal::TriMesh::VertH vh) { return mesh.color(vh); });
+                 [&](gal::VertH vh) { return mesh.color(vh); });
 }
 
-GAL_FUNC(decimate,
+GAL_FUNC(decimate,  // NOLINT
          "Decimates the mesh while persisting the intermediate meshes",
          ((gal::TriMesh, mesh, "Mesh to be decimated"),
           (int32_t, nCollapses, "Number of edges to collapse.")),

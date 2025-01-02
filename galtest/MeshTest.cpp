@@ -1,5 +1,10 @@
 #include <gtest/gtest.h>
+
+#include <OpenMesh/Core/IO/MeshIO.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/CatmullClarkT.hh>
+#include <chrono>
 #include <glm/gtx/transform.hpp>
+#include <numeric>
 
 #include <Mesh.h>
 #include <TestUtils.h>
@@ -9,16 +14,18 @@ gal::TriMesh unitbox()
   using namespace gal;
   TriMesh box;
   box.reserve(8, 18, 12);
-  auto vs = std::array<TriMesh::VertH, 8> {
-    box.add_vertex({0.f, 0.f, 0.f}),
-    box.add_vertex({1.f, 0.f, 0.f}),
-    box.add_vertex({1.f, 1.f, 0.f}),
-    box.add_vertex({0.f, 1.f, 0.f}),
-    box.add_vertex({0.f, 0.f, 1.f}),
-    box.add_vertex({1.f, 0.f, 1.f}),
-    box.add_vertex({1.f, 1.f, 1.f}),
-    box.add_vertex({0.f, 1.f, 1.f}),
-  };
+  std::array<VertH, 8>     vs;
+  std::array<glm::vec3, 8> coords {{{0.f, 0.f, 0.f},
+                                    {1.f, 0.f, 0.f},
+                                    {1.f, 1.f, 0.f},
+                                    {0.f, 1.f, 0.f},
+                                    {0.f, 0.f, 1.f},
+                                    {1.f, 0.f, 1.f},
+                                    {1.f, 1.f, 1.f},
+                                    {0.f, 1.f, 1.f}}};
+  for (size_t i = 0; i < 8; ++i) {
+    vs[i] = handle<VertH>(box.add_vertex(coords[i]));
+  }
   box.add_face(vs[0], vs[3], vs[2]);
   box.add_face(vs[0], vs[2], vs[1]);
   box.add_face(vs[0], vs[1], vs[4]);
@@ -34,7 +41,7 @@ gal::TriMesh unitbox()
   return box;
 }
 
-TEST(Mesh, Area)
+TEST(Mesh, Area)  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
@@ -45,7 +52,31 @@ TEST(Mesh, Area)
   ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
 }
 
-TEST(Mesh, Volume)
+TEST(Mesh, Subdivision)  // NOLINT
+{
+  gal::PolyMesh mesh;
+  OpenMesh::IO::read_mesh(mesh, GAL_ASSET_DIR / "bunny.obj");
+  mesh.transform(glm::scale(glm::vec3(10.f)));
+  OpenMesh::Subdivider::Uniform::CatmullClarkT<gal::PolyMesh, float> sub;
+  sub.attach(mesh);
+  auto before = std::chrono::high_resolution_clock::now();
+  sub(3);
+  auto duration = std::chrono::high_resolution_clock::now() - before;
+  sub.detach();
+  std::cout << "Subdivision took "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count()
+            << "ms\n";
+  std::cout << "Subdivided mesh has " << mesh.n_faces() << " faces, " << mesh.n_edges()
+            << " edges, and " << mesh.n_vertices() << " vertices.\n";
+  mesh.triangulate();
+  float area = std::accumulate(
+    mesh.faces_begin(), mesh.faces_end(), 0.f, [&](float total, gal::FaceH f) {
+      return total + mesh.calc_sector_area(mesh.halfedge_handle(f));
+    });
+  ASSERT_FLOAT_EQ(5.5665889, area);
+}
+
+TEST(Mesh, Volume)  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
@@ -55,7 +86,7 @@ TEST(Mesh, Volume)
   ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
 }
 
-TEST(Mesh, ClippedWithPlane)
+TEST(Mesh, ClippedWithPlane)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
@@ -65,7 +96,7 @@ TEST(Mesh, ClippedWithPlane)
   ASSERT_FLOAT_EQ(clipped.volume(), 0.f);
 }
 
-TEST(Mesh, RectangleMesh)
+TEST(Mesh, RectangleMesh)  // NOLINT
 {
   gal::Plane plane({0.f, 0.f, 0.f}, {1.f, 1.f, 0.f});
   auto rect = gal::makeRectangularMesh(plane, gal::Box2({0.f, 0.f}, {15.f, 12.f}), 1.f);
@@ -74,14 +105,14 @@ TEST(Mesh, RectangleMesh)
   ASSERT_EQ(208, rect.n_vertices());
 }
 
-TEST(Mesh, Centroid)
+TEST(Mesh, Centroid)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
   ASSERT_NEAR(
     glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
 }
 
-TEST(Mesh, SphereQuery)
+TEST(Mesh, SphereQuery)  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));

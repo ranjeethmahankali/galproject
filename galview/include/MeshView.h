@@ -43,22 +43,21 @@ public:
     for (const auto& meshptr : meshes) {
       meshptr->update_normals();
       const auto& mesh = *meshptr;
-      if (std::all_of(
-            mesh.vertices_begin(), mesh.vertices_end(), [&mesh](TriMesh::VertH v) {
-              return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
-            })) {
-        for (TriMesh::VertH v : mesh.vertices()) {
+      if (std::all_of(mesh.vertices_begin(), mesh.vertices_end(), [&mesh](VertH v) {
+            return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
+          })) {
+        for (VertH v : mesh.vertices()) {
           *(vbegin++) = {mesh.point(v), mesh.normal(v), {1.f, 1.f, 1.f}};
         }
       }
       else {
-        for (TriMesh::VertH v : mesh.vertices()) {
+        for (VertH v : mesh.vertices()) {
           *(vbegin++) = {mesh.point(v), mesh.normal(v), mesh.color(v)};
         }
       }
       // 3 indices per face and nothing else.
-      for (TriMesh::FaceH f : mesh.faces()) {
-        std::transform(mesh.cfv_begin(f), mesh.cfv_end(f), dsti, [&](TriMesh::VertH v) {
+      for (FaceH f : mesh.faces()) {
+        std::transform(mesh.cfv_begin(f), mesh.cfv_end(f), dsti, [&](VertH v) {
           return offset + uint32_t(v.idx());
         });
         dsti += 3;
@@ -163,11 +162,10 @@ public:
     for (const auto& meshptr : meshes) {
       meshptr->update_normals();
       const auto& mesh = *meshptr;
-      if (std::all_of(
-            mesh.vertices_begin(), mesh.vertices_end(), [&mesh](TriMesh::VertH v) {
-              return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
-            })) {
-        for (TriMesh::VertH v : mesh.vertices()) {
+      if (std::all_of(mesh.vertices_begin(), mesh.vertices_end(), [&mesh](VertH v) {
+            return mesh.color(v) == glm::vec3 {0.f, 0.f, 0.f};
+          })) {
+        for (VertH v : mesh.vertices()) {
           *(vdst++) = {mesh.point(v), mesh.normal(v), {1.f, 1.f, 1.f}};
         }
       }
@@ -189,7 +187,7 @@ public:
       }
       offset += uint32_t(mesh.n_vertices());
       for (auto eh : mesh.edges()) {
-        auto heh  = mesh.halfedge_handle(eh, 0);
+        auto heh  = handle<HalfH>(mesh.halfedge_handle(eh, 0));
         *(edst++) = {mesh.point(mesh.from_vertex_handle(heh)), glm::vec3(0.f)};
         *(edst++) = {mesh.point(mesh.to_vertex_handle(heh)), glm::vec3(0.f)};
       }
