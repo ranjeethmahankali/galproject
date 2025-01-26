@@ -17,11 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-
     - name: Install Dependencies
       run: |
         sudo apt update
@@ -73,6 +68,9 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
 
     - name: Run Python Tests
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
       working-directory: ${{github.workspace}}/scripts
       run: pytest -n 4
 
