@@ -43,6 +43,18 @@ struct vector_traits<glm::vec<N, T, Q>>
   static constexpr size_t   size() { return size_; }
 };
 
+// These weird operators are used in some open mesh stuff.
+
+inline glm::vec3 operator%(glm::vec3 const& a, glm::vec3 const& b)
+{
+  return glm::cross(a, b);
+}
+
+inline float operator|(glm::vec3 const& a, glm::vec3 const& b)
+{
+  return glm::dot(a, b);
+}
+
 }  // namespace OpenMesh
 
 /* IMPORTANT: These need to be included for this code to compile! */

@@ -1,8 +1,8 @@
 #include <Decimate.h>
-
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <OpenMesh/Tools/Decimater/DecimaterT.hh>
 #include <OpenMesh/Tools/Decimater/ModBaseT.hh>
+#include <OpenMesh/Tools/Decimater/ModHausdorffT.hh>
 #include <OpenMesh/Tools/Decimater/ModProgMeshT.hh>
 #include <glm/geometric.hpp>
 #include <stdexcept>
