@@ -75,7 +75,6 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: 'graalpy-24.0'
-    - run: python my_script.py
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
       run: pytest -n 4
