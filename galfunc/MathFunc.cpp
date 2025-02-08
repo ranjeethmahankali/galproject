@@ -5,7 +5,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC(sin,
+GAL_FUNC(sin,  // NOLINT
          "Calculates the sine",
          ((float, x, "Value for which to compute sine")),
          ((float, result, "Sine of the input value")))
@@ -13,7 +13,7 @@ GAL_FUNC(sin,
   result = std::sin(x);
 }
 
-GAL_FUNC(cos,
+GAL_FUNC(cos,  // NOLINT
          "Calculates the cosine",
          ((float, x, "Value for which to compute cosine")),
          ((float, result, "Cosine of the input value")))
@@ -21,7 +21,7 @@ GAL_FUNC(cos,
   result = std::cos(x);
 }
 
-GAL_FUNC(tan,
+GAL_FUNC(tan,  // NOLINT
          "Calculates the tan",
          ((float, x, "Value for which to compute tan")),
          ((float, result, "Tan of the input value")))
@@ -29,7 +29,7 @@ GAL_FUNC(tan,
   result = std::tan(x);
 }
 
-GAL_FUNC(arcsin,
+GAL_FUNC(arcsin,  // NOLINT
          "Calculates the inverse sine",
          ((float, x, "The value for which to compute the inverse sine")),
          ((float, result, "The inverse sine of the input.")))
@@ -37,7 +37,7 @@ GAL_FUNC(arcsin,
   result = std::asin(x);
 }
 
-GAL_FUNC(arccos,
+GAL_FUNC(arccos,  // NOLINT
          "Calculates the inverse cosine",
          ((float, x, "The value for which to compute the inverse cosine")),
          ((float, result, "The inverse cosine of the input.")))
@@ -45,7 +45,7 @@ GAL_FUNC(arccos,
   result = std::acos(x);
 }
 
-GAL_FUNC(arctan,
+GAL_FUNC(arctan,  // NOLINT
          "Calculates the inverse tan",
          ((float, x, "The value for which to compute the inverse tan")),
          ((float, result, "The inverse tan of the input.")))
@@ -53,7 +53,7 @@ GAL_FUNC(arctan,
   result = std::atan(x);
 }
 
-GAL_FUNC(powf32,
+GAL_FUNC(powf32,  // NOLINT
          "Raises the base to the power",
          ((float, base, "Base"), (float, power, "Power")),
          ((float, result, "Result")))
@@ -61,7 +61,7 @@ GAL_FUNC(powf32,
   result = std::pow(base, power);
 }
 
-GAL_FUNC(sqrtf32,
+GAL_FUNC(sqrtf32,  // NOLINT
          "Square root of the given value",
          ((float, x, "Value for which to compute the square root")),
          ((float, result, "Square root")))
@@ -69,7 +69,7 @@ GAL_FUNC(sqrtf32,
   result = std::sqrt(x);
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   add,
                   "Adds two numbers",
                   ((T, a, "First number"), (T, b, "Second number")),
@@ -78,7 +78,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   sum = a + b;
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   sub,
                   "Subtracts the second number from the first",
                   ((T, a, "First number"), (T, b, "Second number")),
@@ -87,7 +87,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   diff = a - b;
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   mul,
                   "Multiplies the two numbers",
                   ((T, a, "First number"), (T, b, "Second number")),
@@ -96,7 +96,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   prod = a * b;
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   div,
                   "Divides the first number with the second.",
                   ((T, a, "First number"), (T, b, "Second number")),
@@ -105,7 +105,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   quot = a / b;
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   max,
                   "Get the max of the two arguments",
                   ((T, a, "First arg"), (T, b, "Second arg")),
@@ -114,7 +114,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   out = std::max(a, b);
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   min,
                   "Get the max of the two arguments",
                   ((T, a, "First arg"), (T, b, "Second arg")),

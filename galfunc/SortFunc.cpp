@@ -5,7 +5,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_TEMPLATE(((typename, TVal), (typename, TKey)),
+GAL_FUNC_TEMPLATE(((typename, TVal), (typename, TKey)),  // NOLINT
                   sort,
                   "Sorts a list based on given keys.",
                   (((data::ReadView<TVal, 1>), list, "List to be sorted"),

@@ -87,7 +87,7 @@ public:
   Property() = default;
 
   // Forbid copy.
-  Property(const Property&) = delete;
+  Property(const Property&)                  = delete;
   const Property& operator=(const Property&) = delete;
   // Move semantics.
   const Property& operator=(Property&& other)
