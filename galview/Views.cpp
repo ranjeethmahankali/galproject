@@ -9,7 +9,7 @@ static std::vector<Views::RenderData>& drawables()
   return sDrawables;
 }
 
-static std::vector<Views::RenderData*> sortedDrawables()
+static std::vector<Views::RenderData*>& sortedDrawables()
 {
   static std::vector<Views::RenderData*> sSortedDrawables = {};
   return sSortedDrawables;
@@ -80,9 +80,10 @@ void Views::clear()
 
 size_t Views::addInternal(VariantT&& view, const bool* visibility)
 {
+  size_t const out = drawables().size();
   drawables().emplace_back(std::move(view), visibility);
   sortedDrawablesUptoDate() = false;
-  return drawables().size() - 1;
+  return out;
 }
 
 Views::VariantT& Views::getDrawable(size_t i)

@@ -693,7 +693,6 @@ template<typename TFunc, typename... TArgs>
 TFunc* makeFunction(const FuncInfo& fnInfo, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
-
   return dynamic_cast<TFunc*>(
     store::addFunction(fnInfo, std::make_unique<TFunc>(args...)));
 };
