@@ -143,7 +143,7 @@ GAL_FUNC(numTriMeshFaces,  // NOLINT
          ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
 {
-  nfaces = mesh.n_faces();
+  nfaces = int32_t(mesh.n_faces());
 }
 
 GAL_FUNC(numPolyMeshFaces,  // NOLINT
@@ -151,7 +151,7 @@ GAL_FUNC(numPolyMeshFaces,  // NOLINT
          ((gal::PolyMesh, mesh, "Mesh")),
          ((int32_t, nfaces, "Number of faces")))
 {
-  nfaces = mesh.n_faces();
+  nfaces = int32_t(mesh.n_faces());
 }
 
 GAL_FUNC(numVertices,  // NOLINT
@@ -159,7 +159,7 @@ GAL_FUNC(numVertices,  // NOLINT
          ((gal::TriMesh, mesh, "Mesh")),
          ((int32_t, nverts, "Number of vertices")))
 {
-  nverts = mesh.n_vertices();
+  nverts = int32_t(mesh.n_vertices());
 }
 
 GAL_FUNC(vertices,  // NOLINT
