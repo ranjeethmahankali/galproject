@@ -627,9 +627,10 @@ struct WriteViewBase
 
   static constexpr DepthT NDimensions = Dim;
 
-protected:
+public:
   Tree<T>* mTree = nullptr;
 
+protected:
   void setWriteMode()
   {
     if (!mTree) {
@@ -771,7 +772,7 @@ public:
 
   ~WriteView() { this->releaseWriteMode(); }
 
-  const WriteView<T, 1>& operator=(const WriteView<T, 1>& other)
+  WriteView<T, 1>& operator=(const WriteView<T, 1>& other)
   {
     this->releaseWriteMode();
     this->mTree  = other.mTree;
@@ -780,10 +781,11 @@ public:
     return *this;
   }
 
-  const WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
+  WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
   {
-    this->mTree = other.mTree;
-    other.mTree = nullptr;
+    this->mTree  = other.mTree;
+    other.mTree  = nullptr;
+    this->mStart = other.mStart;
     return *this;
   }
 

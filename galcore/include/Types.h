@@ -15,9 +15,9 @@ namespace gal {
 template<typename T>
 struct TypeInfo : public std::false_type
 {
-  static constexpr uint32_t id      = 0U;
-  static constexpr char     sName[] = "UnknownType";
-  static std::string        name() noexcept { return std::string(sName); }
+  static constexpr uint32_t         id    = 0U;
+  static constexpr std::string_view sName = "UnknownType";
+  static std::string                name() noexcept { return std::string(sName); }
 };
 
 template<typename T>
@@ -27,13 +27,14 @@ struct TypeInfo<const T> : public TypeInfo<T>
 
 }  // namespace gal
 
-#define GAL_TYPE_INFO(type, typeName, idInt)                                        \
-  template<>                                                                        \
-  struct gal::TypeInfo<gal::RemoveBraces<void(type)>::Type> : public std::true_type \
-  {                                                                                 \
-    static constexpr uint32_t id      = idInt;                                      \
-    static constexpr char     sName[] = #typeName;                                  \
-    static std::string        name() noexcept { return std::string(sName); }        \
+// NOLINTNEXTLINE
+#define GAL_TYPE_INFO(type, typeName, idInt)                                         \
+  template<>                                                                         \
+  struct gal::TypeInfo<gal::RemoveBraces<void(type)>::Type> : public std::true_type  \
+  {                                                                                  \
+    static constexpr uint32_t         id    = idInt;                                 \
+    static constexpr std::string_view sName = #typeName;                             \
+    static std::string                name() noexcept { return std::string(sName); } \
   };
 
 namespace gal {
@@ -42,9 +43,9 @@ template<typename T>
 struct TypeInfo<std::vector<T>> : public std::true_type
 {
   static_assert(TypeInfo<T>::value);
-  static constexpr uint32_t sVecMask   = 0xe2b7b4b9;
-  static constexpr char     sVecName[] = "vec_";
-  static constexpr uint32_t id         = TypeInfo<T>::id ^ sVecMask;
+  static constexpr uint32_t         sVecMask = 0xe2b7b4b9;
+  static constexpr std::string_view sVecName = "vec_";
+  static constexpr uint32_t         id       = TypeInfo<T>::id ^ sVecMask;
 
   static std::string name() noexcept
   {
