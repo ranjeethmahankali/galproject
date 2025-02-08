@@ -23,10 +23,9 @@
 namespace gal {
 namespace viewfunc {
 
-static bool                               sShowInputs  = true;
-static bool                               sShowOutputs = true;
-static std::vector<const func::Function*> sOutputFuncs;
-static std::unordered_map<std::string, std::unique_ptr<view::CheckBox>> sShowCheckboxes;
+static std::vector<const func::Function*> sOutputFuncs;  // NOLINT
+static std::unordered_map<std::string, std::unique_ptr<view::CheckBox>>
+  sShowCheckboxes;  // NOLINT
 
 view::Panel& outputsPanel()
 {
@@ -87,6 +86,7 @@ py::list py_loadGlyphs(const py::list& glyphPaths)
   return lst;
 }
 
+// NOLINTNEXTLINE
 GAL_FUNC(
   glyphs,
   "Displays glyphs in the viewer",
@@ -105,6 +105,7 @@ GAL_FUNC(
   }
 }
 
+// NOLINTNEXTLINE
 GAL_FUNC(
   tags,
   "Shows string tags in the viewer",
@@ -214,6 +215,11 @@ struct ShowFunc : public func::TFunction<ShowCallable<T>, const func::data::Tree
   {}
 
   virtual ~ShowFunc() = default;
+
+  ShowFunc(ShowFunc const&)            = delete;
+  ShowFunc(ShowFunc&&)                 = delete;
+  ShowFunc& operator=(ShowFunc const&) = delete;
+  ShowFunc& operator=(ShowFunc&&)      = delete;
 };
 
 /**
@@ -235,16 +241,15 @@ typename ShowFunc<T>::PyOutputType py_show(const std::string&       label,
                                    " in the viewer, using the given label as the key.";
   static const std::string_view sInputName = "obj";
   static const std::string_view sInputDesc = "Object to be shown in the viewer.";
-
-  static const func::FuncInfo sInfo = {{sName.data(), sName.size()},
-                                       {sDesc.data(), sDesc.size()},
-                                       1,
-                                       &sInputName,
-                                       &sInputDesc,
-                                       0,
-                                       nullptr,
-                                       nullptr};
-
+  static const func::FuncInfo   sInfo      = {{sName.data(), sName.size()},
+                                              {sDesc.data(), sDesc.size()},
+                                              1,
+                                              &sInputName,
+                                              &sInputDesc,
+                                              0,
+                                              nullptr,
+                                              nullptr};
+  // Make showable func.
   static_assert(view::Views::IsDrawableType<T>);
   auto fn = gal::func::store::makeFunction<ShowFunc<T>>(
     sInfo, label, getCheckBox(label).checkedPtr(), reg);
@@ -290,7 +295,11 @@ struct PrintFunc : public func::TFunction<PrintCallable<T>, const func::data::Tr
       : view::Text("")
       , BaseT(PrintCallable<T>(label, this), std::make_tuple(reg)) {};
 
-  virtual ~PrintFunc() = default;
+  virtual ~PrintFunc()                   = default;
+  PrintFunc(PrintFunc const&)            = delete;
+  PrintFunc(PrintFunc&&)                 = delete;
+  PrintFunc& operator=(PrintFunc const&) = delete;
+  PrintFunc& operator=(PrintFunc&&)      = delete;
 };
 
 /**
@@ -358,10 +367,11 @@ struct defOutputFuncs
 }  // namespace viewfunc
 }  // namespace gal
 
-#define GAL_DEF_PY_FN(fnName, mod) mod.def(#fnName, py_##fnName);
+#define GAL_DEF_PY_FN(fnName, mod) mod.def(#fnName, py_##fnName);  // NOLINT
+// NOLINTNEXTLINE
 #define GAL_DEF_PY_FN_DOC(fnName, mod, docstr) mod.def(#fnName, py_##fnName, docstr);
 
-PYBIND11_MODULE(pygalview, pgv)
+PYBIND11_MODULE(pygalview, pgv)  // NOLINT
 {
   using namespace gal::viewfunc;
   using namespace gal::viewfunc::python;

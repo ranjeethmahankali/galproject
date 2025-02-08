@@ -68,6 +68,8 @@ public:
     }
     mVBuf.alloc();
     mIBuf.alloc();
+    std::cout << "Vertex buffer size: " << mVBuf.size() << std::endl;
+    std::cout << "Index buffer size: " << mIBuf.size() << std::endl;
   }
 
   Box3 bounds() const { return mBounds; }
@@ -89,7 +91,8 @@ public:
   void draw() const
   {
     static RenderSettings settings = renderSettings();
-    settings.edgeMode              = false;
+    std::cout << "Drawing mesh...\n";
+    settings.edgeMode = false;
     mVBuf.bindVao();
     mIBuf.bind();
     if (Context::get().wireframeMode()) {

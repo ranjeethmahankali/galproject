@@ -372,7 +372,7 @@ void help(int argc, char** argv0)
   std::swap(logger().sinks(), sTempSinks);
   for (const auto& pair : cmdFuncMap()) {
     sArgs[0] = pair.first;
-    std::array<char*, 2> argv1;
+    std::array<char*, 2> argv1 {};
     std::transform(
       sArgs.begin(), sArgs.end(), argv1.begin(), [](std::string& s) { return s.data(); });
     logger().info("\n{}", pair.first);
