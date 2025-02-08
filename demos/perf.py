@@ -18,7 +18,7 @@ clipped = pgf.clipMesh(scaled, plane)
 area = pgf.area(clipped)
 centroid = pgf.centroid(clipped)
 
-npts = pgv.slideri32("Point count", 10, 1000, 100)
+npts = pgv.slideri32("Point count", 10, 5000, 100)
 points = pgf.randomPointsInBox(pgf.bounds(clipped), npts)
 projected = pgf.closestPoints(clipped, points)
 
