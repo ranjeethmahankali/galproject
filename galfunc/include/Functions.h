@@ -507,12 +507,14 @@ private:
     }
   }
 
-private:
   // Calls update on all the upstream functions.
   inline void updateUpstream() const
   {
     std::apply([](const auto&... inputs) { (inputs.mOwner->update(), ...); }, mInputs);
   }
+
+protected:
+  OutputTupleT& outputs() { return mOutputs; }
 
 public:
   /**
@@ -643,7 +645,7 @@ struct TVariable : public TFunction<EmptyCallable<TVal>, TVal>
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
-  inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
+  inline data::Tree<TVal>& tree() { return std::get<0>(this->outputs()); };
 
   void setInternal(const py::object& obj)
   {

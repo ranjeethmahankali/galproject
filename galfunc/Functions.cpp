@@ -17,10 +17,9 @@
 namespace gal {
 namespace func {
 
-static auto sLogger = spdlog::stdout_color_mt("galfunc");
-
 spdlog::logger& logger()
 {
+  static auto const sLogger = spdlog::stdout_color_mt("galfunc");
   spdlog::set_level(spdlog::level::level_enum::debug);
   return *sLogger;
 }
@@ -66,12 +65,12 @@ int& Function::index()
 
 namespace store {
 
-static std::vector<std::unique_ptr<Function>> sFunctions;
+static std::vector<std::unique_ptr<Function>> sFunctions;  // NOLINT
 
 Function* addFunction(const FuncInfo& fnInfo, std::unique_ptr<Function> fn)
 {
   fn->info()  = fnInfo;
-  fn->index() = sFunctions.size();
+  fn->index() = int(sFunctions.size());
   sFunctions.push_back(std::move(fn));
   properties().resize(sFunctions.size());
   return sFunctions.back().get();
@@ -95,7 +94,7 @@ Properties& properties()
 
 void unloadAllFunctions()
 {
-  sLogger->debug("Unloading all functions...");
+  logger().debug("Unloading all functions...");
   sFunctions.clear();
 }
 
@@ -130,10 +129,9 @@ fs::path getcontextpath()
 }
 
 FuncDocString::FuncDocString(const FuncInfo& fnInfo)
+    : mDocString(fnInfo.mDesc)
 {
   static constexpr std::string_view sColon = ": ";
-
-  mDocString = fnInfo.mDesc;
   mDocString.push_back('\n');
   for (size_t i = 0; i < fnInfo.mNumInputs; i++) {
     const auto& name = fnInfo.mInputNames[i];
@@ -178,7 +176,7 @@ void bind_SortFunc(py::module&);
 }  // namespace func
 }  // namespace gal
 
-PYBIND11_MODULE(pygalfunc, pgf)
+PYBIND11_MODULE(pygalfunc, pgf)  // NOLINT
 {
   using namespace gal::func::python;
   using namespace gal::func;
