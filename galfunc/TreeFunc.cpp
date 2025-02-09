@@ -4,7 +4,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   treeSum,
                   "Gets the sum of all elements in the tree",
                   ((data::Tree<T>, tree, "Tree to be summed.")),
@@ -14,7 +14,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   sum = std::accumulate(tree.values().begin(), tree.values().end(), sZero);
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   graft,
                   "Grafts the tree data",
                   ((data::Tree<T>, treeIn, "Input tree")),
@@ -24,7 +24,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   treeOut.graft();
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   flatten,
                   "Flattens the tree",
                   ((data::Tree<T>, in, "Input tree")),

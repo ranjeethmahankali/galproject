@@ -67,6 +67,11 @@ struct Function
   // Virtual destructor because of polymorphism.
   virtual ~Function() = default;
 
+  Function(Function const&)            = delete;
+  Function(Function&&)                 = delete;
+  Function& operator=(Function const&) = delete;
+  Function& operator=(Function&&)      = delete;
+
   /**
    * @brief Ensures the output data is up to date.
    */
@@ -466,7 +471,7 @@ struct TFunction : public Function
   using ExpirationT =
     std::conditional_t<HasInputs, bool, std::vector<std::reference_wrapper<bool>>>;
 
-protected:
+private:
   /* Some fields are marked mutable because the function is considered changed only if the
    * inputs are changed. Running the function, which changes the output, or the status of
    * the dirty-flag, is not considered changing.
@@ -502,12 +507,14 @@ protected:
     }
   }
 
-private:
   // Calls update on all the upstream functions.
   inline void updateUpstream() const
   {
     std::apply([](const auto&... inputs) { (inputs.mOwner->update(), ...); }, mInputs);
   }
+
+protected:
+  OutputTupleT& outputs() { return mOutputs; }
 
 public:
   /**
@@ -531,6 +538,11 @@ public:
   };
 
   virtual ~TFunction() = default;
+
+  TFunction(TFunction const&)            = delete;
+  TFunction(TFunction&&)                 = delete;
+  TFunction& operator=(TFunction const&) = delete;
+  TFunction& operator=(TFunction&&)      = delete;
 
   void expire() const
   {
@@ -633,7 +645,7 @@ struct TVariable : public TFunction<EmptyCallable<TVal>, TVal>
 
 protected:
   inline uint64_t&         registerId() { return this->mRegIds[0]; }
-  inline data::Tree<TVal>& tree() { return std::get<0>(this->mOutputs); };
+  inline data::Tree<TVal>& tree() { return std::get<0>(this->outputs()); };
 
   void setInternal(const py::object& obj)
   {
@@ -665,6 +677,11 @@ public:
 
   virtual ~TVariable() = default;
 
+  TVariable(TVariable const&)            = delete;
+  TVariable(TVariable&&)                 = delete;
+  TVariable& operator=(TVariable const&) = delete;
+  TVariable& operator=(TVariable&&)      = delete;
+
   void set(const py::object& obj)
   {
     this->expire();
@@ -693,7 +710,6 @@ template<typename TFunc, typename... TArgs>
 TFunc* makeFunction(const FuncInfo& fnInfo, const TArgs&... args)
 {
   static_assert(std::is_base_of_v<Function, TFunc>, "Not a valid function type");
-
   return dynamic_cast<TFunc*>(
     store::addFunction(fnInfo, std::make_unique<TFunc>(args...)));
 };
@@ -782,82 +798,95 @@ void bindOverloads(py::module&                             m,
 }  // namespace func
 }  // namespace gal
 
-#define GAL_CONCAT(x, y) x##y
+#define GAL_CONCAT(x, y) x##y  // NOLINT
 // Removes the braces from the type name at compile time.
-#define GAL_UNBRACED_TYPE(type) typename gal::RemoveBraces<void(type)>::Type
+#define GAL_UNBRACED_TYPE(type) typename gal::RemoveBraces<void(type)>::Type  // NOLINT
 // Get the type from an arg-tuple that has description.
-#define _GAL_ARG_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)
-#define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple
+#define _GAL_ARG_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)  // NOLINT
+#define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple            // NOLINT
 // Get the const type from an arg-tuple.
+// NOLINTNEXTLINE
 #define _GAL_ARG_CONST_TYPE(type, name, desc) std::add_const_t<GAL_UNBRACED_TYPE(type)>
-#define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple
+#define GAL_ARG_CONST_TYPE(argTuple) _GAL_ARG_CONST_TYPE argTuple  // NOLINT
 // Get the name from an arg-tuple.
-#define _GAL_ARG_NAME(type, name, desc) name
-#define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple
+#define _GAL_ARG_NAME(type, name, desc) name           // NOLINT
+#define GAL_ARG_NAME(argTuple) _GAL_ARG_NAME argTuple  // NOLINT
 // Get the description from an arg-tuple.
-#define _GAL_ARG_DESC(type, name, desc) desc
-#define GAL_ARG_DESC(tup) _GAL_ARG_DESC tup
+#define _GAL_ARG_DESC(type, name, desc) desc  // NOLINT
+#define GAL_ARG_DESC(tup) _GAL_ARG_DESC tup   // NOLINT
 // Expand types from a list of arg-tuples.
-#define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)
-#define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types
+#define _GAL_EXPAND_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_TYPE, __VA_ARGS__)  // NOLINT
+#define GAL_EXPAND_TYPE_TUPLE(types) _GAL_EXPAND_TYPE_TUPLE types        // NOLINT
 // Expand const types from a list of arg-tuples.
+// NOLINTNEXTLINE
 #define _GAL_EXPAND_CONST_TYPE_TUPLE(...) MAP_LIST(GAL_ARG_CONST_TYPE, __VA_ARGS__)
-#define GAL_EXPAND_CONST_TYPE_TUPLE(types) _GAL_EXPAND_CONST_TYPE_TUPLE types
+#define GAL_EXPAND_CONST_TYPE_TUPLE(types) _GAL_EXPAND_CONST_TYPE_TUPLE types  // NOLINT
 // Get reference type from an arg-tuple.
+// NOLINTNEXTLINE
 #define GAL_EXPAND_IMPL_ARG(argTuple) \
   typename gal::func::ImplFnArgType<GAL_ARG_TYPE(argTuple)>::Type GAL_ARG_NAME(argTuple)
 // Get the const reference type from an arg-tuple.
+// NOLINTNEXTLINE
 #define GAL_EXPAND_IMPL_CONST_ARG(argTuple)                                           \
   typename gal::func::ImplFnArgType<GAL_ARG_CONST_TYPE(argTuple)>::Type GAL_ARG_NAME( \
     argTuple)
 // Expand to a list of references from arg-tuples.
-#define GAL_EXPAND_IMPL_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_ARG, __VA_ARGS__)
+#define GAL_EXPAND_IMPL_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_ARG, __VA_ARGS__)  // NOLINT
 // Expand to a list of const references from arg-tuples.
+// NOLINTNEXTLINE
 #define GAL_EXPAND_IMPL_CONST_ARGS(...) MAP_LIST(GAL_EXPAND_IMPL_CONST_ARG, __VA_ARGS__)
 // Get the register type for the python function argument.
+// NOLINTNEXTLINE
 #define GAL_PY_REGISTER_TYPE(typeTuple) \
   const gal::func::ArgRegisterT<GAL_ARG_TYPE(typeTuple)>&
 // Get python register argument from an arg-tuple.
+// NOLINTNEXTLINE
 #define GAL_PY_REGISTER_ARG(typeTuple) \
   GAL_PY_REGISTER_TYPE(typeTuple) GAL_ARG_NAME(typeTuple)
 // Get python argument register list from arg-tuples.
+// NOLINTNEXTLINE
 #define GAL_EXPAND_PY_REGISTER_ARGS(...) MAP_LIST(GAL_PY_REGISTER_ARG, __VA_ARGS__)
 // Get python argument type list.
+// NOLINTNEXTLINE
 #define GAL_EXPAND_PY_REGISTER_TYPES(...) MAP_LIST(GAL_PY_REGISTER_TYPE, __VA_ARGS__)
 // Name of a function implementation.
-#define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)
+#define GAL_FN_IMPL_NAME(fnName) GAL_CONCAT(fnName, _impl)  // NOLINT
 // Get register ids from arg-tuples.
-#define GAL_EXPAND_REG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)
+#define GAL_EXPAND_REG_NAMES(...) MAP_LIST(GAL_ARG_NAME, __VA_ARGS__)  // NOLINT
 // Actual declaration of a the static implementation of the function.
+// NOLINTNEXTLINE
 #define GAL_FN_IMPL(fnName, inputs, outputs)                              \
   static void GAL_FN_IMPL_NAME(fnName)(GAL_EXPAND_IMPL_CONST_ARGS inputs, \
                                        GAL_EXPAND_IMPL_ARGS       outputs)
 
 // Gets the documentation info of an argument.
+// NOLINTNEXTLINE
 #define _GAL_ARG_INFO(type, argname, desc) \
   {                                        \
 #argname, desc                         \
   }
-#define GAL_ARG_INFO(arg) _GAL_ARG_INFO arg
+#define GAL_ARG_INFO(arg) _GAL_ARG_INFO arg  // NOLINT
 // Expand the name and description of arguments
-#define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)
-#define GAL_EXPAND_ARG_INFOS(args) _GAL_EXPAND_ARG_INFOS args
+#define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)  // NOLINT
+#define GAL_EXPAND_ARG_INFOS(args) _GAL_EXPAND_ARG_INFOS args           // NOLINT
 
 // Expands the names of arguments as c-strings.
-#define _GAL_ARG_NAME_STR(type, argname, desc) #argname
-#define GAL_ARG_NAME_STR(arg) _GAL_ARG_NAME_STR arg
+#define _GAL_ARG_NAME_STR(type, argname, desc) #argname  // NOLINT
+#define GAL_ARG_NAME_STR(arg) _GAL_ARG_NAME_STR arg      // NOLINT
 // Expand the names of arguments as c-strings.
-#define _GAL_EXPAND_ARG_NAMES(...) MAP_LIST(GAL_ARG_NAME_STR, __VA_ARGS__)
-#define GAL_EXPAND_ARG_NAMES(args) _GAL_EXPAND_ARG_NAMES args
+#define _GAL_EXPAND_ARG_NAMES(...) MAP_LIST(GAL_ARG_NAME_STR, __VA_ARGS__)  // NOLINT
+#define GAL_EXPAND_ARG_NAMES(args) _GAL_EXPAND_ARG_NAMES args               // NOLINT
 // Expand the descriptions of the arguments.
-#define _GAL_EXPAND_ARG_DESCS(...) MAP_LIST(GAL_ARG_DESC, __VA_ARGS__)
-#define GAL_EXPAND_ARG_DESCS(args) _GAL_EXPAND_ARG_DESCS args
+#define _GAL_EXPAND_ARG_DESCS(...) MAP_LIST(GAL_ARG_DESC, __VA_ARGS__)  // NOLINT
+#define GAL_EXPAND_ARG_DESCS(args) _GAL_EXPAND_ARG_DESCS args           // NOLINT
 
 // Documentation info of the function
+// NOLINTNEXTLINE
 #define GAL_PY_FN_DOC_STR(fnName)       \
   static const auto pyfnInfo_##fnName = \
     gal::func::python::FuncDocString(sFnInfo_##fnName);
 
+// NOLINTNEXTLINE
 #define GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs)                \
   static auto sInputNames_##fnName =                                           \
     gal::utils::makeArray<std::string_view>(GAL_EXPAND_ARG_NAMES(inputArgs));  \
@@ -878,6 +907,7 @@ void bindOverloads(py::module&                             m,
     sOutputDescriptions_##fnName.data()};
 
 // Declartion of a gal function.
+// NOLINTNEXTLINE
 #define GAL_FUNC(fnName, fnDesc, inputArgs, outputArgs)                                  \
   GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs);                               \
   GAL_PY_FN_DOC_STR(fnName)                                                              \
@@ -901,19 +931,21 @@ void bindOverloads(py::module&                             m,
       &py_##fnName;                                                                      \
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
-#define _GAL_TEMPL_PARAM_TYPE(argType, argSymbol) argType
-#define GAL_TEMPL_PARAM_TYPE(templParam) _GAL_TEMPL_PARAM_TYPE templParam
+#define _GAL_TEMPL_PARAM_TYPE(argType, argSymbol) argType                  // NOLINT
+#define GAL_TEMPL_PARAM_TYPE(templParam) _GAL_TEMPL_PARAM_TYPE templParam  // NOLINT
 
-#define _GAL_TEMPL_PARAM_SYMBOL(argType, argSymbol) argSymbol
-#define GAL_TEMPL_PARAM_SYMBOL(templParam) _GAL_TEMPL_PARAM_SYMBOL templParam
+#define _GAL_TEMPL_PARAM_SYMBOL(argType, argSymbol) argSymbol                  // NOLINT
+#define GAL_TEMPL_PARAM_SYMBOL(templParam) _GAL_TEMPL_PARAM_SYMBOL templParam  // NOLINT
 
+// NOLINTNEXTLINE
 #define GAL_TEMPL_PARAM(templateParam) \
   GAL_TEMPL_PARAM_TYPE(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)
-#define GAL_EXPAND_TEMPL_PARAMS(...) MAP_LIST(GAL_TEMPL_PARAM, __VA_ARGS__)
+#define GAL_EXPAND_TEMPL_PARAMS(...) MAP_LIST(GAL_TEMPL_PARAM, __VA_ARGS__)  // NOLINT
 
-#define GAL_TEMPL_ARG(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)
-#define GAL_EXPAND_TEMPL_ARGS(...) MAP_LIST(GAL_TEMPL_ARG, __VA_ARGS__)
+#define GAL_TEMPL_ARG(templateParam) GAL_TEMPL_PARAM_SYMBOL(templateParam)  // NOLINT
+#define GAL_EXPAND_TEMPL_ARGS(...) MAP_LIST(GAL_TEMPL_ARG, __VA_ARGS__)     // NOLINT
 
+// NOLINTNEXTLINE
 #define GAL_FUNC_TEMPLATE(tparams, fnName, fnDesc, inputArgs, outputArgs)               \
   GAL_FN_INFO_DECL(fnName, fnDesc, inputArgs, outputArgs);                              \
   GAL_PY_FN_DOC_STR(fnName)                                                             \
@@ -943,14 +975,17 @@ void bindOverloads(py::module&                             m,
   GAL_FN_IMPL(fnName, inputArgs, outputArgs)
 
 // Creates a python binding for the function.
+// NOLINTNEXTLINE
 #define GAL_FN_BIND(fnName, module) \
   module.def(#fnName, pyfnptr_##fnName, pyfnInfo_##fnName.c_str())
 
+// NOLINTNEXTLINE
 #define _GAL_FN_OVERLOAD_DATA(fnName) std::make_pair(pyfnptr_##fnName, &pyfnInfo_##fnName)
+// NOLINTNEXTLINE
 #define GAL_FN_BIND_OVERLOADS(module, fnName, ...) \
   gal::func::python::bindOverloads(                \
     module, #fnName, MAP_LIST(_GAL_FN_OVERLOAD_DATA, __VA_ARGS__))
-
+// NOLINTNEXTLINE
 #define GAL_FN_BIND_TEMPLATE(fnName, module, ...) \
   module.def(#fnName, pyfnptr_##fnName<__VA_ARGS__>, pyfnInfo_##fnName.c_str())
 
@@ -982,7 +1017,7 @@ void assign(const Register<T>& reg, const py::object& src)
 {
   const TVariable<T>* mOwner = dynamic_cast<const TVariable<T>*>(reg.mOwner);
   if (mOwner) {
-    const_cast<TVariable<T>*>(mOwner)->set(src);
+    const_cast<TVariable<T>*>(mOwner)->set(src);  // NOLINT
   }
   else {
     throw std::runtime_error(

@@ -46,7 +46,13 @@ void setPanelVisibility(const std::string& name, bool visible);
 class Widget
 {
 public:
-  virtual ~Widget()   = default;
+  Widget()                         = default;
+  virtual ~Widget()                = default;
+  Widget(Widget const&)            = delete;
+  Widget(Widget&&)                 = delete;
+  Widget& operator=(Widget const&) = delete;
+  Widget& operator=(Widget&&)      = delete;
+
   virtual void draw() = 0;
 };
 
@@ -90,12 +96,17 @@ public:
   explicit Text(const std::string& text);
   virtual ~Text() = default;
 
+  Text(Text const&)            = delete;
+  Text(Text&&)                 = delete;
+  Text& operator=(Text const&) = delete;
+  Text& operator=(Text&&)      = delete;
+
   void draw() override;
 
   const std::string& value() const;
   std::string&       value();
 
-protected:
+private:
   std::string mValue;
 };
 
@@ -108,17 +119,23 @@ public:
   Button(const std::string& label, const std::function<void()>& onClick);
   virtual ~Button() = default;
 
+  Button(Button const&)            = delete;
+  Button(Button&&)                 = delete;
+  Button& operator=(Button const&) = delete;
+  Button& operator=(Button&&)      = delete;
+
   void draw() override;
 };
 
 template<typename T>
 class InputWidget : public Widget
 {
-protected:
+private:
   std::string mLabel;
   T           mValue;
   bool        mEdited = false;
 
+public:
   explicit InputWidget(const std::string& label)
       : mLabel(label)
       , mValue(T())
@@ -130,6 +147,16 @@ protected:
   {}
 
   virtual ~InputWidget() = default;
+
+  InputWidget(InputWidget const&)            = delete;
+  InputWidget(InputWidget&&)                 = delete;
+  InputWidget& operator=(InputWidget const&) = delete;
+  InputWidget& operator=(InputWidget&&)      = delete;
+
+  T const&           value() const { return mValue; }
+  T&                 value() { return mValue; }
+  std::string const& label() const { return mLabel; }
+  std::string&       label() { return mLabel; }
 
 protected:
   /**
@@ -149,9 +176,6 @@ protected:
   void setEdited() { mEdited = true; }
 
   virtual void handleChanges() = 0;
-
-public:
-  const T& value() const { return mValue; };
 };
 
 template<typename T, int N = 1>
@@ -206,16 +230,21 @@ public:
 
   virtual ~Slider() = default;
 
+  Slider(Slider const&)            = delete;
+  Slider(Slider&&)                 = delete;
+  Slider& operator=(Slider const&) = delete;
+  Slider& operator=(Slider&&)      = delete;
+
   void draw()
   {
     drawSlider<T>(
-      this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
+      this->label().c_str(), &(this->value()), this->mRange[0], this->mRange[1]);
     this->checkEdited();
     this->handleChanges();
   };
 
 private:
-  T mRange[2];
+  std::array<T, 2> mRange {};
 };
 
 /**
@@ -245,7 +274,7 @@ public:
       : InputWidget<VecType>(label)
       , mRange {min, max}
   {
-    this->mValue = VecType(val);
+    this->value() = VecType(val);
   };
 
   /**
@@ -261,17 +290,22 @@ public:
 
   virtual ~Slider() = default;
 
+  Slider(Slider const&)            = delete;
+  Slider(Slider&&)                 = delete;
+  Slider& operator=(Slider const&) = delete;
+  Slider& operator=(Slider&&)      = delete;
+
   void draw()
   {
     static_assert(N < 5, "Unsupported vector length");
     drawSlider<T, N>(
-      this->mLabel.c_str(), &(this->mValue[0]), this->mRange[0], this->mRange[1]);
+      this->label().c_str(), &(this->value()[0]), this->mRange[0], this->mRange[1]);
     this->checkEdited();
     this->handleChanges();
   };
 
 private:
-  T mRange[2];
+  std::array<T, 2> mRange {};
 };
 
 class TextInput : public InputWidget<std::string>
@@ -279,6 +313,11 @@ class TextInput : public InputWidget<std::string>
 public:
   TextInput(const std::string& label, const std::string& value);
   virtual ~TextInput() = default;
+
+  TextInput(TextInput const&)            = delete;
+  TextInput(TextInput&&)                 = delete;
+  TextInput& operator=(TextInput const&) = delete;
+  TextInput& operator=(TextInput&&)      = delete;
 
   void draw() override;
 };
@@ -288,6 +327,11 @@ class CheckBox : public InputWidget<bool>
 public:
   CheckBox(const std::string& label, bool value);
   virtual ~CheckBox() = default;
+
+  CheckBox(CheckBox const&)            = delete;
+  CheckBox(CheckBox&&)                 = delete;
+  CheckBox& operator=(CheckBox const&) = delete;
+  CheckBox& operator=(CheckBox&&)      = delete;
 
   void        draw() override;
   const bool* checkedPtr() const;

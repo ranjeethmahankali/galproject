@@ -1,14 +1,3 @@
-#include <exception>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
-#include <pybind11/embed.h>
-#include <cxxopts.hpp>
-#include <glm/gtx/transform.hpp>
-#include <string_view>
-
 #include <Circle2d.h>
 #include <Command.h>
 #include <Context.h>
@@ -20,6 +9,10 @@
 #include <PointCloud.h>
 #include <Util.h>
 #include <Views.h>
+#include <pybind11/embed.h>
+#include <cxxopts.hpp>
+#include <exception>
+#include <filesystem>
 
 using namespace gal;
 namespace fs = std::filesystem;

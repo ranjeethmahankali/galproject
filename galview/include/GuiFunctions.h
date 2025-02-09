@@ -37,11 +37,16 @@ public:
 
   virtual ~SliderFunc() = default;
 
+  SliderFunc(SliderFunc const&)            = delete;
+  SliderFunc(SliderFunc&&)                 = delete;
+  SliderFunc& operator=(SliderFunc const&) = delete;
+  SliderFunc& operator=(SliderFunc&&)      = delete;
+
 protected:
   void handleChanges() override
   {
     if (this->isEdited())
-      this->set(this->mValue);
+      this->set(this->value());
 
     this->clearEdited();
   };
@@ -68,9 +73,9 @@ public:
 protected:
   void handleChanges() override
   {
-    if (this->isEdited())
-      this->set(this->mValue);
-
+    if (this->isEdited()) {
+      this->set(this->value());
+    }
     this->clearEdited();
   };
 };

@@ -4,7 +4,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   series,
                   "Populates a list with members of an arithmetic progression.",
                   ((T, start, "Start of the series"),
@@ -23,7 +23,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   }
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   repeat,
                   "Creates a list by repeating the given value the given number of times",
                   ((T, val, "The value to be repeated"),
@@ -36,7 +36,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   }
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   listItem,
                   "Gets an item from the list",
                   (((data::ReadView<T, 1>), list, "List"), (int32_t, index, "Index")),
@@ -45,7 +45,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   item = list[index];
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   subList,
                   "Gets a slice of the list",
                   (((data::ReadView<T, 1>), list, "Source list"),
@@ -62,7 +62,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   }
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   listSum,
                   "Sum of all items in the list",
                   (((data::ReadView<T, 1>), list, "List")),
@@ -73,7 +73,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   sum = std::accumulate(list.begin(), list.end(), sZero);
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   listLength,
                   "Length of a list",
                   (((data::ReadView<T, 1>), list, "List")),
@@ -82,7 +82,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   length = int32_t(list.size());
 }
 
-GAL_FUNC_TEMPLATE(
+GAL_FUNC_TEMPLATE(  // NOLINT
   ((typename, T)),
   dispatch,
   "Dispatches elements of a list based on a boolean pattern",

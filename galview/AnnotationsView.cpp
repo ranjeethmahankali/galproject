@@ -12,7 +12,7 @@
 namespace gal {
 namespace view {
 
-template<uint32_t NX, uint32_t NY, typename TPixel>
+template<size_t NX, size_t NY, typename TPixel>
 struct TextureAtlas
 {
   static_assert(std::is_same_v<TPixel, uint8_t> || std::is_same_v<TPixel, uint32_t>,
@@ -21,8 +21,8 @@ struct TextureAtlas
   static constexpr TPixel        ZERO         = TPixel(0);
   uint32_t                       mTileSize    = 0;
   uint32_t                       mGLTextureId = 0;
-  std::vector<TPixel>            mTexture;
-  std::array<glm::vec4, NX * NY> mTexCoords;
+  std::vector<TPixel>            mTexture {};
+  std::array<glm::vec4, NX * NY> mTexCoords {};
 
   TextureAtlas() = default;
   explicit TextureAtlas(uint32_t tilesize)
@@ -33,10 +33,15 @@ struct TextureAtlas
 
   ~TextureAtlas() { deleteGLTexture(); }
 
+  TextureAtlas(TextureAtlas const&)            = delete;
+  TextureAtlas(TextureAtlas&&)                 = delete;
+  TextureAtlas& operator=(TextureAtlas const&) = delete;
+  TextureAtlas& operator=(TextureAtlas&&)      = delete;
+
   void allocate()
   {
     mTexture.clear();
-    mTexture.resize(mTileSize * mTileSize * NX * NY, ZERO);
+    mTexture.resize(size_t(mTileSize) * mTileSize * NX * NY, ZERO);
   }
 
   void bind() const { GL_CALL(glBindTexture(GL_TEXTURE_2D, mGLTextureId)); }
@@ -120,31 +125,31 @@ void getFontTextureData(FT_Face                           face,
 
 class CharAtlas
 {
-  static constexpr uint32_t     NX       = 1 << 4;
-  static constexpr uint32_t     NY       = 1 << 3;
+  static constexpr size_t       NX       = 1 << 4;
+  static constexpr size_t       NY       = 1 << 3;
   static constexpr size_t       NUMCHARS = size_t(NX * NY);
   TextureAtlas<NX, NY, uint8_t> mAtlas;
 
-  std::array<glm::ivec2, NUMCHARS> mBearings;
-  std::array<glm::ivec2, NUMCHARS> mSizes;
-  std::array<uint32_t, NUMCHARS>   mAdvances;
+  std::array<glm::ivec2, NUMCHARS> mBearings {};
+  std::array<glm::ivec2, NUMCHARS> mSizes {};
+  std::array<uint32_t, NUMCHARS>   mAdvances {};
 
   CharAtlas()
   {
     static const std::string sFontFilePath = utils::absPath("CascadiaMono.ttf").string();
-    FT_Library               sFtLib;
+    FT_Library               sFtLib        = nullptr;
     if (FT_Init_FreeType(&sFtLib)) {
       throw std::runtime_error("ERROR::FREETYPE: Could not init FreeType Library");
     }
 
-    FT_Face face;
+    FT_Face face = nullptr;
     if (FT_New_Face(sFtLib, sFontFilePath.c_str(), 0, &face)) {
       throw std::runtime_error("ERROR::FREETYPE: Failed to load font");
     }
     FT_Set_Pixel_Sizes(face, 0, 48);
 
     std::vector<uint8_t>         textureData;
-    std::array<size_t, NUMCHARS> offsets;
+    std::array<size_t, NUMCHARS> offsets {};
     getFontTextureData(
       face, textureData, offsets, mSizes, mBearings, mAdvances, mAtlas.mTileSize);
     mAtlas.allocate();
@@ -197,8 +202,8 @@ class GlyphAtlas
 {
 private:
   static constexpr uint32_t GLYPHSIZE = 128;
-  static constexpr uint32_t NX        = 1 << 4;
-  static constexpr uint32_t NY        = 1 << 3;
+  static constexpr size_t   NX        = 1 << 4;
+  static constexpr size_t   NY        = 1 << 3;
   static constexpr size_t   NUMGLYPHS = size_t(NX * NY);
 
   TextureAtlas<NX, NY, uint32_t>           mAtlas;
@@ -252,7 +257,7 @@ public:
       throw std::out_of_range("Too many glyphs!");
     }
 
-    int32_t ibegin = mImages.size();
+    int32_t ibegin = int32_t(mImages.size());
     mImages.reserve(mImages.size() + labeledPNGPaths.size());
     for (const auto& path : labeledPNGPaths) {
       if (!fs::exists(path)) {
@@ -268,7 +273,7 @@ public:
       }
       mImages.emplace_back(std::move(image));
     }
-    int32_t iend = mImages.size();
+    int32_t iend = int32_t(mImages.size());
 
     mAtlas.allocate();  // Clears the entire texture.
     uint32_t    width = mAtlas.width();
