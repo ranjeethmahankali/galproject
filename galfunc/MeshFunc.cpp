@@ -249,6 +249,16 @@ GAL_FUNC(decimate,  // NOLINT
   decimated = gal::decimate(mesh, nCollapses);
 }
 
+GAL_FUNC(translate,  // NOLINT
+         "Translate the mesh by the given vector",
+         ((gal::TriMesh, mesh, "The mesh to be translated"),
+          (glm::vec3, shift, "Vector to translate along")),
+         ((gal::TriMesh, translated, "The translated mesh")))
+{
+  translated = mesh;
+  translated.transform(glm::translate(shift));
+}
+
 void bind_MeshFunc(py::module& module)
 {
   GAL_FN_BIND(centroid, module);
@@ -273,6 +283,7 @@ void bind_MeshFunc(py::module& module)
     module, meshWithVertexColors, triMeshWithVertexColors, polyMeshWithVertexColors);
   GAL_FN_BIND(vertexColors, module);
   GAL_FN_BIND(decimate, module);
+  GAL_FN_BIND(translate, module);
 }
 
 }  // namespace func
