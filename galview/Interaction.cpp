@@ -164,7 +164,7 @@ void Button::draw()
 TextInput::TextInput(const std::string& label, const std::string& value)
     : InputWidget<std::string>(label, value)
 {
-  mValue.reserve(1024);  // avoids reallocation for each frame.
+  this->value().reserve(1024);  // avoids reallocation for each frame.
 };
 
 static int TextInputCallBack(ImGuiInputTextCallbackData* data)
@@ -179,17 +179,17 @@ static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 
 void TextInput::draw()
 {
-  ImGui::InputText(mLabel.c_str(),
-                   mValue.data(),
-                   mValue.size(),
+  ImGui::InputText(label().c_str(),
+                   value().data(),
+                   value().size(),
                    ImGuiInputTextFlags_CallbackResize,
                    TextInputCallBack,
-                   (void*)(&mValue));
+                   (void*)(&value()));
   checkEdited();
   if (!ImGui::IsItemActive()) {
     if (isEdited()) {  // Remove null terminators.
-      while (mValue.back() == '\0') {
-        mValue.pop_back();
+      while (value().back() == '\0') {
+        value().pop_back();
       }
     }
     handleChanges();
@@ -202,14 +202,14 @@ CheckBox::CheckBox(const std::string& label, bool value)
 
 void CheckBox::draw()
 {
-  ImGui::Checkbox(mLabel.c_str(), &mValue);
+  ImGui::Checkbox(label().c_str(), &value());
   checkEdited();
   handleChanges();
 }
 
 const bool* CheckBox::checkedPtr() const
 {
-  return &mValue;
+  return &value();
 }
 
 void CheckBox::handleChanges()

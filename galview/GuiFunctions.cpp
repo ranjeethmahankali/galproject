@@ -136,7 +136,7 @@ protected:
   void handleChanges() override
   {
     if (isEdited())
-      this->set(this->mValue);
+      this->set(this->value());
 
     clearEdited();
   }
