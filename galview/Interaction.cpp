@@ -14,6 +14,7 @@
 #include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <chrono>
 #include <memory>
 
 namespace gal {
@@ -226,6 +227,7 @@ static void initPanels()
   sPanels.emplace_back("inputs");
   sPanels.emplace_back("outputs");
   sPanels.emplace_back("history", false);
+  sPanels.emplace_back("diagnostics", false);
 }
 
 static auto panelIterByName(const std::string& name)
@@ -281,9 +283,10 @@ int runPythonDemoFile(const fs::path& demoPath)
   }
 }
 
-static std::string  sCmdline    = "";       // NOLINT
-static std::string  sResponse   = "";       // NOLINT
-static std::string* sHistoryPtr = nullptr;  // NOLINT
+static std::string  sCmdline        = "";       // NOLINT
+static std::string  sResponse       = "";       // NOLINT
+static std::string* sHistoryPtr     = nullptr;  // NOLINT
+static std::string* sDiagnosticsPtr = nullptr;  // NOLINT
 
 void init(GLFWwindow* window, const char* glslVersion)
 {
@@ -295,6 +298,12 @@ void init(GLFWwindow* window, const char* glslVersion)
     Panel&                       historyPanel   = panelByName("history");
     historyPanel.addWidget(sHistoryWidget.get());
     sHistoryPtr = &(sHistoryWidget->value());
+  }
+  {  // Initialize diagnostics panel.
+    static std::unique_ptr<Text> text  = std::make_unique<Text>("");
+    Panel&                       panel = panelByName("diagnostics");
+    panel.addWidget(text.get());
+    sDiagnosticsPtr = &(text->value());
   }
   initCommands();
 }
@@ -385,6 +394,27 @@ void destroy(GLFWwindow* window)
     glfwDestroyWindow(window);
   }
   glfwTerminate();
+}
+
+void reportFrameFinish()
+{
+  static std::chrono::high_resolution_clock::time_point sPrev =
+    std::chrono::high_resolution_clock::now();
+  static Panel const& panel = panelByName("diagnostics");
+  if (panel.visibility()) {
+    auto const  now = std::chrono::high_resolution_clock::now();
+    float const diff =
+      float(std::chrono::duration_cast<std::chrono::microseconds>(now - sPrev).count());
+    if (diff == 0.f) {
+      return;
+    }
+    float const  ms  = diff / 1000.f;
+    std::string& out = *sDiagnosticsPtr;
+    out.clear();
+    out += "Frame time: " + std::to_string(ms) +
+           " ms\nFrame rate: " + std::to_string(1000.f / ms) + " fps";
+    sPrev = now;
+  }
 }
 
 }  // namespace view

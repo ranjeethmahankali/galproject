@@ -43,6 +43,8 @@ int runPythonDemoFile(const std::filesystem::path& demoPath);
  */
 void setPanelVisibility(const std::string& name, bool visible);
 
+void reportFrameFinish();
+
 class Widget
 {
 public:
