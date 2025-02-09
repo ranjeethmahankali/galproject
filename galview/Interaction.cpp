@@ -26,16 +26,21 @@
 namespace gal {
 namespace view {
 
-static ImFont*           sFont      = nullptr;
-static ImFont*           sFontLarge = nullptr;
-static std::stringstream sResponseStream;
-static auto              sResponseSink =
+static ImFont*           sFont      = nullptr;  // NOLINT
+static ImFont*           sFontLarge = nullptr;  // NOLINT
+static std::stringstream sResponseStream;       // NOLINT
+
+// NOLINTNEXTLINE
+static auto sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
-static auto sStdOutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+// NOLINTNEXTLINE
+static auto sStdOutSink =
+  std::make_shared<spdlog::sinks::stdout_color_sink_mt>();  // NOLINT
+// NOLINTNEXTLINE
 static auto sLogger =
   std::make_shared<spdlog::logger>("galview",
                                    spdlog::sinks_init_list {sResponseSink, sStdOutSink});
-static std::vector<Panel> sPanels;
+static std::vector<Panel> sPanels;  // NOLINT
 
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -165,7 +170,7 @@ TextInput::TextInput(const std::string& label, const std::string& value)
 static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-    std::string* str = (std::string*)data->UserData;
+    std::string* str = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     str->resize(data->BufSize);
     data->Buf = str->data();
   }
@@ -283,9 +288,9 @@ int runPythonDemoFile(const fs::path& demoPath)
   }
 }
 
-static std::string  sCmdline    = "";
-static std::string  sResponse   = "";
-static std::string* sHistoryPtr = nullptr;
+static std::string  sCmdline    = "";       // NOLINT
+static std::string  sResponse   = "";       // NOLINT
+static std::string* sHistoryPtr = nullptr;  // NOLINT
 
 void init(GLFWwindow* window, const char* glslVersion)
 {
@@ -303,13 +308,13 @@ void init(GLFWwindow* window, const char* glslVersion)
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-    std::string* str = (std::string*)data->UserData;
+    std::string* str = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     str->resize(data->BufSize);
     data->Buf = str->data();
   }
   else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
     static std::string sCharsToInsert = "";
-    std::string*       cmd            = (std::string*)data->UserData;
+    std::string*       cmd = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     autocompleteCommand(*cmd, sCharsToInsert);
     data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
   }

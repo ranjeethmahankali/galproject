@@ -8,6 +8,9 @@ Plane::Plane()
 
 Plane::Plane(const glm::vec3& origin, const glm::vec3& norm)
     : mOrigin(origin)
+    , mXAxis {}
+    , mNormal {}
+    , mYAxis()
 {
   normal(norm);
 };
