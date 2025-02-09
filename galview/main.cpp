@@ -113,6 +113,7 @@ int loadDemo(const fs::path& demoPath)
       }
       glfwSwapBuffers(window);
       gal::view::runQueuedCommands();
+      view::reportFrameFinish();
     }
   }
   catch (const std::exception& e) {
