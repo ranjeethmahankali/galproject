@@ -27,7 +27,6 @@ norm = pgv.sliderVec3("normal", 0., 1., .5)
 plane = pgf.plane(pt, norm)
 clipped = pgf.clipMesh(mesh, plane)
 projected = pgf.closestPoints(clipped, points)
-
 pgv.show("Plane", plane)
 pgv.show("Clipped Mesh", clipped)
 pgv.show("Projected points", projected)
