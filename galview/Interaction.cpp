@@ -1,10 +1,12 @@
-#include <assert.h>
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <stdexcept>
+#include <Interaction.h>
 
+#include <Command.h>
 #include <Context.h>
+#include <Functions.h>
+#include <GLUtil.h>
+#include <GuiFunctions.h>
+#include <Property.h>
+#include <Views.h>
 #include <imgui.h>
 #include <pybind11/embed.h>
 #include <spdlog/common.h>
@@ -12,16 +14,7 @@
 #include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <boost/iterator/counting_iterator.hpp>
-#include <boost/range/adaptors.hpp>
-
-#include <Command.h>
-#include <Functions.h>
-#include <GLUtil.h>
-#include <GuiFunctions.h>
-#include <Interaction.h>
-#include <Property.h>
-#include <Views.h>
+#include <memory>
 
 namespace gal {
 namespace view {
@@ -294,14 +287,15 @@ static std::string* sHistoryPtr = nullptr;  // NOLINT
 
 void init(GLFWwindow* window, const char* glslVersion)
 {
-  static std::unique_ptr<Text> sHistoryWidget;
   initializeImGui(window, glslVersion);
   initPanels();
   sResponseSink->set_pattern("[%l] %v");
-  Panel& historyPanel = panelByName("history");
-  sHistoryWidget      = std::make_unique<Text>("");
-  historyPanel.addWidget(sHistoryWidget.get());
-  sHistoryPtr = &(sHistoryWidget->value());
+  {  // Initialize history panel.
+    static std::unique_ptr<Text> sHistoryWidget = std::make_unique<Text>("");
+    Panel&                       historyPanel   = panelByName("history");
+    historyPanel.addWidget(sHistoryWidget.get());
+    sHistoryPtr = &(sHistoryWidget->value());
+  }
   initCommands();
 }
 
@@ -363,7 +357,7 @@ void draw(GLFWwindow* window)
     sCmdline.clear();
     sResponse.clear();
   }
-  if (sResponseStream.rdbuf()->in_avail() > 0) {
+  if (sResponseStream.rdbuf()->in_avail() > 0 && sHistoryPtr != nullptr) {
     sResponse = sResponseStream.str();
     *(sHistoryPtr) += sResponse;
     sResponseStream.str("");

@@ -238,7 +238,7 @@ public:
   void draw()
   {
     drawSlider<T>(
-      this->mLabel.c_str(), &(this->mValue), this->mRange[0], this->mRange[1]);
+      this->label().c_str(), &(this->value()), this->mRange[0], this->mRange[1]);
     this->checkEdited();
     this->handleChanges();
   };
@@ -274,7 +274,7 @@ public:
       : InputWidget<VecType>(label)
       , mRange {min, max}
   {
-    this->mValue = VecType(val);
+    this->value() = VecType(val);
   };
 
   /**
@@ -299,7 +299,7 @@ public:
   {
     static_assert(N < 5, "Unsupported vector length");
     drawSlider<T, N>(
-      this->mLabel.c_str(), &(this->mValue[0]), this->mRange[0], this->mRange[1]);
+      this->label().c_str(), &(this->value()[0]), this->mRange[0], this->mRange[1]);
     this->checkEdited();
     this->handleChanges();
   };

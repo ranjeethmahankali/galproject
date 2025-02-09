@@ -45,6 +45,11 @@ public:
     start();
   }
 
+  Timer(Timer const&)            = delete;
+  Timer(Timer&&)                 = delete;
+  Timer& operator=(Timer const&) = delete;
+  Timer& operator=(Timer&&)      = delete;
+
   /**
    * @brief Create a new timer that prints the elapsed time to the given output stream.
    *
