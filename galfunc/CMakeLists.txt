@@ -11,9 +11,11 @@ target_link_libraries(galfuncobjects PUBLIC
     ${Boost_LIBRARIES}
     ${PYTHON_LIBRARIES}
     pybind11::headers
-    pybind11::embed
-    util
-    dl)
+    pybind11::embed)
+
+if (NOT WIN32)
+    target_link_libraries(galfuncobjects PUBLIC util dl)
+endif()
 
 add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
 # This will carry the dependencies and include dirs of galfuncobjects to
