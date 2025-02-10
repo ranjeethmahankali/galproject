@@ -16,4 +16,9 @@ target_link_libraries(galtest PRIVATE
     GTest::gmock_main
     GTest::gtest_main)
 
+  if (WIN32)
+  set_property(TARGET galtest PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 gtest_discover_tests(galtest)

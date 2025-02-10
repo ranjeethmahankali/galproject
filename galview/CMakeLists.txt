@@ -15,6 +15,11 @@ target_link_libraries(galview PRIVATE
 target_include_directories(galview PRIVATE
   "include/")
 
+if (WIN32)
+  set_property(TARGET galview PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview
   POST_BUILD

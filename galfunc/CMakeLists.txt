@@ -22,6 +22,13 @@ add_library(galfunc STATIC $<TARGET_OBJECTS:galfuncobjects>)
 # any other library that uses galfunc
 target_link_libraries(galfunc galfuncobjects)
 
+if (WIN32)
+  set_property(TARGET galfunc PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set_property(TARGET galfuncobjects PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Python shared lib
 pybind11_add_module(pygalfunc SHARED $<TARGET_OBJECTS:galfuncobjects>)
 set_target_properties(pygalfunc PROPERTIES
