@@ -408,7 +408,8 @@ static std::string readfile(const std::string& filepath)
     file.close();
   }
   catch (const std::ifstream::failure& e) {
-    glutil::logger().error("Error reading shader source file:\n{}", e.what());
+    glutil::logger().error(
+      "Error reading shader source file:\n{}\n{}", filepath, e.what());
   }
   return file_stream.str();
 };

@@ -56,7 +56,6 @@ fs::path gal::utils::absPath(const fs::path& relPath)
     ret = GetLastError();
   }
   GetModuleFileNameA(binary, apath.data(), (DWORD)MAX_PATH);
-  PathRemoveFileSpecA(apath.data());
 #else
   size_t count = readlink("/proc/self/exe", apath.data(), PATH_MAX);
   if (count == -1) {
