@@ -42,7 +42,7 @@ static void initializeImGui(GLFWwindow* window, const char* glslVersion)
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO&    io      = ImGui::GetIO();
-  std::string absPath = utils::absPath("CascadiaMono.ttf");
+  std::string absPath = utils::absPath("CascadiaMono.ttf").string();
   glutil::logger().info("Loading font {}", absPath);
   if (!sFont) {
     sFont = io.Fonts->AddFontFromFileTTF(absPath.c_str(), 17.f);
@@ -272,7 +272,7 @@ int runPythonDemoFile(const fs::path& demoPath)
     py::dict global;
     global["__file__"] = demoPath.string();
     global["__name__"] = "__main__";
-    py::eval_file(demoPath.c_str(), global);
+    py::eval_file(demoPath.string(), global);
     logger().info("Loaded demo file: {}", demoPath.string());
     return 0;
   }
