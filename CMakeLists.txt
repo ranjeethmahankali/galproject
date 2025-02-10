@@ -7,6 +7,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(vcpkg.cmake)
 project(gal)
 
+if (WIN32)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()
+
 find_package(PythonLibs REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
