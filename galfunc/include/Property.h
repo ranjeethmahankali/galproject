@@ -23,6 +23,11 @@ struct IProperty
   virtual size_t size() const             = 0;
 
   virtual ~IProperty() = default;
+
+  IProperty(IProperty const&)            = delete;
+  IProperty(IProperty&&)                 = delete;
+  IProperty& operator=(IProperty const&) = delete;
+  IProperty& operator=(IProperty&&)      = delete;
 };
 
 /**
@@ -87,10 +92,10 @@ public:
   Property() = default;
 
   // Forbid copy.
-  Property(const Property&) = delete;
+  Property(const Property&)                  = delete;
   const Property& operator=(const Property&) = delete;
   // Move semantics.
-  const Property& operator=(Property&& other)
+  Property& operator=(Property&& other)
   {
     if (this == &other) {
       return *this;

@@ -1,26 +1,23 @@
-
 #include <Context.h>
 
-#include <cstdint>
-#include <fstream>
-#include <sstream>
-
 #include <GLUtil.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
-
 #include <Mesh.h>
 #include <Util.h>
 #include <Views.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <cstdint>
+#include <fstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <sstream>
 
 namespace gal {
 namespace view {
 
-static bool sOrthoMode = false;
+static bool sOrthoMode = false;  // NOLINT
 
 static void setOrthoModeUniform()
 {
@@ -41,16 +38,16 @@ void RenderSettings::apply() const
   GL_CALL(glPolygonMode(polygonMode.first, polygonMode.second));
 };
 
-static bool       sRightDown  = false;
-static bool       sLeftDown   = false;
-static glm::dvec2 sMousePos   = {0.0f, 0.0f};
-static float      sTransScale = 500.f;
-static glm::mat4  sTrans      = glm::identity<glm::mat4>();
-static glm::mat4  sInvTrans   = glm::identity<glm::mat4>();
+static bool       sRightDown  = false;                       // NOLINT
+static bool       sLeftDown   = false;                       // NOLINT
+static glm::dvec2 sMousePos   = {0.0f, 0.0f};                // NOLINT
+static float      sTransScale = 500.f;                       // NOLINT
+static glm::mat4  sTrans      = glm::identity<glm::mat4>();  // NOLINT
+static glm::mat4  sInvTrans   = glm::identity<glm::mat4>();  // NOLINT
 
-static bool s2dMode        = false;
-static bool sWireFrameMode = false;
-static bool sMeshEdgeMode  = false;
+static bool s2dMode        = false;  // NOLINT
+static bool sWireFrameMode = false;  // NOLINT
+static bool sMeshEdgeMode  = false;  // NOLINT
 
 static void captureMousePos(double x, double y)
 {
@@ -131,6 +128,9 @@ void Context::set2dMode(bool flag)
 
 Context::Context()
     : mShaders(4)
+    , mProj {}
+    , mView {}
+    , mWindowSize {}
 {
   mShaders[0].loadFromName("default");
   mShaders[1].loadFromName("mesh");
@@ -355,10 +355,10 @@ void Context::setProjectionMode(Projection mode)
 
 static void checkCompilation(uint32_t id, uint32_t type)
 {
-  int result;
+  int result = 0;
   glGetShaderiv(id, GL_COMPILE_STATUS, &result);
   if (result == GL_FALSE) {
-    int length;
+    int length = 0;
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
     std::string shaderType = "unknown";
     switch (type) {
@@ -385,12 +385,12 @@ static void checkCompilation(uint32_t id, uint32_t type)
 
 static void checkLinking(uint32_t progId)
 {
-  int success;
+  int success = 0;
   glGetProgramiv(progId, GL_LINK_STATUS, &success);
   if (!success) {
-    char infoLog[1024];
-    glGetProgramInfoLog(progId, 1024, NULL, infoLog);
-    glutil::logger().error("Error linking shader program:\n{}", infoLog);
+    std::array<char, 1024> infolog {};
+    glGetProgramInfoLog(progId, 1024, NULL, infolog.data());
+    glutil::logger().error("Error linking shader program:\n{}", infolog.data());
   }
 };
 

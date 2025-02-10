@@ -9,7 +9,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC(absPath,
+GAL_FUNC(absPath,  // NOLINT
          "Gets the absolute path given the path relative to the current binary.",
          ((std::string, relpath, "Path relative to the current binary")),
          ((std::string, apath, "Absolute path output")))
@@ -17,7 +17,7 @@ GAL_FUNC(absPath,
   apath = gal::utils::absPath(relpath);
 }
 
-GAL_FUNC_TEMPLATE(((typename, T)),
+GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT
                   toString,
                   "Converts the input data to string, if such a conversion is supported.",
                   ((T, src, "The source data")),
@@ -26,7 +26,7 @@ GAL_FUNC_TEMPLATE(((typename, T)),
   result = std::to_string(src);
 }
 
-GAL_FUNC_TEMPLATE(
+GAL_FUNC_TEMPLATE(  // NOLINT
   ((typename, T)),
   combinations,
   "Creates all possible combinations of elements from the given list",
@@ -44,7 +44,7 @@ GAL_FUNC_TEMPLATE(
   });
 }
 
-GAL_FUNC(mapValueToColor,
+GAL_FUNC(mapValueToColor,  // NOLINT
          "Maps the given value w.r.t to the range to a color according to the provided "
          "color scheme",
          ((float, val, "The value to be mapped"),

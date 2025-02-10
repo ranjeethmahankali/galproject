@@ -1,10 +1,12 @@
-#include <assert.h>
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <stdexcept>
+#include <Interaction.h>
 
+#include <Command.h>
 #include <Context.h>
+#include <Functions.h>
+#include <GLUtil.h>
+#include <GuiFunctions.h>
+#include <Property.h>
+#include <Views.h>
 #include <imgui.h>
 #include <pybind11/embed.h>
 #include <spdlog/common.h>
@@ -12,30 +14,27 @@
 #include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <boost/iterator/counting_iterator.hpp>
-#include <boost/range/adaptors.hpp>
-
-#include <Command.h>
-#include <Functions.h>
-#include <GLUtil.h>
-#include <GuiFunctions.h>
-#include <Interaction.h>
-#include <Property.h>
-#include <Views.h>
+#include <chrono>
+#include <memory>
 
 namespace gal {
 namespace view {
 
-static ImFont*           sFont      = nullptr;
-static ImFont*           sFontLarge = nullptr;
-static std::stringstream sResponseStream;
-static auto              sResponseSink =
+static ImFont*           sFont      = nullptr;  // NOLINT
+static ImFont*           sFontLarge = nullptr;  // NOLINT
+static std::stringstream sResponseStream;       // NOLINT
+
+// NOLINTNEXTLINE
+static auto sResponseSink =
   std::make_shared<spdlog::sinks::ostream_sink_mt>(sResponseStream);
-static auto sStdOutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+// NOLINTNEXTLINE
+static auto sStdOutSink =
+  std::make_shared<spdlog::sinks::stdout_color_sink_mt>();  // NOLINT
+// NOLINTNEXTLINE
 static auto sLogger =
   std::make_shared<spdlog::logger>("galview",
                                    spdlog::sinks_init_list {sResponseSink, sStdOutSink});
-static std::vector<Panel> sPanels;
+static std::vector<Panel> sPanels;  // NOLINT
 
 static void initializeImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -159,13 +158,13 @@ void Button::draw()
 TextInput::TextInput(const std::string& label, const std::string& value)
     : InputWidget<std::string>(label, value)
 {
-  mValue.reserve(1024);  // avoids reallocation for each frame.
+  this->value().reserve(1024);  // avoids reallocation for each frame.
 };
 
 static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-    std::string* str = (std::string*)data->UserData;
+    std::string* str = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     str->resize(data->BufSize);
     data->Buf = str->data();
   }
@@ -174,17 +173,17 @@ static int TextInputCallBack(ImGuiInputTextCallbackData* data)
 
 void TextInput::draw()
 {
-  ImGui::InputText(mLabel.c_str(),
-                   mValue.data(),
-                   mValue.size(),
+  ImGui::InputText(label().c_str(),
+                   value().data(),
+                   value().size(),
                    ImGuiInputTextFlags_CallbackResize,
                    TextInputCallBack,
-                   (void*)(&mValue));
+                   (void*)(&value()));
   checkEdited();
   if (!ImGui::IsItemActive()) {
     if (isEdited()) {  // Remove null terminators.
-      while (mValue.back() == '\0') {
-        mValue.pop_back();
+      while (value().back() == '\0') {
+        value().pop_back();
       }
     }
     handleChanges();
@@ -197,14 +196,14 @@ CheckBox::CheckBox(const std::string& label, bool value)
 
 void CheckBox::draw()
 {
-  ImGui::Checkbox(mLabel.c_str(), &mValue);
+  ImGui::Checkbox(label().c_str(), &value());
   checkEdited();
   handleChanges();
 }
 
 const bool* CheckBox::checkedPtr() const
 {
-  return &mValue;
+  return &value();
 }
 
 void CheckBox::handleChanges()
@@ -228,6 +227,7 @@ static void initPanels()
   sPanels.emplace_back("inputs");
   sPanels.emplace_back("outputs");
   sPanels.emplace_back("history", false);
+  sPanels.emplace_back("diagnostics", false);
 }
 
 static auto panelIterByName(const std::string& name)
@@ -283,33 +283,41 @@ int runPythonDemoFile(const fs::path& demoPath)
   }
 }
 
-static std::string  sCmdline    = "";
-static std::string  sResponse   = "";
-static std::string* sHistoryPtr = nullptr;
+static std::string  sCmdline        = "";       // NOLINT
+static std::string  sResponse       = "";       // NOLINT
+static std::string* sHistoryPtr     = nullptr;  // NOLINT
+static std::string* sDiagnosticsPtr = nullptr;  // NOLINT
 
 void init(GLFWwindow* window, const char* glslVersion)
 {
-  static std::unique_ptr<Text> sHistoryWidget;
   initializeImGui(window, glslVersion);
   initPanels();
   sResponseSink->set_pattern("[%l] %v");
-  Panel& historyPanel = panelByName("history");
-  sHistoryWidget      = std::make_unique<Text>("");
-  historyPanel.addWidget(sHistoryWidget.get());
-  sHistoryPtr = &(sHistoryWidget->value());
+  {  // Initialize history panel.
+    static std::unique_ptr<Text> sHistoryWidget = std::make_unique<Text>("");
+    Panel&                       historyPanel   = panelByName("history");
+    historyPanel.addWidget(sHistoryWidget.get());
+    sHistoryPtr = &(sHistoryWidget->value());
+  }
+  {  // Initialize diagnostics panel.
+    static std::unique_ptr<Text> text  = std::make_unique<Text>("");
+    Panel&                       panel = panelByName("diagnostics");
+    panel.addWidget(text.get());
+    sDiagnosticsPtr = &(text->value());
+  }
   initCommands();
 }
 
 static int cmdLineCallback(ImGuiInputTextCallbackData* data)
 {
   if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-    std::string* str = (std::string*)data->UserData;
+    std::string* str = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     str->resize(data->BufSize);
     data->Buf = str->data();
   }
   else if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
     static std::string sCharsToInsert = "";
-    std::string*       cmd            = (std::string*)data->UserData;
+    std::string*       cmd = reinterpret_cast<std::string*>(data->UserData);  // NOLINT
     autocompleteCommand(*cmd, sCharsToInsert);
     data->InsertChars(data->CursorPos, sCharsToInsert.c_str());
   }
@@ -358,7 +366,7 @@ void draw(GLFWwindow* window)
     sCmdline.clear();
     sResponse.clear();
   }
-  if (sResponseStream.rdbuf()->in_avail() > 0) {
+  if (sResponseStream.rdbuf()->in_avail() > 0 && sHistoryPtr != nullptr) {
     sResponse = sResponseStream.str();
     *(sHistoryPtr) += sResponse;
     sResponseStream.str("");
@@ -386,6 +394,27 @@ void destroy(GLFWwindow* window)
     glfwDestroyWindow(window);
   }
   glfwTerminate();
+}
+
+void reportFrameFinish()
+{
+  static std::chrono::high_resolution_clock::time_point sPrev =
+    std::chrono::high_resolution_clock::now();
+  static Panel const& panel = panelByName("diagnostics");
+  if (panel.visibility()) {
+    auto const  now = std::chrono::high_resolution_clock::now();
+    float const diff =
+      float(std::chrono::duration_cast<std::chrono::microseconds>(now - sPrev).count());
+    if (diff == 0.f) {
+      return;
+    }
+    float const  ms  = diff / 1000.f;
+    std::string& out = *sDiagnosticsPtr;
+    out.clear();
+    out += "Frame time: " + std::to_string(ms) +
+           " ms\nFrame rate: " + std::to_string(1000.f / ms) + " fps";
+    sPrev = now;
+  }
 }
 
 }  // namespace view

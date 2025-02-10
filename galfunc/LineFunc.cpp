@@ -3,7 +3,7 @@
 namespace gal {
 namespace func {
 
-GAL_FUNC(line2d,
+GAL_FUNC(line2d,  // NOLINT
          "Creates a 2d line from the given 2d points.",
          ((glm::vec2, start, "First point of the line."),
           (glm::vec2, end, "Second point of the line.")),
@@ -13,7 +13,7 @@ GAL_FUNC(line2d,
   line.mEnd   = end;
 }
 
-GAL_FUNC(line3d,
+GAL_FUNC(line3d,  // NOLINT
          "Creates a 3d line from the given 3d points.",
          ((glm::vec3, start, "First point of the line."),
           (glm::vec3, end, "Second point of the line.")),
@@ -23,7 +23,7 @@ GAL_FUNC(line3d,
   line.mEnd   = end;
 }
 
-GAL_FUNC(
+GAL_FUNC(  // NOLINT
   samplePointsOnLine2d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line2d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
@@ -41,7 +41,7 @@ GAL_FUNC(
   }
 }
 
-GAL_FUNC(
+GAL_FUNC(  // NOLINT
   samplePointsOnLine3d,
   "Samples the given number of points evenly on the line, including the end points.",
   ((gal::Line3d, line, "The line"), (int32_t, nPts, "The number of points to sample")),
