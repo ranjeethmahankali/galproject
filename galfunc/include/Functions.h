@@ -800,7 +800,8 @@ void bindOverloads(py::module&                             m,
 
 #define GAL_CONCAT(x, y) x##y  // NOLINT
 // Removes the braces from the type name at compile time.
-#define GAL_UNBRACED_TYPE(type) typename gal::RemoveBraces<void(type)>::Type  // NOLINT
+
+#define GAL_UNBRACED_TYPE(type) DEPAREN(type)  // NOLINT
 // Get the type from an arg-tuple that has description.
 #define _GAL_ARG_TYPE(type, name, desc) GAL_UNBRACED_TYPE(type)  // NOLINT
 #define GAL_ARG_TYPE(argTuple) _GAL_ARG_TYPE argTuple            // NOLINT
@@ -861,10 +862,7 @@ void bindOverloads(py::module&                             m,
 
 // Gets the documentation info of an argument.
 // NOLINTNEXTLINE
-#define _GAL_ARG_INFO(type, argname, desc) \
-  {                                        \
-#argname, desc                         \
-  }
+#define _GAL_ARG_INFO(type, argname, desc) {#argname, desc}
 #define GAL_ARG_INFO(arg) _GAL_ARG_INFO arg  // NOLINT
 // Expand the name and description of arguments
 #define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)  // NOLINT
