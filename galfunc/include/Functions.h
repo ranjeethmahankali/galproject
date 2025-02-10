@@ -989,7 +989,11 @@ void bindOverloads(py::module&                             m,
 
 // Forward declaration of the module initializer, which will be defined by boost later.
 // This should be called before running scripts from within C++.
+#ifdef _MSC_VER
+extern "C" __declspec(dllexport) PyObject* PyInit_pygalfunc();
+#else
 extern "C" PyObject* PyInit_pygalfunc();
+#endif
 namespace gal {
 namespace func {
 namespace python {
