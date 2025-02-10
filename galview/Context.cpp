@@ -449,7 +449,8 @@ void Context::Shader::loadFromFiles(const std::string& vpath, const std::string&
 
 void Context::Shader::loadFromName(const std::string& name)
 {
-  loadFromFiles(utils::absPath(name + "_v.glsl"), utils::absPath(name + "_f.glsl"));
+  loadFromFiles(utils::absPath(std::filesystem::path(name + "_v.glsl")).string(),
+                utils::absPath(std::filesystem::path(name + "_f.glsl")).string());
   mName = name;
 };
 
