@@ -59,7 +59,7 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}
       run: |
-        bash build.sh ${{env.BUILD_TYPE}} all 4
+        bash build.sh ${{env.BUILD_TYPE}} all
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
         CC: gcc-11

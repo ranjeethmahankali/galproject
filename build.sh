@@ -10,8 +10,8 @@ echo "Generating compilation commands..."
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$CONFIG ..
 cp ./compile_commands.json ../
 
-# Build with half the threads available on the computer, ensuring at least 1 thread is used.
-nthreads=$(($(nproc) / 2))
+# Use all available logical cores
+nthreads=$(nproc)
 if [ "$nthreads" -lt 1 ]; then
     nthreads=1
 fi
