@@ -61,7 +61,7 @@ fs::path gal::utils::absPath(const fs::path& relPath)
   if (count == -1) {
     throw "Cannot find absolute path";
   }
-  apath.erase(apath.begin() + count, apath.end());
+  apath.erase(apath.begin() + int64_t(count), apath.end());
 #endif
   return fs::path(apath).parent_path() / relPath;
 }
