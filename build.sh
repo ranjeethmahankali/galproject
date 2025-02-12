@@ -9,7 +9,7 @@ mkdir -p build
 cd build
 
 echo "Generating compilation commands..."
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$CONFIG ..
 cp ./compile_commands.json ../
 
 # Build with half the threads available on the computer.
