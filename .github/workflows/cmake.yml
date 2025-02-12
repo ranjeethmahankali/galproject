@@ -47,12 +47,12 @@ jobs:
     - name: Setup Vcpkg
       working-directory: ${{github.workspace}}
       run: |
-        if [ ! -d "${{github.workspace}}/vcpkg" ]; then
+        if not exist "%GITHUB_WORKSPACE%\vcpkg" (
         git clone https://github.com/microsoft/vcpkg.git
-        fi
-        if [ ! -f "${{github.workspace}}/vcpkg/vcpkg" ]; then
-        sh vcpkg/bootstrap-vcpkg.sh
-        fi
+        )
+        if not exist "%GITHUB_WORKSPACE%\vcpkg\vcpkg" (
+        call %GITHUB_WORKSPACE%\vcpkg\bootstrap-vcpkg.bat
+        )
       env:
         VCPKG_TARGET_TRIPLET: x64-linux
 
