@@ -60,7 +60,6 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         bash build.sh ${{env.BUILD_TYPE}} all 4
-        pip3 install -e ${{env.BUILD_TYPE}}/galfunc
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
         CC: gcc-11
