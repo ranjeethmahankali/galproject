@@ -38,7 +38,7 @@ jobs:
       with:
         path: |
           ${{github.workspace}}/vcpkg/
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/vcpkg_installed/
+          ${{github.workspace}}/build/vcpkg_installed/
           !${{github.workspace}}/vcpkg/buildtrees
           !${{github.workspace}}/vcpkg/packages
           !${{github.workspace}}/vcpkg/downloads
@@ -69,7 +69,7 @@ jobs:
       working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}/galtest
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
+      run: ctest -C build --rerun-failed --output-on-failure
 
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
@@ -80,9 +80,9 @@ jobs:
       with:
         name: galproject-build
         path: |
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/galview
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/pygalfunc.so
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/CascadiaMono.ttf
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/*.glsl
-          ${{github.workspace}}/${{env.BUILD_TYPE}}/setup.py
+          ${{github.workspace}}/build/galview
+          ${{github.workspace}}/build/pygalfunc.so
+          ${{github.workspace}}/build/CascadiaMono.ttf
+          ${{github.workspace}}/build/*.glsl
+          ${{github.workspace}}/build/setup.py
         retention-days: 2
