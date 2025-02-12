@@ -24,7 +24,10 @@
 
 namespace fs = std::filesystem;
 
-spdlog::logger& gal::utils::logger()
+namespace gal {
+namespace utils {
+
+spdlog::logger& logger()
 {
   static auto sLogger = spdlog::stdout_color_mt("core");
   return *sLogger;
@@ -35,7 +38,7 @@ spdlog::logger& gal::utils::logger()
  * @param relPath Path relative to the executable.
  * @return std::string The absolute path.
  */
-fs::path gal::utils::absPath(const fs::path& relPath)
+fs::path absPath(const fs::path& relPath)
 {
   std::string apath(MAX_PATH, '\0');
 #ifdef _MSC_VER
@@ -66,7 +69,47 @@ fs::path gal::utils::absPath(const fs::path& relPath)
   return fs::path(apath).parent_path() / relPath;
 }
 
-size_t gal::utils::numCombinations(size_t n, size_t k)
+int bitscanForward(uint32_t i)
+{
+#ifdef _MSC_VER
+  unsigned long index = 0;  // This is the same as unsigned long.
+  if (_BitScanForward(&index, i)) {
+    return int(index - 1);
+  }
+  else {
+    return -1;
+  }
+#else
+  if (i) {
+    return __builtin_ctz(i);
+  }
+  else {
+    return -1;
+  }
+#endif
+}
+
+int bitscanForward(uint64_t i)
+{
+#ifdef _MSC_VER
+  unsigned long index = 0;
+  if (_BitScanForward64(&index, i)) {
+    return int(index);
+  }
+  else {
+    return -1;
+  }
+#else
+  if (i) {
+    return __builtin_ctzl(i);
+  }
+  else {
+    return -1;
+  }
+#endif
+}
+
+size_t numCombinations(size_t n, size_t k)
 {
   if (k > n) {
     return 0;
@@ -84,3 +127,6 @@ size_t gal::utils::numCombinations(size_t n, size_t k)
   }
   return c;
 }
+
+}  // namespace utils
+}  // namespace gal
