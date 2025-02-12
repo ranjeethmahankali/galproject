@@ -55,7 +55,7 @@ TEST(Mesh, Area)  // NOLINT
 TEST(Mesh, Subdivision)  // NOLINT
 {
   gal::PolyMesh mesh;
-  OpenMesh::IO::read_mesh(mesh, GAL_ASSET_DIR / "bunny.obj");
+  OpenMesh::IO::read_mesh(mesh, (GAL_ASSET_DIR / "bunny.obj").string());
   mesh.transform(glm::scale(glm::vec3(10.f)));
   OpenMesh::Subdivider::Uniform::CatmullClarkT<gal::PolyMesh, float> sub;
   sub.attach(mesh);

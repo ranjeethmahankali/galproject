@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <Util.h>
+#include <array>
 
 using namespace gal::utils;
 
@@ -47,4 +48,18 @@ TEST(Util, Combinations)  // NOLINT
   });
 
   ASSERT_EQ(count, numCombinations(n, k));
+}
+
+TEST(Util, Bitscan)  // NOLINT
+{
+  // 32 bit integers.
+  ASSERT_EQ(21, bitscanForward(uint32_t(1 << 21)));
+  ASSERT_EQ(11, bitscanReverse(uint32_t(1 << 21)));
+  ASSERT_EQ(-1, bitscanForward(uint32_t(0)));
+  ASSERT_EQ(-1, bitscanReverse(uint32_t(0)));
+  // 64 bit integers.
+  ASSERT_EQ(21, bitscanForward(uint64_t(1 << 21)));
+  ASSERT_EQ(43, bitscanReverse(uint64_t(1 << 21)));
+  ASSERT_EQ(-1, bitscanForward(uint64_t(0)));
+  ASSERT_EQ(-1, bitscanReverse(uint64_t(0)));
 }

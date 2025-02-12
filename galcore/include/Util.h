@@ -1,23 +1,26 @@
 #pragma once
 
 #include <float.h>
+#include <spdlog/spdlog.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <functional>
+#include <glm/detail/qualifier.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <type_traits>
 #include <vector>
 
-#include <spdlog/spdlog.h>
-#include <glm/detail/qualifier.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtx/norm.hpp>
-
 #include <Traits.h>
+
+#ifdef _MSC_VER
+#include <Windows.h>
+#endif
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
@@ -131,7 +134,6 @@ void random(T min, T max, size_t count, DstIter dst)
       *(dst++)                = min + (max - min) * (static_cast<T>(std::rand()) / TMax);
     }
     else if constexpr (GlmVecTraits<T>::IsGlmVec) {
-      using TVal = typename GlmVecTraits<T>::ValueType;
       T v;
       for (int j = 0; j < GlmVecTraits<T>::Size; j++) {
         random(min[j], max[j], 1, &v[j]);
@@ -164,18 +166,58 @@ inline int bitscan(T i)
   }
   if constexpr (std::is_same_v<T, uint32_t>) {
     if constexpr (Reverse) {
+#ifdef _MSC_VER
+      unsigned long index = 0;  // This is the same as unsigned long.
+      if (_BitScanReverse(&index, i)) {
+        return int(index);
+      }
+      else {
+        return -1;
+      }
+#else
       return 31 - __builtin_clz(i);
+#endif
     }
     else {
+#ifdef _MSC_VER
+      unsigned long index = 0;  // This is the same as unsigned long.
+      if (_BitScanForward(&index, i)) {
+        return int(index);
+      }
+      else {
+        return -1;
+      }
+#else
       return __builtin_ctz(i);
+#endif
     }
   }
   else if constexpr (std::is_same_v<T, uint64_t>) {
     if constexpr (Reverse) {
+#ifdef _MSC_VER
+      unsigned long index = 0;
+      if (_BitScanReverse64(&index, i)) {
+        return int(index);
+      }
+      else {
+        return -1;
+      }
+#else
       return 63 - __builtin_clzl(i);
+#endif
     }
     else {
+#ifdef _MSC_VER
+      unsigned long index = 0;
+      if (_BitScanForward64(&index, i)) {
+        return int(index);
+      }
+      else {
+        return -1;
+      }
+#else
       return __builtin_ctzl(i);
+#endif
     }
   }
   else {
