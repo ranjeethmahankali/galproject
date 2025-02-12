@@ -12,9 +12,6 @@ echo "Generating compilation commands..."
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
 cp ./compile_commands.json ../
 
-echo "Generating for project..."
-cmake ..
-
 # Build with half the threads available on the computer.
 nthreads=$(echo $(($(nproc) / 2)))
 printf "Starting build using %s threads...\n" $nthreads
