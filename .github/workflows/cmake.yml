@@ -63,6 +63,8 @@ jobs:
         pip3 install -e build/bin/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
+        CC: gcc-11
+        CXX: g++-11
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/build/galtest
