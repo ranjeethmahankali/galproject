@@ -75,7 +75,7 @@ jobs:
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
       run: |
-        pip3 install -e ${{env.BUILD_TYPE}}/galfunc
+        pip3 install -e ../build/bin/${{env.BUILD_TYPE}}
         pytest -n 4
 
     - name: Upload Artifacts
