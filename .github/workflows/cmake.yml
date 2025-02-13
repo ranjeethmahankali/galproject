@@ -59,7 +59,7 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}
       run: |
-        ./build.sh ${{env.BUILD_TYPE}} all
+        bash build.sh ${{env.BUILD_TYPE}} all
         pip3 install -e build/bin/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
@@ -131,7 +131,7 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}
       run: |
-        cmd /c "build.bat ${{env.BUILD_TYPE}} all"
+        cmd /c "build.bat ${{env.BUILD_TYPE}} ALL_BUILD"
         pip3 install -e build/bin/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg

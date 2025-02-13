@@ -6,7 +6,7 @@ set CONFIG=%1
 if "%CONFIG%"=="" set CONFIG=Release
 
 set TARGET=%2
-if "%TARGET%"=="" set TARGET=all
+if "%TARGET%"=="" set TARGET=ALL_BUILD
 
 :: Create and move into the build directory
 if not exist build mkdir build
