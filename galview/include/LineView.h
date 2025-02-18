@@ -2,6 +2,8 @@
 
 #include <Context.h>
 #include <Line.h>
+#include <numeric>
+#include "GLUtil.h"
 
 namespace gal {
 namespace view {
@@ -111,6 +113,36 @@ public:
     mVBuf.bindVbo();
     GL_CALL(glDrawArrays(GL_LINES, 0, mVBuf.size()));
   }
+};
+
+template<>
+struct Drawable<Polyline> : public std::true_type
+{
+  static constexpr glm::vec4 sPolylineColor = {1.f, 1.f, 1.f, 1.f};
+
+private:
+  glutil::VertexBuffer mVBuf;
+  Box3                 mBounds;
+
+public:
+  void update(std::vector<Polyline> const& plines)
+  {
+    size_t const nsegs = std::accumulate(
+      plines.begin(), plines.end(), size_t(0), [](size_t total, Polyline const& pline) {
+        return total + (pline.mPoints.size() - 1);
+      });
+    mVBuf.resize(nsegs * 2);
+    auto vbegin = mVBuf.begin();
+    throw std::logic_error("Not Implemented");
+  }
+
+  uint64_t drawOrderIndex() const { throw std::logic_error("Not Implemented"); }
+
+  RenderSettings renderSettings() const { throw std::logic_error("Not Implemented"); }
+
+  Box3 bounds() const { return mBounds; }
+
+  void draw() const { throw std::logic_error("Not Implemented"); }
 };
 
 }  // namespace view

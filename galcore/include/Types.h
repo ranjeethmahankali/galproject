@@ -70,6 +70,7 @@ GAL_TYPE_INFO(gal::PointCloud<3>, ptcloud, 0xe6e934eb);
 GAL_TYPE_INFO(gal::Circle2d, circle2d, 0x3271dc29);
 GAL_TYPE_INFO(gal::Line2d, line2d, 0x34ff4158);
 GAL_TYPE_INFO(gal::Line3d, line3d, 0x989fdbdd);
+GAL_TYPE_INFO(gal::Polyline, polyline, 0x6855d851);
 GAL_TYPE_INFO(gal::TriMesh, trimesh, 0x45342367);
 GAL_TYPE_INFO(gal::PolyMesh, polymesh, 0x12892286);
 GAL_TYPE_INFO(gal::TextAnnotations, tags, 0x901da902);
