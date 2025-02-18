@@ -133,16 +133,42 @@ public:
       });
     mVBuf.resize(nsegs * 2);
     auto vbegin = mVBuf.begin();
-    throw std::logic_error("Not Implemented");
+    for (auto const& pline : plines) {
+      std::transform(
+        pline.mPoints.begin(), pline.mPoints.end(), vbegin, [](glm::vec3 const& pt) {
+          return glutil::DefaultVertex {pt, glm::vec3(0.f, 0.f, 0.f)};
+        });
+      vbegin += int64_t(pline.mPoints.size());
+    }
+    mVBuf.alloc();
   }
 
-  uint64_t drawOrderIndex() const { throw std::logic_error("Not Implemented"); }
+  uint64_t drawOrderIndex() const
+  {
+    static const uint64_t sIdx = (uint64_t((1.f - sPolylineColor.a) * 255.f) << 8) |
+                                 (uint64_t((1.f - sPolylineColor.a) * 255.f) << 16);
+    return sIdx;
+  }
 
-  RenderSettings renderSettings() const { throw std::logic_error("Not Implemented"); }
+  RenderSettings renderSettings() const
+  {
+    RenderSettings settings;
+    settings.faceColor     = sPolylineColor;
+    settings.edgeColor     = sPolylineColor;
+    settings.shadingFactor = 0.f;
+    return settings;
+  }
 
   Box3 bounds() const { return mBounds; }
 
-  void draw() const { throw std::logic_error("Not Implemented"); }
+  void draw() const
+  {
+    static auto rsettings = renderSettings();
+    rsettings.apply();
+    mVBuf.bindVao();
+    mVBuf.bindVbo();
+    GL_CALL(glDrawArrays(GL_LINE_STRIP, 0, mVBuf.size()));
+  }
 };
 
 }  // namespace view
