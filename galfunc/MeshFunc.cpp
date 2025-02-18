@@ -259,6 +259,17 @@ GAL_FUNC(translate,  // NOLINT
   translated.transform(glm::translate(shift));
 }
 
+GAL_FUNC(sliceMesh,  // NOLINT
+         "Slice the mesh in the z-direction at regular intervals and produce contours",
+         ((gal::TriMesh, mesh, "Mesh to slice"),
+          (float, height, "Gap between consecutive slice layers")),
+         (((data::WriteView<Polyline, 1>),
+           slices,
+           "The contours resulting from slicing the mesh")))
+{
+  throw std::logic_error("Not Implemented");
+}
+
 void bind_MeshFunc(py::module& module)
 {
   GAL_FN_BIND(centroid, module);
