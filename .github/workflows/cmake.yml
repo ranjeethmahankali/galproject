@@ -86,11 +86,11 @@ jobs:
       with:
         name: galproject-build
         path: |
-          ${{github.workspace}}/build/galview
-          ${{github.workspace}}/build/pygalfunc.so
-          ${{github.workspace}}/build/CascadiaMono.ttf
-          ${{github.workspace}}/build/*.glsl
-          ${{github.workspace}}/build/setup.py
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/galview
+          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/pygalfunc.so
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/CascadiaMono.ttf
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/*.glsl
+          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/setup.py
         retention-days: 2
   windows:
     runs-on: windows-latest
@@ -156,9 +156,9 @@ jobs:
       with:
         name: galproject-build
         path: |
-          ${{github.workspace}}/build/galview
-          ${{github.workspace}}/build/pygalfunc.so
-          ${{github.workspace}}/build/CascadiaMono.ttf
-          ${{github.workspace}}/build/*.glsl
-          ${{github.workspace}}/build/setup.py
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/galview
+          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/pygalfunc.so
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/CascadiaMono.ttf
+          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/*.glsl
+          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/setup.py
         retention-days: 2
