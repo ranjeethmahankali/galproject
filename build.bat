@@ -23,6 +23,6 @@ for /f "tokens=2 delims==" %%n in ('wmic cpu get NumberOfLogicalProcessors /valu
 if %nthreads% LSS 1 set nthreads=1
 
 echo Starting build using %nthreads% threads...
-cmake --build . --config %CONFIG% --target %TARGET% -j %nthreads%
+cmake --build . --verbose --config %CONFIG% --target %TARGET% -j %nthreads%
 
 endlocal
