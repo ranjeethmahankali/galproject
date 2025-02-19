@@ -21,4 +21,4 @@ if (WIN32)
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-gtest_discover_tests(galtest)
+gtest_discover_tests(galtest WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

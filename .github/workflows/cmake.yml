@@ -65,7 +65,7 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         bash build.sh ${{env.BUILD_TYPE}} all
-        pip3 install -e build/bin/${{env.BUILD_TYPE}}
+        pip3 install -e build/lib/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
         CC: gcc-11
@@ -79,9 +79,7 @@ jobs:
 
     - name: Run Python Tests
       working-directory: ${{github.workspace}}/scripts
-      run: |
-        pip3 install -e ../build/bin/${{env.BUILD_TYPE}}
-        pytest -n 4
+      run: pytest -n 4
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
@@ -139,7 +137,7 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         cmd /c "build.bat ${{env.BUILD_TYPE}} ALL_BUILD"
-        pip3 install -e build/bin/${{env.BUILD_TYPE}}
+        pip3 install -e build/lib/{{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
 
