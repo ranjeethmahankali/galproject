@@ -181,4 +181,9 @@ typename SliderFunc<T>::PyOutputType py_slider(py::object pylabel,
 
 // Forward declaration of the module initializer for embedded scripts.
 // This will be defined by boost later.
+
+#ifdef _MSC_VER
+extern "C" __declspec(dllexport) PyObject* PyInit_pygalview();
+#else
 extern "C" PyObject* PyInit_pygalview();
+#endif

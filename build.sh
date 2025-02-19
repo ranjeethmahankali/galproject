@@ -1,17 +1,20 @@
-CONFIG=${1-build}
-TARGET=${2-all}
-NUM_THREADS=${3-12}
-mkdir -p $CONFIG
-cd $CONFIG
-echo "Building target '${TARGET}' in ${CONFIG} configuration"
+#!/bin/bash
 
-# This is the default version.
-if [ $CONFIG == "build" ]; then
-    echo "Generating compilation commands..."
-    cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
-    cp ./compile_commands.json ../
-else
-    cmake -DCMAKE_BUILD_TYPE=$CONFIG ..
-    printf "Starting build using %s threads...\n" $NUM_THREADS
-    cmake --build . --config $CONFIG --target $TARGET -j $NUM_THREADS
+CONFIG=${1-Release}
+TARGET=${2-all}
+
+mkdir -p build
+cd build
+
+echo "Generating compilation commands..."
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$CONFIG ..
+cp ./compile_commands.json ../
+
+# Use all available logical cores
+nthreads=$(nproc)
+if [ "$nthreads" -lt 1 ]; then
+    nthreads=1
 fi
+
+printf "Starting build using %s threads...\n" "$nthreads"
+cmake --build . --config "$CONFIG" --target "$TARGET" -j "$nthreads"

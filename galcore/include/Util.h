@@ -1,23 +1,26 @@
 #pragma once
 
 #include <float.h>
+#include <spdlog/spdlog.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <functional>
+#include <glm/detail/qualifier.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <type_traits>
 #include <vector>
 
-#include <spdlog/spdlog.h>
-#include <glm/detail/qualifier.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtx/norm.hpp>
-
 #include <Traits.h>
+
+#ifdef _MSC_VER
+#include <Windows.h>
+#endif
 
 static constexpr glm::vec3 vec3_zero  = {0.0f, 0.0f, 0.0f};
 static constexpr glm::vec3 vec3_xunit = {1.0f, 0.0f, 0.0f};
@@ -131,7 +134,6 @@ void random(T min, T max, size_t count, DstIter dst)
       *(dst++)                = min + (max - min) * (static_cast<T>(std::rand()) / TMax);
     }
     else if constexpr (GlmVecTraits<T>::IsGlmVec) {
-      using TVal = typename GlmVecTraits<T>::ValueType;
       T v;
       for (int j = 0; j < GlmVecTraits<T>::Size; j++) {
         random(min[j], max[j], 1, &v[j]);
@@ -154,46 +156,8 @@ void random(T min, T max, size_t count, DstIter dst)
  * @param i The integer.
  * @return int The position of the first set bit. -1 if i is zero.
  */
-template<typename T, bool Reverse = false>
-inline int bitscan(T i)
-{
-  static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>,
-                "Unsupported type for bitscan");
-  if (i == 0) {
-    return -1;
-  }
-  if constexpr (std::is_same_v<T, uint32_t>) {
-    if constexpr (Reverse) {
-      return 31 - __builtin_clz(i);
-    }
-    else {
-      return __builtin_ctz(i);
-    }
-  }
-  else if constexpr (std::is_same_v<T, uint64_t>) {
-    if constexpr (Reverse) {
-      return 63 - __builtin_clzl(i);
-    }
-    else {
-      return __builtin_ctzl(i);
-    }
-  }
-  else {
-    return bitscan<uint64_t, Reverse>(uint64_t(i));
-  }
-}
-
-template<typename T>
-inline int bitscanForward(T i)
-{
-  return bitscan<T, false>(i);
-}
-
-template<typename T>
-inline int bitscanReverse(T i)
-{
-  return bitscan<T, true>(i);
-}
+int bitscanForward(uint32_t i);
+int bitscanForward(uint64_t i);
 
 /**
  * @brief Gets the number of combinations of a given length for a set of given size.

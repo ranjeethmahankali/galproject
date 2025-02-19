@@ -4,6 +4,7 @@
 #include <Box.h>
 #include <Circle2d.h>
 #include <Line.h>
+#include <MapMacro.h>
 #include <Mesh.h>
 #include <Plane.h>
 #include <PointCloud.h>
@@ -28,13 +29,16 @@ struct TypeInfo<const T> : public TypeInfo<T>
 }  // namespace gal
 
 // NOLINTNEXTLINE
-#define GAL_TYPE_INFO(type, typeName, idInt)                                         \
-  template<>                                                                         \
-  struct gal::TypeInfo<gal::RemoveBraces<void(type)>::Type> : public std::true_type  \
-  {                                                                                  \
-    static constexpr uint32_t         id    = idInt;                                 \
-    static constexpr std::string_view sName = #typeName;                             \
-    static std::string                name() noexcept { return std::string(sName); } \
+#define GAL_TYPE_INFO(type, typeName, idInt)                  \
+  template<>                                                  \
+  struct gal::TypeInfo<DEPAREN(type)> : public std::true_type \
+  {                                                           \
+    static constexpr uint32_t         id    = idInt;          \
+    static constexpr std::string_view sName = #typeName;      \
+    static std::string                name() noexcept         \
+    {                                                         \
+      return std::string(sName);                              \
+    }                                                         \
   };
 
 namespace gal {

@@ -14,8 +14,8 @@ static Tree<int> testTree()
 {
   Tree<int> tree;
   tree.reserve(32);
-  for (size_t i = 0; i < 32; i++) {
-    auto d = DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i))));
+  for (uint64_t i = 0; i < 32; i++) {
+    auto d = DepthT(std::min(uint64_t(5), uint64_t(gal::utils::bitscanForward(i))));
     tree.push_back(d, int(i));
   }
 
@@ -25,9 +25,9 @@ static Tree<int> testTree()
 TEST(Data, CreateTree)  // NOLINT
 {
   auto tree = testTree();
-  for (size_t i = 0; i < tree.size(); i++) {
+  for (uint64_t i = 0; i < tree.size(); i++) {
     ASSERT_EQ(tree.depth(i),
-              DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i)))));
+              DepthT(std::min(uint64_t(5), uint64_t(gal::utils::bitscanForward(i)))));
   }
 }
 

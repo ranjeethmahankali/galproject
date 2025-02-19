@@ -231,7 +231,7 @@ private:
       image[y][x].blue  = (mAtlas.mTexture[i] & 0x00ff0000) >> 16;
       image[y][x].alpha = (mAtlas.mTexture[i] & 0xff000000) >> 24;
     }
-    image.write(path);
+    image.write(path.string());
   }
 
 public:
@@ -264,7 +264,7 @@ public:
         std::cerr << "Cannot find glyph file: " << path << std::endl;
         continue;
       }
-      png::image<png::rgba_pixel> image(path);
+      png::image<png::rgba_pixel> image(path.string());
       if (image.get_width() > GLYPHSIZE || image.get_height() > GLYPHSIZE) {
         std::cerr << "Cannot load glyph because the image is too large! Image size must "
                      "be smaller than "

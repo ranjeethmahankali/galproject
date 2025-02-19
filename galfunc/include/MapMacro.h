@@ -38,42 +38,45 @@
 #define EVAL5(...) EVAL4(EVAL4(EVAL4(__VA_ARGS__)))
 
 #ifdef _MSC_VER
- // MSVC needs more evaluations
+// MSVC needs more evaluations
 #define EVAL6(...) EVAL5(EVAL5(EVAL5(__VA_ARGS__)))
-#define EVAL(...)  EVAL6(EVAL6(__VA_ARGS__))
+#define EVAL(...) EVAL6(EVAL6(__VA_ARGS__))
 #else
-#define EVAL(...)  EVAL5(__VA_ARGS__)
+#define EVAL(...) EVAL5(__VA_ARGS__)
 #endif
 
 #define MAP_END(...)
 #define MAP_OUT
 
-#define EMPTY() 
+#define EMPTY()
 #define DEFER(id) id EMPTY()
 
 #define MAP_GET_END2() 0, MAP_END
 #define MAP_GET_END1(...) MAP_GET_END2
 #define MAP_GET_END(...) MAP_GET_END1
 #define MAP_NEXT0(test, next, ...) next MAP_OUT
-#define MAP_NEXT1(test, next) DEFER ( MAP_NEXT0 ) ( test, next, 0)
-#define MAP_NEXT(test, next)  MAP_NEXT1(MAP_GET_END test, next)
+#define MAP_NEXT1(test, next) DEFER(MAP_NEXT0)(test, next, 0)
+#define MAP_NEXT(test, next) MAP_NEXT1(MAP_GET_END test, next)
 
-#define MAP0(f, x, peek, ...) f(x) DEFER ( MAP_NEXT(peek, MAP1) ) ( f, peek, __VA_ARGS__ ) 
-#define MAP1(f, x, peek, ...) f(x) DEFER ( MAP_NEXT(peek, MAP0) ) ( f, peek, __VA_ARGS__ )
+#define MAP0(f, x, peek, ...) f(x) DEFER(MAP_NEXT(peek, MAP1))(f, peek, __VA_ARGS__)
+#define MAP1(f, x, peek, ...) f(x) DEFER(MAP_NEXT(peek, MAP0))(f, peek, __VA_ARGS__)
 
-#define MAP_LIST0(f, x, peek, ...) , f(x) DEFER ( MAP_NEXT(peek, MAP_LIST1) ) ( f, peek, __VA_ARGS__ ) 
-#define MAP_LIST1(f, x, peek, ...) , f(x) DEFER ( MAP_NEXT(peek, MAP_LIST0) ) ( f, peek, __VA_ARGS__ ) 
-#define MAP_LIST2(f, x, peek, ...)   f(x) DEFER ( MAP_NEXT(peek, MAP_LIST1) ) ( f, peek, __VA_ARGS__ ) 
+#define MAP_LIST0(f, x, peek, ...) \
+  , f(x) DEFER(MAP_NEXT(peek, MAP_LIST1))(f, peek, __VA_ARGS__)
+#define MAP_LIST1(f, x, peek, ...) \
+  , f(x) DEFER(MAP_NEXT(peek, MAP_LIST0))(f, peek, __VA_ARGS__)
+#define MAP_LIST2(f, x, peek, ...) \
+  f(x) DEFER(MAP_NEXT(peek, MAP_LIST1))(f, peek, __VA_ARGS__)
 
- /**
-  * Applies the function macro `f` to each of the remaining parameters.
-  */
+/**
+ * Applies the function macro `f` to each of the remaining parameters.
+ */
 #define MAP(f, ...) EVAL(MAP1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
 
-  /**
-   * Applies the function macro `f` to each of the remaining parameters and
-   * inserts commas between the results.
-   */
+/**
+ * Applies the function macro `f` to each of the remaining parameters and
+ * inserts commas between the results.
+ */
 #define MAP_LIST(f, ...) EVAL(MAP_LIST2(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
 
 #define MAP_LIST_MACRO(Cond) MAP_LIST_MACRO##Cond
@@ -88,3 +91,11 @@
 #define COND_COMMAfalse
 
 #endif
+
+// Macros to remove parentheses from typenames when parens are present.
+// https://stackoverflow.com/questions/24481810/how-to-remove-the-enclosing-parentheses-with-macro
+#define DEPAREN(X) ESC(ISH X)
+#define ISH(...) ISH __VA_ARGS__
+#define ESC(...) ESC_(__VA_ARGS__)
+#define ESC_(...) VAN##__VA_ARGS__
+#define VANISH

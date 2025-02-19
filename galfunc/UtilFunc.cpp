@@ -14,7 +14,7 @@ GAL_FUNC(absPath,  // NOLINT
          ((std::string, relpath, "Path relative to the current binary")),
          ((std::string, apath, "Absolute path output")))
 {
-  apath = gal::utils::absPath(relpath);
+  apath = gal::utils::absPath(std::filesystem::path(relpath)).string();
 }
 
 GAL_FUNC_TEMPLATE(((typename, T)),  // NOLINT

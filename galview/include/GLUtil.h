@@ -8,7 +8,8 @@
 
 #include <spdlog/spdlog.h>
 
-#ifdef _MSVC
+#ifdef _MSC_VER
+#define DEBUG_BREAK __debugbreak()
 #else
 #define DEBUG_BREAK __builtin_trap()
 #endif

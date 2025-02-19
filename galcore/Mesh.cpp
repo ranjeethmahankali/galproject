@@ -1,31 +1,26 @@
-#include <iterator>
-#define _USE_MATH_DEFINES
-
-#include <OpenMesh/Core/IO/MeshIO.hh>
-
 #include <Mesh.h>
 
+#include <Box.h>
+#include <RTree.h>
+#include <Util.h>
 #include <math.h>
-#include <array>
-#include <atomic>
-#include <mutex>
-#include <numeric>
-#include <stdexcept>
-
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/parallel_reduce.h>
+#include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Utils/Property.hh>
+#include <array>
+#include <atomic>
 #include <boost/range/adaptors.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include <Box.h>
-#include <RTree.h>
-#include <Util.h>
+#include <iterator>
+#include <mutex>
+#include <numeric>
+#include <stdexcept>
 
 namespace gal {
 

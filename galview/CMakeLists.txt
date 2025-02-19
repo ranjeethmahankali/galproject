@@ -15,9 +15,17 @@ target_link_libraries(galview PRIVATE
 target_include_directories(galview PRIVATE
   "include/")
 
+if (WIN32)
+  set_property(TARGET galview PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+file(GLOB SHADER_FILES ${PROJECT_SOURCE_DIR}/shaders/*.glsl)
+file(GLOB FONT_FILES ${PROJECT_SOURCE_DIR}/fonts/*.*)
+
 # Copy the shaders to bin dir
 add_custom_command(TARGET galview
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/shaders/*.glsl ${CMAKE_CURRENT_BINARY_DIR}
-  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/fonts/*.* ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy ${SHADER_FILES} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  COMMAND ${CMAKE_COMMAND} -E copy ${FONT_FILES} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )

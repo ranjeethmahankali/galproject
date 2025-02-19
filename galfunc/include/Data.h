@@ -548,13 +548,8 @@ public:
   const std::vector<DepthT>& depths() const { return mTree.mDepths; }
   const InternalStorageT*    internalPtr() const { return &(mTree.mValues); }
 
-  bool operator==(const Iterator& other) const
-  {
-    return internalPtr() == other.internalPtr() && mIndex == other.mIndex;
-  }
-
   template<DepthT D2>
-  bool operator==(const Iterator<T, D2>& other)
+  bool operator==(const Iterator<T, D2>& other) const
   {
     return internalPtr() == other.internalPtr() && mIndex == other.mIndex &&
            (Dim == D2 || mIndex == storage().size());

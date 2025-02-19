@@ -74,21 +74,6 @@ public:
   static const bool value = decltype(Check<std::ostream, T>(0))::value;
 };
 
-template<typename T>
-struct RemoveBraces;
-
-/**
- * @brief Removes braces from a typename
- *
- * @tparam T Typename to remove the braces from.
- * @tparam U This can be whatever... like void.
- */
-template<typename T, typename U>
-struct RemoveBraces<T(U)>
-{
-  using Type = U;
-};
-
 /** You can't have polymorphic instances on the stack. Its inefficient to have
  * non-polymorphic instances on the heap. This helper template can decide where to put
  * what.
