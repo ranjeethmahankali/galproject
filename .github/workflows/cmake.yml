@@ -97,14 +97,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up MSBuild
-      uses: microsoft/setup-msbuild@v1
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
       with:
-        vs-version: '[16.0,17.0)' # Specifies Visual Studio 2019
-
-    - name: Check MSBuild version
-      run: msbuild -version
-
+        vs-version: '[16.4,16.5)'
+        
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
