@@ -135,8 +135,9 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
+      shell: pwsh
       run: |
-        set PATH=D:\a\galproject\galproject\build\lib\Release;%PATH%
+        $env:PATH = "D:\a\galproject\galproject\build\lib\Release;" + $env:PATH
         cmd /c "build.bat ${{env.BUILD_TYPE}} ALL_BUILD"
         pip3 install -e build/lib/${{env.BUILD_TYPE}}
       env:
