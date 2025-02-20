@@ -97,7 +97,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '[16.4,16.5)'
+        
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
@@ -135,9 +139,9 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
-      shell: pwsh
+      shell: cmd
       run: |
-        cmd /c "build.bat ${{env.BUILD_TYPE}} ALL_BUILD"
+        build.bat ${{env.BUILD_TYPE}} ALL_BUILD
         pip3 install -e build/lib/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
