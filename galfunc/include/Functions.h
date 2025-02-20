@@ -862,7 +862,10 @@ void bindOverloads(py::module&                             m,
 
 // Gets the documentation info of an argument.
 // NOLINTNEXTLINE
-#define _GAL_ARG_INFO(type, argname, desc) {#argname, desc}
+#define _GAL_ARG_INFO(type, argname, desc) \
+  {                                        \
+#argname, desc                         \
+  }
 #define GAL_ARG_INFO(arg) _GAL_ARG_INFO arg  // NOLINT
 // Expand the name and description of arguments
 #define _GAL_EXPAND_ARG_INFOS(...) MAP_LIST(GAL_ARG_INFO, __VA_ARGS__)  // NOLINT

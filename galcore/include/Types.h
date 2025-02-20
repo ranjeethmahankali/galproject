@@ -29,16 +29,13 @@ struct TypeInfo<const T> : public TypeInfo<T>
 }  // namespace gal
 
 // NOLINTNEXTLINE
-#define GAL_TYPE_INFO(type, typeName, idInt)                  \
-  template<>                                                  \
-  struct gal::TypeInfo<DEPAREN(type)> : public std::true_type \
-  {                                                           \
-    static constexpr uint32_t         id    = idInt;          \
-    static constexpr std::string_view sName = #typeName;      \
-    static std::string                name() noexcept         \
-    {                                                         \
-      return std::string(sName);                              \
-    }                                                         \
+#define GAL_TYPE_INFO(type, typeName, idInt)                                         \
+  template<>                                                                         \
+  struct gal::TypeInfo<DEPAREN(type)> : public std::true_type                        \
+  {                                                                                  \
+    static constexpr uint32_t         id    = idInt;                                 \
+    static constexpr std::string_view sName = #typeName;                             \
+    static std::string                name() noexcept { return std::string(sName); } \
   };
 
 namespace gal {
