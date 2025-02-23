@@ -371,6 +371,18 @@ struct defOutputFuncs
 // NOLINTNEXTLINE
 #define GAL_DEF_PY_FN_DOC(fnName, mod, docstr) mod.def(#fnName, py_##fnName, docstr);
 
+#include <glm/gtx/transform.hpp>
+
+GAL_FUNC(scale_mesh_simple,  // NOLINT
+         "Scale a mesh and animate the result with intermediate steps",
+         ((gal::TriMesh, mesh, "Mesh to scale"),
+          (float, scale, "Scaling factor, about the origin")),
+         ((gal::TriMesh, outmesh, "Final mesh, after scaling")))
+{
+  outmesh = mesh;
+  outmesh.transform(glm::scale(glm::vec3(scale)));
+}
+
 PYBIND11_MODULE(pygalview, pgv)  // NOLINT
 {
   using namespace gal::viewfunc;
@@ -391,6 +403,8 @@ PYBIND11_MODULE(pygalview, pgv)  // NOLINT
           "Vec2 slider with the given label, min value, max value and initial value.");
 
   gal::func::typemanager::invoke<defOutputFuncs>(pgv);
+
+  GAL_FN_BIND(scale_mesh_simple, pgv);
 
   // Text fields for string inputs
   GAL_DEF_PY_FN_DOC(textField, pgv, "Creates a text field with the given label.");
