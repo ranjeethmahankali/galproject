@@ -373,12 +373,31 @@ struct defOutputFuncs
 
 #include <glm/gtx/transform.hpp>
 
+GLFWwindow*& window_ptr();
+
 GAL_FUNC(scale_mesh_simple,  // NOLINT
          "Scale a mesh and animate the result with intermediate steps",
          ((gal::TriMesh, mesh, "Mesh to scale"),
           (float, scale, "Scaling factor, about the origin")),
          ((gal::TriMesh, outmesh, "Final mesh, after scaling")))
 {
+  using namespace std::chrono_literals;
+  static gal::view::Drawable<gal::TriMesh>                sView {};
+  static std::vector<gal::SafeInstanceType<gal::TriMesh>> sMesh {};
+  if (!mesh.vertices_empty()) {
+    float const step = (scale - 1.f) / 100.f;
+    for (float s = 1.f; step > 0.f ? s < scale : s > scale; s += step) {
+      sMesh.clear();
+      sMesh.push_back(std::make_shared<gal::TriMesh>(mesh));
+      sMesh.back()->transform(glm::scale(glm::vec3(s)));
+      sView.update(sMesh);
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      sView.draw();
+      glfwSwapBuffers(window_ptr());
+      std::this_thread::sleep_for(20ms);
+    }
+  }
   outmesh = mesh;
   outmesh.transform(glm::scale(glm::vec3(scale)));
 }

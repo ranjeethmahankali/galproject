@@ -78,17 +78,22 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   return 0;
 }
 
+GLFWwindow*& window_ptr()
+{
+  static GLFWwindow* window = nullptr;  // NOLINT
+  return window;
+}
+
 int loadDemo(const fs::path& demoPath)
 {
-  int         err    = 0;
-  GLFWwindow* window = nullptr;
+  int err = 0;
   try {
-    if ((err = initViewer(window, demoPath.filename().string()))) {
+    if ((err = initViewer(window_ptr(), demoPath.filename().string()))) {
       glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
       return err;
     }
     // Initialize all the user interface elements.
-    view::init(window, glslVersion.data());
+    view::init(window_ptr(), glslVersion.data());
     // Initialize Embedded Python and the demo
     initPythonEnvironment();
     py::scoped_interpreter guard {};
@@ -99,19 +104,19 @@ int loadDemo(const fs::path& demoPath)
     }
     // Render loop.
     glutil::logger().info("Starting the render loop...");
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window_ptr())) {
       glfwPollEvents();
       view::imGuiNewFrame();
       glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       {
-        view::draw(window);
+        view::draw(window_ptr());
         ImGui::Render();
         viewfunc::evalOutputs();
         view::Views::render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
       }
-      glfwSwapBuffers(window);
+      glfwSwapBuffers(window_ptr());
       gal::view::runQueuedCommands();
       view::reportFrameFinish();
     }
@@ -120,7 +125,7 @@ int loadDemo(const fs::path& demoPath)
     glutil::logger().critical("Fatal error: {}", e.what());
     err = -1;
   }
-  view::destroy(window);
+  view::destroy(window_ptr());
   return err;
 }
 
