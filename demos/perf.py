@@ -5,7 +5,7 @@ import pygalview as pgv
 # Load triangle mesh from disk and scale it by a factor of 10.
 mesh = pgf.scale(
     pgf.loadTriangleMesh(
-        pgf.absPath(pgf.var_string("../../assets/bunny_large.obj"))),
+        pgf.absPath(pgf.var_string("../../../assets/bunny_large.obj"))),
     pgf.var_float(10.0))
 # Print statistics
 pgv.show("Original mesh", mesh)

@@ -14,3 +14,8 @@ target_link_libraries(galcore PUBLIC
   TBB::tbb
   spdlog::spdlog
   spdlog::spdlog_header_only)
+
+if (WIN32)
+  set_property(TARGET galcore PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()

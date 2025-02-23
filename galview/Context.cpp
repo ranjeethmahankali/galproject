@@ -323,25 +323,27 @@ void Context::setProjectionMode(Projection mode)
 {
   switch (mode) {
   case Projection::PARALLEL: {
-    static constexpr float left   = -2.0f;
-    static constexpr float right  = 2.0f;
-    static constexpr float top    = 1.1f;
-    static constexpr float bottom = -1.1f;
-    static constexpr float near   = -5.f;
-    static constexpr float far    = 100.0f;
-    get().mProj                   = glm::ortho(left, right, bottom, top, near, far);
+    static constexpr float LEFT   = -2.0f;
+    static constexpr float RIGHT  = 2.0f;
+    static constexpr float TOP    = 1.1f;
+    static constexpr float BOTTOM = -1.1f;
+    // near and far are defined as macros on Windows.
+    static constexpr float NEAR_S = -5.f;
+    static constexpr float FAR_S  = 100.0f;
+    get().mProj                   = glm::ortho(LEFT, RIGHT, BOTTOM, TOP, NEAR_S, FAR_S);
     cameraChanged();
     sOrthoMode = true;
     setOrthoModeUniform();
     break;
   }
   case Projection::PERSPECTIVE: {
-    static constexpr float fovy   = 0.9f;
-    static constexpr float near   = 0.01f;
-    static constexpr float far    = 100.0f;
-    float                  aspect = float(mWindowSize.x) / float(mWindowSize.y);
+    static constexpr float FOVY = 0.9f;
+    // near and far as defined as macros in windows.
+    static constexpr float NEAR_S = 0.01f;
+    static constexpr float FAR_S  = 100.0f;
+    float                  ASPECT = float(mWindowSize.x) / float(mWindowSize.y);
     // glutil::logger().warn("Setting perspective mode with aspect ratio: {}", aspect);
-    get().mProj = glm::perspective(fovy, aspect, near, far);
+    get().mProj = glm::perspective(FOVY, ASPECT, NEAR_S, FAR_S);
     cameraChanged();
     sOrthoMode = false;
     setOrthoModeUniform();
@@ -406,7 +408,8 @@ static std::string readfile(const std::string& filepath)
     file.close();
   }
   catch (const std::ifstream::failure& e) {
-    glutil::logger().error("Error reading shader source file:\n{}", e.what());
+    glutil::logger().error(
+      "Error reading shader source file:\n{}\n{}", filepath, e.what());
   }
   return file_stream.str();
 };
@@ -447,7 +450,8 @@ void Context::Shader::loadFromFiles(const std::string& vpath, const std::string&
 
 void Context::Shader::loadFromName(const std::string& name)
 {
-  loadFromFiles(utils::absPath(name + "_v.glsl"), utils::absPath(name + "_f.glsl"));
+  loadFromFiles(utils::absPath(std::filesystem::path(name + "_v.glsl")).string(),
+                utils::absPath(std::filesystem::path(name + "_f.glsl")).string());
   mName = name;
 };
 

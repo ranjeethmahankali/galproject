@@ -1,13 +1,12 @@
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 
+#include <Mesh.h>
+#include <TestUtils.h>
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/CatmullClarkT.hh>
 #include <chrono>
 #include <glm/gtx/transform.hpp>
 #include <numeric>
-
-#include <Mesh.h>
-#include <TestUtils.h>
 
 gal::TriMesh unitbox()
 {
@@ -41,21 +40,21 @@ gal::TriMesh unitbox()
   return box;
 }
 
-TEST(Mesh, Area)  // NOLINT
+TEST_CASE("Mesh - Area", "[mesh][area]")  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
-  ASSERT_FLOAT_EQ(mesh.area(), 1.f);
+  REQUIRE(Catch::Approx(mesh.area()) == 1.f);
   gal::fs::path fpath = GAL_ASSET_DIR / "bunny.obj";
   mesh                = gal::TriMesh::loadFromFile(fpath, true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
-  ASSERT_FLOAT_EQ(mesh.area(), 5.646862f);
+  REQUIRE(Catch::Approx(mesh.area()) == 5.646862f);
 }
 
-TEST(Mesh, Subdivision)  // NOLINT
+TEST_CASE("Mesh - Subdivision", "[mesh][subdivision]")  // NOLINT
 {
   gal::PolyMesh mesh;
-  OpenMesh::IO::read_mesh(mesh, GAL_ASSET_DIR / "bunny.obj");
+  OpenMesh::IO::read_mesh(mesh, (GAL_ASSET_DIR / "bunny.obj").string());
   mesh.transform(glm::scale(glm::vec3(10.f)));
   OpenMesh::Subdivider::Uniform::CatmullClarkT<gal::PolyMesh, float> sub;
   sub.attach(mesh);
@@ -73,46 +72,47 @@ TEST(Mesh, Subdivision)  // NOLINT
     mesh.faces_begin(), mesh.faces_end(), 0.f, [&](float total, gal::FaceH f) {
       return total + mesh.calc_sector_area(mesh.halfedge_handle(f));
     });
-  ASSERT_FLOAT_EQ(5.5665889, area);
+  REQUIRE(Catch::Approx(5.5665889) == area);
 }
 
-TEST(Mesh, Volume)  // NOLINT
+TEST_CASE("Mesh - Volume", "[mesh][volume]")  // NOLINT
 {
   auto mesh = gal::makeRectangularMesh(
     gal::Plane({0.f, 0.f, 0.f}, {0.f, 0.f, 1.f}), gal::Box2({0.f, 0.f}, {1.f, 1.f}), 1.f);
-  ASSERT_FLOAT_EQ(mesh.volume(), 0.f);
+  REQUIRE(Catch::Approx(mesh.volume()) == 0.f);
   mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
-  ASSERT_FLOAT_EQ(mesh.volume(), 6.0392089f);
-  ASSERT_FLOAT_EQ(unitbox().volume(), 1.f);
+  REQUIRE(Catch::Approx(mesh.volume()) == 6.0392089f);
+  REQUIRE(Catch::Approx(unitbox().volume()) == 1.f);
 }
 
-TEST(Mesh, ClippedWithPlane)  // NOLINT
+TEST_CASE("Mesh - ClippedWithPlane", "[mesh][clipping]")  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
   auto clipped = mesh.clippedWithPlane(
     gal::Plane(glm::vec3 {.5f, .241f, .5f}, glm::vec3 {.5f, .638f, 1.f}));
-  ASSERT_FLOAT_EQ(clipped.area(), 3.4405894f);
-  ASSERT_FLOAT_EQ(clipped.volume(), 0.f);
+  REQUIRE(Catch::Approx(clipped.area()) == 3.4405894f);
+  REQUIRE(Catch::Approx(clipped.volume()) == 0.f);
 }
 
-TEST(Mesh, RectangleMesh)  // NOLINT
+TEST_CASE("Mesh - RectangleMesh", "[mesh][rectangle]")  // NOLINT
 {
   gal::Plane plane({0.f, 0.f, 0.f}, {1.f, 1.f, 0.f});
   auto rect = gal::makeRectangularMesh(plane, gal::Box2({0.f, 0.f}, {15.f, 12.f}), 1.f);
-  ASSERT_EQ(180.f, rect.area());
-  ASSERT_EQ(360, rect.n_faces());
-  ASSERT_EQ(208, rect.n_vertices());
+  REQUIRE(180.f == rect.area());
+  REQUIRE(360 == rect.n_faces());
+  REQUIRE(208 == rect.n_vertices());
 }
 
-TEST(Mesh, Centroid)  // NOLINT
+TEST_CASE("Mesh - Centroid", "[mesh][centroid]")  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny_large.obj", true);
-  ASSERT_NEAR(
-    glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()), 0.f, 1e-6);
+  REQUIRE(
+    Catch::Approx(glm::distance({-0.533199f, -0.179856f, 0.898604f}, mesh.centroid()))
+      .margin(1e-6) == 0.f);
 }
 
-TEST(Mesh, SphereQuery)  // NOLINT
+TEST_CASE("Mesh - SphereQuery", "[mesh][query]")  // NOLINT
 {
   auto mesh = gal::TriMesh::loadFromFile(GAL_ASSET_DIR / "bunny.obj", true);
   mesh.transform(glm::scale(glm::vec3(10.f)));
@@ -120,5 +120,5 @@ TEST(Mesh, SphereQuery)  // NOLINT
   std::vector<int> indices;
   mesh.querySphere(sp, std::back_inserter(indices), gal::eMeshElement::face);
   auto smesh = mesh.subMesh(indices);
-  ASSERT_FLOAT_EQ(smesh.area(), 0.44368880987167358);
+  REQUIRE(Catch::Approx(smesh.area()) == 0.44368880987167358);
 }

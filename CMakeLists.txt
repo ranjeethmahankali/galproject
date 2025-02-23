@@ -7,6 +7,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(vcpkg.cmake)
 project(gal)
 
+if (WIN32)
+  add_compile_definitions(_USE_MATH_DEFINES NOMINMAX)
+endif()
+
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/$<CONFIG>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
+
 find_package(PythonLibs REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
@@ -27,8 +36,6 @@ add_compile_definitions(OM_STATIC_BUILD)
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
-include(GoogleTest)
-find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 add_subdirectory(galcore)

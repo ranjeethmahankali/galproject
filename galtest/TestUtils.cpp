@@ -1,3 +1,4 @@
+#define CATCH_CONFIG_MAIN
 #include <Functions.h>
 #include <TestUtils.h>
 
