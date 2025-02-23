@@ -48,6 +48,20 @@ jobs:
         sh vcpkg/bootstrap-vcpkg.sh
         fi
 
+    - name: Cache Vcpkg Packages
+      if: always()
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-vcpkg
+      with:
+        path: |
+          ${{github.workspace}}/vcpkg/
+          ${{github.workspace}}/build/vcpkg_installed/
+          !${{github.workspace}}/vcpkg/buildtrees
+          !${{github.workspace}}/vcpkg/packages
+          !${{github.workspace}}/vcpkg/downloads
+        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
+
     - name: Build
       working-directory: ${{github.workspace}}
       run: |
@@ -57,92 +71,6 @@ jobs:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
         CC: gcc-11
         CXX: g++-11
-
-    - name: Cache Vcpkg Packages
-      if: always()
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-vcpkg
-      with:
-        path: |
-          ${{github.workspace}}/vcpkg/
-          ${{github.workspace}}/build/vcpkg_installed/
-          !${{github.workspace}}/vcpkg/buildtrees
-          !${{github.workspace}}/vcpkg/packages
-          !${{github.workspace}}/vcpkg/downloads
-        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
-
-    - name: Run Unit Tests
-      working-directory: ${{github.workspace}}/build/galtest
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest . --rerun-failed --output-on-failure
-
-    - name: Run Python Tests
-      working-directory: ${{github.workspace}}/scripts
-      run: pytest -n 4
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: galproject-build
-        path: |
-          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/galview
-          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/pygalfunc.so
-          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/CascadiaMono.ttf
-          ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/*.glsl
-          ${{github.workspace}}/build/lib/${{env.BUILD_TYPE}}/setup.py
-        retention-days: 2
-  windows:
-    runs-on: windows-latest
-    env:
-      VCPKG_TARGET_TRIPLET: x64-windows-static
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.12
-
-    - name: Install Dependencies
-      run: |
-        python3 -m pip install --upgrade pip
-        pip3 install pytest-xdist
-
-    - name: Setup Vcpkg
-      working-directory: ${{github.workspace}}
-      run: |
-        if (-not (Test-Path "$env:GITHUB_WORKSPACE\vcpkg")) {
-        git clone https://github.com/microsoft/vcpkg.git
-        }
-        if (-not (Test-Path "$env:GITHUB_WORKSPACE\vcpkg\vcpkg")) {
-        & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
-        }
-
-    - name: Build
-      working-directory: ${{github.workspace}}
-      shell: cmd
-      run: |
-        build.bat ${{env.BUILD_TYPE}} ALL_BUILD
-        pip3 install -e build/lib/${{env.BUILD_TYPE}}
-      env:
-        VCPKG_PATH: ${{github.workspace}}/vcpkg
-
-    - name: Cache Vcpkg Packages
-      if: always()
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-vcpkg
-      with:
-        path: |
-          ${{github.workspace}}/vcpkg/
-          ${{github.workspace}}/build/vcpkg_installed/
-          !${{github.workspace}}/vcpkg/buildtrees
-          !${{github.workspace}}/vcpkg/packages
-          !${{github.workspace}}/vcpkg/downloads
-        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/build/galtest
