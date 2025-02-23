@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 add_compile_definitions(GAL_ASSET_DIR_STR="${PROJECT_SOURCE_DIR}/assets")
-enable_testing()
+find_package(Catch2 CONFIG REQUIRED)
 file (GLOB TEST_SRC "*.cpp")
 add_executable(galtest ${TEST_SRC})
 target_include_directories(galtest PRIVATE
@@ -11,14 +11,14 @@ target_include_directories(galtest PRIVATE
 target_link_libraries(galtest PRIVATE
     galcore
     galfunc
-    GTest::gmock
-    GTest::gtest
-    GTest::gmock_main
-    GTest::gtest_main)
+    Catch2::Catch2
+    Catch2::Catch2WithMain)
 
 if (WIN32)
   set_property(TARGET galtest PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-gtest_discover_tests(galtest WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+include(CTest)
+include(Catch)
+catch_discover_tests(galtest)

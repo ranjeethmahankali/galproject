@@ -36,8 +36,6 @@ add_compile_definitions(OM_STATIC_BUILD)
 # pngpp is a header only library
 find_path(PNGPP_INCLUDE_DIRS "png++/color.hpp")
 add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
-include(GoogleTest)
-find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 add_subdirectory(galcore)
