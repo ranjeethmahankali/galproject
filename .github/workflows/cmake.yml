@@ -133,11 +133,6 @@ jobs:
       env:
         VCPKG_TARGET_TRIPLET: x64-windows-static
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-      with:
-        vs-version: '[16.4,16.5)'
-
     - name: Build
       working-directory: ${{github.workspace}}
       shell: cmd
