@@ -240,9 +240,21 @@ private:
                          const ValIter& vend,
                          DepthIter&     dbegin,
                          py::list&      dst,
-                         DepthT         cdepth = 1)
+                         DepthT         rdepth = 1)
   {
-    if (*dbegin == cdepth) {
+    /*
+     * rdepth represents the depth of the receiving dst list, i.e. the right hand side. It
+     * is 1 by default, because just by creating a py::list, the caller created a first
+     * order list. We keep creating nested lists, and keep recursing deeper, incrementing
+     * rdepth by 1 each time (see `rdepth + 1` being passed into the recursive call).
+     * Until the rdepth matches the depth of the data being copied. When these two depths
+     * are equal, that means the nesting of the python lists matched the nesting indicated
+     * by the tree data. When that happens we push individual items into the python list.
+     * This is the terminal case of recursion, i.e. we don't recurse any deeper after
+     * that. The iterations continue nesting as many python lists as required, by taking
+     * into account `rdepth` and the depth of the tree data.
+     */
+    if (*dbegin == rdepth) {
       do {
         py::object obj;
         assignLeaf(*vbegin, obj);
@@ -251,13 +263,13 @@ private:
         ++vbegin;
       } while (*dbegin == 0 && vbegin != vend);
     }
-    else if (*dbegin > cdepth) {
-      DepthT const dcurrent = (*dbegin) - cdepth;
+    else if (*dbegin > rdepth) {
+      DepthT const dcurrent = (*dbegin) - rdepth;
       do {
         py::list lst;
-        copyValues(vbegin, vend, dbegin, lst, cdepth + 1);
+        copyValues(vbegin, vend, dbegin, lst, rdepth + 1);
         dst.append(lst);
-        cdepth = 0;
+        rdepth = 0;
       } while (*dbegin == dcurrent && vbegin != vend);
     }
   }
