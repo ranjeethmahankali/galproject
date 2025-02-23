@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/Debug/galtest",
       "args": [
-        "--gtest_filter=<test filter here>"
+        "[filter][here]"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
