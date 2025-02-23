@@ -17,6 +17,8 @@ env:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    env:
+      VCPKG_TARGET_TRIPLET: x64-linux
 
     steps:
     - uses: actions/checkout@v4
@@ -58,8 +60,6 @@ jobs:
         if [ ! -f "${{github.workspace}}/vcpkg/vcpkg" ]; then
         sh vcpkg/bootstrap-vcpkg.sh
         fi
-      env:
-        VCPKG_TARGET_TRIPLET: x64-linux
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -94,6 +94,8 @@ jobs:
         retention-days: 2
   windows:
     runs-on: windows-latest
+    env:
+      VCPKG_TARGET_TRIPLET: x64-windows-static
 
     steps:
     - uses: actions/checkout@v4
@@ -109,6 +111,7 @@ jobs:
         pip3 install pytest-xdist
 
     - name: Cache Vcpkg Packages
+      if: always()
       uses: actions/cache@v3
       env:
         cache-name: cache-vcpkg
@@ -130,8 +133,6 @@ jobs:
         if (-not (Test-Path "$env:GITHUB_WORKSPACE\vcpkg\vcpkg")) {
         & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
         }
-      env:
-        VCPKG_TARGET_TRIPLET: x64-windows-static
 
     - name: Build
       working-directory: ${{github.workspace}}
