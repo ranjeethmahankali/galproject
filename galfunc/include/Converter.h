@@ -252,13 +252,13 @@ private:
       } while (*dbegin == 0 && vbegin != vend);
     }
     else if (*dbegin > cdepth) {
-      DepthT dcurrent = (*dbegin) - cdepth;
+      DepthT const dcurrent = (*dbegin) - cdepth;
       do {
         py::list lst;
         copyValues(vbegin, vend, dbegin, lst, cdepth + 1);
         dst.append(lst);
         cdepth = 0;
-      } while (*dbegin == dcurrent);
+      } while (*dbegin == dcurrent && vbegin != vend);
     }
   }
 

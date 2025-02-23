@@ -194,36 +194,12 @@ TEST_CASE("Data - TreeConversion", "[data][conversion]")  // NOLINT
 {
   gal::test::initPythonEnv();
   auto tree = testTree();
-
-  std::cout << "Tree is: \n" << tree << std::endl << "===========\n";
-
   // Convert tree to a jagged python list.
   py::list lst;
   gal::func::Converter<decltype(tree), py::object>::assign(tree, lst);
   // Convert python jagged list to a cpp jagged vector.
   std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
   gal::func::Converter<py::list, decltype(jagged)>::assign(lst, jagged);
-
-  for (auto v4 : jagged) {
-    std::cout << "[";
-    for (auto v3 : v4) {
-      std::cout << "[";
-      for (auto v2 : v3) {
-        std::cout << "[";
-        for (auto v1 : v2) {
-          std::cout << "[";
-          for (auto v0 : v1) {
-            std::cout << v0 << ", ";
-          }
-          std::cout << "], ";
-        }
-        std::cout << "], ";
-      }
-      std::cout << "], ";
-    }
-    std::cout << "], ";
-  }
-
   int i = 0;
   REQUIRE(jagged.size() == 2);
   for (auto v4 : jagged) {
@@ -242,8 +218,8 @@ TEST_CASE("Data - TreeConversion", "[data][conversion]")  // NOLINT
     }
   }
   REQUIRE(i == 32);
-
-  decltype(tree) tree2;
+  // Convert it back into a second tree and compare.
+  Tree<int> tree2;
   gal::func::Converter<py::object, decltype(tree)>::assign(lst, tree2);
   i = 0;
   gal::func::data::ReadView<int, 5> v5(tree2);
