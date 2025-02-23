@@ -1,4 +1,6 @@
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
+
+#include <catch2/catch_test_macros.hpp>
 #include <glm/glm.hpp>
 #include <numeric>
 
@@ -14,24 +16,24 @@ static Tree<int> testTree()
 {
   Tree<int> tree;
   tree.reserve(32);
-  for (size_t i = 0; i < 32; i++) {
-    auto d = DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i))));
+  for (uint64_t i = 0; i < 32; i++) {
+    auto d = DepthT(std::min(uint64_t(5), uint64_t(gal::utils::bitscanForward(i))));
     tree.push_back(d, int(i));
   }
 
   return tree;
 }
 
-TEST(Data, CreateTree)  // NOLINT
+TEST_CASE("Data - CreateTree", "[tree][create]")  // NOLINT
 {
   auto tree = testTree();
-  for (size_t i = 0; i < tree.size(); i++) {
-    ASSERT_EQ(tree.depth(i),
-              DepthT(std::min(size_t(5), size_t(gal::utils::bitscanForward(i)))));
+  for (uint64_t i = 0; i < tree.size(); i++) {
+    REQUIRE(tree.depth(i) ==
+            DepthT(std::min(uint64_t(5), uint64_t(gal::utils::bitscanForward(i)))));
   }
 }
 
-TEST(Data, ViewIterators)  // NOLINT
+TEST_CASE("Data - ViewIterators", "[tree][iterators]")  // NOLINT
 {
   auto tree = testTree();
   int  i    = 0;
@@ -41,14 +43,14 @@ TEST(Data, ViewIterators)  // NOLINT
       for (auto v2 : v3) {
         for (auto v1 : v2) {
           for (auto v0 : v1) {
-            ASSERT_EQ(v0, i++);
+            REQUIRE(v0 == i++);
           }
         }
       }
     }
   }
 
-  ASSERT_EQ(tree.size(), size_t(i));
+  REQUIRE(tree.size() == size_t(i));
 
   i       = 0;
   auto v4 = ReadView<int, 4>(tree);
@@ -56,13 +58,13 @@ TEST(Data, ViewIterators)  // NOLINT
     for (auto v2 : v3) {
       for (auto v1 : v2) {
         for (auto v0 : v1) {
-          ASSERT_EQ(v0, i++);
+          REQUIRE(v0 == i++);
         }
       }
     }
   }
 
-  ASSERT_EQ(i, 16);
+  REQUIRE(i == 16);
 
   int outer = 0;
   i         = 0;
@@ -71,18 +73,18 @@ TEST(Data, ViewIterators)  // NOLINT
     for (auto v2 : v3) {
       for (auto v1 : v2) {
         for (auto v0 : v1) {
-          ASSERT_EQ(v0, i++);
+          REQUIRE(v0 == i++);
         }
       }
     }
-    ASSERT_EQ(i, 8 * outer);
+    REQUIRE(i == 8 * outer);
     if (!v3.tryAdvance()) {
       break;
     }
   }
 }
 
-TEST(Data, ReadPerformance)  // NOLINT
+TEST_CASE("Data - ReadPerformance", "[data][perf]")  // NOLINT
 {
   static constexpr size_t nPoints = 100000;
   static constexpr size_t nL2Size = 10000;
@@ -103,8 +105,8 @@ TEST(Data, ReadPerformance)  // NOLINT
     }
   }
 
-  ASSERT_EQ(tree.size(), nPoints);
-  ASSERT_EQ(tree.maxDepth(), 3);
+  REQUIRE(tree.size() == nPoints);
+  REQUIRE(tree.maxDepth() == 3);
 
   ReadView<glm::vec3, 3> view(tree);
 
@@ -130,7 +132,7 @@ TEST(Data, ReadPerformance)  // NOLINT
     }
   }
 
-  ASSERT_EQ(sum1, sum2);
+  REQUIRE(sum1 == sum2);
 
   std::cout << "Access time: " << accessTime.count() << " ns\n";
   std::cout << "Control time: " << controlTime.count() << " ns\n";
@@ -138,7 +140,7 @@ TEST(Data, ReadPerformance)  // NOLINT
             << std::endl;
 }
 
-TEST(Data, WritePerformance)  // NOLINT
+TEST_CASE("Data - WritePerformance", "[data][perf]")  // NOLINT
 {
   static constexpr size_t nPoints = 100000;
   static constexpr size_t nL2Size = 10000;
@@ -167,7 +169,7 @@ TEST(Data, WritePerformance)  // NOLINT
         }
       }
     }
-    ASSERT_EQ(tree.values(), points);
+    REQUIRE(tree.values() == points);
   }
 
   std::chrono::nanoseconds controlTime;
@@ -179,7 +181,7 @@ TEST(Data, WritePerformance)  // NOLINT
       dstVec.reserve(points.size());
       std::copy(points.begin(), points.end(), std::back_inserter(dstVec));
     }
-    ASSERT_EQ(tree.values(), points);
+    REQUIRE(tree.values() == points);
   }
 
   std::cout << "Write time: " << writeTime.count() << " ns\n";
@@ -188,7 +190,7 @@ TEST(Data, WritePerformance)  // NOLINT
             << std::endl;
 }
 
-TEST(Data, TreeConversion)  // NOLINT
+TEST_CASE("Data - TreeConversion", "[data][conversion]")  // NOLINT
 {
   gal::test::initPythonEnv();
   auto tree = testTree();
@@ -198,45 +200,44 @@ TEST(Data, TreeConversion)  // NOLINT
   // Convert python jagged list to a cpp jagged vector.
   std::vector<std::vector<std::vector<std::vector<std::vector<int>>>>> jagged;
   gal::func::Converter<py::list, decltype(jagged)>::assign(lst, jagged);
-
   int i = 0;
-  ASSERT_EQ(jagged.size(), 2);
+  REQUIRE(jagged.size() == 2);
   for (auto v4 : jagged) {
-    ASSERT_EQ(v4.size(), 2);
+    REQUIRE(v4.size() == 2);
     for (auto v3 : v4) {
-      ASSERT_EQ(v3.size(), 2);
+      REQUIRE(v3.size() == 2);
       for (auto v2 : v3) {
-        ASSERT_EQ(v4.size(), 2);
+        REQUIRE(v4.size() == 2);
         for (auto v1 : v2) {
-          ASSERT_EQ(v1.size(), 2);
+          REQUIRE(v1.size() == 2);
           for (int v0 : v1) {
-            ASSERT_EQ(v0, i++);
+            REQUIRE(v0 == i++);
           }
         }
       }
     }
   }
-  ASSERT_EQ(i, 32);
-
-  decltype(tree) tree2;
+  REQUIRE(i == 32);
+  // Convert it back into a second tree and compare.
+  Tree<int> tree2;
   gal::func::Converter<py::object, decltype(tree)>::assign(lst, tree2);
   i = 0;
   gal::func::data::ReadView<int, 5> v5(tree2);
-  ASSERT_EQ(v5.size(), 2);
+  REQUIRE(v5.size() == 2);
   for (auto v4 : v5) {
-    ASSERT_EQ(v4.size(), 2);
+    REQUIRE(v4.size() == 2);
     for (auto v3 : v4) {
-      ASSERT_EQ(v3.size(), 2);
+      REQUIRE(v3.size() == 2);
       for (auto v2 : v3) {
-        ASSERT_EQ(v4.size(), 2);
+        REQUIRE(v4.size() == 2);
         for (auto v1 : v2) {
-          ASSERT_EQ(v1.size(), 2);
+          REQUIRE(v1.size() == 2);
           for (int v0 : v1) {
-            ASSERT_EQ(v0, i++);
+            REQUIRE(v0 == i++);
           }
         }
       }
     }
   }
-  ASSERT_EQ(i, 32);
+  REQUIRE(i == 32);
 }

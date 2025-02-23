@@ -1,17 +1,17 @@
+#include <catch2/catch_all.hpp>
+
+#include <Util.h>
+#include <array>
 #include <iostream>
 #include <numeric>
 
-#include <gtest/gtest.h>
-
-#include <Util.h>
-
 using namespace gal::utils;
 
-TEST(Util, Combinations)  // NOLINT
+TEST_CASE("Util - Combinations", "[util][combinations]")  // NOLINT
 {
-  ASSERT_EQ(numCombinations(15, 4), 1365);
-  ASSERT_EQ(numCombinations(21, 1), 21);
-  ASSERT_EQ(numCombinations(21, 20), 21);
+  REQUIRE(numCombinations(15, 4) == 1365);
+  REQUIRE(numCombinations(21, 1) == 21);
+  REQUIRE(numCombinations(21, 20) == 21);
 
   static constexpr size_t                                 n         = 10;
   static constexpr size_t                                 k         = 3;
@@ -43,8 +43,18 @@ TEST(Util, Combinations)  // NOLINT
   auto                  expIt = sExpected.begin();
   combinations(k, nums.begin(), nums.end(), comb.begin(), [&comb, &count, &expIt]() {
     count++;
-    ASSERT_EQ(comb, *(expIt++));
+    REQUIRE(comb == *(expIt++));
   });
 
-  ASSERT_EQ(count, numCombinations(n, k));
+  REQUIRE(count == numCombinations(n, k));
+}
+
+TEST_CASE("Util - Bitscan", "[util][bitscan]")  // NOLINT
+{
+  // 32 bit integers.
+  REQUIRE(21 == bitscanForward(uint32_t(1 << 21)));
+  REQUIRE(-1 == bitscanForward(uint32_t(0)));
+  // 64 bit integers.
+  REQUIRE(21 == bitscanForward(uint64_t(1 << 21)));
+  REQUIRE(-1 == bitscanForward(uint64_t(0)));
 }

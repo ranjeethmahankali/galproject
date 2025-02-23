@@ -5,9 +5,9 @@
       "name": "galtest-debug",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/Debug/galtest/galtest",
+      "program": "${workspaceFolder}/build/bin/Debug/galtest",
       "args": [
-        "--gtest_filter=<test filter here>"
+        "[filter][here]"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -27,7 +27,7 @@
       "name": "galview-debug",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/Debug/galview/galview",
+      "program": "${workspaceFolder}/build/bin/Debug/galview",
       "args": [
         "demos/meshView.py"
       ],
@@ -65,7 +65,7 @@
           "ignoreFailures": true
         }
       ],
-      "dap-compilation": "${workspaceFolder}/build.sh Debug pygalfunc && pip3 install -e ${workspaceFolder}/Debug/galfunc"
+      "dap-compilation": "${workspaceFolder}/build.sh Debug pygalfunc && pip3 install -e ${workspaceFolder}/build/lib/Debug/"
     }
   ]
 }

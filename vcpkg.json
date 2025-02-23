@@ -17,7 +17,7 @@
         "opengl3-binding"
       ]
     },
-    "gtest",
+    "catch2",
     "freetype",
     "tbb",
     "pngpp",

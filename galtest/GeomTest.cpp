@@ -1,6 +1,4 @@
-#include <gtest/gtest.h>
-
-#include <glm/glm.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <Annotations.h>
 #include <Circle2d.h>
@@ -8,10 +6,12 @@
 #include <Sphere.h>
 #include <TestUtils.h>
 #include <Util.h>
+#include <catch2/catch_test_macros.hpp>
+#include <glm/glm.hpp>
 
 static constexpr float TOLERANCE = 0.0001f;
 
-TEST(Circle2d, MinBoundingCircle)  // NOLINT
+TEST_CASE("Circle2d - MinBoundingCircle", "[geom][circle-2d]")  // NOLINT
 {
   const static std::vector<std::vector<glm::vec2>> pointSets {{
                                                                 {0.f, 0.f},
@@ -34,7 +34,7 @@ TEST(Circle2d, MinBoundingCircle)  // NOLINT
     auto circ  = gal::Circle2d::minBoundingCircle(points);
 
     for (const auto& pt : points) {
-      ASSERT_TRUE(circ.contains(pt, TOLERANCE));
+      REQUIRE(circ.contains(pt, TOLERANCE));
     }
   }
 
@@ -45,17 +45,17 @@ TEST(Circle2d, MinBoundingCircle)  // NOLINT
 
   auto circ = gal::Circle2d::minBoundingCircle(randPts);
   for (const auto& pt : randPts) {
-    ASSERT_TRUE(circ.contains(pt, TOLERANCE));
+    REQUIRE(circ.contains(pt, TOLERANCE));
   }
 }
 
-TEST(Sphere, MinBoundingSphere)  // NOLINT
+TEST_CASE("Sphere - MinBoundingSphere", "[geom][sphere]")  // NOLINT
 {
   const static std::vector<glm::vec3> points {
     {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f, 0.f}};
 
   auto sp = gal::Sphere::minBoundingSphere(points);
   for (const auto& pt : points) {
-    ASSERT_TRUE(sp.contains(pt, TOLERANCE));
+    REQUIRE(sp.contains(pt, TOLERANCE));
   }
 }
