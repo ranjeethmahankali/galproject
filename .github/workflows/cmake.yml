@@ -39,6 +39,7 @@ jobs:
         pip3 install pytest-xdist
 
     - name: Cache Vcpkg Packages
+      if: always()
       uses: actions/cache@v3
       env:
         cache-name: cache-vcpkg
