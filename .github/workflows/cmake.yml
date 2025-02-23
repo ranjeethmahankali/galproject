@@ -111,20 +111,6 @@ jobs:
         python3 -m pip install --upgrade pip
         pip3 install pytest-xdist
 
-    - name: Cache Vcpkg Packages
-      if: always()
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-vcpkg
-      with:
-        path: |
-          ${{github.workspace}}/vcpkg/
-          ${{github.workspace}}/build/vcpkg_installed/
-          !${{github.workspace}}/vcpkg/buildtrees
-          !${{github.workspace}}/vcpkg/packages
-          !${{github.workspace}}/vcpkg/downloads
-        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
-
     - name: Setup Vcpkg
       working-directory: ${{github.workspace}}
       run: |
@@ -143,6 +129,20 @@ jobs:
         pip3 install -e build/lib/${{env.BUILD_TYPE}}
       env:
         VCPKG_PATH: ${{github.workspace}}/vcpkg
+
+    - name: Cache Vcpkg Packages
+      if: always()
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-vcpkg
+      with:
+        path: |
+          ${{github.workspace}}/vcpkg/
+          ${{github.workspace}}/build/vcpkg_installed/
+          !${{github.workspace}}/vcpkg/buildtrees
+          !${{github.workspace}}/vcpkg/packages
+          !${{github.workspace}}/vcpkg/downloads
+        key: ${{runner.os}}-build-${{env.cache-name}}-${{hashFiles('**/vcpkg.json')}}
 
     - name: Run Unit Tests
       working-directory: ${{github.workspace}}/build/galtest
