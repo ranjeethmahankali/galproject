@@ -381,6 +381,16 @@ GAL_FUNC(scale_mesh_simple,  // NOLINT
           (float, scale, "Scaling factor, about the origin")),
          ((gal::TriMesh, outmesh, "Final mesh, after scaling")))
 {
+  outmesh = mesh;
+  outmesh.transform(glm::scale(glm::vec3(scale)));
+}
+
+GAL_FUNC(scale_mesh_animated,  // NOLINT
+         "Scale a mesh and animate the result with intermediate steps",
+         ((gal::TriMesh, mesh, "Mesh to scale"),
+          (float, scale, "Scaling factor, about the origin")),
+         ((gal::TriMesh, outmesh, "Final mesh, after scaling")))
+{
   using namespace std::chrono_literals;
   static gal::view::Drawable<gal::TriMesh>                sView {};
   static std::vector<gal::SafeInstanceType<gal::TriMesh>> sMesh {};
@@ -424,6 +434,7 @@ PYBIND11_MODULE(pygalview, pgv)  // NOLINT
   gal::func::typemanager::invoke<defOutputFuncs>(pgv);
 
   GAL_FN_BIND(scale_mesh_simple, pgv);
+  GAL_FN_BIND(scale_mesh_animated, pgv);
 
   // Text fields for string inputs
   GAL_DEF_PY_FN_DOC(textField, pgv, "Creates a text field with the given label.");
