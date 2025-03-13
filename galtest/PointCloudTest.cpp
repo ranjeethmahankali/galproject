@@ -2,7 +2,6 @@
 
 #include <Box.h>
 #include <PointCloud.h>
-#include <execution>
 
 using namespace gal;
 
@@ -36,8 +35,7 @@ TEST_CASE("PointCloud - KMeansClusters", "[point-cloud][k-means]")
   }
 
   for (size_t i = 0; i < nClusters; i++) {
-    size_t clusterSize =
-      std::count(std::execution::par_unseq, indices.begin(), indices.end(), i);
+    size_t clusterSize = std::count(indices.begin(), indices.end(), i);
     REQUIRE(clusterSize > 0);
   }
 }

@@ -44,6 +44,8 @@ int initViewer(GLFWwindow*& window, const std::string& filename)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  // Enable forward compatibility
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   std::string title = "galview - " + filename;
   window            = glfwCreateWindow(WIDTH, HEIGHT, title.c_str(), nullptr, nullptr);
   if (window == nullptr) {
@@ -83,7 +85,8 @@ int loadDemo(const fs::path& demoPath)
   int         err    = 0;
   GLFWwindow* window = nullptr;
   try {
-    if ((err = initViewer(window, demoPath.filename().string()))) {
+    err = initViewer(window, demoPath.filename().string());
+    if (err) {
       glutil::logger().error("Failed to initialize the viewer. Error code {}.", err);
       return err;
     }

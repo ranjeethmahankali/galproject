@@ -1,6 +1,5 @@
 #pragma once
 
-#include <execution>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -56,8 +55,7 @@ public:
         return;
       }
       mDepthScan.resize(tree.mDepths.size());
-      std::transform_exclusive_scan(std::execution::par,
-                                    tree.mDepths.begin(),
+      std::transform_exclusive_scan(tree.mDepths.begin(),
                                     tree.mDepths.end(),
                                     mDepthScan.begin(),
                                     size_t(0),
@@ -422,7 +420,7 @@ public:
     setReadMode();
   }
 
-  ReadView(ReadView&& other)
+  ReadView(ReadView&& other) noexcept
       : mTree(other.mTree)
       , mIndex(other.mIndex)
   {
@@ -442,7 +440,7 @@ public:
     return *this;
   }
 
-  ReadView& operator=(ReadView&& other)
+  ReadView& operator=(ReadView&& other) noexcept
   {
     releaseReadMode();
     mTree       = other.mTree;
@@ -470,7 +468,7 @@ public:
     if constexpr (Dim > 0) {
       size_t n = 0;
       size_t i = mIndex;
-      do {
+      do {  // NOLINT
         i += mTree->stride(i, Dim - 1);
         n++;
       } while (i < mTree->size() && mTree->depth(i) == Dim - 1);
@@ -535,7 +533,7 @@ struct Iterator
   using InternalStorageT              = typename Tree<T>::InternalStorageT;
   static constexpr bool IsPolymorphic = Tree<T>::IsPolymorphic;
 
-  const Tree<T>& mTree;
+  const Tree<T>& mTree;  // NOLINT
   size_t         mIndex;
 
 public:
@@ -688,7 +686,7 @@ public:
     this->setWriteMode();
   }
 
-  WriteView(WriteView&& other)
+  WriteView(WriteView&& other) noexcept
       : BaseT(other.mTree)
   {
     other.mTree = nullptr;
@@ -704,7 +702,7 @@ public:
     return *this;
   }
 
-  WriteView& operator=(WriteView&& other)
+  WriteView& operator=(WriteView&& other) noexcept
   {
     this->mTree = other.mTree;
     other.mTree = nullptr;
@@ -758,7 +756,7 @@ public:
     this->setWriteMode();
   }
 
-  WriteView(WriteView<T, 1>&& other)
+  WriteView(WriteView<T, 1>&& other) noexcept
       : BaseT(other.mTree)
       , mStart(other.mStart)
   {
@@ -776,7 +774,7 @@ public:
     return *this;
   }
 
-  WriteView<T, 1>& operator=(WriteView<T, 1>&& other)
+  WriteView<T, 1>& operator=(WriteView<T, 1>&& other) noexcept
   {
     this->mTree  = other.mTree;
     other.mTree  = nullptr;
@@ -970,7 +968,7 @@ private:
   TreeRefT     mTree;
   size_t       mIndex = 0;
   DepthT       mOffset;
-  const DepthT mArgDepth;
+  const DepthT mArgDepth;  // NOLINT
 
 public:
   CombiView(TreeRefT& tree, DepthT offset, DepthT argDepth)

@@ -43,8 +43,3 @@ add_custom_command(TARGET pygalfunc
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/scripts/setup.py
   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-# Install the python package so the latest bindings are available
-add_custom_command(TARGET pygalfunc
-  POST_BUILD
-  COMMAND pip3 install -e ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-)

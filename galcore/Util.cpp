@@ -1,11 +1,9 @@
-#include <cmath>
 #include <filesystem>
 #include <string>
 
 #ifdef _MSC_VER
 #include <Shlwapi.h>
 #else
-#include <linux/limits.h>
 #include <unistd.h>
 #define MAX_PATH PATH_MAX
 #endif
