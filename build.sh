@@ -10,9 +10,20 @@ echo "Generating compilation commands..."
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=$CONFIG ..
 cp ./compile_commands.json ../
 
-# Use all available logical cores
-nthreads=$(nproc)
-if [ "$nthreads" -lt 1 ]; then
+# Detect number of CPU cores in a cross-platform way
+if [ "$(uname)" = "Darwin" ]; then
+    # macOS uses sysctl to get CPU information
+    nthreads=$(sysctl -n hw.ncpu)
+elif [ "$(uname)" = "Linux" ]; then
+    # Linux systems typically have nproc
+    nthreads=$(nproc)
+else
+    # Fallback for other systems
+    nthreads=4
+fi
+
+# Ensure we have a valid number
+if [ -z "$nthreads" ] || [ "$nthreads" -lt 1 ]; then
     nthreads=1
 fi
 

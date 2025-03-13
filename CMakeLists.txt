@@ -11,6 +11,19 @@ if (WIN32)
   add_compile_definitions(_USE_MATH_DEFINES NOMINMAX)
 endif()
 
+if(APPLE)
+  # Detect the current macOS version
+  execute_process(
+    COMMAND sw_vers -productVersion
+    OUTPUT_VARIABLE MACOS_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  # Set the deployment target to the current OS version
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "${MACOS_VERSION}")
+  message(STATUS
+    "Setting macOS deployment target to current system version: ${MACOS_VERSION}")
+endif()
+
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)

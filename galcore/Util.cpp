@@ -38,33 +38,7 @@ spdlog::logger& logger()
  */
 fs::path absPath(const fs::path& relPath)
 {
-  std::string apath(MAX_PATH, '\0');
-#ifdef _MSC_VER
-  HMODULE binary = NULL;
-  int     ret    = 0;
-  /*First get the handle to this DLL by passing in a pointer to any function inside this
-   * dll (cast to a char pointer).*/
-  if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          (char*)&absPath,
-                          &binary)) {
-    /*If we fail to get this handle, NULL will be used as the module, this means
-    GetModuleFileNameA will assume we are asking about the current executable. This is
-    harmless for our application because this dll is right next to our application. But
-    this will
-    cause the unit tests to fail because the executable in that case is not our
-    application.*/
-    ret = GetLastError();
-  }
-  GetModuleFileNameA(binary, apath.data(), (DWORD)MAX_PATH);
-#else
-  size_t count = readlink("/proc/self/exe", apath.data(), PATH_MAX);
-  if (count == -1) {
-    throw "Cannot find absolute path";
-  }
-  apath.erase(apath.begin() + int64_t(count), apath.end());
-#endif
-  return fs::path(apath).parent_path() / relPath;
+  return fs::absolute(relPath);
 }
 
 int bitscanForward(uint32_t i)

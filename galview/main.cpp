@@ -129,29 +129,37 @@ int loadDemo(const fs::path& demoPath)
 
 int main(int argc, char** argv)
 {
-  cxxopts::Options opts("galview", "Visualize the gal demos written in python");
-  fs::path         path;
-  // clang-format off
+  try {
+    cxxopts::Options opts("galview", "Visualize the gal demos written in python");
+    fs::path         path;
+    // clang-format off
   opts
     .allow_unrecognised_options()
     .add_options()
     ("help", "Print help")
     ("filepath", "Path to the demo file", cxxopts::value<fs::path>(path), "<filepath>");
-  // clang-format on
-  opts.positional_help("<path/to/demo/file>");
-  opts.parse_positional({"filepath"});
-  auto parsed = opts.parse(argc, argv);
-  if (parsed.count("help")) {
-    std::cout << opts.help() << std::endl;
-    return 0;
+    // clang-format on
+    opts.positional_help("<path/to/demo/file>");
+    opts.parse_positional({"filepath"});
+    auto parsed = opts.parse(argc, argv);
+    if (parsed.count("help")) {
+      std::cout << opts.help() << std::endl;
+      return 0;
+    }
+    if (parsed.count("filepath") == 0) {
+      std::cerr << "Please provide the path to the demo file.\n";
+      return 1;
+    }
+    if (!fs::is_regular_file(path) || !fs::exists(path)) {
+      std::cerr << "The given path does not point to a an existing file.\n";
+      return 1;
+    }
+    return loadDemo(path);
   }
-  if (parsed.count("filepath") == 0) {
-    std::cerr << "Please provide the path to the demo file.\n";
-    return 1;
+  catch (const char* err) {
+    std::cout << "Exception of type const char*: " << err << std::endl;
   }
-  if (!fs::is_regular_file(path) || !fs::exists(path)) {
-    std::cerr << "The given path does not point to a an existing file.\n";
-    return 1;
+  catch (std::exception& e) {
+    std::cout << "Exception: " << e.what() << std::endl;
   }
-  return loadDemo(path);
 }
